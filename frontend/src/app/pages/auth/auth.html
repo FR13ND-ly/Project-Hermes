@@ -1,1 +1,87 @@
-<p>auth works!</p>
+<div class="auth-container">
+  
+  <div class="auth-card">
+    
+
+<div class="mascot-container">
+  <div class="mascot" [ngClass]="mascotState">
+    <div class="mascot-head">
+
+      <div class="mascot-eyes">
+        <div class="eye left-eye"><div class="pupil"></div></div>
+        <div class="eye right-eye"><div class="pupil"></div></div>
+      </div>
+
+      <div class="mascot-mouth"></div>
+
+      <div class="mascot-hands">
+        <div class="hand left-hand"></div>
+        <div class="hand right-hand"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+    <div class="brand-header">
+      <h2>HERMES</h2>
+      <p>Ready to power up!</p>
+    </div>
+    
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+
+      <div class="form-group">
+        <label for="email">User name / Email</label>
+        <div class="input-wrapper">
+          <input 
+            type="email" 
+            id="email" 
+            formControlName="email" 
+            placeholder="pilot@hermes.io"
+            (focus)="setMascotState('typing')" 
+            (blur)="setMascotState('idle')">
+        </div>
+        
+        <div *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched" class="error-msg">
+          <small *ngIf="loginForm.get('email')?.errors?.['required']">Email required</small>
+          <small *ngIf="loginForm.get('email')?.errors?.['email']">Invalid email</small>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrapper">
+          <input 
+            [type]="isPasswordVisible ? 'text' : 'password'" 
+            id="password" 
+            formControlName="password" 
+            placeholder="••••••••"
+            (focus)="setMascotState('covering')" 
+            (blur)="setMascotState('idle')">
+
+            <button type="button" class="toggle-password" (click)="togglePasswordVisibility()" title="Show/Hide Password">
+              {{ isPasswordVisible ? '🔓' : '🔒' }}
+            </button>
+        </div>
+          
+        <div *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" class="error-msg">
+          <small *ngIf="loginForm.get('password')?.errors?.['required']">Password required.</small>
+          <small *ngIf="loginForm.get('password')?.errors?.['minlength']">Password must be at least 6 characters long</small>
+        </div>
+      </div>
+
+      <button type="submit" [disabled]="loginForm.invalid" class="submit-btn" [class.ready]="loginForm.valid">
+    
+        <span *ngIf="loginForm.invalid">
+          Login... 
+        </span>
+
+        <span *ngIf="loginForm.valid" class="ready-text">
+          Yey! You can login now =)
+        </span>
+      </button>
+      
+    </form>
+  </div>
+</div>
