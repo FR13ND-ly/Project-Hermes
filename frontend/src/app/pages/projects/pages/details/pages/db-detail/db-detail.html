@@ -1,0 +1,520 @@
+<div class="space-y-6 animate-fade-in" *ngIf="db()">
+  
+  <!-- Back button & Header Info -->
+  <div class="flex flex-col gap-4 border-b border-zinc-900 pb-5">
+    <div class="flex items-center gap-2">
+      <a 
+        [routerLink]="['/projects', parent.projectId(), 'databases']"
+        class="flex items-center gap-1 text-[10px] uppercase font-bold text-zinc-550 hover:text-white transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3 h-3">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+        </svg>
+        Înapoi la Baze de Date
+      </a>
+    </div>
+
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="space-y-1">
+        <div class="flex items-center gap-3">
+          <h2 class="text-xl font-black text-white tracking-tight">{{ db()?.name }}</h2>
+          <span 
+            class="px-2 py-0.5 rounded text-[10px] font-bold border font-mono uppercase"
+            [ngClass]="{
+              'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': db()?.status === 'running',
+              'bg-orange-950/20 border-orange-900/30 text-orange-400': db()?.status === 'provisioning',
+              'bg-red-950/20 border-red-900/30 text-red-400': db()?.status === 'failed'
+            }"
+          >
+            {{ db()?.status === 'provisioning' ? 'constructing (' + (db()?.createdAt ? getLiveDuration(db()!.createdAt) : '0s') + ')' : db()?.status }}
+          </span>
+        </div>
+        <p class="text-[10px] font-mono text-zinc-500">ID Bază Date: {{ db()?.id }}</p>
+      </div>
+
+      <!-- Action tabs navigation -->
+      <nav class="flex items-center gap-1 border-b border-transparent md:border-none" aria-label="Database subpages">
+        <button 
+          (click)="switchTab('overview')"
+          class="px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border"
+          [ngClass]="activeSubTab() === 'overview' ? 'bg-white text-black border-white' : 'bg-transparent text-zinc-450 hover:text-white border-zinc-850'"
+        >
+          Prezentare Generală
+        </button>
+
+        <button 
+          (click)="switchTab('console')"
+          class="px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border"
+          [ngClass]="activeSubTab() === 'console' ? 'bg-white text-black border-white' : 'bg-transparent text-zinc-450 hover:text-white border-zinc-850'"
+        >
+          Consolă Interogări
+        </button>
+
+        <button 
+          (click)="switchTab('logs')"
+          class="px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border"
+          [ngClass]="activeSubTab() === 'logs' ? 'bg-white text-black border-white' : 'bg-transparent text-zinc-450 hover:text-white border-zinc-850'"
+        >
+          Logs Container (Stdout)
+        </button>
+
+        <button 
+          (click)="switchTab('backups')"
+          class="px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border"
+          [ngClass]="activeSubTab() === 'backups' ? 'bg-white text-black border-white' : 'bg-transparent text-zinc-450 hover:text-white border-zinc-850'"
+        >
+          Backup-uri
+        </button>
+ 
+        <button 
+          (click)="switchTab('settings')"
+          class="px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border"
+          [ngClass]="activeSubTab() === 'settings' ? 'bg-white text-black border-white' : 'bg-transparent text-zinc-450 hover:text-white border-zinc-850'"
+        >
+          Setări
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Main View Panels -->
+  
+  <!-- 1. OVERVIEW TAB PANEL -->
+  <div *ngIf="activeSubTab() === 'overview'" class="space-y-6 animate-fade-in">
+    
+    <!-- Specs Grid -->
+    <div class="grid gap-4 md:grid-cols-3">
+      <!-- Database technology -->
+      <div class="bg-[#0a0a0a] p-4.5 rounded-lg border border-zinc-800 shadow-sm flex items-center justify-between">
+        <div class="space-y-1">
+          <span class="text-[10px] text-zinc-550 uppercase font-mono tracking-wider">Tehnologie & Tip</span>
+          <div class="text-sm font-bold text-white uppercase">{{ db()?.type }}</div>
+        </div>
+        <div class="w-10 h-10 rounded bg-zinc-950 border border-zinc-850 flex items-center justify-center text-white font-mono font-black text-sm uppercase">
+          {{ db()?.type?.substring(0, 2) }}
+        </div>
+      </div>
+
+      <!-- Resource CPU -->
+      <div class="bg-[#0a0a0a] p-4.5 rounded-lg border border-zinc-800 shadow-sm flex items-center justify-between">
+        <div class="space-y-1">
+          <span class="text-[10px] text-zinc-550 uppercase font-mono tracking-wider">Limită CPU</span>
+          <div class="text-sm font-bold text-white font-mono">{{ db()?.cpuLimit || 0 }}m <span class="text-xs text-zinc-500 font-sans font-normal">(cores)</span></div>
+        </div>
+        <div class="text-zinc-500">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Resource Memory -->
+      <div class="bg-[#0a0a0a] p-4.5 rounded-lg border border-zinc-800 shadow-sm flex items-center justify-between">
+        <div class="space-y-1">
+          <span class="text-[10px] text-zinc-550 uppercase font-mono tracking-wider">Limită Memorie</span>
+          <div class="text-sm font-bold text-white font-mono">{{ db()?.memoryLimitMb || 0 }} MB</div>
+        </div>
+        <div class="text-zinc-500">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 20.25h12m-12-3h12m-12-3h12m-12-3h12m-12-3h12m-12-3h12M4.5 20.25h15" />
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cluster Routing Info -->
+    <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4">
+      <div class="border-b border-zinc-900 pb-2.5">
+        <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Rute & Networking Cluster</h3>
+      </div>
+      <div class="grid gap-4 md:grid-cols-2 text-xs font-mono">
+        <div class="space-y-1">
+          <span class="text-[9px] text-zinc-550 uppercase tracking-wider block">Nume Pod (StatefulSet)</span>
+          <div class="text-zinc-300 font-bold">{{ db()?.containerName }}-0</div>
+        </div>
+        <div class="space-y-1">
+          <span class="text-[9px] text-zinc-550 uppercase tracking-wider block">Serviciu DNS Intern (ClusterIP)</span>
+          <div class="text-zinc-300">{{ db()?.containerName }}</div>
+        </div>
+        <div class="space-y-1">
+          <span class="text-[9px] text-zinc-550 uppercase tracking-wider block">Port Intern</span>
+          <div class="text-zinc-300">{{ db()?.internalPort }}</div>
+        </div>
+        <div class="space-y-1">
+          <span class="text-[9px] text-zinc-550 uppercase tracking-wider block">Expunere LoadBalancer Externă</span>
+          <div class="text-zinc-300">
+            {{ db()?.isExternal ? 'DA pe portul public ' + db()?.externalPort : 'NU (Accesibil doar din interiorul rețelei clusterului)' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Credentials and Connection Panel -->
+    <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4">
+      <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+        <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Credențiale & Conectare</h3>
+        <button 
+          (click)="onRevealCredentials()"
+          class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer border border-zinc-800 transition-colors flex items-center gap-1.5"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-500">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          {{ credentialsRevealed() ? 'Ascunde Credențiale' : 'Afișează Credențiale' }}
+        </button>
+      </div>
+
+      <div *ngIf="credentialsRevealed()" class="space-y-4 animate-fade-in">
+        <!-- Connection String -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-[9px] text-zinc-550 uppercase font-mono tracking-wider font-semibold">
+            <span>DATABASE_URL Connection String</span>
+            <button 
+              (click)="copyToClipboard(connectionUrl() || '')"
+              class="text-white hover:underline cursor-pointer"
+            >
+              Copiază URL
+            </button>
+          </div>
+          <div class="p-3 rounded bg-black border border-zinc-900 font-mono text-xs text-emerald-400 select-all truncate">
+            {{ connectionUrl() }}
+          </div>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2 text-xs font-mono" *ngIf="db()?.type !== 'redis'">
+          <!-- Username -->
+          <div class="space-y-1">
+            <span class="text-[9px] text-zinc-550 uppercase tracking-wider font-semibold">Utilizator</span>
+            <div class="flex items-center justify-between p-2 rounded bg-black border border-zinc-900">
+              <span class="text-zinc-300 select-all">{{ databaseUser() }}</span>
+              <button (click)="copyToClipboard(databaseUser() || '')" class="text-zinc-500 hover:text-white">Copy</button>
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="space-y-1">
+            <span class="text-[9px] text-zinc-550 uppercase tracking-wider font-semibold">Parolă</span>
+            <div class="flex items-center justify-between p-2 rounded bg-black border border-zinc-900">
+              <span class="text-zinc-300 select-all">{{ databasePassword() }}</span>
+              <button (click)="copyToClipboard(databasePassword() || '')" class="text-zinc-500 hover:text-white">Copy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!credentialsRevealed()" class="flex flex-col items-center justify-center py-6 text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-zinc-650 mb-2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+        </svg>
+        <p class="text-xs text-zinc-550">Credențialele sunt stocate în mod securizat. Faceți click pe butonul de mai sus pentru a le decripta.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. CONSOLE TAB PANEL -->
+  <div *ngIf="activeSubTab() === 'console'" class="space-y-4 animate-fade-in">
+    <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 flex flex-col">
+      <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+        <div>
+          <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Consolă Interogări</h3>
+          <p class="text-[10px] text-zinc-500">Execută comenzi sau interogări direct pe instanța bazei tale de date.</p>
+        </div>
+        <button 
+          *ngIf="queryHistory().length > 0"
+          (click)="clearConsole()"
+          class="px-2.5 py-1 rounded bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-white text-[10px] font-bold border border-zinc-850 transition-colors"
+        >
+          Șterge Istoric
+        </button>
+      </div>
+
+      <!-- Quick Tips depending on DbType -->
+      <div class="p-3 rounded border border-zinc-900 bg-zinc-950/60 text-[10px] text-zinc-400 font-mono space-y-1">
+        <span class="font-bold text-zinc-300">Format comenzi acceptate:</span>
+        <div *ngIf="db()?.type === 'postgres'" class="text-emerald-400/90">
+          ✓ Tip: PostgreSQL SQL | Ex: <code class="text-white bg-black px-1 py-0.5 rounded">SELECT * FROM pg_catalog.pg_tables;</code> sau <code class="text-white bg-black px-1 py-0.5 rounded">SELECT version();</code>
+        </div>
+        <div *ngIf="db()?.type === 'mysql'" class="text-emerald-400/90">
+          ✓ Tip: MySQL SQL | Ex: <code class="text-white bg-black px-1 py-0.5 rounded">SHOW TABLES;</code> sau <code class="text-white bg-black px-1 py-0.5 rounded">SELECT 1;</code>
+        </div>
+        <div *ngIf="db()?.type === 'redis'" class="text-emerald-400/90">
+          ✓ Tip: Redis CLI | Ex: <code class="text-white bg-black px-1 py-0.5 rounded">PING</code>, <code class="text-white bg-black px-1 py-0.5 rounded">SET key val</code>, <code class="text-white bg-black px-1 py-0.5 rounded">GET key</code>, <code class="text-white bg-black px-1 py-0.5 rounded">KEYS *</code>
+        </div>
+        <div *ngIf="db()?.type === 'mongodb'" class="text-emerald-400/90">
+          ✓ Tip: MongoDB JS shell | Ex: <code class="text-white bg-black px-1 py-0.5 rounded">db.getCollectionNames()</code> sau <code class="text-white bg-black px-1 py-0.5 rounded">db.stats()</code>
+        </div>
+      </div>
+
+      <!-- Command input line -->
+      <div class="flex gap-2.5">
+        <input 
+          type="text" 
+          placeholder="Scrie comanda sau query-ul aici..."
+          [ngModel]="queryInput()"
+          (ngModelChange)="queryInput.set($event)"
+          (keyup.enter)="onRunQuery()"
+          [disabled]="queryLoading() || db()?.status !== 'running'"
+          class="flex-grow px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white font-mono focus:outline-none focus:border-zinc-500 transition-colors disabled:opacity-50"
+        />
+        <button 
+          (click)="onRunQuery()"
+          [disabled]="queryLoading() || !queryInput().trim() || db()?.status !== 'running'"
+          class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+        >
+          <span *ngIf="!queryLoading()">Execută</span>
+          <span *ngIf="queryLoading()" class="flex items-center gap-1">
+            <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Se rulează...
+          </span>
+        </button>
+      </div>
+      <p class="text-[9px] text-zinc-650" *ngIf="db()?.status !== 'running'">Baza de date trebuie să fie în starea 'running' pentru a putea rula interogări.</p>
+
+      <!-- Terminal output window (fixed height and scrollbar) -->
+      <div 
+        id="query-terminal-window" 
+        class="border border-zinc-900 rounded bg-black p-4 h-[350px] overflow-y-auto font-mono text-xs flex flex-col gap-4 scroll-container"
+      >
+        
+        <!-- Welcome terminal banner -->
+        <div class="text-zinc-550 border-b border-zinc-950 pb-2">
+          <p>HERMES DATABASE SHELL v1.0.0</p>
+          <p>Instanță: {{ db()?.containerName }}-0</p>
+          <p>Sesiune activă în sandbox. Comanda va rula securizat direct în container.</p>
+        </div>
+
+        <!-- Empty history state -->
+        <div *ngIf="queryHistory().length === 0" class="text-zinc-600 italic py-10 text-center">
+          Nicio comandă rulată în această sesiune. Introduceți o interogare în inputul de mai sus.
+        </div>
+
+        <!-- History items -->
+        @for (item of queryHistory(); track item.timestamp) {
+          <div class="space-y-1.5 border-b border-zinc-950 pb-3">
+            <div class="flex items-center justify-between text-[10px]">
+              <div class="flex items-center gap-1.5 font-bold">
+                <span class="text-zinc-550">></span>
+                <span class="text-zinc-350 select-all">{{ item.query }}</span>
+              </div>
+              <span class="text-zinc-600">{{ item.timestamp | date:'HH:mm:ss' }}</span>
+            </div>
+            
+            <pre 
+              class="p-2.5 rounded text-[11px] overflow-x-auto whitespace-pre select-text bg-zinc-950 border"
+              [ngClass]="item.isError ? 'border-red-900/35 text-red-400' : 'border-zinc-900 text-zinc-300'"
+            >{{ item.output || '(Niciun rezultat returnat)' }}</pre>
+          </div>
+        }
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. LOGS TAB PANEL (NEW stdout logs viewer) -->
+  <div *ngIf="activeSubTab() === 'logs'" class="space-y-4 animate-fade-in">
+    <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4">
+      <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+        <div>
+          <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Logs Container</h3>
+          <p class="text-[10px] text-zinc-550">Stdout în timp real al pod-ului Kubernetes.</p>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <label class="flex items-center gap-1.5 text-xs text-zinc-450 cursor-pointer select-none">
+            <input 
+              type="checkbox" 
+              [ngModel]="autoScroll()" 
+              (ngModelChange)="toggleAutoScroll()" 
+              class="w-3.5 h-3.5 bg-black rounded border-zinc-800 accent-white"
+            />
+            Autoscroll
+          </label>
+        </div>
+      </div>
+
+      <!-- Logs Window container (fixed height and scrollbar) -->
+      <div 
+        id="db-logs-window" 
+        class="bg-black border border-zinc-900 rounded p-4 h-[400px] overflow-y-auto font-mono text-[11px] text-zinc-350 space-y-1 select-text scroll-container"
+      >
+        @for (line of logs(); track $index) {
+          <div class="leading-relaxed hover:bg-zinc-950/60 px-1 rounded transition-colors whitespace-pre-wrap">{{ line }}</div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. SETTINGS TAB PANEL (Editable resource limits) -->
+  <div *ngIf="activeSubTab() === 'settings'" class="space-y-6 animate-fade-in">
+    <!-- Editable limits form -->
+    <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4">
+      <div class="border-b border-zinc-900 pb-2.5">
+        <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Redimensionare Resurse Fizice</h3>
+        <p class="text-[10px] text-zinc-550">Actualizează cota maximă de RAM și CPU alocată containerului de bază de date.</p>
+      </div>
+      
+      <div class="grid gap-6 md:grid-cols-2 pt-2">
+        <!-- CPU Limit -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs text-zinc-450">
+            <span class="uppercase tracking-wider font-semibold text-[10px]">CPU Limit</span>
+            <span class="text-white font-mono font-bold">{{ cpuLimit() }}m</span>
+          </div>
+          <input 
+            type="range" 
+            min="100" 
+            max="2000" 
+            step="50"
+            [ngModel]="cpuLimit()"
+            (ngModelChange)="cpuLimit.set($event)"
+            [disabled]="savingSettings()"
+            class="w-full h-1 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-white"
+          />
+          <p class="text-[9px] text-zinc-550 font-mono">Setare curentă: {{ db()?.cpuLimit }}m (millicores)</p>
+        </div>
+
+        <!-- RAM Limit -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs text-zinc-450">
+            <span class="uppercase tracking-wider font-semibold text-[10px]">RAM Limit</span>
+            <span class="text-white font-mono font-bold">{{ memLimit() }} MB</span>
+          </div>
+          <input 
+            type="range" 
+            min="128" 
+            max="4096" 
+            step="128"
+            [ngModel]="memLimit()"
+            (ngModelChange)="memLimit.set($event)"
+            [disabled]="savingSettings()"
+            class="w-full h-1 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-white"
+          />
+          <p class="text-[9px] text-zinc-550 font-mono">Setare curentă: {{ db()?.memoryLimitMb }} MB</p>
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-zinc-900 flex justify-end gap-3">
+        <button 
+          (click)="onSaveSettings()"
+          [disabled]="savingSettings() || (db()?.status === 'running' && cpuLimit() === db()?.cpuLimit && memLimit() === db()?.memoryLimitMb)"
+          class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+        >
+          <span *ngIf="!savingSettings()">Salvează Setări</span>
+          <span *ngIf="savingSettings()" class="flex items-center gap-1">
+            <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Se salvează...
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Danger Zone delete database -->
+    <div class="bg-[#0a0a0a] p-5 rounded-lg border border-red-900/20 bg-red-950/5 space-y-4">
+      <div class="border-b border-red-950/40 pb-2.5">
+        <h3 class="text-xs font-bold text-red-400 uppercase tracking-wider"> Danger Zone </h3>
+      </div>
+
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="space-y-1.5">
+          <h4 class="text-xs font-bold text-zinc-350">Șterge Baza de Date</h4>
+          <p class="text-xs text-zinc-550 max-w-md">Șterge definitiv instanța bazei de date și datele stocate. Această acțiune este ireversibilă.</p>
+        </div>
+
+        <button 
+          (click)="onDeleteDatabase()"
+          class="px-3.5 py-2 rounded bg-red-950/20 hover:bg-red-950/40 text-red-400 border border-red-900/30 hover:border-red-900/60 text-xs font-bold cursor-pointer transition-colors shrink-0"
+        >
+          Șterge Instanță Date
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. BACKUPS TAB PANEL -->
+  <div *ngIf="activeSubTab() === 'backups'" class="space-y-6 animate-fade-in">
+    <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
+        <div>
+          <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Copii de Siguranță</h3>
+          <p class="text-[10px] text-zinc-550">Administrați fișierele de backup pentru stocarea bazei de date.</p>
+        </div>
+        <button 
+          (click)="onCreateBackup()"
+          [disabled]="db()?.status !== 'running'"
+          class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Creează Backup
+        </button>
+      </div>
+
+      <!-- Loading / Empty states -->
+      <div *ngIf="loadingBackups()" class="flex flex-col items-center justify-center py-10">
+        <svg class="animate-spin h-6 w-6 text-zinc-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span class="text-xs text-zinc-550">Se încarcă backup-urile...</span>
+      </div>
+
+      <div *ngIf="!loadingBackups() && backups().length === 0" class="flex flex-col items-center justify-center py-10 text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-zinc-700 mb-2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+        </svg>
+        <p class="text-xs text-zinc-550">Nu există nicio copie de siguranță creată pentru această bază de date.</p>
+      </div>
+
+      <!-- Backup list table -->
+      <div *ngIf="!loadingBackups() && backups().length > 0" class="overflow-x-auto">
+        <table class="w-full border-collapse text-left text-xs">
+          <thead>
+            <tr class="border-b border-zinc-900 text-zinc-500 uppercase tracking-wider text-[10px] font-mono">
+              <th class="py-2.5 px-3">Fișier</th>
+              <th class="py-2.5 px-3">Dimensiune</th>
+              <th class="py-2.5 px-3">Status</th>
+              <th class="py-2.5 px-3">Creat la</th>
+              <th class="py-2.5 px-3 text-right">Acțiuni</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-zinc-900 text-zinc-300">
+            <tr *ngFor="let backup of backups()" class="hover:bg-zinc-950/40 transition-colors">
+              <td class="py-3 px-3 font-mono text-zinc-300 font-semibold">{{ backup.filename }}</td>
+              <td class="py-3 px-3 font-mono text-zinc-450">{{ (backup.fileSizeBytes / 1024 / 1024) | number:'1.2-2' }} MB</td>
+              <td class="py-3 px-3">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold border font-mono uppercase bg-emerald-950/20 border-emerald-900/30 text-emerald-400">
+                  {{ backup.status }}
+                </span>
+              </td>
+              <td class="py-3 px-3 text-zinc-450 font-mono">{{ backup.createdAt | date:'dd.MM.yyyy HH:mm:ss' }}</td>
+              <td class="py-3 px-3 text-right space-x-2">
+                <button 
+                  (click)="onRestoreBackup(backup)"
+                  [disabled]="db()?.status !== 'running'"
+                  class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-emerald-400 font-bold border border-zinc-800 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Restaurează
+                </button>
+                <button 
+                  (click)="onDeleteBackup(backup)"
+                  class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-red-400 font-bold border border-zinc-800 transition-colors cursor-pointer"
+                >
+                  Șterge
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>

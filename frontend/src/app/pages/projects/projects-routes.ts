@@ -16,11 +16,18 @@ import { List } from './pages/list/list';
             loadComponent: () => import('./pages/details/details').then(m => m.Details), 
             children: [
               { path: '', loadComponent: () => import('./pages/details/pages/overview/overview').then(m => m.Overview) },
+              { path: 'apps', loadComponent: () => import('./pages/details/pages/apps/apps').then(m => m.Apps) },
+              { path: 'apps/:appId', loadComponent: () => import('./pages/details/pages/app-detail/app-detail').then(m => m.AppDetailComponent) },
+              { path: 'auth-management', loadComponent: () => import('./pages/details/pages/auth-management/auth-management').then(m => m.AuthManagement) },
               { path: 'databases', loadComponent: () => import('./pages/details/pages/databases/databases').then(m => m.Databases) },
-              { path: 'deployements', loadComponent: () => import('./pages/details/pages/deployments/deployments').then(m => m.Deployments) },
+              { path: 'databases/:dbId', loadComponent: () => import('./pages/details/pages/db-detail/db-detail').then(m => m.DbDetailComponent) },
               { path: 'environments', loadComponent: () => import('./pages/details/pages/environments/environments').then(m => m.Environments) },
               { path: 'networking', loadComponent: () => import('./pages/details/pages/networking/networking').then(m => m.Networking) },
+              { path: 'settings', loadComponent: () => import('./pages/details/pages/settings/settings').then(m => m.Settings) },
               { path: 'storages', loadComponent: () => import('./pages/details/pages/storages/storages').then(m => m.Storages) },
+              { path: 'cron', loadComponent: () => import('./pages/details/pages/cron/cron').then(m => m.CronComponent) },
+              { path: 'serverless', loadComponent: () => import('./pages/details/pages/serverless/serverless').then(m => m.ServerlessComponent) },
+              { path: 'incidents', loadComponent: () => import('./pages/details/pages/incidents/incidents').then(m => m.Incidents) },
             ]
           },
         ]

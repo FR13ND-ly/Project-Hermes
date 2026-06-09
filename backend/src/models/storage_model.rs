@@ -1,0 +1,117 @@
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+use uuid::Uuid;
+use chrono::{DateTime, Utc};
+use std::collections::HashMap;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "bucket_access_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum BucketAccessType {
+    StaticWebsite,
+    PublicAssets,
+    PrivateStorage,
+    AppBounded,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "storage_status", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum StorageStatus {
+    PendingUpload,
+    Ready,
+    Processing,
+    Failed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "compression_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum CompressionType {
+    None,
+    Gzip,
+    Brotli,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum ImageFormatTarget {
+    Original,
+    Webp,
+    Avif,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageProcessingOptions {
+    pub convert_to: ImageFormatTarget,
+    pub quality: u8,
+    pub generate_variants: Vec<String>,
+    pub force_square: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct TextProcessingOptions {
+    pub pre_compress_brotli: bool,
+    pub pre_compress_gzip: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct BucketProcessingRules {
+    pub image_options: Option<ImageProcessingOptions>,
+    pub text_options: Option<TextProcessingOptions>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageVariant {
+    pub file_path: String,
+    pub size_bytes: i64,
+    pub dimensions: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct FileMetaData {
+    pub has_variants: bool,
+    pub original_extension: Option<String>,
+    pub variants: Option<HashMap<String, ImageVariant>>,
+    pub error_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
+pub struct StorageBucket {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub name: String,
+    pub slug: String,
+    pub access_type: BucketAccessType,
+    pub is_public: bool,
+    pub allowed_file_types: Option<Vec<String>>,
+    pub max_bucket_size_bytes: i64,
+    pub default_processing_rules: sqlx::types::Json<BucketProcessingRules>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub created_by: Uuid,
+}
+
+#[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
+pub struct StorageObject {
+    pub id: Uuid,
+    pub bucket_id: Uuid,
+    pub file_path: String,
+    pub size_bytes: i64,
+    pub mime_type: String,
+    pub etag: String,
+    pub status: StorageStatus,
+    pub compression: CompressionType,
+    pub original_size_bytes: Option<i64>,
+    pub is_optimized: bool,
+    pub image_dimensions: Option<String>,
+    pub meta_data: sqlx::types::Json<FileMetaData>,
+    pub processing_options: sqlx::types::Json<BucketProcessingRules>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}

@@ -1,0 +1,69 @@
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+use chrono::{DateTime, Utc};
+use crate::models::app_model::{AppInstanceType, AppStatus};
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateAppRequest {
+    pub project_id: Uuid,
+    pub name: String,
+    pub git_repository: String,
+    pub branch_name: Option<String>,
+    pub build_command: Option<String>,
+    pub start_command: Option<String>,
+    pub internal_port: Option<i32>,
+    pub external_port: Option<i32>,
+    pub git_subpath: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateBranchRequest {
+    pub branch_name: String,
+    pub instance_type: AppInstanceType,
+    pub internal_port: Option<i32>,
+    pub cpu_limit: Option<i32>,
+    pub memory_limit_mb: Option<i64>,
+    pub external_port: Option<i32>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppInstanceResponse {
+    pub id: Uuid,
+    pub branch_name: String,
+    pub instance_type: AppInstanceType,
+    pub status: AppStatus,
+    pub internal_port: i32,
+    pub assigned_domain: Option<String>,
+    pub container_name: String,
+    pub external_port: Option<i32>,
+    pub meta_data: serde_json::Value,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppDetailedResponse {
+    pub id: Uuid,
+    pub project_id: Uuid,
+    pub name: String,
+    pub slug: String,
+    #[serde(rename = "git_repo_url")]
+    pub git_repository: String,
+    pub instances: Vec<AppInstanceResponse>,
+    pub git_subpath: Option<String>,
+    pub build_command: Option<String>,
+    pub start_command: Option<String>,
+    #[serde(rename = "created_at")]
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConfigureServerlessRequest {
+    pub enabled: bool,
+    pub min_scale: i32,
+    pub max_scale: i32,
+    pub target_concurrency: i32,
+}

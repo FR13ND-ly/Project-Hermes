@@ -1,1 +1,221 @@
-<p>auth works!</p>
+<div class="flex min-h-screen flex-col items-center justify-center bg-black px-4 py-12 sm:px-6 lg:px-8 animate-fade-in">
+  
+  <div class="w-full max-w-sm space-y-8 z-10">
+    
+    <!-- Logo & Title -->
+    <div class="flex flex-col items-center justify-center text-center">
+      <div class="flex items-center justify-center w-12 h-12 rounded border border-zinc-800 bg-[#0a0a0a] shadow-lg overflow-hidden p-2">
+        <img src="/logo.png" class="w-full h-full object-contain" alt="Hermes Logo" />
+      </div>
+      
+      <h1 class="mt-4 text-xl font-bold tracking-tight text-white uppercase font-mono">
+        Hermes OS
+      </h1>
+      <p class="mt-1.5 text-xs text-zinc-500">
+        Consolă Management Cloud & PaaS
+      </p>
+    </div>
+
+    <!-- Login & Activation Form Card -->
+    @if (mode() === 'login') {
+      <div class="bg-[#0a0a0a] p-6 rounded-lg border border-zinc-800 shadow-xl space-y-6 animate-fade-in">
+        
+        <form class="space-y-4" (ngSubmit)="onSubmit()">
+          <!-- Error Message -->
+          @if (error()) {
+            <div class="flex items-start gap-2.5 p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-xs" role="alert" aria-live="assertive">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              </svg>
+              <span>{{ error() }}</span>
+            </div>
+          }
+
+          <!-- Identity Input -->
+          <div class="space-y-1.5">
+            <label for="identity" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-mono">Email sau Utilizator</label>
+            <input 
+              id="identity" 
+              name="identity" 
+              type="text" 
+              required 
+              aria-required="true"
+              class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" 
+              placeholder="admin@hermes.platform"
+              [ngModel]="loginIdentity()"
+              (ngModelChange)="loginIdentity.set($event)"
+              [disabled]="loading()"
+            />
+          </div>
+
+          <!-- Password Input -->
+          <div class="space-y-1.5">
+            <label for="password" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-mono">Parolă</label>
+            <input 
+              id="password" 
+              name="password" 
+              type="password" 
+              required 
+              aria-required="true"
+              class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" 
+              placeholder="••••••••••••"
+              [ngModel]="password()"
+              (ngModelChange)="password.set($event)"
+              [disabled]="loading()"
+            />
+          </div>
+
+          <!-- Submit Button -->
+          <button 
+            type="submit" 
+            [disabled]="loading()"
+            class="relative flex w-full items-center justify-center rounded bg-white hover:bg-zinc-200 py-2.5 text-xs font-semibold text-black shadow transition-all cursor-pointer disabled:opacity-50 font-sans"
+          >
+            @if (!loading()) {
+              <span>Conectare</span>
+            } @else {
+              <div class="flex items-center gap-2">
+                <svg class="animate-spin h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Se conectează...</span>
+              </div>
+            }
+          </button>
+        </form>
+        
+      </div>
+    } @else {
+      <div class="bg-[#0a0a0a] p-6 rounded-lg border border-zinc-800 shadow-xl space-y-6 animate-fade-in font-mono text-xs">
+        
+        @if (activationSuccess()) {
+          <div class="space-y-3 py-2 text-center">
+            <div class="text-emerald-450 font-bold uppercase tracking-wider text-[10px] flex items-center justify-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-emerald-500">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Cont Activat!</span>
+            </div>
+            <p class="text-[10px] text-zinc-500 font-sans leading-normal">
+              Contul tău a fost activat cu succes. Vei fi redirecționat la logare...
+            </p>
+          </div>
+        } @else {
+          <form class="space-y-4" (ngSubmit)="onActivateSubmit()">
+            <h2 class="text-[10px] font-bold text-white uppercase tracking-wider text-center border-b border-zinc-900 pb-2">Activare Cont Nou</h2>
+
+            <!-- Error Message -->
+            @if (activationError()) {
+              <div class="flex items-start gap-2.5 p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-[10px]" role="alert">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+                <span>{{ activationError() }}</span>
+              </div>
+            }
+
+            <!-- Email Input -->
+            <div class="space-y-1.5">
+              <label for="act-email" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Email</label>
+              <input 
+                id="act-email" 
+                name="act-email" 
+                type="email" 
+                required 
+                class="block w-full px-3 py-2 bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors" 
+                placeholder="ex. nume@companie.ro"
+                [ngModel]="activateEmail()"
+                (ngModelChange)="activateEmail.set($event)"
+                [disabled]="activationLoading()"
+              />
+            </div>
+
+            <!-- Temporary Password Input -->
+            <div class="space-y-1.5">
+              <label for="temp-pwd" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Parolă Temporară</label>
+              <input 
+                id="temp-pwd" 
+                name="temp-pwd" 
+                type="password" 
+                required 
+                class="block w-full px-3 py-2 bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors" 
+                placeholder="Introdusă de admin"
+                [ngModel]="temporaryPassword()"
+                (ngModelChange)="temporaryPassword.set($event)"
+                [disabled]="activationLoading()"
+              />
+            </div>
+
+            <!-- New Password Input -->
+            <div class="space-y-1.5">
+              <label for="new-pwd" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Parolă Nouă Permanentă</label>
+              <input 
+                id="new-pwd" 
+                name="new-pwd" 
+                type="password" 
+                required 
+                class="block w-full px-3 py-2 bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors" 
+                placeholder="Min. 6 caractere"
+                [ngModel]="newPassword()"
+                (ngModelChange)="newPassword.set($event)"
+                [disabled]="activationLoading()"
+              />
+            </div>
+
+            <!-- Confirm New Password Input -->
+            <div class="space-y-1.5">
+              <label for="confirm-pwd" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Confirmare Parolă Nouă</label>
+              <input 
+                id="confirm-pwd" 
+                name="confirm-pwd" 
+                type="password" 
+                required 
+                class="block w-full px-3 py-2 bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors" 
+                placeholder="Reintroduceți parola"
+                [ngModel]="confirmNewPassword()"
+                (ngModelChange)="confirmNewPassword.set($event)"
+                [disabled]="activationLoading()"
+              />
+            </div>
+
+            <!-- Submit Button -->
+            <button 
+              type="submit" 
+              [disabled]="activationLoading() || !activateEmail() || !temporaryPassword() || !newPassword() || !confirmNewPassword()"
+              class="relative flex w-full items-center justify-center rounded bg-white hover:bg-zinc-200 py-2.5 text-xs font-semibold text-black shadow transition-all cursor-pointer disabled:opacity-50 font-sans"
+            >
+              @if (!activationLoading()) {
+                <span>Activează Contul</span>
+              } @else {
+                <div class="flex items-center gap-2">
+                  <svg class="animate-spin h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                  <span>Se activează...</span>
+                </div>
+              }
+            </button>
+
+            <!-- Toggle activation mode -->
+            <button 
+              type="button" 
+              (click)="onGoBackToLogin()" 
+              class="text-zinc-550 hover:text-white transition-colors cursor-pointer text-[10px] block text-center w-full mt-2 font-mono uppercase tracking-wider font-bold"
+            >
+              Înapoi la Logare
+            </button>
+          </form>
+        }
+
+      </div>
+    }
+
+    <!-- Footer Note -->
+    <div class="text-center text-[11px] text-zinc-650">
+      Autentificare securizată prin modulul RBAC Hermes OS
+    </div>
+
+  </div>
+</div>

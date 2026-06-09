@@ -1,0 +1,565 @@
+<div class="space-y-6 animate-fade-in font-sans">
+  
+  @if (selectedFunction() === null) {
+    <!-- MAIN LIST VIEW -->
+    <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
+      <div>
+        <h2 class="text-sm font-bold text-white uppercase tracking-wider font-mono">Funcții Serverless (Knative Serving)</h2>
+        <p class="text-[11px] text-zinc-550 mt-1">Creează și lansează funcții serverless cu scalare automată la zero. Rulați cod JavaScript personalizat la fiecare request HTTP.</p>
+      </div>
+      <button 
+        (click)="onOpenCreateModal()"
+        class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold shadow cursor-pointer transition-colors flex items-center gap-1.5"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        Creează Funcție
+      </button>
+    </div>
+
+    @if (loading()) {
+      <div class="flex flex-col items-center justify-center py-16 space-y-3">
+        <svg class="animate-spin h-6 w-6 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <span class="text-xs text-zinc-550 font-mono">Se încarcă funcțiile serverless...</span>
+      </div>
+    } @else if (functions().length === 0) {
+      <div class="flex flex-col items-center justify-center border border-dashed border-zinc-800 rounded-lg p-12 text-center space-y-4">
+        <div class="p-3 bg-zinc-950 border border-zinc-900 rounded-full text-zinc-650">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+          </svg>
+        </div>
+        <div class="space-y-1">
+          <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Nu există funcții serverless</h3>
+          <p class="text-[11px] text-zinc-550 max-w-sm">Creează o funcție serverless pentru a procesa request-uri HTTP rapid și eficient cu scalare la zero.</p>
+        </div>
+      </div>
+    } @else {
+      <!-- Functions Table -->
+      <div class="border border-zinc-900 rounded-lg overflow-hidden bg-black/40">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs font-mono">
+            <thead>
+              <tr class="bg-zinc-950 border-b border-zinc-900 text-[10px] text-zinc-550 uppercase tracking-wider">
+                <th class="p-3 font-bold">Nume / Status</th>
+                <th class="p-3 font-bold">Rute & Metode</th>
+                <th class="p-3 font-bold">Domeniu Asociat</th>
+                <th class="p-3 font-bold">Resurse Memorie</th>
+                <th class="p-3 font-bold">Creat La</th>
+                <th class="p-3 font-bold text-right">Acțiuni</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-900/50">
+              @for (fn of functions(); track fn.id) {
+                <tr class="hover:bg-zinc-950/30 transition-colors">
+                  <td class="p-3">
+                    <div class="flex items-center gap-2">
+                      <span 
+                        class="inline-block w-1.5 h-1.5 rounded-full" 
+                        [class.bg-emerald-500]="fn.status === 'active'"
+                        [class.bg-amber-500]="fn.status === 'building'"
+                        [class.bg-red-500]="fn.status === 'failed'"
+                        [class.bg-zinc-500]="fn.status === 'draft'"
+                      ></span>
+                      <button 
+                        (click)="selectFunction(fn)"
+                        class="font-semibold text-zinc-300 hover:text-white hover:underline text-left text-xs cursor-pointer focus:outline-none"
+                      >
+                        {{ fn.name }}
+                      </button>
+                    </div>
+                  </td>
+                  <td class="p-3">
+                    <div class="flex items-center gap-1.5">
+                      <span class="px-1.5 py-0.2 rounded bg-zinc-900 border border-zinc-800 text-[9px] font-bold text-cyan-400">{{ fn.method }}</span>
+                      <span class="text-zinc-400">{{ fn.routePath }}</span>
+                    </div>
+                  </td>
+                  <td class="p-3">
+                    @if (fn.assignedDomain) {
+                      <span class="text-zinc-300 underline font-semibold select-all">{{ fn.assignedDomain }}</span>
+                    } @else if (fn.externalPort) {
+                      <span class="text-zinc-400 font-semibold select-all">Port: {{ fn.externalPort }}</span>
+                    } @else {
+                      <span class="text-zinc-650">Nu este lansat</span>
+                    }
+                  </td>
+                  <td class="p-3 text-zinc-400">
+                    <span class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-850 text-white font-semibold">{{ fn.memoryLimitMb }} MB</span>
+                  </td>
+                  <td class="p-3 text-zinc-550 text-[11px]">
+                    {{ fn.createdAt | date:'dd MMM yyyy, HH:mm' }}
+                  </td>
+                  <td class="p-3 text-right">
+                    <div class="flex items-center justify-end gap-1.5">
+                      <button 
+                        (click)="selectFunction(fn)"
+                        class="px-2 py-1 rounded border border-zinc-850 hover:bg-zinc-900 text-zinc-400 hover:text-white cursor-pointer transition-all flex items-center gap-1 text-[10px]"
+                      >
+                        Detalii & Cod
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- Modal: Create Serverless Function -->
+    @if (showCreateModal()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in font-sans">
+        <div class="w-full max-w-md bg-[#0a0a0a] border border-zinc-850 rounded-lg p-5 shadow-2xl space-y-4">
+          
+          <div class="flex items-center justify-between border-b border-zinc-900 pb-3">
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider font-mono">Creează Funcție Serverless</h3>
+            <button 
+              (click)="showCreateModal.set(false)"
+              class="text-zinc-550 hover:text-white cursor-pointer transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="space-y-4 py-2 text-xs">
+            <!-- Function Name -->
+            <div class="space-y-1.5">
+              <label for="new-fn-name" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Nume Funcție</label>
+              <input 
+                id="new-fn-name"
+                type="text" 
+                placeholder="ex. salut-lume sau procesare-plata"
+                [ngModel]="newFnName()"
+                (ngModelChange)="newFnName.set($event)"
+                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+            </div>
+
+            <!-- HTTP Method selection -->
+            <div class="space-y-1.5">
+              <label for="new-fn-method" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Metodă HTTP Acceptată</label>
+              <select 
+                id="new-fn-method"
+                [ngModel]="newFnMethod()"
+                (ngModelChange)="newFnMethod.set($event)"
+                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+              >
+                <option value="GET">GET (Citire date)</option>
+                <option value="POST">POST (Creare date)</option>
+                <option value="PUT">PUT (Actualizare date)</option>
+                <option value="DELETE">DELETE (Ștergere date)</option>
+                <option value="ANY">ANY (Orice metodă)</option>
+              </select>
+            </div>
+
+            <!-- Route Path -->
+            <div class="space-y-1.5">
+              <label for="new-fn-route" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Cale Rutare (Route Path)</label>
+              <input 
+                id="new-fn-route"
+                type="text" 
+                placeholder="/salut sau /api/proceseaza"
+                [ngModel]="newFnRoutePath()"
+                (ngModelChange)="newFnRoutePath.set($event)"
+                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+              <p class="text-[9px] text-zinc-650 font-sans">Trebuie să înceapă cu / și să fie unică la nivel de proiect.</p>
+            </div>
+
+            <!-- Memory Allocation -->
+            <div class="space-y-1.5">
+              <label for="new-fn-memory" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Limită Memorie (RAM)</label>
+              <select 
+                id="new-fn-memory"
+                [ngModel]="newFnMemory()"
+                (ngModelChange)="newFnMemory.set($event)"
+                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+              >
+                <option [ngValue]="128">128 MB (Recomandat pentru scripturi simple)</option>
+                <option [ngValue]="256">256 MB</option>
+                <option [ngValue]="512">512 MB</option>
+                <option [ngValue]="1024">1024 MB</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
+            <button 
+              (click)="showCreateModal.set(false)"
+              class="px-3 py-1.5 rounded border border-zinc-800 hover:bg-zinc-950 text-zinc-400 hover:text-white transition-colors cursor-pointer text-xs"
+            >
+              Anulează
+            </button>
+            <button 
+              (click)="onCreateFunction()"
+              [disabled]="creating()"
+              class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black font-semibold transition-colors cursor-pointer text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ creating() ? 'Se creează...' : 'Creează Funcție' }}
+            </button>
+          </div>
+
+        </div>
+      </div>
+    }
+
+  } @else {
+    <!-- DEEP DETAIL VIEW -->
+    <div class="space-y-4">
+      
+      <!-- Back Link -->
+      <button 
+        (click)="deselectFunction()"
+        class="text-zinc-500 hover:text-white cursor-pointer transition-colors text-xs font-mono flex items-center gap-1.5 focus:outline-none"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+        Înapoi la lista de funcții serverless
+      </button>
+
+      <!-- Function Header Card -->
+      <div class="p-4 rounded-lg border border-zinc-900 bg-zinc-950/40 backdrop-blur flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-bold text-white tracking-tight uppercase font-mono">{{ selectedFunction()?.name }}</h1>
+            <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider" [class]="getStatusClass(selectedFunction()?.status)">
+              {{ getStatusText(selectedFunction()?.status) }}
+            </span>
+          </div>
+          <p class="text-[10px] text-zinc-500 font-mono">
+            Ruta: <span class="text-cyan-400 font-bold">{{ selectedFunction()?.method }}</span> {{ selectedFunction()?.routePath }}
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button 
+            [disabled]="selectedFunction()?.status === 'building' || deploying()"
+            (click)="onDeployFunction()"
+            class="px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-950/40 text-black disabled:text-zinc-500 text-xs font-bold cursor-pointer disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-950/20 flex items-center gap-1.5"
+          >
+            @if (selectedFunction()?.status === 'building' || deploying()) {
+              <svg class="animate-spin h-3.5 w-3.5 text-zinc-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              Se lansează...
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.61 8.41a6 6 0 0 0-5.84 7.38h12.33Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
+              </svg>
+              Lansează (Deploy)
+            }
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabbed Menu -->
+      <div class="flex border-b border-zinc-900 text-xs">
+        <button 
+          (click)="onTabChange('details')"
+          [class]="activeTab() === 'details' ? 'border-b-2 border-white text-white pb-3 px-3 font-semibold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-3 border-b-2 border-transparent transition-all'"
+          class="focus:outline-none cursor-pointer"
+        >
+          Detalii & Diagnostic
+        </button>
+        <button 
+          (click)="onTabChange('code')"
+          [class]="activeTab() === 'code' ? 'border-b-2 border-white text-white pb-3 px-3 font-semibold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-3 border-b-2 border-transparent transition-all'"
+          class="focus:outline-none cursor-pointer"
+        >
+          Cod & Setări
+        </button>
+        <button 
+          (click)="onTabChange('logs')"
+          [class]="activeTab() === 'logs' ? 'border-b-2 border-white text-white pb-3 px-3 font-semibold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-3 border-b-2 border-transparent transition-all'"
+          class="focus:outline-none cursor-pointer"
+        >
+          Loguri Execuție
+        </button>
+      </div>
+
+      <!-- TAB 1: DETAILS & DIAGNOSTICS -->
+      @if (activeTab() === 'details') {
+        <div class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            <!-- Endpoint Card -->
+            <div class="p-4 rounded border border-zinc-900 bg-zinc-950/20 space-y-2">
+              <span class="text-[9px] font-bold text-zinc-550 uppercase tracking-widest font-mono">Url Apelare HTTP</span>
+              @if (selectedFunction()?.status === 'active') {
+                <div class="space-y-1">
+                  <a 
+                    [href]="selectedFunction()?.assignedDomain ? 'http://' + selectedFunction()?.assignedDomain + selectedFunction()?.routePath : 'http://localhost:' + selectedFunction()?.externalPort + selectedFunction()?.routePath"
+                    target="_blank"
+                    class="text-xs font-bold text-cyan-400 hover:underline select-all truncate block"
+                  >
+                    {{ selectedFunction()?.assignedDomain ? 'http://' + selectedFunction()?.assignedDomain + selectedFunction()?.routePath : 'http://localhost:' + selectedFunction()?.externalPort + selectedFunction()?.routePath }}
+                  </a>
+                  <span class="text-[9px] text-zinc-650 font-mono block leading-normal">
+                    {{ selectedFunction()?.assignedDomain ? 'Rută externă configurată prin Ingress.' : 'Accesibil local prin port-forwarding LoadBalancer.' }}
+                  </span>
+                </div>
+              } @else {
+                <span class="text-zinc-550 block text-xs">Indisponibil. Funcția nu este lansată (active).</span>
+              }
+            </div>
+
+            <!-- Resources Limit -->
+            <div class="p-4 rounded border border-zinc-900 bg-zinc-950/20 space-y-2">
+              <span class="text-[9px] font-bold text-zinc-550 uppercase tracking-widest font-mono">Configurație Resurse</span>
+              <div class="text-xs font-bold text-white font-mono flex items-center gap-2">
+                <span>{{ selectedFunction()?.memoryLimitMb }} MB RAM</span>
+                <span class="text-zinc-700">|</span>
+                <span class="text-zinc-400">Scalare Automată: 0 - 5 Pods</span>
+              </div>
+              <span class="text-[9px] text-zinc-650 block leading-normal font-sans">Knative va scala automat la zero instanțele când nu există trafic activ.</span>
+            </div>
+
+            <!-- Timing metadata -->
+            <div class="p-4 rounded border border-zinc-900 bg-zinc-950/20 space-y-2">
+              <span class="text-[9px] font-bold text-zinc-550 uppercase tracking-widest font-mono">Timpi Înregistrare</span>
+              <div class="text-xs text-zinc-400 font-mono space-y-1">
+                <div>Creat: <span class="text-white">{{ selectedFunction()?.createdAt | date:'dd.MM.yyyy, HH:mm' }}</span></div>
+                <div>Actualizat: <span class="text-white">{{ selectedFunction()?.updatedAt | date:'dd.MM.yyyy, HH:mm' }}</span></div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Compilation & Build logs -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Diagnostic Compilare (Kaniko logs)</span>
+              @if (selectedFunction()?.buildLogs) {
+                <button 
+                  (click)="copyBuildLogs()"
+                  class="text-[9px] text-zinc-500 hover:text-white font-mono cursor-pointer"
+                >
+                  Copiază Loguri
+                </button>
+              }
+            </div>
+            
+            <div class="bg-black/90 border border-zinc-900 rounded-lg p-4 font-mono text-[11px] text-zinc-450 overflow-y-auto max-h-[350px] leading-relaxed select-text whitespace-pre-wrap">
+              @if (selectedFunction()?.buildLogs) {
+                {{ selectedFunction()?.buildLogs }}
+              } @else {
+                <span class="text-zinc-650 italic">Nu există loguri de compilare. Lansați (Deploy) funcția pentru a porni procesul de build.</span>
+              }
+            </div>
+          </div>
+
+        </div>
+      }
+
+      <!-- TAB 2: CODE & SETTINGS -->
+      @if (activeTab() === 'code') {
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          
+          <!-- Code Editor Area -->
+          <div class="lg:col-span-2 space-y-2">
+            <label for="fn-editor" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Cod Sursă Funcție (JavaScript / Node.js)</label>
+            <div class="border border-zinc-850 rounded-lg overflow-hidden bg-zinc-950 shadow-inner">
+              <div class="bg-zinc-950 border-b border-zinc-900/60 px-4 py-2 flex items-center justify-between text-[10px] font-mono text-zinc-500">
+                <span>function.js</span>
+                <span>NodeJS 20 / CommonJS wrapper</span>
+              </div>
+              <textarea 
+                id="fn-editor"
+                rows="24"
+                placeholder="module.exports = async (req, res) => { ... }"
+                [ngModel]="editCode()"
+                (ngModelChange)="editCode.set($event)"
+                class="block w-full px-4 py-3 bg-black/95 text-zinc-300 focus:text-white font-mono text-xs focus:outline-none resize-none leading-relaxed select-text"
+              ></textarea>
+            </div>
+            <p class="text-[9px] text-zinc-650 leading-normal font-sans">
+              Funcția trebuie exportată prin <code class="text-zinc-550 font-bold select-all">module.exports = async (req, res) => ...</code>. Puteți returna răspunsuri JSON, fișiere sau HTML utilizând API-ul Express standard (<code class="text-zinc-550 font-bold">req.body, res.status().json()</code>).
+            </p>
+          </div>
+
+          <!-- Settings panel -->
+          <div class="space-y-5 bg-zinc-950/10 p-5 rounded-lg border border-zinc-900">
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider font-mono">Configurații Funcție</h3>
+
+            <div class="space-y-4 text-xs">
+              <!-- Name -->
+              <div class="space-y-1.5">
+                <label for="edit-name" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider font-mono">Nume Funcție</label>
+                <input 
+                  id="edit-name"
+                  type="text"
+                  [ngModel]="editName()"
+                  (ngModelChange)="editName.set($event)"
+                  class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                />
+              </div>
+
+              <!-- HTTP Method -->
+              <div class="space-y-1.5">
+                <label for="edit-method" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider font-mono">Metodă HTTP</label>
+                <select 
+                  id="edit-method"
+                  [ngModel]="editMethod()"
+                  (ngModelChange)="editMethod.set($event)"
+                  class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+                >
+                  <option value="GET">GET</option>
+                  <option value="POST">POST</option>
+                  <option value="PUT">PUT</option>
+                  <option value="DELETE">DELETE</option>
+                  <option value="ANY">ANY</option>
+                </select>
+              </div>
+
+              <!-- Route Path -->
+              <div class="space-y-1.5">
+                <label for="edit-route" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider font-mono">Cale Rutare</label>
+                <input 
+                  id="edit-route"
+                  type="text"
+                  [ngModel]="editRoutePath()"
+                  (ngModelChange)="editRoutePath.set($event)"
+                  class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                />
+              </div>
+
+              <!-- Memory limit -->
+              <div class="space-y-1.5">
+                <label for="edit-memory" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider font-mono">Limită Memorie (RAM)</label>
+                <select 
+                  id="edit-memory"
+                  [ngModel]="editMemory()"
+                  (ngModelChange)="editMemory.set($event)"
+                  class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+                >
+                  <option [ngValue]="128">128 MB RAM</option>
+                  <option [ngValue]="256">256 MB RAM</option>
+                  <option [ngValue]="512">512 MB RAM</option>
+                  <option [ngValue]="1024">1024 MB RAM</option>
+                </select>
+              </div>
+
+              <!-- Domain Association -->
+              <div class="space-y-1.5">
+                <label for="edit-domain" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider font-mono">Asociere Domeniu Custom</label>
+                <select 
+                  id="edit-domain"
+                  [ngModel]="editAssignedDomain()"
+                  (ngModelChange)="editAssignedDomain.set($event || null)"
+                  class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+                >
+                  <option [ngValue]="null">Fără domeniu (Localhost fallback)</option>
+                  @for (dom of domains(); track dom.id) {
+                    <option [value]="dom.fqdn">{{ dom.fqdn }}</option>
+                  }
+                </select>
+                <p class="text-[9px] text-zinc-650 leading-normal font-sans">
+                  Puteți selecta orice domeniu înregistrat și verificat în workspace. Ingress-ul se va activa automat la deploy.
+                </p>
+              </div>
+
+              <!-- Environment Variables -->
+              <div class="space-y-2 border-t border-zinc-900 pt-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider font-mono">Variabile de Mediu (Env Vars)</span>
+                  <button 
+                    (click)="addEnvVar()"
+                    class="text-[9px] text-zinc-400 hover:text-white font-mono flex items-center gap-1 cursor-pointer focus:outline-none"
+                  >
+                    + Adaugă
+                  </button>
+                </div>
+                
+                @if (editEnvVariables().length === 0) {
+                  <span class="text-[10px] text-zinc-650 italic block">Fără variabile configurate.</span>
+                } @else {
+                  <div class="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                    @for (v of editEnvVariables(); track $index; let idx = $index) {
+                      <div class="flex items-center gap-1.5">
+                        <input 
+                          type="text" 
+                          placeholder="CHEIE"
+                          [(ngModel)]="v.key"
+                          class="w-1/2 px-2 py-1 bg-zinc-950 border border-zinc-850 rounded text-white text-[10px] focus:outline-none focus:border-zinc-600 font-mono"
+                        />
+                        <input 
+                          type="text" 
+                          placeholder="Valoare"
+                          [(ngModel)]="v.value"
+                          class="w-1/2 px-2 py-1 bg-zinc-950 border border-zinc-850 rounded text-white text-[10px] focus:outline-none focus:border-zinc-600 font-mono"
+                        />
+                        <button 
+                          (click)="removeEnvVar(idx)"
+                          class="p-1 rounded hover:bg-zinc-900 text-zinc-550 hover:text-red-400 cursor-pointer"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
+            </div>
+
+            <!-- Actions buttons -->
+            <div class="border-t border-zinc-900 pt-4 flex items-center justify-between">
+              <button 
+                (click)="onDeleteFunction()"
+                class="px-2.5 py-1.5 rounded border border-red-955/35 hover:bg-red-955/10 text-red-500 text-xs font-semibold cursor-pointer transition-all"
+              >
+                Șterge Funcție
+              </button>
+              
+              <button 
+                (click)="onSaveFunction()"
+                [disabled]="savingSettings()"
+                class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold cursor-pointer disabled:opacity-50 transition-all"
+              >
+                {{ savingSettings() ? 'Se salvează...' : 'Salvează Setări' }}
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+      }
+
+      <!-- TAB 3: RUNTIME LOGS -->
+      @if (activeTab() === 'logs') {
+        <div class="space-y-3">
+          <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
+            <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Consolă Live Execution Logs (user-container)</span>
+            <div class="flex items-center gap-3">
+              <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="text-[9px] text-zinc-500 font-mono">Stream Conectat</span>
+            </div>
+          </div>
+
+          <div class="bg-black/95 border border-zinc-900 rounded-lg p-4 font-mono text-[11px] text-zinc-350 min-h-[300px] max-h-[500px] overflow-y-auto leading-relaxed select-text space-y-1.5 scrollbar-thin">
+            @for (log of logs(); track $index) {
+              <div class="whitespace-pre-wrap select-text leading-normal">{{ log }}</div>
+            } @empty {
+              <div class="text-zinc-650 italic">Se așteaptă fluxul de loguri live de la containerul funcției...</div>
+            }
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+
+</div>

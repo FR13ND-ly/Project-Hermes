@@ -1,0 +1,563 @@
+<div class="space-y-6 animate-fade-in font-sans">
+  
+  @if (selectedCronJob() === null) {
+    <!-- MAIN LIST VIEW -->
+    <!-- Header Actions -->
+    <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
+      <div>
+        <h2 class="text-sm font-bold text-white uppercase tracking-wider font-mono">Cron Jobs (Sarcini Programate Proiect)</h2>
+        <p class="text-[11px] text-zinc-500 mt-1">Configurează execuții periodice pentru comenzi în containerele aplicațiilor din proiectul tău.</p>
+      </div>
+      <button 
+        (click)="onOpenCreateModal()"
+        class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold shadow cursor-pointer transition-colors flex items-center gap-1.5"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        Adaugă Cron Job
+      </button>
+    </div>
+
+    @if (loading()) {
+      <div class="flex flex-col items-center justify-center py-16 space-y-3">
+        <svg class="animate-spin h-6 w-6 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <span class="text-xs text-zinc-500 font-mono">Se încarcă joburile cron...</span>
+      </div>
+    } @else if (cronJobs().length === 0) {
+      <div class="flex flex-col items-center justify-center border border-dashed border-zinc-800 rounded-lg p-12 text-center space-y-4">
+        <div class="p-3 bg-zinc-950 border border-zinc-900 rounded-full text-zinc-650">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div class="space-y-1">
+          <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Nu există sarcini programate</h3>
+          <p class="text-[11px] text-zinc-550 max-w-sm">Nu a fost creat niciun job cron la nivelul acestui proiect. Creează unul pentru a rula comenzi asincrone în aplicațiile tale.</p>
+        </div>
+      </div>
+    } @else {
+      <!-- Jobs Grid/List -->
+      <div class="border border-zinc-900 rounded-lg overflow-hidden bg-black/40">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs font-mono">
+            <thead>
+              <tr class="bg-zinc-950 border-b border-zinc-900 text-[10px] text-zinc-500 uppercase tracking-wider">
+                <th class="p-3 font-bold">Nume / Status</th>
+                <th class="p-3 font-bold">Aplicație Target</th>
+                <th class="p-3 font-bold">Orar (Cron)</th>
+                <th class="p-3 font-bold">Comandă</th>
+                <th class="p-3 font-bold">Următoarea Execuție</th>
+                <th class="p-3 font-bold text-right">Acțiuni</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-900/50">
+              @for (job of cronJobs(); track job.id) {
+                <tr class="hover:bg-zinc-950/30 transition-colors">
+                  <td class="p-3">
+                    <div class="flex items-center gap-2">
+                      <span 
+                        class="inline-block w-1.5 h-1.5 rounded-full" 
+                        [class.bg-emerald-500]="job.status.toLowerCase() === 'active'"
+                        [class.bg-amber-500]="job.status.toLowerCase() === 'paused'"
+                        [class.bg-red-500]="job.status.toLowerCase() === 'failed'"
+                      ></span>
+                      <button 
+                        (click)="selectCronJob(job)"
+                        class="font-semibold text-zinc-300 hover:text-white hover:underline text-left text-xs cursor-pointer focus:outline-none"
+                      >
+                        {{ job.name }}
+                      </button>
+                    </div>
+                  </td>
+                  <td class="p-3 text-zinc-350">
+                    <span class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-semibold text-white">{{ getAppName(job.appId || job.app_id) }}</span>
+                  </td>
+                  <td class="p-3 text-zinc-400">
+                    <span class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-850 font-bold select-all">{{ job.schedule }}</span>
+                  </td>
+                  <td class="p-3 text-zinc-400 max-w-xs truncate" [title]="job.command">
+                    <code class="text-[10px] bg-black p-1 rounded border border-zinc-900 text-zinc-300 select-all">{{ job.command }}</code>
+                  </td>
+                  <td class="p-3 text-zinc-550 text-[11px]">
+                    {{ (job.nextRunAt || job.next_run_at) ? ((job.nextRunAt || job.next_run_at) | date:'dd MMM yyyy, HH:mm:ss') : 'Neprogramat' }}
+                  </td>
+                  <td class="p-3 text-right">
+                    <div class="flex items-center justify-end gap-1.5">
+                      <button 
+                        (click)="selectCronJob(job)"
+                        title="Vezi Detalii și Loguri"
+                        class="p-1.5 rounded border border-zinc-850 hover:bg-zinc-900 text-zinc-400 hover:text-white cursor-pointer transition-all flex items-center gap-1 text-[10px]"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Detalii
+                      </button>
+                      
+                      <button 
+                        (click)="onDeleteCronJob(job.id)"
+                        title="Șterge Job"
+                        class="p-1.5 rounded border border-red-955/30 hover:bg-red-955/20 text-red-500/80 hover:text-red-400 cursor-pointer transition-all"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-3.5 h-3.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- Modal: Add Cron Job -->
+    @if (showCreateModal()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in font-sans">
+        <div class="w-full max-w-md bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 shadow-2xl space-y-4">
+          
+          <div class="flex items-center justify-between border-b border-zinc-900 pb-3">
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider font-mono">Adaugă Sarcina Cron Proiect</h3>
+            <button 
+              (click)="showCreateModal.set(false)"
+              class="text-zinc-550 hover:text-white cursor-pointer transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="space-y-4 py-2 text-xs">
+            <!-- Target App Selection -->
+            <div class="space-y-1.5">
+              <label for="cron-app-select" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Aplicație Target</label>
+              <select 
+                id="cron-app-select"
+                [ngModel]="selectedAppId()"
+                (ngModelChange)="selectedAppId.set($event)"
+                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+              >
+                @for (app of parent.apps(); track app.id) {
+                  <option [value]="app.id">{{ app.name }}</option>
+                }
+              </select>
+              <p class="text-[9px] text-zinc-650 font-sans">Jobul cron va fi executat în contextul podului acestei aplicații.</p>
+            </div>
+
+            <!-- Job Name -->
+            <div class="space-y-1.5">
+              <label for="cron-name-input" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Nume Job</label>
+              <input 
+                id="cron-name-input"
+                type="text" 
+                placeholder="ex. backup-zilnic sau curatare-cache"
+                [ngModel]="newCronName()"
+                (ngModelChange)="newCronName.set($event)"
+                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+            </div>
+
+            <!-- Cron Schedule Expression -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label for="cron-sched-input" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Orar (Sintaxă Cron)</label>
+                <span class="text-[9px] text-zinc-550 font-sans">standard 5-câmpuri</span>
+              </div>
+              <input 
+                id="cron-sched-input"
+                type="text" 
+                placeholder="*/5 * * * *"
+                [ngModel]="newCronSchedule()"
+                (ngModelChange)="newCronSchedule.set($event)"
+                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+              <p class="text-[9px] text-zinc-650 leading-normal font-sans">
+                Exemple: <code class="text-zinc-500 font-bold select-all">0 0 * * *</code> (zilnic la miezul nopții), <code class="text-zinc-500 font-bold select-all">*/15 * * * *</code> (la fiecare 15 minute).
+              </p>
+            </div>
+
+            <!-- Command -->
+            <div class="space-y-1.5">
+              <label for="cron-cmd-input" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Comandă de Executat</label>
+              <textarea 
+                id="cron-cmd-input"
+                rows="3"
+                placeholder="python manage.py clear_expired_sessions sau npm run clean"
+                [ngModel]="newCronCommand()"
+                (ngModelChange)="newCronCommand.set($event)"
+                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono resize-none font-semibold"
+              ></textarea>
+              <p class="text-[9px] text-zinc-650 leading-normal font-sans">
+                Comanda va fi rulată în interiorul containerului cu imaginea stabilă a aplicației selectate.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-3 border-t border-zinc-900">
+            <button 
+              (click)="showCreateModal.set(false)"
+              [disabled]="creatingCron()"
+              class="px-3 py-1.5 rounded border border-zinc-850 hover:bg-zinc-900 text-zinc-450 hover:text-white text-xs font-semibold cursor-pointer transition-colors"
+            >
+              Anulează
+            </button>
+            
+            <button 
+              (click)="onCreateCronJob()"
+              [disabled]="creatingCron() || !newCronName().trim() || !newCronSchedule().trim() || !newCronCommand().trim() || !selectedAppId()"
+              class="px-4 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+            >
+              @if (creatingCron()) {
+                <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span>Se creează...</span>
+              } @else {
+                <span>Creează Job</span>
+              }
+            </button>
+          </div>
+
+        </div>
+      </div>
+    }
+  } @else {
+    <!-- DEEP ROUTE DETAIL VIEW -->
+    @if (selectedCronJob(); as job) {
+      <!-- Return link -->
+      <div class="flex items-center gap-2">
+        <button 
+          (click)="deselectCronJob()" 
+          class="flex items-center gap-1 text-xs text-zinc-400 hover:text-white cursor-pointer transition-colors font-sans"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
+          Înapoi la lista de cron joburi
+        </button>
+      </div>
+
+      <!-- Header -->
+      <div class="p-5 rounded-lg border border-zinc-900 bg-[#0a0a0a] flex flex-col md:flex-row md:items-center md:justify-between gap-4 font-sans shadow-sm">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <h2 class="text-base font-bold text-white tracking-tight select-all font-mono">{{ job.name }}</h2>
+            <span 
+              class="px-2 py-0.5 rounded text-[8px] font-bold uppercase border"
+              [class]="job.status.toLowerCase() === 'active' ? 'bg-emerald-950/20 text-emerald-400 border-emerald-900/40' : (job.status.toLowerCase() === 'paused' ? 'bg-amber-955/20 text-amber-400 border-amber-900/40' : 'bg-red-955/20 text-red-400 border-red-900/40')"
+            >
+              {{ job.status.toLowerCase() === 'active' ? 'Activ' : (job.status.toLowerCase() === 'paused' ? 'Suspendat' : 'Eșuat') }}
+            </span>
+          </div>
+          <p class="text-xs text-zinc-400 font-mono">
+            Orar: {{ job.schedule }} &bull; Aplicație: {{ getAppName(job.appId || job.app_id) }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Tabs selector -->
+      <div class="flex border-b border-zinc-900 gap-6 font-sans">
+        <button 
+          (click)="onTabChange('details')"
+          [class]="activeTab() === 'details' ? 'border-b-2 border-white text-white pb-3 px-1 text-xs font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
+        >
+          Detalii & Diagnostic
+        </button>
+        <button 
+          (click)="onTabChange('logs')"
+          [class]="activeTab() === 'logs' ? 'border-b-2 border-white text-white pb-3 px-1 text-xs font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
+        >
+          Istoric Execuții
+        </button>
+        <button 
+          (click)="onTabChange('settings')"
+          [class]="activeTab() === 'settings' ? 'border-b-2 border-white text-white pb-3 px-1 text-xs font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
+        >
+          Setări Cron
+        </button>
+      </div>
+
+      <!-- TAB 1: DETAILS & DIAGNOSTIC -->
+      @if (activeTab() === 'details') {
+        <div class="space-y-6 animate-fade-in font-sans">
+          <div class="grid gap-6 md:grid-cols-2">
+            <!-- Box A: Info Job -->
+            <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
+              <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Configurație Sarcină</h3>
+              
+              <div class="space-y-3.5 text-xs">
+                <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+                  <span class="text-zinc-500">Nume Job:</span>
+                  <span class="text-zinc-200 font-semibold font-mono">{{ job.name }}</span>
+                </div>
+                <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+                  <span class="text-zinc-500">Aplicație Target:</span>
+                  <span class="text-zinc-200 font-semibold font-mono">{{ getAppName(job.appId || job.app_id) }}</span>
+                </div>
+                <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+                  <span class="text-zinc-500">Orar Programat (Cron):</span>
+                  <span class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-white font-bold font-mono">{{ job.schedule }}</span>
+                </div>
+                <div class="flex justify-between pb-1">
+                  <span class="text-zinc-500">Următoarea Execuție:</span>
+                  <span class="text-zinc-200 font-semibold font-mono">{{ (job.nextRunAt || job.next_run_at) ? ((job.nextRunAt || job.next_run_at) | date:'dd MMM yyyy, HH:mm:ss') : 'Neprogramat' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Box B: Diagnostic -->
+            <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
+              <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Diagnostic & Stare</h3>
+              
+              <div class="space-y-3.5 text-xs">
+                <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+                  <span class="text-zinc-550">Stare Sarcină:</span>
+                  <span class="font-semibold font-mono text-[10px] uppercase flex items-center gap-1.5"
+                    [class]="job.status.toLowerCase() === 'active' ? 'text-emerald-400' : (job.status.toLowerCase() === 'paused' ? 'text-amber-400' : 'text-red-400')">
+                    <span class="w-2 h-2 rounded-full" [class]="job.status.toLowerCase() === 'active' ? 'bg-emerald-500' : (job.status.toLowerCase() === 'paused' ? 'bg-amber-500' : 'bg-red-500')"></span>
+                    {{ job.status.toLowerCase() === 'active' ? 'Activ' : (job.status.toLowerCase() === 'paused' ? 'Suspendat' : 'Eșuat') }}
+                  </span>
+                </div>
+                <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+                  <span class="text-zinc-500">Metodă de Rulare:</span>
+                  <span class="text-zinc-400">Kubernetes Pod async (CronJob Engine)</span>
+                </div>
+                <div class="flex justify-between pb-1">
+                  <span class="text-zinc-500">Istoric Logs:</span>
+                  <span class="text-zinc-400">Păstrat pentru ultimele 50 rulări</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Command card -->
+          <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg p-5 space-y-3 shadow-sm">
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Comandă de Executat</h3>
+            <div class="relative">
+              <code class="text-xs bg-black p-3 rounded border border-zinc-900 block text-zinc-350 select-all font-mono whitespace-pre-wrap leading-relaxed">{{ job.command }}</code>
+            </div>
+            <p class="text-[10px] text-zinc-500 leading-normal">Această comandă rulează în interiorul podului aplicației <strong>{{ getAppName(job.appId || job.app_id) }}</strong> folosind configurația de mediu (environment variables) a proiectului.</p>
+          </div>
+        </div>
+      }
+
+      <!-- TAB 2: LOGS -->
+      @if (activeTab() === 'logs') {
+        <div class="space-y-4 animate-fade-in">
+          @if (cronLogsLoading()) {
+            <div class="flex flex-col items-center justify-center py-16 space-y-3">
+              <svg class="animate-spin h-5 w-5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              <span class="text-xs text-zinc-500 font-mono">Se încarcă istoricul de rulări...</span>
+            </div>
+          } @else if (cronLogs().length === 0) {
+            <div class="text-center py-12 border border-dashed border-zinc-900 rounded-lg space-y-2">
+              <span class="text-zinc-700 block">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 mx-auto">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </span>
+              <p class="text-xs text-zinc-500 font-sans font-medium">Nu a fost înregistrată nicio rulare încă.</p>
+            </div>
+          } @else {
+            <div class="space-y-3.5">
+              @for (log of cronLogs(); track log.id) {
+                <div class="border border-zinc-900 bg-black/20 rounded-md overflow-hidden">
+                  <!-- Log Header Bar -->
+                  <div class="flex items-center justify-between p-3 bg-zinc-950/80 border-b border-zinc-900 font-mono text-[10px]">
+                    <div class="flex items-center gap-2.5">
+                      <span 
+                        class="px-2 py-0.5 rounded text-[8px] font-bold border"
+                        [class]="(log.exitCode !== undefined ? log.exitCode : log.exit_code) === 0 ? 'bg-emerald-950/30 border-emerald-500/20 text-emerald-400' : 'bg-red-955/30 border-red-500/20 text-red-400'"
+                      >
+                        EXIT CODE {{ log.exitCode !== undefined ? log.exitCode : log.exit_code }}
+                      </span>
+                      <span class="text-zinc-500 font-sans">Durată: <strong class="text-zinc-350 font-mono">{{ getDurationSec(log.startedAt || log.started_at, log.finishedAt || log.finished_at) }}</strong></span>
+                    </div>
+                    <div class="text-zinc-500 flex items-center gap-3">
+                      <span>Pornit: {{ (log.startedAt || log.started_at) | date:'dd MMM yyyy, HH:mm:ss' }}</span>
+                      <span>&bull;</span>
+                      <span>Terminat: {{ (log.finishedAt || log.finished_at) | date:'dd MMM yyyy, HH:mm:ss' }}</span>
+                    </div>
+                  </div>
+                  <!-- Log Output Panel -->
+                  <div class="p-3.5 bg-black/70 font-mono text-[10px] text-zinc-300 overflow-x-auto max-h-48">
+                    <pre class="leading-relaxed select-all"><code>{{ log.output || '(Fără output în stdout/stderr)' }}</code></pre>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- Pagination Controls -->
+            @if (totalPages() > 1) {
+              <div class="flex items-center justify-between border-t border-zinc-900 pt-4 font-sans text-xs">
+                <span class="text-zinc-500 font-mono">
+                  Afișare loguri <strong class="text-white">{{ (currentPage() - 1) * pageSize() + 1 }}</strong> - <strong class="text-white">{{ (currentPage() * pageSize() > totalLogs() ? totalLogs() : currentPage() * pageSize()) }}</strong> din <strong class="text-white">{{ totalLogs() }}</strong>
+                </span>
+                <div class="flex items-center gap-1.5 font-mono">
+                  <button 
+                    [disabled]="currentPage() === 1"
+                    (click)="onPageChange(currentPage() - 1)"
+                    class="px-2.5 py-1.5 rounded border border-zinc-850 bg-zinc-950 text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-zinc-900 transition-colors flex items-center"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                    </svg>
+                  </button>
+                  
+                  <span class="px-3 py-1.5 text-zinc-400 font-semibold select-none">
+                    Pagina {{ currentPage() }} din {{ totalPages() }}
+                  </span>
+
+                  <button 
+                    [disabled]="currentPage() === totalPages()"
+                    (click)="onPageChange(currentPage() + 1)"
+                    class="px-2.5 py-1.5 rounded border border-zinc-850 bg-zinc-950 text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-zinc-900 transition-colors flex items-center"
+                  >
+                    <svg xmlns="http://www.w3.org/2050/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            }
+          }
+        </div>
+      }
+
+      <!-- TAB 3: SETTINGS -->
+      @if (activeTab() === 'settings') {
+        <div class="space-y-6 animate-fade-in">
+          
+          <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg p-5 space-y-5 shadow-sm">
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-3">Editează proprietățile cron jobului</h3>
+            
+            <div class="space-y-4 max-w-xl text-xs font-sans">
+              <!-- Name -->
+              <div class="space-y-1.5">
+                <label for="edit-cron-name" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Nume Job</label>
+                <input 
+                  id="edit-cron-name"
+                  type="text" 
+                  [ngModel]="editName()"
+                  (ngModelChange)="editName.set($event)"
+                  class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                />
+              </div>
+
+              <!-- Target App -->
+              <div class="space-y-1.5">
+                <label for="edit-cron-app" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Aplicație Target</label>
+                <select 
+                  id="edit-cron-app"
+                  [ngModel]="editAppId()"
+                  (ngModelChange)="editAppId.set($event)"
+                  class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+                >
+                  @for (app of parent.apps(); track app.id) {
+                    <option [value]="app.id">{{ app.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <!-- Status -->
+              <div class="space-y-1.5">
+                <label for="edit-cron-status" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Stare Funcționare</label>
+                <select 
+                  id="edit-cron-status"
+                  [ngModel]="editStatus()"
+                  (ngModelChange)="editStatus.set($event)"
+                  class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+                >
+                  <option value="active">Active (Rulare periodică automată)</option>
+                  <option value="paused">Paused (Oprit/Suspendat temporar)</option>
+                </select>
+              </div>
+
+              <!-- Schedule -->
+              <div class="space-y-1.5">
+                <label for="edit-cron-schedule" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Orar (Sintaxă Cron)</label>
+                <input 
+                  id="edit-cron-schedule"
+                  type="text" 
+                  [ngModel]="editSchedule()"
+                  (ngModelChange)="editSchedule.set($event)"
+                  class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                />
+                <p class="text-[9px] text-zinc-550 leading-normal font-sans font-medium">
+                  Format: standard cu 5 câmpuri (ex: <code class="text-zinc-400 font-bold select-all">*/15 * * * *</code>) sau 6 câmpuri (secunde incluse).
+                </p>
+              </div>
+
+              <!-- Command -->
+              <div class="space-y-1.5">
+                <label for="edit-cron-command" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Comandă de Executat</label>
+                <textarea 
+                  id="edit-cron-command"
+                  rows="3"
+                  [ngModel]="editCommand()"
+                  (ngModelChange)="editCommand.set($event)"
+                  class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono resize-none font-semibold"
+                ></textarea>
+              </div>
+            </div>
+
+            <div class="pt-3 border-t border-zinc-900 flex justify-end gap-2 text-xs">
+              <button 
+                (click)="selectCronJob(job)"
+                [disabled]="savingSettings()"
+                class="px-3 py-1.5 rounded border border-zinc-850 hover:bg-zinc-900 text-zinc-400 hover:text-white cursor-pointer transition-colors"
+              >
+                Anulează
+              </button>
+              <button 
+                (click)="onSaveSettings()"
+                [disabled]="savingSettings() || !editName().trim() || !editSchedule().trim() || !editCommand().trim()"
+                class="px-4 py-1.5 rounded bg-white hover:bg-zinc-200 text-black font-bold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+              >
+                @if (savingSettings()) {
+                  <svg class="animate-spin h-3 w-3 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                  <span>Se salvează...</span>
+                } @else {
+                  <span>Salvează setările</span>
+                }
+              </button>
+            </div>
+          </div>
+
+          <!-- Danger Area -->
+          <div class="bg-[#0a0a0a] border border-red-955/20 rounded-lg p-5 space-y-4 shadow-sm">
+            <h3 class="text-xs font-bold text-red-500 uppercase tracking-wider border-b border-zinc-900 pb-3">Zonă Periculoasă</h3>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-sans">
+              <div class="space-y-1">
+                <h4 class="font-bold text-zinc-300">Elimină definitv acest job programat</h4>
+                <p class="text-[11px] text-zinc-500 max-w-md">Elimină această sarcină. Istoricul de rulări și logurile asociate vor fi șterse permanent de pe disk.</p>
+              </div>
+              <button 
+                (click)="onDeleteCronJob(job.id)"
+                class="px-4 py-2 rounded bg-red-955/20 hover:bg-red-950 text-red-400 hover:text-red-300 font-bold border border-red-900/40 cursor-pointer transition-colors sm:self-center"
+              >
+                Șterge Job Cron
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  }
+
+</div>

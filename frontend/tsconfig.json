@@ -15,6 +15,7 @@
     "target": "ES2022",
     "module": "preserve",
     "baseUrl": "src",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@core/*": ["app/core/*"],
       "@pages/*": ["app/pages/*"],

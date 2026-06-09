@@ -1,0 +1,27 @@
+# Rust / Cargo
+backend/target/
+backend/Cargo.lock.lock
+backend/temp_nginx/
+backend/temp_storage/
+backend/.env
+
+# Node / Angular
+frontend/node_modules/
+frontend/.angular/
+frontend/dist/
+frontend/package-lock.json
+
+# IDEs and editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Temporary files and logs
+*.log
+first_build_logs.txt
+src.zip
+update_db.py

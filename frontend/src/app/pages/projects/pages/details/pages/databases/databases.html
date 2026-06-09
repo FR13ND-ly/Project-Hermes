@@ -1,1 +1,398 @@
-<p>databases works!</p>
+<div class="space-y-6 animate-fade-in">
+  
+  <!-- Section Header -->
+  <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
+    <div>
+      <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Baze de Date Provisionate</h3>
+      <p class="text-xs text-zinc-500">Găzduiește și administrează instanțele tale de date din cluster.</p>
+    </div>
+    <button 
+      (click)="showCreateForm.set(true)"
+      class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+      </svg>
+      Adaugă Bază Date
+    </button>
+  </div>
+
+  <!-- Modal: Provision Database Card (Design premium popup dialog) -->
+  @if (showCreateForm()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in font-sans">
+      <div 
+        id="db-provision-form"
+        class="w-full max-w-xl bg-[#0b0b0c] border border-zinc-850 rounded-xl p-7 shadow-2xl space-y-6"
+        role="dialog"
+        aria-label="Provisionează Bază Date"
+      >
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between border-b border-zinc-900 pb-3.5">
+          <div class="space-y-0.5">
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">Provisionează Bază Date Nouă</h3>
+            <p class="text-[10px] text-zinc-500 font-medium">Configurează cotele de resurse și expunerea în rețea a instanței.</p>
+          </div>
+          <button 
+            (click)="showCreateForm.set(false)"
+            [disabled]="provisioning()"
+            class="text-zinc-500 hover:text-white cursor-pointer transition-colors p-1"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="space-y-6">
+          
+          <!-- General Details Grid -->
+          <div class="grid gap-5 md:grid-cols-2">
+            <!-- DB Name -->
+            <div class="space-y-2">
+              <label for="db-name-input" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Nume Bază Date</label>
+              <input 
+                id="db-name-input"
+                type="text" 
+                placeholder="ex. client-db, cache-store"
+                [ngModel]="dbName()"
+                (ngModelChange)="dbName.set($event)"
+                [disabled]="provisioning()"
+                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded-lg text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+            </div>
+
+            <!-- DB Type Selector (Icon-based cards) -->
+            <div class="space-y-2">
+              <label class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Tip Tehnologie</label>
+              <div class="grid grid-cols-4 gap-2">
+                @for (type of ['postgres', 'redis', 'mysql', 'mongodb']; track type) {
+                  <button
+                    type="button"
+                    (click)="onTypeChange($any(type))"
+                    [disabled]="provisioning()"
+                    class="py-2.5 px-1.5 rounded-lg border text-[9px] font-bold text-center uppercase transition-all cursor-pointer flex items-center justify-center font-mono"
+                    [ngClass]="dbType() === type ? 'bg-zinc-900 border-zinc-500 text-white shadow-md shadow-black/30 scale-[1.02]' : 'bg-zinc-950 border-zinc-850 text-zinc-400 hover:text-white hover:border-zinc-700'"
+                  >
+                    <span>{{ type }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Resource limits sliders (Stacked full-width for spacing) -->
+          <div class="space-y-5 border-t border-zinc-900 pt-5">
+            <h4 class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider">Cote Resurse Container</h4>
+            
+            <!-- CPU Slider -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="uppercase tracking-wider font-semibold text-[10px] text-zinc-500">Limită CPU</span>
+                <span class="text-white font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-[10px]">{{ cpuLimit() }}m</span>
+              </div>
+              <input 
+                type="range" 
+                min="100" 
+                max="2000" 
+                step="50"
+                [ngModel]="cpuLimit()"
+                (ngModelChange)="cpuLimit.set($event)"
+                [disabled]="provisioning()"
+                class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-white custom-slider"
+              />
+              <div class="flex justify-between text-[8px] text-zinc-600 font-mono">
+                <span>100m</span>
+                <span>2000m (2 cores)</span>
+              </div>
+            </div>
+
+            <!-- RAM Slider -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="uppercase tracking-wider font-semibold text-[10px] text-zinc-500">Limită Memorie (RAM)</span>
+                <span class="text-white font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-[10px]">{{ memLimit() }} MB</span>
+              </div>
+              <input 
+                type="range" 
+                min="128" 
+                max="4096" 
+                step="128"
+                [ngModel]="memLimit()"
+                (ngModelChange)="memLimit.set($event)"
+                [disabled]="provisioning()"
+                class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-white custom-slider"
+              />
+              <div class="flex justify-between text-[8px] text-zinc-600 font-mono">
+                <span>128 MB</span>
+                <span>4096 MB (4 GB)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- External exposures loadbalancers -->
+          <div class="border-t border-zinc-900 pt-5 space-y-4">
+            <h4 class="text-[10px] font-bold text-zinc-455 uppercase tracking-wider">Configurare Acces Rețea</h4>
+            
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <!-- Expose toggle -->
+              <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                <input 
+                  id="expose-toggle"
+                  type="checkbox" 
+                  [ngModel]="isExternal()"
+                  (ngModelChange)="isExternal.set($event)"
+                  [disabled]="provisioning()"
+                  class="w-4 h-4 bg-zinc-950 rounded border-zinc-800 accent-white shrink-0"
+                />
+                <span class="text-xs text-zinc-300 font-semibold">
+                  Expune bază de date public (LoadBalancer)
+                </span>
+              </label>
+
+              <!-- External Port -->
+              @if (isExternal()) {
+                <div class="flex items-center gap-2 animate-fade-in shrink-0">
+                  <label for="ext-port-input" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider">Port Public:</label>
+                  <input 
+                    id="ext-port-input"
+                    type="number" 
+                    placeholder="5432"
+                    [ngModel]="externalPort()"
+                    (ngModelChange)="externalPort.set($event)"
+                    [disabled]="provisioning()"
+                    class="block w-24 px-2.5 py-1 text-xs bg-zinc-950 border border-zinc-850 rounded-lg text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  />
+                </div>
+              }
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Error inside modal -->
+        @if (error()) {
+          <div class="p-3 rounded-lg border border-red-500/30 bg-red-950/30 text-red-400 text-xs flex items-start gap-2.5 animate-fade-in" role="alert">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0 mt-0.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+            <span>{{ error() }}</span>
+          </div>
+        }
+
+        <!-- Form Actions -->
+        <div class="pt-4.5 border-t border-zinc-900 flex justify-end gap-3">
+          <button 
+            (click)="showCreateForm.set(false)"
+            [disabled]="provisioning()"
+            class="px-4 py-2 rounded-lg text-zinc-450 hover:text-white text-xs font-semibold border border-zinc-850 hover:bg-zinc-950 transition-colors cursor-pointer"
+          >
+            Anulează
+          </button>
+
+          <button 
+            (click)="onCreateDatabase()"
+            [disabled]="provisioning() || !dbName()"
+            class="px-4.5 py-2.5 rounded-lg bg-white hover:bg-zinc-200 text-black text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+          >
+            @if (!provisioning()) {
+              <span>Provisionează</span>
+            } @else {
+              <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Se provisionează...</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Error Alerts -->
+  @if (error()) {
+    <div class="p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-xs flex items-center gap-2" role="alert">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+      </svg>
+      <span>{{ error() }}</span>
+    </div>
+  }
+
+  <!-- Loading List State -->
+  @if (loading()) {
+    <div class="flex flex-col items-center justify-center py-16 gap-2">
+      <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span class="text-zinc-500 text-[9px] uppercase font-mono tracking-widest">Se citesc bazele de date...</span>
+    </div>
+  }
+
+  <!-- Databases list panel -->
+  @if (!loading()) {
+    <!-- Empty List State -->
+    @if (databases().length === 0) {
+      <div class="bg-[#0a0a0a] p-10 rounded-lg border border-zinc-800 flex flex-col items-center justify-center text-center max-w-sm mx-auto shadow-sm">
+        <div class="w-10 h-10 rounded border border-zinc-900 bg-black flex items-center justify-center text-zinc-550 mb-3 shadow">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+          </svg>
+        </div>
+        <h4 class="text-xs font-bold text-zinc-200 mb-1 uppercase tracking-wider">Fără baze de date</h4>
+        <p class="text-xs text-zinc-500 mb-4">Adăugați o instanță Postgres, Redis sau MySQL pentru acest proiect.</p>
+        <button 
+          (click)="showCreateForm.set(true)"
+          class="px-3.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer"
+        >
+          Provisionează Bază Date
+        </button>
+      </div>
+    }
+
+    <!-- Databases Cards Grid -->
+    @if (databases().length > 0) {
+      <div class="grid gap-4 md:grid-cols-2">
+        @for (db of databases(); track db.id) {
+          <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
+            
+            <div class="space-y-4">
+              <!-- Card Header -->
+              <div class="flex items-center justify-between">
+                <div class="space-y-0.5">
+                  <a 
+                    [routerLink]="['/projects', parent.projectId(), 'databases', db.id]"
+                    class="text-sm font-bold text-white hover:text-zinc-300 hover:underline cursor-pointer transition-colors"
+                  >
+                    {{ db.name }}
+                  </a>
+                  <p class="text-[9px] text-zinc-650 font-mono">ID: {{ db.id }}</p>
+                </div>
+                
+                <!-- Status indicator -->
+                <div class="flex items-center gap-2">
+                  <span 
+                    class="px-2 py-0.5 rounded text-[9px] font-semibold border capitalize font-mono"
+                    [ngClass]="{
+                      'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': db.status === 'running',
+                      'bg-orange-950/20 border-orange-900/30 text-orange-400': db.status === 'provisioning',
+                      'bg-red-950/20 border-red-900/30 text-red-400': db.status === 'failed'
+                    }"
+                  >
+                    {{ db.status === 'provisioning' ? 'constructing (' + getLiveDuration(db.createdAt) + ')' : db.status }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Database Details specs -->
+              <div class="grid grid-cols-2 gap-2 p-2.5 rounded bg-black border border-zinc-900 text-[10px] text-zinc-400 font-mono">
+                <div>Tip: <span class="text-white font-bold uppercase">{{ db.type }}</span></div>
+                <div>Port: <span class="text-white font-bold">{{ db.internalPort }}</span></div>
+                <div class="col-span-2 truncate">Pod: <span class="text-zinc-300">{{ db.containerName }}</span></div>
+                
+                <!-- External exposure info -->
+                @if (db.isExternal) {
+                  <div class="col-span-2 text-zinc-300 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-500">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3" />
+                    </svg>
+                    Expus pe port: {{ db.externalPort }}
+                  </div>
+                }
+              </div>
+
+              <!-- Revealed credentials details -->
+              @if (revealedCreds()[db.id]) {
+                <div class="space-y-3.5 p-3.5 rounded border border-zinc-900 bg-zinc-950/60 animate-fade-in">
+                  
+                  <!-- Conn URL -->
+                  <div class="space-y-1">
+                    <div class="flex items-center justify-between text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">
+                      <span>URL Conexiune (DATABASE_URL)</span>
+                      <button 
+                        (click)="copyToClipboard(revealedCreds()[db.id].connectionUrl)"
+                        class="text-white hover:underline font-semibold cursor-pointer"
+                      >
+                        Copiază
+                      </button>
+                    </div>
+                    <div class="px-2 py-1.5 rounded bg-black border border-zinc-900 font-mono text-[10px] text-zinc-300 select-all truncate">
+                      {{ revealedCreds()[db.id].connectionUrl }}
+                    </div>
+                  </div>
+
+                  <!-- Details credentials fields -->
+                  @if (db.type !== 'redis') {
+                    <div class="grid grid-cols-2 gap-3.5">
+                      <!-- Username -->
+                      <div class="space-y-1">
+                        <span class="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold block">Utilizator</span>
+                        <div class="px-2 py-1 rounded bg-black border border-zinc-900 font-mono text-[10px] text-zinc-300 select-all truncate">
+                          {{ revealedCreds()[db.id].databaseUser }}
+                        </div>
+                      </div>
+                      <!-- Password -->
+                      <div class="space-y-1">
+                        <div class="flex items-center justify-between text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">
+                          <span>Parolă</span>
+                          <button 
+                            (click)="copyToClipboard(revealedCreds()[db.id].databasePassword || '')"
+                            class="text-white hover:underline font-semibold cursor-pointer"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                        <div class="px-2 py-1 rounded bg-black border border-zinc-900 font-mono text-[10px] text-zinc-300 select-all truncate">
+                          {{ revealedCreds()[db.id].databasePassword }}
+                        </div>
+                      </div>
+                    </div>
+                  }
+
+                </div>
+              }
+            </div>
+
+            <!-- Card Actions -->
+            <div class="border-t border-zinc-900 pt-3 mt-4 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <button 
+                  (click)="onRevealCredentials(db.id)"
+                  class="px-2 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer border border-zinc-800 transition-colors flex items-center gap-1.5"
+                  [attr.aria-expanded]="!!revealedCreds()[db.id]"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-500">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {{ revealedCreds()[db.id] ? 'Ascunde' : 'Credențiale' }}
+                </button>
+
+                <a 
+                  [routerLink]="['/projects', parent.projectId(), 'databases', db.id]"
+                  class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer border border-zinc-800 transition-colors flex items-center gap-1.5"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-500">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.43l-1.003.828c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.43l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.991l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Administrează
+                </a>
+              </div>
+
+              <button 
+                (click)="onDeleteDatabase(db.id)"
+                class="px-2.5 py-1 rounded hover:bg-red-950/20 text-zinc-500 hover:text-red-400 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Șterge
+              </button>
+            </div>
+
+          </div>
+        }
+      </div>
+    }
+  }
+
+</div>

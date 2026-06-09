@@ -1,0 +1,1046 @@
+use axum::{
+    extract::{State, Path, Query},
+    http::StatusCode,
+    Json,
+};
+use axum::response::sse::{Event, Sse};
+use futures_util::{Stream, StreamExt};
+use std::convert::Infallible;
+use uuid::Uuid;
+
+use crate::app_state::AppState;
+use crate::models::database_model::{DatabaseService, DbType, DbStatus};
+use crate::models::env_variable_model::EnvScope;
+use crate::dtos::database_dto::{CreateDatabaseRequest, DatabaseResponse};
+use crate::dtos::database_backup_dto::BackupResponse;
+use crate::middlewares::auth_middleware::AuthenticatedUser;
+use crate::utils::{crypto, string_gen, error::AppError};
+
+pub async fn create_database(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Json(payload): Json<CreateDatabaseRequest>,
+) -> Result<(StatusCode, Json<DatabaseResponse>), AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let db_id = Uuid::new_v4();
+    let raw_password = string_gen::generate_secure_string(24);
+    let (encrypted_password, password_nonce) = crypto::encrypt_env_value(&raw_password)?;
+    
+    let db_user = format!("hermes_user_{}", string_gen::generate_secure_string(5).to_lowercase());
+    let db_name = format!("hermes_db_{}", string_gen::generate_secure_string(5).to_lowercase());
+    
+    let type_str = match payload.r#type {
+        DbType::Postgres => "postgres",
+        DbType::Mysql => "mysql",
+        DbType::Redis => "redis",
+        DbType::Mongodb => "mongodb",
+    };
+    
+    let container_name = format!("h-db-{}-{}", type_str, &db_id.to_string()[..8]);
+    let version = payload.version.clone().unwrap_or_else(|| "alpine".to_string());
+    let full_image = format!("{}:{}", type_str, version);
+    
+    let internal_port = match payload.r#type {
+        DbType::Postgres => 5432,
+        DbType::Mysql => 3306,
+        DbType::Redis => 6379,
+        DbType::Mongodb => 27017,
+    };
+
+    let connection_url = match payload.r#type {
+        DbType::Postgres => format!("postgresql://{}:{}@{}:{}/{}", db_user, raw_password, container_name, internal_port, db_name),
+        DbType::Mysql => format!("mysql://{}:{}@{}:{}/{}", db_user, raw_password, container_name, internal_port, db_name),
+        DbType::Redis => format!("redis://{}:{}", container_name, internal_port),
+        DbType::Mongodb => format!("mongodb://{}:{}@{}:{}", db_user, raw_password, container_name, internal_port),
+    };
+
+    let is_external = payload.is_external.unwrap_or(false);
+    let ext_port = if is_external {
+        Some(payload.external_port.unwrap_or(internal_port))
+    } else {
+        None
+    };
+
+    let scope = if payload.app_instance_id.is_some() {
+        EnvScope::Preview
+    } else {
+        EnvScope::Production
+    };
+
+    // --- Resource availability check BEFORE creating the DB record ---
+    let db_memory_needed_mb = payload.memory_limit_mb.filter(|&m| m > 0).unwrap_or(256) as i64;
+    crate::utils::limits::check_workspace_memory_limit(
+        &state.pool,
+        ws_id,
+        db_memory_needed_mb,
+        None
+    ).await?;
+    // --- End resource check ---
+
+    sqlx::query!(
+        "INSERT INTO databases (id, workspace_id, project_id, app_instance_id, name, type, version, db_user, db_password, db_password_nonce, db_name, container_name, internal_port, is_external, external_port, status, cpu_limit, memory_limit_mb)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)",
+        db_id, ws_id, payload.project_id, payload.app_instance_id, payload.name, payload.r#type.clone() as DbType, full_image, db_user, encrypted_password, password_nonce, db_name, container_name, internal_port, is_external, ext_port, DbStatus::Provisioning as DbStatus, payload.cpu_limit.unwrap_or(0), payload.memory_limit_mb.unwrap_or(0)
+    )
+    .execute(&state.pool)
+    .await?;
+
+    let (enc_url, nonce_url) = crypto::encrypt_env_value(&connection_url)?;
+    sqlx::query!(
+        "INSERT INTO environment_variables (id, workspace_id, project_id, app_instance_id, key, encrypted_value, nonce, scope, is_secret)
+         VALUES ($1, $2, $3, $4, 'DATABASE_URL', $5, $6, $7, true)
+         ON CONFLICT (workspace_id, project_id, app_instance_id, key, scope) DO UPDATE SET encrypted_value = $5, nonce = $6",
+        Uuid::new_v4(), ws_id, payload.project_id, payload.app_instance_id, enc_url, nonce_url, scope.clone() as EnvScope
+    )
+    .execute(&state.pool)
+    .await?;
+
+    let pool_clone = state.pool.clone();
+    let container_name_clone = container_name.clone();
+    let image_for_container = full_image.clone();
+    let type_enum_clone = payload.r#type.clone();
+    let db_user_clone = db_user.clone();
+    let db_name_clone = db_name.clone();
+    let ws_id_str = ws_id.to_string();
+    let cpu_limit = payload.cpu_limit.unwrap_or(0);
+    let memory_limit_mb = payload.memory_limit_mb.unwrap_or(0);
+
+    tokio::spawn(async move {
+        let k8s_client = match crate::utils::k8s::K8sManager::get_client().await {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::error!(db_id = %db_id, "Failed to connect to K8s for database provisioning: {}", e);
+                let _ = update_db_status(&pool_clone, db_id, DbStatus::Failed).await;
+                return;
+            }
+        };
+
+        let namespace = format!("hermes-ws-{}", ws_id_str);
+        let limits = sqlx::query!("SELECT max_memory_mb, max_storage_gb FROM workspaces WHERE id = $1", ws_id)
+            .fetch_one(&pool_clone)
+            .await;
+        let (max_mem, max_storage) = match limits {
+            Ok(r) => (r.max_memory_mb, r.max_storage_gb),
+            Err(_) => (2048, 10),
+        };
+        if let Err(e) = crate::utils::k8s::K8sManager::create_namespace(&k8s_client, &namespace, max_mem, max_storage).await {
+            tracing::warn!(db_id = %db_id, namespace = %namespace, "create_namespace warning: {}", e);
+            // Non-fatal: namespace may already exist, continue
+        }
+
+        let mut envs = Vec::new();
+        match type_enum_clone {
+            DbType::Postgres => {
+                envs.push(("POSTGRES_USER".to_string(), db_user_clone));
+                envs.push(("POSTGRES_PASSWORD".to_string(), raw_password));
+                envs.push(("POSTGRES_DB".to_string(), db_name_clone));
+            },
+            DbType::Mysql => {
+                envs.push(("MYSQL_ROOT_PASSWORD".to_string(), raw_password.clone()));
+                envs.push(("MYSQL_USER".to_string(), db_user_clone));
+                envs.push(("MYSQL_PASSWORD".to_string(), raw_password));
+                envs.push(("MYSQL_DATABASE".to_string(), db_name_clone));
+            },
+            DbType::Mongodb => {
+                envs.push(("MONGO_INITDB_ROOT_USERNAME".to_string(), db_user_clone));
+                envs.push(("MONGO_INITDB_ROOT_PASSWORD".to_string(), raw_password));
+            },
+            DbType::Redis => {}
+        }
+
+        match crate::utils::k8s::K8sManager::deploy_database(
+            &k8s_client,
+            &namespace,
+            &container_name_clone,
+            &image_for_container,
+            envs,
+            internal_port,
+            cpu_limit,
+            memory_limit_mb,
+        ).await {
+            Ok(_) => {
+                if is_external {
+                    let lb_name = format!("{}-external", container_name_clone);
+                    let _ = crate::utils::k8s::K8sManager::deploy_loadbalancer_service(
+                        &k8s_client,
+                        &namespace,
+                        &lb_name,
+                        &container_name_clone,
+                        internal_port,
+                        ext_port.unwrap_or(internal_port),
+                        "TCP",
+                    ).await;
+                }
+                let _ = update_db_status(&pool_clone, db_id, DbStatus::Running).await;
+            }
+            Err(e) => {
+                tracing::error!(
+                    db_id = %db_id,
+                    namespace = %namespace,
+                    container = %container_name_clone,
+                    "deploy_database failed (possibly quota exceeded during concurrent build): {}",
+                    e
+                );
+                let _ = update_db_status(&pool_clone, db_id, DbStatus::Failed).await;
+            }
+        }
+    });
+
+    Ok((
+        StatusCode::CREATED,
+        Json(DatabaseResponse {
+            id: db_id,
+            project_id: payload.project_id,
+            app_instance_id: payload.app_instance_id,
+            name: payload.name,
+            r#type: payload.r#type,
+            version: full_image,
+            db_user,
+            db_name,
+            container_name,
+            internal_port,
+            is_external,
+            external_port: ext_port,
+            status: DbStatus::Provisioning,
+            connection_url,
+        }),
+    ))
+}
+
+pub async fn get_database(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(db_id): Path<Uuid>,
+) -> Result<Json<DatabaseService>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let mut db_service = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1 AND workspace_id = $2")
+        .bind(db_id).bind(ws_id).fetch_optional(&state.pool).await?
+        .ok_or_else(|| AppError::NotFound("Database service not found.".to_string()))?;
+
+    // Dynamically check and sync status with actual K8s pod state
+    if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
+        let namespace = format!("hermes-ws-{}", ws_id);
+        let actual_status = get_actual_db_status(&k8s_client, &namespace, &db_service.container_name, db_service.status.clone()).await;
+        if actual_status != db_service.status {
+            db_service.status = actual_status.clone();
+            let _ = update_db_status(&state.pool, db_service.id, actual_status).await;
+        }
+    }
+
+    Ok(Json(db_service))
+}
+
+pub async fn delete_database(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(db_id): Path<Uuid>,
+) -> Result<StatusCode, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let db_service = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1 AND workspace_id = $2")
+        .bind(db_id).bind(ws_id).fetch_optional(&state.pool).await?
+        .ok_or_else(|| AppError::NotFound("Database service not found.".to_string()))?;
+
+    let namespace = format!("hermes-ws-{}", ws_id);
+    let container_name = db_service.container_name.clone();
+
+    tokio::spawn(async move {
+        if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
+            let _ = crate::utils::k8s::K8sManager::delete_database(&k8s_client, &namespace, &container_name).await;
+        }
+    });
+
+    sqlx::query!(
+        "DELETE FROM environment_variables 
+         WHERE workspace_id = $1 AND project_id = $2 AND (app_instance_id = $3 OR ($3 IS NULL AND app_instance_id IS NULL)) AND key = 'DATABASE_URL'",
+        ws_id, db_service.project_id, db_service.app_instance_id
+    )
+    .execute(&state.pool)
+    .await?;
+
+    sqlx::query!("DELETE FROM databases WHERE id = $1 AND workspace_id = $2", db_id, ws_id)
+        .execute(&state.pool)
+        .await?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn update_db_status(pool: &sqlx::PgPool, id: Uuid, status: DbStatus) -> Result<(), sqlx::Error> {
+    sqlx::query!("UPDATE databases SET status = $1, updated_at = now() WHERE id = $2", status.clone() as DbStatus, id)
+        .execute(pool)
+        .await?;
+
+    if let Ok(Some(meta)) = sqlx::query!(
+        "SELECT workspace_id, container_name FROM databases WHERE id = $1",
+        id
+    )
+    .fetch_optional(pool)
+    .await {
+        crate::utils::event_broadcaster::broadcast_event(
+            crate::utils::event_broadcaster::SystemEvent::DatabaseStatusChanged {
+                workspace_id: meta.workspace_id,
+                database_id: id,
+                container_name: meta.container_name,
+                status: format!("{:?}", status).to_lowercase(),
+            }
+        );
+    }
+
+    Ok(())
+}
+
+pub async fn reveal_database_credentials(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(db_id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let db_service = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1 AND workspace_id = $2")
+        .bind(db_id).bind(ws_id).fetch_optional(&state.pool).await?
+        .ok_or_else(|| AppError::NotFound("Database service not found.".to_string()))?;
+
+    let decrypted_password = match db_service.db_password_nonce {
+        Some(ref nonce) => crypto::decrypt_env_value(&db_service.db_password, nonce)?,
+        None => {
+            crypto::decrypt_env_value(&db_service.db_password, "AAAAAAAAAAAAAAAA")?
+        }
+    };
+
+    let raw_url = match db_service.r#type {
+        DbType::Postgres => format!("postgresql://{}:{}@{}:{}/{}", db_service.db_user, decrypted_password, db_service.container_name, db_service.internal_port, db_service.db_name),
+        DbType::Mysql => format!("mysql://{}:{}@{}:{}/{}", db_service.db_user, decrypted_password, db_service.container_name, db_service.internal_port, db_service.db_name),
+        DbType::Redis => format!("redis://{}", db_service.container_name),
+        DbType::Mongodb => format!("mongodb://{}:{}@{}:{}", db_service.db_user, decrypted_password, db_service.container_name, db_service.internal_port),
+    };
+
+    Ok(Json(serde_json::json!({
+        "databaseUser": db_service.db_user,
+        "databasePassword": decrypted_password,
+        "connectionUrl": raw_url,
+    })))
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DatabaseListQuery {
+    pub project_id: Uuid,
+}
+
+pub async fn list_project_databases(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Query(query): Query<DatabaseListQuery>,
+) -> Result<Json<Vec<DatabaseService>>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let mut databases = sqlx::query_as::<_, DatabaseService>(
+        "SELECT * FROM databases WHERE project_id = $1 AND workspace_id = $2 ORDER BY created_at DESC"
+    )
+    .bind(query.project_id)
+    .bind(ws_id)
+    .fetch_all(&state.pool)
+    .await?;
+
+    // Dynamically check and sync status with actual K8s pod state
+    if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
+        let namespace = format!("hermes-ws-{}", ws_id);
+        for db in &mut databases {
+            let actual_status = get_actual_db_status(&k8s_client, &namespace, &db.container_name, db.status.clone()).await;
+            if actual_status != db.status {
+                db.status = actual_status.clone();
+                let _ = update_db_status(&state.pool, db.id, actual_status).await;
+            }
+        }
+    }
+
+    Ok(Json(databases))
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct DatabaseQueryRequest {
+    pub query: String,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct DatabaseQueryResponse {
+    pub output: String,
+    pub is_error: bool,
+}
+
+pub async fn execute_database_query(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(db_id): Path<Uuid>,
+    Json(payload): Json<DatabaseQueryRequest>,
+) -> Result<Json<DatabaseQueryResponse>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let db_service = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1 AND workspace_id = $2")
+        .bind(db_id).bind(ws_id).fetch_optional(&state.pool).await?
+        .ok_or_else(|| AppError::NotFound("Database service not found.".to_string()))?;
+
+    let decrypted_password = match db_service.db_password_nonce {
+        Some(ref nonce) => crypto::decrypt_env_value(&db_service.db_password, nonce)?,
+        None => {
+            crypto::decrypt_env_value(&db_service.db_password, "AAAAAAAAAAAAAAAA")?
+        }
+    };
+
+    let namespace = format!("hermes-ws-{}", ws_id);
+    let pod_name = format!("{}-0", db_service.container_name);
+
+    let mut cmd = std::process::Command::new("kubectl");
+    cmd.arg("exec");
+    cmd.arg("-n");
+    cmd.arg(&namespace);
+    cmd.arg(&pod_name);
+    cmd.arg("--");
+
+    match db_service.r#type {
+        DbType::Postgres => {
+            cmd.arg("psql");
+            cmd.arg("-U");
+            cmd.arg(&db_service.db_user);
+            cmd.arg("-d");
+            cmd.arg(&db_service.db_name);
+            cmd.arg("-c");
+            cmd.arg(&payload.query);
+        }
+        DbType::Mysql => {
+            cmd.arg("mysql");
+            cmd.arg("-u");
+            cmd.arg(&db_service.db_user);
+            cmd.arg(format!("-p{}", decrypted_password));
+            cmd.arg("-e");
+            cmd.arg(&payload.query);
+            cmd.arg(&db_service.db_name);
+        }
+        DbType::Redis => {
+            cmd.arg("redis-cli");
+            let parts: Vec<&str> = payload.query.split_whitespace().collect();
+            for part in parts {
+                cmd.arg(part);
+            }
+        }
+        DbType::Mongodb => {
+            cmd.arg("sh");
+            cmd.arg("-c");
+            let mongo_script = format!(
+                "mongosh -u '{}' -p '{}' --authenticationDatabase admin --quiet --eval '{}' || mongo -u '{}' -p '{}' --authenticationDatabase admin --quiet --eval '{}'",
+                db_service.db_user, decrypted_password, payload.query.replace('\'', "'\\''"),
+                db_service.db_user, decrypted_password, payload.query.replace('\'', "'\\''")
+            );
+            cmd.arg(mongo_script);
+        }
+    }
+
+    let output = match cmd.output() {
+        Ok(out) => out,
+        Err(e) => {
+            return Ok(Json(DatabaseQueryResponse {
+                output: format!("Failed to run kubectl command: {}", e),
+                is_error: true,
+            }));
+        }
+    };
+
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+    let is_error = !output.status.success();
+    let final_output = if is_error {
+        if stderr.is_empty() { stdout } else { stderr }
+    } else {
+        stdout
+    };
+
+    Ok(Json(DatabaseQueryResponse {
+        output: final_output,
+        is_error,
+    }))
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct LogQuery {
+    pub previous: Option<bool>,
+}
+
+pub async fn stream_database_logs(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Query(query): Query<LogQuery>,
+    Path(db_id): Path<Uuid>,
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let db_service = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1 AND workspace_id = $2")
+        .bind(db_id).bind(ws_id).fetch_optional(&state.pool).await?
+        .ok_or_else(|| AppError::NotFound("Database service not found.".to_string()))?;
+
+    let k8s_client = crate::utils::k8s::K8sManager::get_client().await?;
+    let namespace = format!("hermes-ws-{}", ws_id);
+    let container_name = db_service.container_name.clone();
+    let is_previous = query.previous.unwrap_or(false);
+
+    let sse_stream = async_stream::stream! {
+        let pods_api: kube::Api<k8s_openapi::api::core::v1::Pod> = kube::Api::namespaced(k8s_client.clone(), &namespace);
+        let lp = kube::api::ListParams::default().labels(&format!("app={}", container_name));
+
+        loop {
+            let pod_list = match pods_api.list(&lp).await {
+                Ok(list) => list,
+                Err(e) => {
+                    yield Ok(Event::default().data(format!("[Console Error] Eșec la listarea pod-urilor din Kubernetes: {}", e)));
+                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                    continue;
+                }
+            };
+
+            let pod = match pod_list.items.first() {
+                Some(p) => p,
+                None => {
+                    yield Ok(Event::default().data("[Console] Se așteaptă programarea pod-ului pe nod...".to_string()));
+                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                    continue;
+                }
+            };
+
+            let pod_name = match &pod.metadata.name {
+                Some(name) => name.clone(),
+                None => {
+                    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                    continue;
+                }
+            };
+
+            let phase = pod.status.as_ref()
+                .and_then(|s| s.phase.clone())
+                .unwrap_or_else(|| "Unknown".to_string());
+
+            if phase == "Pending" || phase == "Unknown" {
+                yield Ok(Event::default().data(format!("[Console] Baza de date se inițializează (Stare: {})...", phase)));
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                continue;
+            }
+
+            let log_params = kube::api::LogParams {
+                follow: !is_previous && (phase == "Running"),
+                previous: is_previous,
+                tail_lines: Some(100),
+                ..Default::default()
+            };
+
+            let log_stream_res = pods_api.log_stream(&pod_name, &log_params).await;
+            match log_stream_res {
+                Ok(log_stream) => {
+                    yield Ok(Event::default().data("[Console] Conexiune stabilă cu pod-ul. Se preiau logurile:".to_string()));
+                    
+                    use futures_util::io::AsyncBufReadExt;
+                    let mut lines = log_stream.lines();
+                    while let Some(line_res) = lines.next().await {
+                        match line_res {
+                            Ok(line) => {
+                                yield Ok(Event::default().data(line));
+                            }
+                            Err(e) => {
+                                yield Ok(Event::default().data(format!("[Console Warning] Eroare de rețea la fluxul de logs: {}", e)));
+                                break;
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    yield Ok(Event::default().data(format!("[Console] Se pornește containerul de logs (Eroare API: {})...", e)));
+                }
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+        }
+    };
+
+    Ok(Sse::new(sse_stream))
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateDatabaseSettingsRequest {
+    pub cpu_limit: i32,
+    pub memory_limit_mb: i64,
+}
+
+pub async fn update_database_settings(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(db_id): Path<Uuid>,
+    Json(payload): Json<UpdateDatabaseSettingsRequest>,
+) -> Result<StatusCode, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    // 1. Fetch the database service metadata (including container name and type)
+    let db_service = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1 AND workspace_id = $2")
+        .bind(db_id).bind(ws_id).fetch_optional(&state.pool).await?
+        .ok_or_else(|| AppError::NotFound("Database service not found.".to_string()))?;
+
+    // Check workspace memory limits
+    crate::utils::limits::check_workspace_memory_limit(
+        &state.pool,
+        ws_id,
+        payload.memory_limit_mb,
+        Some(db_id)
+    ).await?;
+
+    // 2. Update resource limits in databases table
+    sqlx::query!(
+        "UPDATE databases SET cpu_limit = $1, memory_limit_mb = $2, updated_at = now() WHERE id = $3",
+        payload.cpu_limit, payload.memory_limit_mb, db_id
+    )
+    .execute(&state.pool)
+    .await?;
+
+    // 3. Decrypt the database password
+    let decrypted_password = match db_service.db_password_nonce {
+        Some(ref nonce) => crypto::decrypt_env_value(&db_service.db_password, nonce)?,
+        None => {
+            crypto::decrypt_env_value(&db_service.db_password, "AAAAAAAAAAAAAAAA")?
+        }
+    };
+
+    // 4. Update/Upsert the environment variable DATABASE_URL with the new container name & credentials
+    let new_connection_url = match db_service.r#type {
+        DbType::Postgres => format!("postgresql://{}:{}@{}:{}/{}", db_service.db_user, decrypted_password, db_service.container_name, db_service.internal_port, db_service.db_name),
+        DbType::Mysql => format!("mysql://{}:{}@{}:{}/{}", db_service.db_user, decrypted_password, db_service.container_name, db_service.internal_port, db_service.db_name),
+        DbType::Redis => format!("redis://{}:{}", db_service.container_name, db_service.internal_port),
+        DbType::Mongodb => format!("mongodb://{}:{}@{}:{}", db_service.db_user, decrypted_password, db_service.container_name, db_service.internal_port),
+    };
+    
+    let scope = if db_service.app_instance_id.is_some() {
+        EnvScope::Preview
+    } else {
+        EnvScope::Production
+    };
+
+    let (enc_url, nonce_url) = crypto::encrypt_env_value(&new_connection_url)?;
+    sqlx::query!(
+        "INSERT INTO environment_variables (id, workspace_id, project_id, app_instance_id, key, encrypted_value, nonce, scope, is_secret)
+         VALUES ($1, $2, $3, $4, 'DATABASE_URL', $5, $6, $7, true)
+         ON CONFLICT (workspace_id, project_id, app_instance_id, key, scope) DO UPDATE SET encrypted_value = $5, nonce = $6",
+        Uuid::new_v4(), ws_id, db_service.project_id, db_service.app_instance_id, enc_url, nonce_url, scope.clone() as EnvScope
+    )
+    .execute(&state.pool)
+    .await?;
+
+    // 5. Build K8s configuration and deploy database
+    let k8s_client = crate::utils::k8s::K8sManager::get_client().await?;
+    let namespace = format!("hermes-ws-{}", ws_id);
+
+    let mut envs = Vec::new();
+    match db_service.r#type {
+        DbType::Postgres => {
+            envs.push(("POSTGRES_USER".to_string(), db_service.db_user.clone()));
+            envs.push(("POSTGRES_PASSWORD".to_string(), decrypted_password));
+            envs.push(("POSTGRES_DB".to_string(), db_service.db_name.clone()));
+        },
+        DbType::Mysql => {
+            envs.push(("MYSQL_ROOT_PASSWORD".to_string(), decrypted_password.clone()));
+            envs.push(("MYSQL_USER".to_string(), db_service.db_user.clone()));
+            envs.push(("MYSQL_PASSWORD".to_string(), decrypted_password));
+            envs.push(("MYSQL_DATABASE".to_string(), db_service.db_name.clone()));
+        },
+        DbType::Mongodb => {
+            envs.push(("MONGO_INITDB_ROOT_USERNAME".to_string(), db_service.db_user.clone()));
+            envs.push(("MONGO_INITDB_ROOT_PASSWORD".to_string(), decrypted_password));
+        },
+        DbType::Redis => {}
+    }
+
+    // Update database status based on deployment success
+    match crate::utils::k8s::K8sManager::deploy_database(
+        &k8s_client,
+        &namespace,
+        &db_service.container_name,
+        &db_service.version,
+        envs,
+        db_service.internal_port,
+        payload.cpu_limit,
+        payload.memory_limit_mb,
+    ).await {
+        Ok(_) => {
+            let _ = update_db_status(&state.pool, db_id, DbStatus::Running).await;
+        }
+        Err(e) => {
+            let _ = update_db_status(&state.pool, db_id, DbStatus::Failed).await;
+            return Err(e);
+        }
+    }
+
+    Ok(StatusCode::OK)
+}
+
+async fn get_actual_db_status(
+    k8s_client: &kube::Client,
+    namespace: &str,
+    container_name: &str,
+    db_status_in_db: DbStatus,
+) -> DbStatus {
+    if db_status_in_db == DbStatus::Failed || db_status_in_db == DbStatus::Stopped {
+        return db_status_in_db;
+    }
+
+    let pods_api: kube::Api<k8s_openapi::api::core::v1::Pod> = kube::Api::namespaced(k8s_client.clone(), namespace);
+    let lp = kube::api::ListParams::default().labels(&format!("app={}", container_name));
+
+    match pods_api.list(&lp).await {
+        Ok(list) => {
+            if let Some(pod) = list.items.first() {
+                if let Some(status) = &pod.status {
+                    let phase = status.phase.as_deref().unwrap_or("Unknown");
+                    
+                    let container_ready = status.container_statuses.as_ref()
+                        .and_then(|statuses| statuses.first())
+                        .map(|c_status| c_status.ready)
+                        .unwrap_or(false);
+
+                    if phase == "Running" && container_ready {
+                        DbStatus::Running
+                    } else if phase == "Failed" {
+                        DbStatus::Failed
+                    } else {
+                        // Pending, ContainerCreating, or Running but container not yet ready (initializing)
+                        DbStatus::Provisioning
+                    }
+                } else {
+                    DbStatus::Provisioning
+                }
+            } else {
+                // Pod does not exist yet (meaning it is still scheduling or creating)
+                DbStatus::Provisioning
+            }
+        }
+        Err(_) => db_status_in_db,
+    }
+}
+
+pub async fn create_database_backup(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(db_id): Path<Uuid>,
+) -> Result<(StatusCode, Json<BackupResponse>), AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let db_service = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1 AND workspace_id = $2")
+        .bind(db_id).bind(ws_id).fetch_optional(&state.pool).await?
+        .ok_or_else(|| AppError::NotFound("Database service not found.".to_string()))?;
+
+    let decrypted_password = match db_service.db_password_nonce {
+        Some(ref nonce) => crypto::decrypt_env_value(&db_service.db_password, nonce)?,
+        None => crypto::decrypt_env_value(&db_service.db_password, "AAAAAAAAAAAAAAAA")?
+    };
+
+    let namespace = format!("hermes-ws-{}", ws_id);
+    let pod_name = format!("{}-0", db_service.container_name);
+
+    let extension = match db_service.r#type {
+        DbType::Postgres | DbType::Mysql => "sql",
+        DbType::Mongodb => "archive",
+        DbType::Redis => "rdb",
+    };
+    
+    let backups_dir = format!("/var/lib/hermes/backups/{}", db_id);
+    std::fs::create_dir_all(&backups_dir).map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to create backups directory: {}", e)))?;
+    
+    let filename = format!("{}.{}", chrono::Utc::now().format("%Y%m%d_%H%M%S"), extension);
+    let filepath = format!("{}/{}", backups_dir, filename);
+    let file = std::fs::File::create(&filepath).map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to create backup file on host: {}", e)))?;
+
+    let mut cmd = std::process::Command::new("kubectl");
+    cmd.arg("exec");
+    cmd.arg("-n");
+    cmd.arg(&namespace);
+    cmd.arg(&pod_name);
+    cmd.arg("--");
+
+    match db_service.r#type {
+        DbType::Postgres => {
+            cmd.arg("pg_dump");
+            cmd.arg("-U");
+            cmd.arg(&db_service.db_user);
+            cmd.arg("-d");
+            cmd.arg(&db_service.db_name);
+        }
+        DbType::Mysql => {
+            cmd.arg("mysqldump");
+            cmd.arg("-u");
+            cmd.arg(&db_service.db_user);
+            cmd.arg(format!("-p{}", decrypted_password));
+            cmd.arg(&db_service.db_name);
+        }
+        DbType::Mongodb => {
+            cmd.arg("mongodump");
+            cmd.arg("--username");
+            cmd.arg(&db_service.db_user);
+            cmd.arg("--password");
+            cmd.arg(&decrypted_password);
+            cmd.arg("--authenticationDatabase");
+            cmd.arg("admin");
+            cmd.arg("--archive");
+        }
+        DbType::Redis => {
+            cmd.arg("redis-cli");
+            cmd.arg("--rdb");
+            cmd.arg("-");
+        }
+    }
+
+    cmd.stdout(std::process::Stdio::from(file));
+    cmd.stderr(std::process::Stdio::piped());
+
+    let mut child = cmd.spawn().map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to spawn backup process: {}", e)))?;
+    let output = child.wait_with_output().map_err(|e| AppError::Fatal(anyhow::anyhow!("Backup process execution failed: {}", e)))?;
+
+    if !output.status.success() {
+        let err_msg = String::from_utf8_lossy(&output.stderr).to_string();
+        let _ = std::fs::remove_file(&filepath);
+        return Err(AppError::Fatal(anyhow::anyhow!("Backup command failed: {}", err_msg)));
+    }
+
+    let file_size = std::fs::metadata(&filepath).map(|m| m.len() as i64).unwrap_or(0);
+    let backup_id = Uuid::new_v4();
+    let created_at = chrono::Utc::now();
+
+    sqlx::query!(
+        "INSERT INTO database_backups (id, database_id, filename, file_size_bytes, status, created_at)
+         VALUES ($1, $2, $3, $4, 'completed', $5)",
+        backup_id, db_id, filename, file_size, created_at
+    )
+    .execute(&state.pool)
+    .await?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(BackupResponse {
+            id: backup_id,
+            database_id: db_id,
+            filename,
+            file_size_bytes: file_size,
+            status: "completed".to_string(),
+            created_at,
+        }),
+    ))
+}
+
+pub async fn list_database_backups(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(db_id): Path<Uuid>,
+) -> Result<Json<Vec<BackupResponse>>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    // Verify DB exists in workspace
+    let db_exists = sqlx::query_scalar!(
+        "SELECT EXISTS(SELECT 1 FROM databases WHERE id = $1 AND workspace_id = $2)",
+        db_id, ws_id
+    )
+    .fetch_one(&state.pool)
+    .await?
+    .unwrap_or(false);
+
+    if !db_exists {
+        return Err(AppError::NotFound("Database not found in this workspace.".to_string()));
+    }
+
+    let records = sqlx::query!(
+        "SELECT id, database_id, filename, file_size_bytes, status, created_at
+         FROM database_backups
+         WHERE database_id = $1
+         ORDER BY created_at DESC",
+        db_id
+    )
+    .fetch_all(&state.pool)
+    .await?;
+
+    let response = records
+        .into_iter()
+        .map(|r| BackupResponse {
+            id: r.id,
+            database_id: r.database_id,
+            filename: r.filename,
+            file_size_bytes: r.file_size_bytes,
+            status: r.status,
+            created_at: r.created_at,
+        })
+        .collect();
+
+    Ok(Json(response))
+}
+
+pub async fn delete_database_backup(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path((db_id, backup_id)): Path<(Uuid, Uuid)>,
+) -> Result<StatusCode, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    // Verify DB exists in workspace
+    let db_exists = sqlx::query_scalar!(
+        "SELECT EXISTS(SELECT 1 FROM databases WHERE id = $1 AND workspace_id = $2)",
+        db_id, ws_id
+    )
+    .fetch_one(&state.pool)
+    .await?
+    .unwrap_or(false);
+
+    if !db_exists {
+        return Err(AppError::NotFound("Database not found in this workspace.".to_string()));
+    }
+
+    let backup = sqlx::query!(
+        "SELECT filename FROM database_backups WHERE id = $1 AND database_id = $2",
+        backup_id, db_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Backup not found for this database.".to_string()))?;
+
+    let filepath = format!("/var/lib/hermes/backups/{}/{}", db_id, backup.filename);
+    let _ = std::fs::remove_file(filepath);
+
+    sqlx::query!("DELETE FROM database_backups WHERE id = $1", backup_id)
+        .execute(&state.pool)
+        .await?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn restore_database_backup(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path((db_id, backup_id)): Path<(Uuid, Uuid)>,
+) -> Result<StatusCode, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let db_service = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1 AND workspace_id = $2")
+        .bind(db_id).bind(ws_id).fetch_optional(&state.pool).await?
+        .ok_or_else(|| AppError::NotFound("Database service not found.".to_string()))?;
+
+    let backup = sqlx::query!(
+        "SELECT filename FROM database_backups WHERE id = $1 AND database_id = $2",
+        backup_id, db_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Backup not found for this database.".to_string()))?;
+
+    let filepath = format!("/var/lib/hermes/backups/{}/{}", db_id, backup.filename);
+    if !std::path::Path::new(&filepath).exists() {
+        return Err(AppError::NotFound("Backup file not found physically on host disk.".to_string()));
+    }
+
+    let decrypted_password = match db_service.db_password_nonce {
+        Some(ref nonce) => crypto::decrypt_env_value(&db_service.db_password, nonce)?,
+        None => crypto::decrypt_env_value(&db_service.db_password, "AAAAAAAAAAAAAAAA")?
+    };
+
+    let namespace = format!("hermes-ws-{}", ws_id);
+    let pod_name = format!("{}-0", db_service.container_name);
+
+    if db_service.r#type == DbType::Redis {
+        // Special Restore logic for Redis
+        let mut cp_cmd = std::process::Command::new("kubectl");
+        cp_cmd.arg("cp");
+        cp_cmd.arg(&filepath);
+        cp_cmd.arg(format!("{}/{}:/data/dump.rdb", namespace, pod_name));
+        
+        let cp_status = cp_cmd.status().map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to run kubectl cp: {}", e)))?;
+        if !cp_status.success() {
+            return Err(AppError::Fatal(anyhow::anyhow!("Failed to copy RDB backup file into Redis pod.")));
+        }
+
+        // Restart Pod
+        let mut del_cmd = std::process::Command::new("kubectl");
+        del_cmd.arg("delete");
+        del_cmd.arg("pod");
+        del_cmd.arg("-n");
+        del_cmd.arg(&namespace);
+        del_cmd.arg(&pod_name);
+        let _ = del_cmd.status();
+    } else {
+        // SQL and MongoDB stdin restore
+        let file = std::fs::File::open(&filepath).map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to open backup file for restore: {}", e)))?;
+        
+        let mut cmd = std::process::Command::new("kubectl");
+        cmd.arg("exec");
+        cmd.arg("-i");
+        cmd.arg("-n");
+        cmd.arg(&namespace);
+        cmd.arg(&pod_name);
+        cmd.arg("--");
+
+        match db_service.r#type {
+            DbType::Postgres => {
+                cmd.arg("psql");
+                cmd.arg("-U");
+                cmd.arg(&db_service.db_user);
+                cmd.arg("-d");
+                cmd.arg(&db_service.db_name);
+            }
+            DbType::Mysql => {
+                cmd.arg("mysql");
+                cmd.arg("-u");
+                cmd.arg(&db_service.db_user);
+                cmd.arg(format!("-p{}", decrypted_password));
+                cmd.arg(&db_service.db_name);
+            }
+            DbType::Mongodb => {
+                cmd.arg("mongorestore");
+                cmd.arg("--username");
+                cmd.arg(&db_service.db_user);
+                cmd.arg("--password");
+                cmd.arg(&decrypted_password);
+                cmd.arg("--authenticationDatabase");
+                cmd.arg("admin");
+                cmd.arg("--archive");
+            }
+            DbType::Redis => unreachable!(),
+        }
+
+        cmd.stdin(std::process::Stdio::from(file));
+        cmd.stdout(std::process::Stdio::piped());
+        cmd.stderr(std::process::Stdio::piped());
+
+        let mut child = cmd.spawn().map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to spawn restore process: {}", e)))?;
+        let output = child.wait_with_output().map_err(|e| AppError::Fatal(anyhow::anyhow!("Restore process execution failed: {}", e)))?;
+
+        if !output.status.success() {
+            let err_msg = String::from_utf8_lossy(&output.stderr).to_string();
+            return Err(AppError::Fatal(anyhow::anyhow!("Restore command failed: {}", err_msg)));
+        }
+    }
+
+    Ok(StatusCode::OK)
+}

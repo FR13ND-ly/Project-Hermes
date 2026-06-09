@@ -1,0 +1,10 @@
+/* App Detail Stylesheet */
+.terminal-view {
+  background: #000000;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.825rem;
+  line-height: 1.6;
+  border: 1px solid #1f1f1f;
+  border-radius: 4px;
+  color: #a1a1aa;
+}

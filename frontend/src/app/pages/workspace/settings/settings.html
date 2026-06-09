@@ -1,0 +1,417 @@
+<div class="space-y-6 animate-fade-in">
+  
+  <!-- Section Header -->
+  <div class="border-b border-zinc-900 pb-4">
+    <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Setări Spațiu de Lucru</h3>
+    <p class="text-xs text-zinc-550">Administrează cotele de resurse și configurațiile de infrastructură (Cloudflare / Ingress IP) ale workspace-ului curent.</p>
+  </div>
+
+  <!-- Loading State -->
+  @if (loading() && !workspace()) {
+    <div class="flex flex-col items-center justify-center py-16 gap-2">
+      <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span class="text-zinc-550 text-[9px] uppercase font-mono tracking-widest">Se încarcă detaliile...</span>
+    </div>
+  }
+
+  <!-- Error Alert -->
+  @if (error()) {
+    <div class="p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-xs flex items-center gap-2" role="alert">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+      </svg>
+      <span>{{ error() }}</span>
+    </div>
+  }
+
+  <!-- Success Alert -->
+  @if (successMsg()) {
+    <div class="p-3 rounded border border-emerald-500/20 bg-emerald-950/20 text-emerald-400 text-xs flex items-center gap-2" role="alert">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>{{ successMsg() }}</span>
+    </div>
+  }
+
+  @if (workspace()) {
+    
+    <!-- Sub-Tabs Navigation -->
+    <div class="flex items-center border-b border-zinc-900 pb-3 mb-5 gap-4 text-xs font-mono">
+      <button 
+        (click)="activeSubTab.set('general')" 
+        [class]="activeSubTab() === 'general' ? 'border-b-2 border-white text-white pb-1.5 font-bold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-1.5 transition-all'"
+        class="cursor-pointer"
+      >
+        Configurații Generale
+      </button>
+      <button 
+        (click)="activeSubTab.set('members')" 
+        [class]="activeSubTab() === 'members' ? 'border-b-2 border-white text-white pb-1.5 font-bold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-1.5 transition-all'"
+        class="cursor-pointer"
+      >
+        Membrii Echipei ({{ members().length }})
+      </button>
+    </div>
+
+    @if (activeSubTab() === 'general') {
+      <div class="grid gap-6">
+        
+        <!-- Resource Quotas Panel -->
+        @if (usage()) {
+          <div class="grid gap-4 md:grid-cols-2">
+            <!-- Memory Usage Gauge Card -->
+            <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded bg-black border border-zinc-900 flex items-center justify-center text-zinc-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Alocare Memorie RAM</h3>
+                    <p class="text-[9px] text-zinc-500 font-mono">Limite RAM Kubernetes</p>
+                  </div>
+                </div>
+                <span class="text-lg font-bold text-white font-mono">
+                  {{ usage()?.usedMemoryMb }} <span class="text-xs text-zinc-500 font-sans">/ {{ usage()?.maxMemoryMb }} MB</span>
+                </span>
+              </div>
+
+              <div 
+                class="space-y-1.5"
+                role="progressbar"
+                [attr.aria-valuenow]="((usage()!.usedMemoryMb / usage()!.maxMemoryMb) * 100) | number:'1.0-0'"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <div class="w-full h-1.5 bg-black rounded-full overflow-hidden border border-zinc-900">
+                  <div 
+                    class="bg-zinc-400 h-full transition-all duration-500" 
+                    [style.width.%]="(usage()!.usedMemoryMb / usage()!.maxMemoryMb) * 100"
+                  ></div>
+                </div>
+                <div class="flex items-center justify-between text-[10px] text-zinc-550 font-mono">
+                  <span>Consumat: {{ ((usage()!.usedMemoryMb / usage()!.maxMemoryMb) * 100) | number:'1.0-1' }}%</span>
+                  <span>Rămas: {{ usage()!.maxMemoryMb - usage()!.usedMemoryMb }} MB</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Storage Usage Gauge Card -->
+            <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded bg-black border border-zinc-900 flex items-center justify-center text-zinc-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Stocare Persistentă (PVC)</h3>
+                    <p class="text-[9px] text-zinc-500 font-mono">Limite Volume Stocare</p>
+                  </div>
+                </div>
+                <span class="text-lg font-bold text-white font-mono">
+                  {{ usage()?.usedStorageGb }} <span class="text-xs text-zinc-500 font-sans">/ {{ usage()?.maxStorageGb }} GB</span>
+                </span>
+              </div>
+
+              <div 
+                class="space-y-1.5"
+                role="progressbar"
+                [attr.aria-valuenow]="((usage()!.usedStorageGb / usage()!.maxStorageGb) * 100) | number:'1.0-0'"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <div class="w-full h-1.5 bg-black rounded-full overflow-hidden border border-zinc-900">
+                  <div 
+                    class="bg-zinc-400 h-full transition-all duration-500" 
+                    [style.width.%]="(usage()!.usedStorageGb / usage()!.maxStorageGb) * 100"
+                  ></div>
+                </div>
+                <div class="flex items-center justify-between text-[10px] text-zinc-550 font-mono">
+                  <span>Consumat: {{ ((usage()!.usedStorageGb / usage()!.maxStorageGb) * 100) | number:'1.0-1' }}%</span>
+                  <span>Rămas: {{ usage()!.maxStorageGb - usage()!.usedStorageGb }} GB</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Configuration Form Details Card -->
+        <div class="bg-[#0a0a0a] p-6 rounded-lg border border-zinc-800 space-y-6 shadow-sm">
+          
+          <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
+            <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Setări Generale & Limitări</h4>
+            <span class="text-[9px] text-zinc-600 font-mono select-all cursor-pointer font-bold">ID: {{ workspace()?.id }}</span>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-3">
+            <!-- Name -->
+            <div class="space-y-1.5">
+              <label for="ws-name-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Nume Workspace</label>
+              <input 
+                id="ws-name-input"
+                type="text" 
+                placeholder="ex. Proiecte Hermes"
+                [ngModel]="wsName()"
+                (ngModelChange)="wsName.set($event)"
+                [disabled]="saving()"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+            </div>
+
+            <!-- Max Memory limit -->
+            <div class="space-y-1.5">
+              <label for="ws-mem-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Limită RAM Maximă (MB)</label>
+              <input 
+                id="ws-mem-input"
+                type="number" 
+                [ngModel]="maxMemory()"
+                (ngModelChange)="maxMemory.set($event)"
+                [disabled]="saving()"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+            </div>
+
+            <!-- Max Storage limit -->
+            <div class="space-y-1.5">
+              <label for="ws-store-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Limită Stocare PVC (GB)</label>
+              <input 
+                id="ws-store-input"
+                type="number" 
+                [ngModel]="maxStorage()"
+                (ngModelChange)="maxStorage.set($event)"
+                [disabled]="saving()"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+            </div>
+          </div>
+
+          <div class="border-b border-zinc-900 pb-2.5 pt-2">
+            <h4 class="text-xs font-bold text-zinc-355 uppercase tracking-wider font-mono">Integrare Cloudflare & Ingress</h4>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <!-- Ingress IP -->
+            <div class="space-y-1.5">
+              <label for="ws-ingress-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">IP Ingress LoadBalancer (Root Cluster)</label>
+              <input 
+                id="ws-ingress-input"
+                type="text" 
+                placeholder="ex. 127.0.0.1 sau 64.176.64.16"
+                [ngModel]="ingressIp()"
+                (ngModelChange)="ingressIp.set($event)"
+                [disabled]="saving()"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+            </div>
+
+            <!-- Base Domain -->
+            <div class="space-y-1.5">
+              <label for="ws-domain-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Domeniu de Bază (Base Domain)</label>
+              <input 
+                id="ws-domain-input"
+                type="text" 
+                placeholder="ex. compania-mea.ro sau dev.local"
+                [ngModel]="baseDomain()"
+                (ngModelChange)="baseDomain.set($event)"
+                [disabled]="saving()"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+            </div>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <!-- Cloudflare API Token -->
+            <div class="space-y-1.5">
+              <label for="ws-cf-token" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Cloudflare API Token</label>
+              <input 
+                id="ws-cf-token"
+                type="password" 
+                placeholder="cfut_..."
+                [ngModel]="cfApiToken()"
+                (ngModelChange)="cfApiToken.set($event)"
+                [disabled]="saving()"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+            </div>
+
+            <!-- Cloudflare Zone ID -->
+            <div class="space-y-1.5">
+              <label for="ws-cf-zone" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Cloudflare Zone ID</label>
+              <input 
+                id="ws-cf-zone"
+                type="text" 
+                placeholder="ex. ac4011807d97..."
+                [ngModel]="cfZoneId()"
+                (ngModelChange)="cfZoneId.set($event)"
+                [disabled]="saving()"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="pt-4 border-t border-zinc-900 flex justify-end">
+            <button 
+              (click)="onSaveSettings()"
+              [disabled]="saving() || !wsName().trim()"
+              class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
+            >
+              @if (!saving()) {
+                <span>Salvează Setările</span>
+              } @else {
+                <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Se salvează...</span>
+              }
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    }
+
+    @if (activeSubTab() === 'members') {
+      <div class="space-y-6 animate-fade-in">
+        
+        <!-- Add Member Form Card -->
+        <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+          <div>
+            <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Adaugă Membru Nou</h4>
+            <p class="text-[10px] text-zinc-500 mt-1">Introduceți e-mailul unui cont existent pentru a-l adăuga în acest workspace.</p>
+          </div>
+          
+          <div class="flex flex-col sm:flex-row gap-3 text-xs">
+            <div class="flex-1">
+              <input 
+                type="email" 
+                placeholder="email@utilizator.ro"
+                [ngModel]="newMemberEmail()"
+                (ngModelChange)="newMemberEmail.set($event)"
+                class="block w-full px-3 py-2 bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+            </div>
+            
+            <div class="w-full sm:w-48">
+              <select 
+                [ngModel]="newMemberRole()"
+                (ngModelChange)="newMemberRole.set($event)"
+                class="block w-full px-3 py-2 bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+              >
+                <option value="admin">Administrator</option>
+                <option value="developer">Developer</option>
+                <option value="viewer">Viewer</option>
+              </select>
+            </div>
+            
+            <button 
+              (click)="onInviteMember()"
+              [disabled]="invitingMember() || !newMemberEmail().trim()"
+              class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 font-sans"
+            >
+              @if (invitingMember()) {
+                <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span>Se adaugă...</span>
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                <span>Adaugă în Echipă</span>
+              }
+            </button>
+          </div>
+        </div>
+
+        <!-- Members List Card -->
+        <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg overflow-hidden shadow-sm">
+          <div class="p-4 bg-zinc-950/40 border-b border-zinc-900">
+            <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Membrii Activi</h4>
+          </div>
+
+          @if (loadingMembers()) {
+            <div class="flex flex-col items-center justify-center py-16 space-y-3">
+              <svg class="animate-spin h-5 w-5 text-zinc-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              <span class="text-[10px] text-zinc-500 font-mono">Se încarcă lista membrilor...</span>
+            </div>
+          } @else {
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs font-mono">
+                <thead>
+                  <tr class="bg-zinc-950/80 border-b border-zinc-900 text-[10px] text-zinc-550 uppercase tracking-wider">
+                    <th class="p-3 font-bold">Utilizator (Username)</th>
+                    <th class="p-3 font-bold">E-mail</th>
+                    <th class="p-3 font-bold">Rol Workspace</th>
+                    <th class="p-3 font-bold text-right">Acțiuni</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-900/40">
+                  @for (member of members(); track member.userId) {
+                    <tr class="hover:bg-zinc-950/20 transition-colors">
+                      <td class="p-3">
+                        <div class="flex items-center gap-2">
+                          <span class="w-1.5 h-1.5 rounded-full" [class]="member.roleName === 'owner' ? 'bg-purple-500 shadow-sm shadow-purple-500/50' : 'bg-zinc-500'"></span>
+                          <span class="font-bold text-zinc-300 text-xs">{{ member.username }}</span>
+                          @if (member.email === auth.currentUser()?.email) {
+                            <span class="text-[9px] px-1 py-0.2 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 font-sans">Tu</span>
+                          }
+                        </div>
+                      </td>
+                      <td class="p-3 text-zinc-400 select-all">{{ member.email }}</td>
+                      <td class="p-3">
+                        @if (member.roleName === 'owner' || member.email === auth.currentUser()?.email) {
+                          <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider"
+                            [class]="member.roleName === 'owner' ? 'bg-purple-950/40 border border-purple-500/20 text-purple-400' : 'bg-emerald-950/40 border border-emerald-500/20 text-emerald-400'">
+                            {{ member.roleName }}
+                          </span>
+                        } @else {
+                          <select 
+                            [ngModel]="member.roleName"
+                            (ngModelChange)="onUpdateRole(member, $event)"
+                            class="px-2 py-0.5 bg-black border border-zinc-850 rounded text-zinc-300 focus:outline-none focus:border-zinc-500 font-mono text-[11px] cursor-pointer"
+                          >
+                            <option value="admin">Admin</option>
+                            <option value="developer">Developer</option>
+                            <option value="viewer">Viewer</option>
+                          </select>
+                        }
+                      </td>
+                      <td class="p-3 text-right">
+                        @if (member.roleName !== 'owner' && member.email !== auth.currentUser()?.email) {
+                          <button 
+                            (click)="onRemoveMember(member)"
+                            title="Elimină Membru"
+                            class="p-1.5 rounded border border-red-955/30 hover:bg-red-955/20 text-red-500/80 hover:text-red-400 cursor-pointer transition-all"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-3.5 h-3.5">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                          </button>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+</div>

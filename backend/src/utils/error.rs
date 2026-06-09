@@ -18,6 +18,26 @@ pub enum AppError {
     Fatal(anyhow::Error), 
 }
 
+impl std::fmt::Display for AppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AppError::Validation(msg) => write!(f, "Validation: {}", msg),
+            AppError::Auth(msg) => write!(f, "Auth: {}", msg),
+            AppError::Permission(msg) => write!(f, "Permission Denied: {}", msg),
+            AppError::NotFound(msg) => write!(f, "Not Found: {}", msg),
+            AppError::Conflict(msg) => write!(f, "Conflict: {}", msg),
+            AppError::Infrastructure(msg) => write!(f, "Infrastructure: {}", msg),
+            AppError::Fatal(err) => write!(f, "Fatal Error: {}", err),
+        }
+    }
+}
+
+impl From<std::io::Error> for AppError {
+    fn from(err: std::io::Error) -> Self {
+        AppError::Infrastructure(err.to_string())
+    }
+}
+
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let request_id = Uuid::new_v4().to_string();

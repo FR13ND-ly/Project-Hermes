@@ -1,1 +1,188 @@
-<p>deployments works!</p>
+<div class="space-y-6 animate-fade-in">
+  
+  <div class="grid gap-4 lg:grid-cols-3">
+    
+    <!-- Sidebar Menu (Log Selector - Left 1 col) -->
+    <div class="lg:col-span-1 space-y-4">
+      
+      <!-- Real-time Live Logs selector header/card -->
+      <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm">
+        <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Consolă Activă</h3>
+        
+        <button 
+          (click)="onBackToLiveLogs()"
+          class="w-full text-left p-3 rounded border text-xs transition-all flex items-center justify-between cursor-pointer"
+          [class.border-white]="!selectedBuildId()"
+          [class.border-zinc-900]="selectedBuildId()"
+          [class.bg-zinc-950]="!selectedBuildId()"
+          [class.bg-black]="selectedBuildId()"
+        >
+          <div class="space-y-0.5">
+            <span class="font-bold" [class.text-white]="!selectedBuildId()" [class.text-zinc-400]="selectedBuildId()">
+              Ieșire Standard (Live)
+            </span>
+            <p class="text-[9px] text-zinc-550 font-mono">Consolă stdout în timp real</p>
+          </div>
+          
+          <div class="flex items-center gap-1.5">
+            <!-- Pulsing green/gray dot based on connection status -->
+            <span class="relative flex h-2 w-2">
+              @if (sseConnected() && !selectedBuildId()) {
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              }
+              <span class="relative inline-flex rounded-full h-2 w-2" 
+                    [class]="(sseConnected() && !selectedBuildId()) ? 'bg-emerald-500' : 'bg-zinc-700'"></span>
+            </span>
+            <span class="text-[9px] font-bold font-mono tracking-wider" 
+                  [class]="(sseConnected() && !selectedBuildId()) ? 'text-emerald-400' : 'text-zinc-500'">
+              {{ (sseConnected() && !selectedBuildId()) ? 'LIVE' : 'INACTIV' }}
+            </span>
+          </div>
+        </button>
+      </div>
+
+      <!-- Historical builds logs list card -->
+      <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm flex flex-col">
+        <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+          <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Istoric Etape & Build-uri</h3>
+          
+          <button 
+            (click)="loadBuilds()" 
+            class="text-zinc-500 hover:text-zinc-300 p-1.5 rounded border border-zinc-900 bg-black hover:border-zinc-500 transition-all cursor-pointer"
+            title="Reîncarcă"
+            aria-label="Reîncarcă istoricul de build-uri"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Loading State -->
+        @if (buildsLoading()) {
+          <div class="flex justify-center py-12">
+            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+        }
+
+        <!-- No Builds -->
+        @if (!buildsLoading() && builds().length === 0) {
+          <div class="py-12 text-center text-xs text-zinc-550 font-medium">
+            Niciun build înregistrat pentru această aplicație.
+          </div>
+        }
+
+        <!-- Builds list -->
+        @if (!buildsLoading() && builds().length > 0) {
+          <div class="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+            @for (build of builds(); track build.id) {
+              <button 
+                (click)="onViewBuildLogs(build)"
+                class="w-full text-left p-3 rounded border bg-black text-xs transition-all hover:border-zinc-500 hover:bg-zinc-950 flex flex-col gap-2 cursor-pointer"
+                [class.border-white]="selectedBuildId() === build.id"
+                [class.border-zinc-900]="selectedBuildId() !== build.id"
+              >
+                <!-- Commit Message / Details -->
+                <div class="space-y-1 w-full">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="font-bold text-zinc-200 truncate max-w-[130px] block" [class.text-white]="selectedBuildId() === build.id">
+                      {{ build.commitMessage || 'Lansare Manuală' }}
+                    </span>
+                    <span 
+                      class="px-1.5 py-0.2 rounded text-[8px] font-semibold border font-mono shrink-0 uppercase"
+                      [class]="
+                        build.status === 'succeeded' ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-400' :
+                        build.status === 'failed' ? 'bg-red-950/20 border-red-900/30 text-red-400' :
+                        'bg-zinc-900 border-zinc-800 text-zinc-400'
+                      "
+                    >
+                      {{ build.status }}
+                    </span>
+                  </div>
+                  
+                  @if (build.commitSha) {
+                    <p class="text-[9px] text-zinc-500 font-mono truncate">
+                      commit: {{ build.commitSha.substring(0, 7) }}
+                    </p>
+                  }
+                </div>
+
+                <!-- Build Footer metadata -->
+                <div class="text-[9px] text-zinc-650 font-mono border-t border-zinc-900/50 pt-1.5 w-full flex items-center justify-between">
+                  <span>ID: {{ build.id.substring(0, 8) }}</span>
+                  <span>{{ build.createdAt | date:'short' }}</span>
+                </div>
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Main Terminal Console (Right 2 cols) -->
+    <div class="lg:col-span-2 space-y-4">
+      <div class="flex items-center justify-between bg-[#0a0a0a]/50 p-3 rounded-lg border border-zinc-900">
+        <div>
+          <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">
+            {{ selectedBuildId() ? 'Loguri Build (ID: ' + selectedBuildId()?.substring(0, 8) + ')' : 'Consolă Live (Stdout)' }}
+          </h3>
+          <p class="text-[10px] text-zinc-550 font-mono">
+            {{ selectedBuildId() ? 'Etape de compilare din containerul Kaniko și Cloner' : 'Flux de logs în timp real din container' }}
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          @if (selectedBuildId()) {
+            <button 
+              (click)="onBackToLiveLogs()"
+              class="px-2.5 py-1 rounded text-[10px] font-semibold bg-white text-black border border-white cursor-pointer hover:bg-zinc-200 transition-colors"
+            >
+              ← Înapoi la Live Logs
+            </button>
+          } @else {
+            <button 
+              (click)="toggleAutoScroll()"
+              class="px-2.5 py-1 rounded text-[10px] font-semibold transition-colors border cursor-pointer"
+              [class]="autoScroll() ? 'bg-white text-black border-white' : 'bg-black text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-white'"
+            >
+              Autoscroll: {{ autoScroll() ? 'ON' : 'OFF' }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Real-time stdout console window or Build logs window -->
+      <div 
+        id="terminal-log-box"
+        class="terminal-view h-[420px] p-4 overflow-y-auto font-mono text-xs text-zinc-300 space-y-1.5 scroll-smooth select-text"
+        role="log"
+        aria-live="polite"
+        aria-label="Consolă Output"
+      >
+        @if (selectedBuildId()) {
+          @if (loadingBuildLogs()) {
+            <div class="flex flex-col items-center justify-center h-full space-y-2 text-zinc-500">
+              <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              <span class="text-zinc-550 text-[10px]">Se încarcă logurile de build...</span>
+            </div>
+          } @else {
+            <div class="whitespace-pre-wrap leading-relaxed text-zinc-200">{{ selectedBuildLogs() }}</div>
+          }
+        } @else {
+          @for (line of logs(); track $index) {
+            <div class="whitespace-pre-wrap leading-relaxed truncate-lines">
+              {{ line }}
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,168 @@
+<div class="space-y-6 animate-fade-in font-sans">
+  
+  <!-- Header Title & Filters -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-4 gap-4">
+    <div>
+      <h2 class="text-sm font-bold text-white uppercase tracking-wider font-mono">Incidente & Alerte Proiect</h2>
+      <p class="text-[11px] text-zinc-500 mt-1">
+        Monitorizarea stării instanțelor și istoricul incidentelor detectate de sistemul de health check.
+      </p>
+    </div>
+    
+    <!-- Filters tabs -->
+    <div class="flex items-center bg-zinc-950 border border-zinc-900 rounded p-0.5 text-[10px] font-mono">
+      <button 
+        (click)="filter.set('all')" 
+        [class]="filter() === 'all' ? 'bg-zinc-900 border border-zinc-800 text-white font-bold' : 'text-zinc-500 hover:text-zinc-300'"
+        class="px-3 py-1 rounded transition-colors cursor-pointer"
+      >
+        Toate ({{ incidents().length }})
+      </button>
+      <button 
+        (click)="filter.set('active')" 
+        [class]="filter() === 'active' ? 'bg-red-950/60 border border-red-900/50 text-red-400 font-bold' : 'text-zinc-500 hover:text-zinc-300'"
+        class="px-3 py-1 rounded transition-colors cursor-pointer"
+      >
+        Active ({{ activeCount() }})
+      </button>
+      <button 
+        (click)="filter.set('resolved')" 
+        [class]="filter() === 'resolved' ? 'bg-zinc-900 border border-zinc-800 text-white font-bold' : 'text-zinc-500 hover:text-zinc-300'"
+        class="px-3 py-1 rounded transition-colors cursor-pointer"
+      >
+        Rezolvate ({{ resolvedCount() }})
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="flex flex-col items-center justify-center py-16 space-y-3">
+      <svg class="animate-spin h-6 w-6 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+      </svg>
+      <span class="text-xs text-zinc-500 font-mono">Se încarcă incidentele...</span>
+    </div>
+  } @else if (filteredIncidents().length === 0) {
+    <div class="flex flex-col items-center justify-center border border-dashed border-zinc-800 rounded-lg p-12 text-center space-y-4">
+      <div class="p-3 bg-zinc-950 border border-zinc-900 rounded-full text-zinc-600">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
+        </svg>
+      </div>
+      <div class="space-y-1">
+        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Fără Incidente</h3>
+        <p class="text-[11px] text-zinc-500 max-w-sm">
+          @if (filter() === 'active') {
+            Nu există incidente active în acest moment. Sistemele rulează stabil.
+          } @else if (filter() === 'resolved') {
+            Nu s-a găsit niciun incident rezolvat în istoric.
+          } @else {
+            Nu a fost raportat niciun incident pentru acest proiect până în prezent.
+          }
+        </p>
+      </div>
+    </div>
+  } @else {
+    <!-- List of Incidents -->
+    <div class="space-y-4">
+      @for (incident of filteredIncidents(); track incident.id) {
+        <div 
+          class="border rounded-lg bg-black/40 overflow-hidden transition-all duration-300"
+          [class.border-red-900/60]="!incident.resolvedAt"
+          [class.border-zinc-900]="incident.resolvedAt"
+          [class.shadow-lg]="!incident.resolvedAt"
+          [class.shadow-red-950/10]="!incident.resolvedAt"
+        >
+          <!-- Alert Header -->
+          <div 
+            class="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 border-b text-xs font-mono"
+            [class.bg-red-950/20]="!incident.resolvedAt"
+            [class.border-red-900/40]="!incident.resolvedAt"
+            [class.bg-zinc-950/60]="incident.resolvedAt"
+            [class.border-zinc-900]="incident.resolvedAt"
+          >
+            <!-- Badge and Instance -->
+            <div class="flex flex-wrap items-center gap-2">
+              @if (!incident.resolvedAt) {
+                <span class="flex h-2 w-2 relative">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+                <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-red-950/60 text-red-400 border border-red-900/50 uppercase tracking-wider">
+                  ACTIV
+                </span>
+              } @else {
+                <span class="inline-block w-2 h-2 rounded-full bg-zinc-500"></span>
+                <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-zinc-900 text-zinc-400 border border-zinc-800 uppercase tracking-wider">
+                  REZOLVAT
+                </span>
+              }
+
+              <span [class]="getIncidentBadgeClass(incident.incidentType)" class="px-2 py-0.5 rounded text-[10px] font-semibold">
+                {{ incident.incidentType }}
+              </span>
+
+              <span class="text-zinc-500">&mdash;</span>
+
+              <div class="flex items-center gap-1 text-zinc-300">
+                <span class="text-zinc-500">Instanță:</span>
+                <span class="font-bold font-sans">{{ incident.instanceName }}</span>
+              </div>
+            </div>
+
+            <!-- Timestamps & Actions -->
+            <div class="flex items-center justify-between md:justify-end gap-4">
+              <div class="text-[10px] text-zinc-500 space-y-0.5 text-left md:text-right">
+                <div>Pornit: {{ incident.createdAt | date:'dd MMM yyyy, HH:mm:ss' }}</div>
+                @if (incident.resolvedAt) {
+                  <div class="text-zinc-400">
+                    Rezolvat: {{ incident.resolvedAt | date:'dd MMM yyyy, HH:mm:ss' }} 
+                    <span class="text-emerald-500 font-bold ml-1">({{ getDuration(incident.createdAt, incident.resolvedAt) }})</span>
+                  </div>
+                }
+              </div>
+
+              @if (!incident.resolvedAt) {
+                <button 
+                  (click)="onResolveIncident(incident)"
+                  [disabled]="resolvingId() === incident.id"
+                  class="px-2.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-bold shadow cursor-pointer transition-colors flex items-center gap-1 disabled:opacity-50"
+                >
+                  @if (resolvingId() === incident.id) {
+                    <svg class="animate-spin h-3 w-3 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                  } @else {
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3 h-3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  }
+                  Rezolvă
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Alert Details -->
+          <div class="p-4 bg-zinc-950/20 text-xs">
+            <div class="flex gap-2.5">
+              <div class="text-zinc-550 pt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-4 h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+              </div>
+              <div class="space-y-1">
+                <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">Mesaj Alertă</div>
+                <div class="text-zinc-300 font-mono text-[11px] bg-black/45 px-3 py-2 rounded border border-zinc-900 select-all leading-relaxed whitespace-pre-wrap">
+                  {{ incident.message }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

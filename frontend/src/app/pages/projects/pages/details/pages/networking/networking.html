@@ -1,1 +1,712 @@
-<p>networking works!</p>
+<div class="space-y-6 animate-fade-in">
+  
+  @if (successMsg()) {
+    <div class="p-3 rounded border border-emerald-500/20 bg-emerald-950/20 text-emerald-400 text-xs flex items-center justify-between" role="alert">
+      <div class="flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>{{ successMsg() }}</span>
+      </div>
+      <button (click)="successMsg.set(null)" class="text-emerald-400 hover:text-emerald-300 font-bold text-xs cursor-pointer">×</button>
+    </div>
+  }
+
+  @if (errorMsg()) {
+    <div class="p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-xs flex items-center justify-between" role="alert">
+      <div class="flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+        </svg>
+        <span>{{ errorMsg() }}</span>
+      </div>
+      <button (click)="errorMsg.set(null)" class="text-red-400 hover:text-red-300 font-bold text-xs cursor-pointer">×</button>
+    </div>
+  }
+
+  <!-- MAIN LIST VIEW (selectedRoute is null) -->
+  @if (selectedRoute() === null) {
+    <!-- Local Development Help -->
+    <div class="p-4 rounded-lg border border-zinc-800 bg-[#070708] space-y-3 font-sans">
+      <div class="flex items-start gap-3">
+        <div class="p-2 bg-indigo-950/45 border border-indigo-900/30 rounded text-indigo-400 shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 111.083 1.083l-.04.02a.75.75 0 01-1.083-1.083zM12 21a9 9 0 100-18 9 9 0 000 18z" />
+          </svg>
+        </div>
+        <div class="space-y-1">
+          <h4 class="text-xs font-bold text-zinc-200">Ghid de Conectare Locală (Minikube pe Windows)</h4>
+          <p class="text-[11px] text-zinc-400 leading-relaxed">
+            Deoarece rulezi aplicația într-un cluster Kubernetes local, porturile externe nu sunt expuse automat direct pe calculatorul tău gazdă. 
+            Pentru a accesa aplicația, deschide un terminal și rulează comanda <code class="px-1.5 py-0.5 rounded bg-black border border-zinc-900 text-white font-mono text-[10px]">minikube tunnel</code>.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unified HTTP Entries list -->
+    <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-sans">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3 gap-2">
+        <div>
+          <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Rute HTTP & Domenii în Workspace</h3>
+          <p class="text-xs text-zinc-550 font-sans">Panoul central de rutare pentru toate branch-urile automate și domeniile custom.</p>
+        </div>
+
+        @if (!showAddDomainForm()) {
+          <button 
+            (click)="showAddDomainForm.set(true)"
+            class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1.5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Adaugă Domeniu Custom
+          </button>
+        }
+      </div>
+
+      <!-- Add Custom Domain Form -->
+      @if (showAddDomainForm()) {
+        <div class="p-4 rounded border border-zinc-850 bg-black space-y-4 animate-fade-in">
+          <h4 class="text-xs font-bold text-white uppercase tracking-wider font-mono">Configurare Domeniu Nou</h4>
+          
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="space-y-1.5">
+              <label for="fqdn-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Nume Domeniu (FQDN)</label>
+              <input 
+                id="fqdn-input"
+                type="text" 
+                placeholder="ex. app.domeniu.ro sau domeniu.ro"
+                [ngModel]="fqdn()"
+                (ngModelChange)="fqdn.set($event)"
+                class="block w-full px-3 py-2 text-xs bg-zinc-955 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+            </div>
+
+            <div class="space-y-1.5">
+              <label for="routing-type-select" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Tip Rutare Nginx</label>
+              <select 
+                id="routing-type-select"
+                [ngModel]="routingType()"
+                (ngModelChange)="routingType.set($event)"
+                class="block w-full px-3 py-2 text-xs bg-zinc-955 border border-zinc-850 rounded text-zinc-300 focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer"
+              >
+                <option value="reverse_proxy">Reverse Proxy (Către container)</option>
+                <option value="static_host">Static Host (Fișiere din volum)</option>
+                <option value="custom">Nginx Custom Config</option>
+              </select>
+            </div>
+          </div>
+
+          @if (routingType() === 'reverse_proxy') {
+            <div class="space-y-1.5 animate-fade-in">
+              <label for="proxy-target" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Adresă Țintă Container (nginx_target_host)</label>
+              <input 
+                id="proxy-target"
+                type="text" 
+                placeholder="ex. http://hermes-app-service-name:8080"
+                [ngModel]="nginxTargetHost()"
+                (ngModelChange)="nginxTargetHost.set($event)"
+                class="block w-full px-3 py-2 text-xs bg-zinc-955 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+              <p class="text-[10px] text-zinc-500 leading-relaxed font-sans">Nginx va trimite proxy_pass către această adresă.</p>
+            </div>
+          }
+
+          @if (routingType() === 'static_host') {
+            <div class="space-y-1.5 animate-fade-in">
+              <label for="root-path" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Director Rădăcină (nginx_root_path)</label>
+              <input 
+                id="root-path"
+                type="text" 
+                placeholder="ex. /var/www/html sau calea volumului"
+                [ngModel]="nginxRootPath()"
+                (ngModelChange)="nginxRootPath.set($event)"
+                class="block w-full px-3 py-2 text-xs bg-zinc-955 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+            </div>
+          }
+
+          @if (routingType() === 'custom') {
+            <div class="space-y-1.5 animate-fade-in">
+              <label for="custom-config" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Configurație Nginx Custom Bloc Server</label>
+              <textarea 
+                id="custom-config"
+                rows="5"
+                placeholder="location / { ... }"
+                [ngModel]="nginxConfigContent()"
+                (ngModelChange)="nginxConfigContent.set($event)"
+                class="block w-full px-3 py-2 text-xs bg-zinc-955 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              ></textarea>
+            </div>
+          }
+
+          <div class="grid gap-4 sm:grid-cols-2 pt-2 border-t border-zinc-900">
+            <div class="space-y-1.5">
+              <label for="max-body-size" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Limită Body Size Nginx (MB)</label>
+              <input 
+                id="max-body-size"
+                type="number" 
+                [ngModel]="clientMaxBodySize()"
+                (ngModelChange)="clientMaxBodySize.set($event)"
+                class="block w-full px-3 py-2 text-xs bg-zinc-955 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+            </div>
+
+            <div class="flex items-center gap-2 pt-4">
+              <input 
+                id="ssl-checkbox"
+                type="checkbox" 
+                [ngModel]="isSsl()"
+                (ngModelChange)="isSsl.set($event)"
+                class="w-4 h-4 bg-zinc-955 border-zinc-850 rounded focus:ring-0 text-white cursor-pointer accent-white"
+              />
+              <label for="ssl-checkbox" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer">Creează Certificat TLS / SSL Automat</label>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-zinc-900 flex justify-end gap-2">
+            <button 
+              (click)="showAddDomainForm.set(false)"
+              [disabled]="submittingDomain()"
+              class="px-3 py-1.5 rounded border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white text-xs font-semibold cursor-pointer transition-colors"
+            >
+              Anulează
+            </button>
+            
+            <button 
+              (click)="onAddDomain()"
+              [disabled]="submittingDomain() || !fqdn().trim()"
+              class="px-4 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+            >
+              @if (submittingDomain()) {
+                <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Se creează...</span>
+              } @else {
+                <span>Adaugă Domeniu</span>
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Combined HTTP Routes List -->
+      @if (loadingDomains()) {
+        <div class="flex flex-col items-center justify-center py-12 gap-2">
+          <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span class="text-zinc-650 text-[9px] uppercase font-mono tracking-widest">Se încarcă lista de rute...</span>
+        </div>
+      } @else if (unifiedRoutes().length === 0) {
+        <div class="text-center py-10 border border-dashed border-zinc-850 rounded">
+          <p class="text-xs text-zinc-550">Nu ai configurat nicio rută sau domeniu HTTP pentru acest proiect.</p>
+        </div>
+      } @else {
+        <div class="bg-black/60 rounded border border-zinc-900 overflow-hidden">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-zinc-900 bg-black text-zinc-500 uppercase tracking-wider text-[9px] font-bold">
+                <th class="p-3">Domeniu / Cale FQDN</th>
+                <th class="p-3">Tip Rutare</th>
+                <th class="p-3">Status</th>
+                <th class="p-3">Aplicație & Branch Conectat</th>
+                <th class="p-3 text-right">Acțiuni</th>
+              </tr>
+            </thead>
+            <tbody class="font-mono">
+              @for (route of unifiedRoutes(); track route.fqdn) {
+                <tr class="border-b border-zinc-900/60 hover:bg-zinc-950/45 transition-colors group">
+                  <td class="p-3">
+                    <span 
+                      (click)="selectRoute(route)" 
+                      class="font-bold text-zinc-300 hover:text-white cursor-pointer hover:underline text-xs flex items-center gap-1 select-all"
+                    >
+                      {{ route.fqdn }}
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-zinc-650 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                      </svg>
+                    </span>
+                  </td>
+                  <td class="p-3">
+                    <span 
+                      class="px-2 py-0.5 rounded text-[8px] font-bold uppercase border"
+                      [class]="route.type === 'automatic' ? 'bg-indigo-950/20 text-indigo-400 border-indigo-900/40' : 'bg-purple-950/20 text-purple-400 border-purple-900/40'"
+                    >
+                      {{ route.type === 'automatic' ? 'Automat (Ingress)' : 'Custom Domain' }}
+                    </span>
+                  </td>
+                  <td class="p-3">
+                    @if (route.status === 'active') {
+                      <span class="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-400">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Activ
+                      </span>
+                    } @else if (route.status === 'pending_verification') {
+                      <span class="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-400">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Verificare
+                      </span>
+                    } @else {
+                      <span class="inline-flex items-center gap-1 text-[9px] font-semibold text-red-400">
+                        Eșuat
+                      </span>
+                    }
+                  </td>
+                  <td class="p-3 text-zinc-400 font-sans">
+                    @if (route.connectedApp) {
+                      <span class="text-zinc-350 font-semibold">{{ route.connectedApp }}</span>
+                      @if (route.branchName === 'Funcție Serverless') {
+                        <span class="px-1.5 py-0.2 rounded text-[8px] bg-indigo-950/30 text-indigo-400 border border-indigo-900/40 ml-1.5 font-mono font-bold uppercase">Funcție Serverless</span>
+                      } @else if (route.branchName) {
+                        <span class="px-1.5 py-0.2 rounded text-[8px] bg-zinc-900 text-zinc-500 border border-zinc-800 ml-1.5 font-mono">Branch: {{ route.branchName }}</span>
+                      }
+                    } @else {
+                      <span class="text-zinc-650 font-mono text-[10px]">{{ route.routingType === 'static_host' ? 'Static Root path' : 'Config manuală (Nginx)' }}</span>
+                    }
+                  </td>
+                  <td class="p-3 text-right">
+                    <button 
+                      (click)="selectRoute(route)" 
+                      class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-white hover:bg-zinc-800 text-[10px] font-bold uppercase cursor-pointer transition-colors"
+                    >
+                      Detalii
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+    <!-- Databases & Serverless Functions exposed LoadBalancer TCP/UDP ports -->
+    <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-sans">
+      <div class="border-b border-zinc-900 pb-2.5">
+        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Porturi TCP/UDP Rulate Extern</h3>
+        <p class="text-xs text-zinc-550">IP-uri externe LoadBalancer alocate instanțelor din cluster pentru conexiuni directe din afara rețelei.</p>
+      </div>
+
+      @if (databases().length === 0 && activeServerlessPorts().length === 0) {
+        <p class="text-xs text-zinc-550 py-2">
+          Nicio conexiune externă LoadBalancer (TCP/UDP) directă configurată în acest proiect.
+        </p>
+      } @else {
+        <div class="grid gap-4 md:grid-cols-2">
+          @for (db of databases(); track db.id) {
+            <div class="p-3.5 rounded border border-zinc-900 bg-black flex flex-col justify-between gap-3 font-mono">
+              <div class="space-y-0.5">
+                <div class="text-zinc-200 text-xs font-bold">Serviciu: {{ db.name }} ({{ db.type }})</div>
+                <div class="text-[9px] text-zinc-600">Namespace: hermes-ws-... | Container: {{ db.containerName }}</div>
+              </div>
+
+              <div class="flex items-center justify-between border-t border-zinc-900/60 pt-2.5">
+                <div class="text-[10px] text-zinc-500">
+                  Intern: {{ db.internalPort }} / TCP
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-white font-bold text-xs">Port Public: {{ db.externalPort }}</span>
+                  <button 
+                    (click)="copyPort(db.externalPort)" 
+                    class="p-0.5 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white cursor-pointer"
+                    title="Copiază port"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H5.25m11.9-3.675a.65.65 0 00-.182-.132A1.65 1.65 0 0015.75 2.25h-9a1.65 1.65 0 00-1.65 1.65V4.5m15 0v10.5a1.65 1.65 0 01-1.65 1.65h-9a1.65 1.65 0 01-1.65-1.65V4.5m15 0a1.65 1.65 0 00-1.65-1.65h-9a1.65 1.65 0 00-1.65 1.65" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+          @for (fn of activeServerlessPorts(); track fn.id) {
+            <div class="p-3.5 rounded border border-indigo-900/30 bg-indigo-950/10 flex flex-col justify-between gap-3 font-mono">
+              <div class="space-y-0.5">
+                <div class="flex items-center gap-2">
+                  <span class="text-zinc-200 text-xs font-bold">{{ fn.name }}</span>
+                  <span class="px-1.5 py-0.2 rounded text-[8px] bg-indigo-950/30 text-indigo-400 border border-indigo-900/40 font-bold uppercase">Serverless</span>
+                </div>
+                <div class="text-[9px] text-zinc-600">Funcție Serverless Knative | Proxy Nginx → LoadBalancer</div>
+              </div>
+
+              <div class="flex items-center justify-between border-t border-indigo-900/20 pt-2.5">
+                <div class="text-[10px] text-zinc-500">
+                  Rută: <span class="text-cyan-400 font-semibold">{{ fn.method }}</span> {{ fn.routePath }}
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-white font-bold text-xs">Port Public: {{ fn.externalPort }}</span>
+                  <button 
+                    (click)="copyPort(fn.externalPort)" 
+                    class="p-0.5 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white cursor-pointer"
+                    title="Copiază port"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H5.25m11.9-3.675a.65.65 0 00-.182-.132A1.65 1.65 0 0015.75 2.25h-9a1.65 1.65 0 00-1.65 1.65V4.5m15 0v10.5a1.65 1.65 0 01-1.65 1.65h-9a1.65 1.65 0 01-1.65-1.65V4.5m15 0a1.65 1.65 0 00-1.65-1.65h-9a1.65 1.65 0 00-1.65 1.65" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- DEEP ROUTE DETAIL VIEW -->
+  @if (selectedRoute(); as route) {
+    <!-- Return link -->
+    <div class="flex items-center gap-2">
+      <button 
+        (click)="deselectRoute()" 
+        class="flex items-center gap-1 text-xs text-zinc-400 hover:text-white cursor-pointer transition-colors font-sans"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+        </svg>
+        Înapoi la lista de rețele
+      </button>
+    </div>
+
+    <!-- Route title header -->
+    <div class="p-5 rounded-lg border border-zinc-800 bg-[#0a0a0a] flex flex-col md:flex-row md:items-center md:justify-between gap-4 font-sans shadow-sm">
+      <div class="space-y-1">
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <h2 class="text-base font-bold text-white tracking-tight select-all font-mono">{{ route.fqdn }}</h2>
+          <span 
+            class="px-2 py-0.5 rounded text-[8px] font-bold uppercase border"
+            [class]="route.type === 'automatic' ? 'bg-indigo-950/20 text-indigo-400 border-indigo-900/40' : 'bg-purple-950/20 text-purple-400 border-purple-900/40'"
+          >
+            {{ route.type === 'automatic' ? 'Automat' : 'Custom' }}
+          </span>
+        </div>
+        <p class="text-xs text-zinc-550">
+          Tip intrare: {{ route.routingType.toUpperCase().replace('_', ' ') }}
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2.5 shrink-0">
+        <a 
+          href="http://{{ route.fqdn }}" 
+          target="_blank" 
+          rel="noopener"
+          class="px-3.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1"
+        >
+          Deschide Link
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Tabs selector -->
+    <div class="flex border-b border-zinc-900 gap-6 font-sans">
+      <button 
+        (click)="activeTab.set('details')"
+        [class]="activeTab() === 'details' ? 'border-b-2 border-white text-white pb-3 px-1 text-xs font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
+      >
+        Detalii & Diagnostic
+      </button>
+      <button 
+        (click)="activeTab.set('logs')"
+        [class]="activeTab() === 'logs' ? 'border-b-2 border-white text-white pb-3 px-1 text-xs font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
+      >
+        Trafic Live Logs
+      </button>
+      <button 
+        (click)="activeTab.set('settings')"
+        [class]="activeTab() === 'settings' ? 'border-b-2 border-white text-white pb-3 px-1 text-xs font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
+      >
+        Setări & Nginx Config
+      </button>
+    </div>
+
+    <!-- TAB 1: DETAILS & DIAGNOSTICS -->
+    @if (activeTab() === 'details') {
+      <div class="space-y-6 animate-fade-in font-sans">
+        
+        <!-- Status and Target mapping Info -->
+        <div class="grid gap-6 md:grid-cols-2">
+          
+          <!-- Box A: Connected Info -->
+          <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Conectare Aplicație</h3>
+            
+            <div class="space-y-3.5 text-xs">
+              <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+                <span class="text-zinc-500">Aplicație Workspace:</span>
+                <span class="text-zinc-200 font-semibold font-mono">{{ route.connectedApp || 'Nespecificată' }}</span>
+              </div>
+              <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+                <span class="text-zinc-500">Branch mapat:</span>
+                <span class="text-zinc-200 font-semibold font-mono">{{ route.branchName || 'N/A' }}</span>
+              </div>
+              
+              @if (route.routingType === 'ingress' || route.routingType === 'reverse_proxy') {
+                <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+                  <span class="text-zinc-500">Proxy Target Host (Nginx):</span>
+                  <span class="text-indigo-400 font-bold font-mono">
+                    {{ route.type === 'automatic' ? (route.rawObject.containerName + ':' + route.port) : (route.rawObject.nginxTargetHost || 'localhost:80') }}
+                  </span>
+                </div>
+              } @else if (route.routingType === 'static_host') {
+                <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+                  <span class="text-zinc-500">Director Static (Volum):</span>
+                  <span class="text-purple-400 font-bold font-mono">{{ route.rawObject.nginxRootPath }}</span>
+                </div>
+              }
+
+              <div class="flex justify-between pb-1">
+                <span class="text-zinc-500">Status Rutare HTTP:</span>
+                <span class="font-semibold font-mono text-[10px] uppercase flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full" [class]="route.status === 'active' ? 'bg-emerald-500' : (route.status === 'pending_verification' ? 'bg-amber-500 animate-pulse' : 'bg-red-500')"></span>
+                  {{ route.status }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Box B: SSL certificate information -->
+          <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Securitate & Certificat TLS (SSL)</h3>
+            
+            <div class="space-y-3.5 text-xs">
+              <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+                <span class="text-zinc-500">Stare SSL/TLS:</span>
+                <span class="text-zinc-200 font-semibold">
+                  {{ (route.type === 'automatic' || route.rawObject.isSsl) ? 'Activat (HTTPS Securizat)' : 'Dezactivat (HTTP Simple)' }}
+                </span>
+              </div>
+              <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+                <span class="text-zinc-500">Autoritate Emitentă (CA):</span>
+                <span class="text-zinc-200 font-mono">Let's Encrypt / Kubernetes Cert-Manager</span>
+              </div>
+              <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+                <span class="text-zinc-500">Protocol & Criptare:</span>
+                <span class="text-zinc-200 font-mono">TLSv1.3 (ECDHE-RSA-AES256-GCM-SHA384)</span>
+              </div>
+              <div class="flex justify-between pb-1">
+                <span class="text-zinc-500">Certificat Valid:</span>
+                <span class="text-emerald-400 font-semibold font-mono">Auto-reînnoire activă (365 zile)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SSL Diagnostics Checklist -->
+        <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+          <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Verificare Diagnostic DNS & SSL</h3>
+            <button (click)="refreshDiagnostics()" class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 hover:text-white text-[10px] font-bold uppercase cursor-pointer">Re-testează</button>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-3 text-xs font-mono">
+            <div class="flex items-center gap-2.5 p-3 rounded border border-zinc-900 bg-black/40">
+              @if (dnsVerified()) {
+                <svg class="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                </svg>
+              } @else {
+                <svg class="w-5 h-5 text-amber-500 animate-spin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17"/>
+                </svg>
+              }
+              <div>
+                <div class="font-bold text-zinc-200 font-sans">Rezoluție DNS IP</div>
+                <div class="text-[9px] text-zinc-500 mt-0.5">Domeniul indică corect Ingress-ul local</div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2.5 p-3 rounded border border-zinc-900 bg-black/40">
+              @if (certRequested()) {
+                <svg class="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                </svg>
+              } @else {
+                <svg class="w-5 h-5 text-amber-500 animate-spin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17"/>
+                </svg>
+              }
+              <div>
+                <div class="font-bold text-zinc-200 font-sans">Emitere Certificat</div>
+                <div class="text-[9px] text-zinc-500 mt-0.5">CA cert-manager Let's Encrypt valid</div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2.5 p-3 rounded border border-zinc-900 bg-black/40">
+              @if (tlsSecured()) {
+                <svg class="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                </svg>
+              } @else {
+                <svg class="w-5 h-5 text-amber-500 animate-spin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17"/>
+                </svg>
+              }
+              <div>
+                <div class="font-bold text-zinc-200 font-sans">Configurare Nginx</div>
+                <div class="text-[9px] text-zinc-500 mt-0.5">Proxy SSL & port 443 securizat local</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- TAB 2: LIVE TRAFFIC LOGS -->
+    @if (activeTab() === 'logs') {
+      <div class="space-y-4 animate-fade-in font-sans">
+        <div class="bg-black border border-zinc-900 rounded-lg p-5 shadow-inner">
+          <div class="flex items-center justify-between border-b border-zinc-900 pb-3 mb-4">
+            <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider font-mono">Stream Log-uri Nginx Access (live_traffic_feed.log)</h4>
+            <span class="text-[9px] text-zinc-650 bg-zinc-950 px-2 py-0.5 rounded border border-zinc-900 uppercase font-semibold font-mono animate-pulse">Streaming</span>
+          </div>
+
+          <div class="space-y-2 max-h-[480px] overflow-y-auto pr-1 bg-black p-3.5 rounded border border-zinc-955 select-text font-mono text-[10px]">
+            @for (log of liveLogs(); track $index) {
+              <div class="text-zinc-400 hover:text-zinc-200 leading-relaxed truncate">
+                {{ log }}
+              </div>
+            } @empty {
+              <div class="text-center py-10 text-xs text-zinc-650 font-mono">Se inițializează fluxul de trafic...</div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- TAB 3: SETTINGS & CONFIG -->
+    @if (activeTab() === 'settings') {
+      <div class="space-y-6 animate-fade-in font-sans">
+        @if (route.type === 'automatic') {
+          <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg p-5 shadow-sm space-y-3 font-sans">
+            <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Setări Rută Automată</h4>
+            <p class="text-xs text-zinc-500 leading-relaxed font-sans">
+              Această rută HTTP Ingress este administrată în mod direct de Kubernetes pentru branch-ul <code class="px-1 py-0.2 rounded bg-black text-white font-mono">{{ route.branchName }}</code>. 
+              Parametrii Nginx proxy-pass și limitele de transfer sunt asociate de ciclul de viață al instanței aplicației tale.
+            </p>
+            <div class="text-[10px] text-zinc-600 bg-black/40 border border-zinc-900 p-3 rounded font-mono">
+              # Configurație automată Ingress Controller<br/>
+              nginx.ingress.kubernetes.io/proxy-body-size: "50m"<br/>
+              nginx.ingress.kubernetes.io/ssl-redirect: "true"
+            </div>
+          </div>
+        } @else {
+          <!-- Editable Domain settings -->
+          <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
+            <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Editează Configurări Domeniu Custom</h4>
+            
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="space-y-1.5">
+                <label for="edit-routing-type" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Tip Rutare Nginx</label>
+                <select 
+                  id="edit-routing-type"
+                  [ngModel]="editRoutingType()"
+                  (ngModelChange)="editRoutingType.set($event)"
+                  class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-zinc-300 focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer"
+                >
+                  <option value="reverse_proxy">Reverse Proxy (Către container)</option>
+                  <option value="static_host">Static Host (Fișiere din volum)</option>
+                  <option value="custom">Nginx Custom Config</option>
+                </select>
+              </div>
+
+              <div class="space-y-1.5">
+                <label for="edit-max-body" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Limită Body Size Nginx (MB)</label>
+                <input 
+                  id="edit-max-body"
+                  type="number" 
+                  [ngModel]="editClientMaxBodySize()"
+                  (ngModelChange)="editClientMaxBodySize.set($event)"
+                  class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                />
+              </div>
+            </div>
+
+            @if (editRoutingType() === 'reverse_proxy') {
+              <div class="space-y-1.5 animate-fade-in">
+                <label for="edit-target" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Adresă Container Țintă (nginx_target_host)</label>
+                <input 
+                  id="edit-target"
+                  type="text" 
+                  placeholder="ex. http://hermes-app-service-name:8080"
+                  [ngModel]="editNginxTargetHost()"
+                  (ngModelChange)="editNginxTargetHost.set($event)"
+                  class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                />
+              </div>
+            }
+
+            @if (editRoutingType() === 'static_host') {
+              <div class="space-y-1.5 animate-fade-in">
+                <label for="edit-root" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Director Rădăcină Static (nginx_root_path)</label>
+                <input 
+                  id="edit-root"
+                  type="text" 
+                  placeholder="ex. /var/www/html"
+                  [ngModel]="editNginxRootPath()"
+                  (ngModelChange)="editNginxRootPath.set($event)"
+                  class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                />
+              </div>
+            }
+
+            @if (editRoutingType() === 'custom') {
+              <div class="space-y-1.5 animate-fade-in">
+                <label for="edit-custom-config" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Fișier Configurație Nginx Custom</label>
+                <textarea 
+                  id="edit-custom-config"
+                  rows="6"
+                  [ngModel]="editNginxConfigContent()"
+                  (ngModelChange)="editNginxConfigContent.set($event)"
+                  class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                ></textarea>
+              </div>
+            }
+
+            <div class="flex items-center gap-2 pt-1.5">
+              <input 
+                id="edit-ssl-check"
+                type="checkbox" 
+                [ngModel]="editIsSsl()"
+                (ngModelChange)="editIsSsl.set($event)"
+                class="w-4 h-4 bg-black border-zinc-850 rounded focus:ring-0 text-white cursor-pointer accent-white"
+              />
+              <label for="edit-ssl-check" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer">Generează / Păstrează Certificat SSL Automat</label>
+            </div>
+
+            <div class="pt-4 border-t border-zinc-900 flex justify-between items-center gap-2">
+              <button 
+                (click)="onRemoveDomain(route.id)"
+                class="px-3 py-1.5 rounded bg-red-950/20 hover:bg-red-950/45 border border-red-900/30 text-red-400 hover:text-red-300 text-xs font-semibold cursor-pointer transition-colors"
+              >
+                Șterge Domeniu Custom
+              </button>
+
+              <button 
+                (click)="onSaveDomainSettings()"
+                [disabled]="updatingSettings()"
+                class="px-4 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+              >
+                @if (updatingSettings()) {
+                  <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Se salvează...</span>
+                } @else {
+                  <span>Salvează Configurația</span>
+                }
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+</div>
