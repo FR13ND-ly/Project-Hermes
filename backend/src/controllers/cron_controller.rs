@@ -10,7 +10,7 @@ use chrono::Utc;
 
 use crate::app_state::AppState;
 use crate::models::cron_model::{CronJob, CronStatus, CronJobLog};
-use crate::dtos::cron_dto::{CreateCronJobRequest, CronJobResponse, UpdateCronJobRequest};
+use crate::dtos::cron_dto::{CreateCronJobRequest, CronJobResponse, UpdateCronJobRequest, ProjectCronJobResponse};
 use crate::middlewares::auth_middleware::AuthenticatedUser;
 use crate::utils::error::AppError;
 
@@ -185,14 +185,14 @@ pub async fn list_project_cron_jobs(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
     Path(project_id): Path<Uuid>,
-) -> Result<Json<Vec<CronJob>>, AppError> {
+) -> Result<Json<Vec<ProjectCronJobResponse>>, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
     let jobs = sqlx::query_as::<_, CronJob>(
-        "SELECT id, workspace_id, project_id, app_id, name, schedule, command, status, next_run_at, created_at, updated_at 
-         FROM cron_jobs 
+        "SELECT id, workspace_id, project_id, app_id, name, schedule, command, status, next_run_at, created_at, updated_at
+         FROM cron_jobs
          WHERE project_id = $1 AND workspace_id = $2
          ORDER BY created_at DESC"
     )
@@ -201,7 +201,53 @@ pub async fn list_project_cron_jobs(
     .fetch_all(&state.pool)
     .await?;
 
-    Ok(Json(jobs))
+    let mut response: Vec<ProjectCronJobResponse> = jobs
+        .into_iter()
+        .map(|j| ProjectCronJobResponse {
+            id: j.id,
+            app_id: j.app_id,
+            name: j.name,
+            schedule: j.schedule,
+            command: j.command,
+            status: j.status,
+            next_run_at: j.next_run_at,
+            source: "user".to_string(),
+            database_id: None,
+        })
+        .collect();
+
+    // Surface automatic database backups as synthetic, read-only cron entries.
+    let auto_backups = sqlx::query!(
+        "SELECT id, name, last_backup_at
+         FROM databases
+         WHERE project_id = $1 AND workspace_id = $2 AND backup_enabled = true
+         ORDER BY name ASC",
+        project_id,
+        ws_id
+    )
+    .fetch_all(&state.pool)
+    .await?;
+
+    for db in auto_backups {
+        let next_run = db
+            .last_backup_at
+            .map(|t| t + chrono::Duration::hours(24))
+            .unwrap_or_else(Utc::now);
+
+        response.push(ProjectCronJobResponse {
+            id: db.id,
+            app_id: Uuid::nil(),
+            name: format!("Auto-backup · {}", db.name),
+            schedule: "0 0 * * *".to_string(),
+            command: "Backup automat zilnic al bazei de date".to_string(),
+            status: CronStatus::Active,
+            next_run_at: Some(next_run),
+            source: "backup".to_string(),
+            database_id: Some(db.id),
+        });
+    }
+
+    Ok(Json(response))
 }
 
 pub async fn update_cron_job(

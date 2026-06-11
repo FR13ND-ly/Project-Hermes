@@ -31,7 +31,7 @@ export class DbDetailComponent implements OnInit, OnDestroy {
   readonly error = signal<string | null>(null);
 
   // Active sub-tab state
-  readonly activeSubTab = signal<'overview' | 'console' | 'logs' | 'backups' | 'settings'>('overview');
+  readonly activeSubTab = signal<'overview' | 'console' | 'logs' | 'backups' | 'settings' | 'telemetry'>('overview');
 
   // Credentials reveal state
   readonly connectionUrl = signal<string | null>(null);
@@ -53,6 +53,8 @@ export class DbDetailComponent implements OnInit, OnDestroy {
   // Edit settings signals
   readonly cpuLimit = signal(250); // mCPU
   readonly memLimit = signal(512); // MB
+  readonly backupEnabled = signal(false);
+  readonly backupCount = signal(7);
   readonly savingSettings = signal(false);
   readonly saveSettingsSuccess = signal(false);
 
@@ -88,6 +90,106 @@ export class DbDetailComponent implements OnInit, OnDestroy {
         this.loadBackups(id);
       }
     });
+
+    effect(() => {
+      const tab = this.activeSubTab();
+      const id = this.dbId();
+      // Re-load whenever the telemetry tab is active or the range changes.
+      const range = this.dbRange();
+      if (id && tab === 'telemetry') {
+        this.loadDbMetrics(id, range);
+      }
+    });
+  }
+
+  // --- Telemetry (database metrics) ---
+  readonly dbRange = signal('1h');
+  readonly dbMetricsLoading = signal(false);
+  readonly dbMetricsSimulated = signal(false);
+  readonly dbCpuValues = signal<number[]>([]);
+  readonly dbMemValues = signal<number[]>([]);
+  readonly dbSizeValues = signal<number[]>([]);
+  readonly dbConnValues = signal<number[]>([]);
+  readonly dbCacheValues = signal<number[]>([]);
+
+  loadDbMetrics(id: string, range: string): void {
+    this.dbMetricsLoading.set(true);
+
+    this.dbService.getMetrics(id, 'cpu', range).subscribe({
+      next: (res) => {
+        this.dbCpuValues.set((res.values || []).map(v => v * 1000)); // cores -> millicores
+        this.dbMetricsSimulated.set(!!res.simulated);
+        this.dbMetricsLoading.set(false);
+      },
+      error: () => { this.dbCpuValues.set([]); this.dbMetricsLoading.set(false); }
+    });
+
+    this.dbService.getMetrics(id, 'memory', range).subscribe({
+      next: (res) => this.dbMemValues.set(res.values || []),
+      error: () => this.dbMemValues.set([])
+    });
+
+    this.dbService.getMetrics(id, 'db_size', range).subscribe({
+      next: (res) => this.dbSizeValues.set(res.values || []),
+      error: () => this.dbSizeValues.set([])
+    });
+
+    this.dbService.getMetrics(id, 'db_connections', range).subscribe({
+      next: (res) => this.dbConnValues.set(res.values || []),
+      error: () => this.dbConnValues.set([])
+    });
+
+    if (this.db()?.type === 'postgres') {
+      this.dbService.getMetrics(id, 'db_cache_hit_rate', range).subscribe({
+        next: (res) => this.dbCacheValues.set(res.values || []),
+        error: () => this.dbCacheValues.set([])
+      });
+    } else {
+      this.dbCacheValues.set([]);
+    }
+  }
+
+  onDbRangeChange(range: string): void {
+    this.dbRange.set(range);
+  }
+
+  cpuUsedPct(): number {
+    const v = this.dbCpuValues();
+    const cur = v.length > 0 ? v[v.length - 1] : 0;
+    const limit = this.cpuLimit();
+    return limit > 0 ? Math.min(100, Math.round((cur / limit) * 100)) : 0;
+  }
+
+  memUsedPct(): number {
+    const v = this.dbMemValues();
+    const cur = v.length > 0 ? v[v.length - 1] : 0;
+    const limit = this.memLimit();
+    return limit > 0 ? Math.min(100, Math.round((cur / limit) * 100)) : 0;
+  }
+
+  lastVal(values: number[]): number {
+    return values.length > 0 ? values[values.length - 1] : 0;
+  }
+
+  getSvgPath(values: number[]): string {
+    if (values.length < 2) return '';
+    const width = 500;
+    const height = 150;
+    const max = Math.max(...values, 0.1) * 1.1;
+    const min = Math.min(...values, 0);
+    const span = (max - min) || 1;
+
+    return values.map((val, idx) => {
+      const x = (idx / (values.length - 1)) * width;
+      const y = height - ((val - min) / span) * height;
+      return `${idx === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+    }).join(' ');
+  }
+
+  getSvgFillPath(values: number[]): string {
+    const linePath = this.getSvgPath(values);
+    if (!linePath) return '';
+    return `${linePath} L 500 150 L 0 150 Z`;
   }
 
   ngOnInit(): void {
@@ -100,7 +202,7 @@ export class DbDetailComponent implements OnInit, OnDestroy {
     this.route.queryParams.subscribe(params => {
       if (params['tab']) {
         const tab = params['tab'];
-        if (tab === 'overview' || tab === 'console' || tab === 'logs' || tab === 'backups' || tab === 'settings') {
+        if (tab === 'overview' || tab === 'console' || tab === 'logs' || tab === 'backups' || tab === 'settings' || tab === 'telemetry') {
           this.activeSubTab.set(tab as any);
         }
       }
@@ -160,6 +262,8 @@ export class DbDetailComponent implements OnInit, OnDestroy {
         this.db.set(res);
         this.cpuLimit.set(res.cpuLimit || 250);
         this.memLimit.set(res.memoryLimitMb || 512);
+        this.backupEnabled.set(res.backupEnabled || false);
+        this.backupCount.set(res.backupCount || 7);
         this.loading.set(false);
         
         // Start ticker if database is still provisioning
@@ -177,7 +281,7 @@ export class DbDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  switchTab(tab: 'overview' | 'console' | 'logs' | 'backups' | 'settings'): void {
+  switchTab(tab: 'overview' | 'console' | 'logs' | 'backups' | 'settings' | 'telemetry'): void {
     this.activeSubTab.set(tab);
     this.router.navigate([], {
       relativeTo: this.route,
@@ -220,13 +324,13 @@ export class DbDetailComponent implements OnInit, OnDestroy {
     this.dbService.runQuery(id, query).subscribe({
       next: (res) => {
         this.queryHistory.update(history => [
+          ...history,
           {
             query,
             output: res.output,
             isError: res.isError,
             timestamp: new Date()
-          },
-          ...history
+          }
         ]);
         this.queryInput.set('');
         this.queryLoading.set(false);
@@ -234,13 +338,13 @@ export class DbDetailComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.queryHistory.update(history => [
+          ...history,
           {
             query,
             output: err.error?.message || 'Eroare la comunicarea cu baza de date.',
             isError: true,
             timestamp: new Date()
-          },
-          ...history
+          }
         ]);
         this.queryLoading.set(false);
         setTimeout(() => this.scrollConsoleToBottom(), 50);
@@ -320,7 +424,9 @@ export class DbDetailComponent implements OnInit, OnDestroy {
 
     this.dbService.updateSettings(id, {
       cpuLimit: this.cpuLimit(),
-      memoryLimitMb: this.memLimit()
+      memoryLimitMb: this.memLimit(),
+      backupEnabled: this.backupEnabled(),
+      backupCount: this.backupCount()
     }).subscribe({
       next: () => {
         this.savingSettings.set(false);

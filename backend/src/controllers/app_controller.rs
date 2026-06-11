@@ -1,12 +1,13 @@
 use axum::{
-    extract::{State, Path, Query},
+    extract::{State, Path, Query, ws::{Message, WebSocket, WebSocketUpgrade}},
     http::{StatusCode, HeaderMap},
     Json,
-    response::sse::{Event, Sse},
+    response::{sse::{Event, Sse}, Response},
 };
 use uuid::Uuid;
 use futures_util::stream::Stream;
 use futures_util::stream::StreamExt;
+use futures_util::SinkExt;
 use std::convert::Infallible;
 use serde::Deserialize;
 
@@ -134,7 +135,7 @@ pub async fn create_app(
         _ => get_random_available_port(&state.pool).await?,
     };
     
-    let container_name = format!("hermes-app-{}-{}-{}", slug, branch, &instance_id.to_string()[..8]);
+    let container_name = crate::utils::string_gen::sanitize_k8s_name(&format!("hermes-app-{}-{}-{}", slug, branch, &instance_id.to_string()[..8]));
     let assigned_domain: Option<String> = None;
 
     let git_subpath = payload.git_subpath.as_deref().map(|s| s.trim().trim_matches('/')).filter(|s| !s.is_empty()).map(|s| s.to_string());
@@ -154,6 +155,27 @@ pub async fn create_app(
     )
     .execute(&state.pool)
     .await?;
+
+    // Provision any environment variables supplied at creation time.
+    if let Some(vars) = &payload.env_variables {
+        for var in vars {
+            let clean_key = var.key.trim().to_uppercase().replace(' ', "_");
+            if clean_key.is_empty() {
+                continue;
+            }
+            let is_secret = var.is_secret.unwrap_or(true);
+            let (encrypted_value, nonce) = crate::utils::crypto::encrypt_env_value(&var.value)?;
+
+            sqlx::query!(
+                "INSERT INTO environment_variables (id, workspace_id, app_instance_id, key, encrypted_value, nonce, is_secret)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)
+                 ON CONFLICT (app_instance_id, key) DO NOTHING",
+                Uuid::new_v4(), ws_id, instance_id, clean_key, encrypted_value, nonce, is_secret
+            )
+            .execute(&state.pool)
+            .await?;
+        }
+    }
 
     let pool_clone = state.pool.clone();
     let git_repo = payload.git_repository.clone();
@@ -192,15 +214,23 @@ pub async fn create_app(
         let webhook_url = format!("{}://{}/api/v1/apps/webhook", proto, host);
         
         tokio::spawn(async move {
+            let mut config = serde_json::json!({
+                "url": webhook_url,
+                "content_type": "json",
+                "insecure_ssl": "1"
+            });
+            // Register the shared secret so GitHub signs deliveries (HMAC-SHA256),
+            // which the /apps/webhook endpoint then verifies.
+            if let Ok(secret) = std::env::var("HERMES_GITHUB_WEBHOOK_SECRET") {
+                if !secret.is_empty() {
+                    config["secret"] = serde_json::Value::String(secret);
+                }
+            }
             let webhook_payload = serde_json::json!({
                 "name": "web",
                 "active": true,
                 "events": ["push", "pull_request"],
-                "config": {
-                    "url": webhook_url,
-                    "content_type": "json",
-                    "insecure_ssl": "1"
-                }
+                "config": config
             });
 
             let url = format!("https://api.github.com/repos/{}/{}/hooks", owner, repo);
@@ -273,7 +303,7 @@ pub async fn create_branch_instance(
         .ok_or_else(|| AppError::NotFound("Parent application not found.".to_string()))?;
 
     let instance_id = Uuid::new_v4();
-    let container_name = format!("hermes-app-{}-{}-{}", app.slug, payload.branch_name, &instance_id.to_string()[..8]);
+    let container_name = crate::utils::string_gen::sanitize_k8s_name(&format!("hermes-app-{}-{}-{}", app.slug, payload.branch_name, &instance_id.to_string()[..8]));
     let assigned_domain: Option<String> = None;
     let internal_port = payload.internal_port.unwrap_or(3000);
     let external_port = match payload.external_port {
@@ -535,8 +565,7 @@ pub async fn redeploy_app_instance(
     let instance_id_clone = instance.id;
 
     tokio::spawn(async move {
-        let registry_url = std::env::var("HERMES_REGISTRY_URL").unwrap_or_else(|_| "localhost:5000".to_string());
-        let full_image_tag = format!("{}/hermes-app-image:{}", registry_url, instance_id_clone);
+        let full_image_tag = crate::utils::builder::resolve_instance_image_tag(&pool_clone, instance_id_clone).await;
         crate::utils::builder::deploy_compiled_app(pool_clone, instance_id_clone, full_image_tag).await;
     });
 
@@ -584,8 +613,7 @@ pub async fn configure_serverless(
 
     let pool_clone = state.pool.clone();
     tokio::spawn(async move {
-        let registry_url = std::env::var("HERMES_REGISTRY_URL").unwrap_or_else(|_| "localhost:5000".to_string());
-        let full_image_tag = format!("{}/hermes-app-image:{}", registry_url, instance_id);
+        let full_image_tag = crate::utils::builder::resolve_instance_image_tag(&pool_clone, instance_id).await;
         crate::utils::builder::deploy_compiled_app(pool_clone, instance_id, full_image_tag).await;
     });
 
@@ -595,116 +623,6 @@ pub async fn configure_serverless(
 #[derive(Debug, Deserialize)]
 pub struct LogQuery {
     pub previous: Option<bool>,
-}
-
-pub async fn stream_instance_logs(
-    State(state): State<AppState>,
-    AuthenticatedUser(claims): AuthenticatedUser,
-    Query(query): Query<LogQuery>,
-    Path((_app_id, instance_id)): Path<(Uuid, Uuid)>,
-) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, AppError> {
-    let ws_id = claims.current_workspace_id.ok_or_else(|| {
-        AppError::Validation("No active workspace selected.".to_string())
-    })?;
-
-    let instance = sqlx::query_as::<_, AppInstance>(
-        "SELECT ai.* FROM app_instances ai 
-         JOIN apps a ON ai.app_id = a.id 
-         WHERE ai.id = $1 AND a.workspace_id = $2"
-    )
-    .bind(instance_id).bind(ws_id).fetch_optional(&state.pool).await?
-    .ok_or_else(|| AppError::NotFound("Application instance not found.".to_string()))?;
-
-    let k8s_client = crate::utils::k8s::K8sManager::get_client().await?;
-    let namespace = format!("hermes-ws-{}", ws_id);
-    let container_name = instance.container_name.clone();
-    let is_previous = query.previous.unwrap_or(false);
-
-    let sse_stream = async_stream::stream! {
-        let pods_api: kube::Api<k8s_openapi::api::core::v1::Pod> = kube::Api::namespaced(k8s_client.clone(), &namespace);
-        let lp = kube::api::ListParams::default().labels(&format!("app={}", container_name));
-
-        loop {
-            let pod_list = match pods_api.list(&lp).await {
-                Ok(list) => list,
-                Err(e) => {
-                    yield Ok(Event::default().data(format!("[Console Error] Eșec la listarea pod-urilor din Kubernetes: {}", e)));
-                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-                    continue;
-                }
-            };
-
-            let pod = match pod_list.items.first() {
-                Some(p) => p,
-                None => {
-                    yield Ok(Event::default().data("[Console] Se așteaptă programarea pod-ului pe nod...".to_string()));
-                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-                    continue;
-                }
-            };
-
-            let pod_name = match &pod.metadata.name {
-                Some(name) => name.clone(),
-                None => {
-                    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-                    continue;
-                }
-            };
-
-            let phase = pod.status.as_ref()
-                .and_then(|s| s.phase.clone())
-                .unwrap_or_else(|| "Unknown".to_string());
-
-            if phase == "Pending" || phase == "Unknown" {
-                yield Ok(Event::default().data(format!("[Console] Instanța se inițializează (Stare: {})...", phase)));
-                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-                continue;
-            }
-
-            let log_params = kube::api::LogParams {
-                follow: !is_previous && (phase == "Running"),
-                previous: is_previous,
-                tail_lines: Some(100),
-                ..Default::default()
-            };
-
-            let log_stream_res = pods_api.log_stream(&pod_name, &log_params).await;
-            match log_stream_res {
-                Ok(log_stream) => {
-                    yield Ok(Event::default().data("[Console] Conexiune stabilă cu containerul. Se preiau logurile:".to_string()));
-                    
-                    use futures_util::io::AsyncBufReadExt;
-                    let mut lines = log_stream.lines();
-                    
-                    while let Some(line_res) = lines.next().await {
-                        match line_res {
-                            Ok(line) => {
-                                yield Ok(Event::default().data(line));
-                            }
-                            Err(e) => {
-                                yield Ok(Event::default().data(format!("[Console Warning] Eroare de rețea la fluxul de logs: {}", e)));
-                                break;
-                            }
-                        }
-                    }
-                    
-                    if phase != "Running" {
-                        yield Ok(Event::default().data(format!("[Console] Stream-ul s-a încheiat deoarece starea pod-ului este: {}", phase)));
-                        break;
-                    }
-                    
-                    yield Ok(Event::default().data("[Console] Containerul a fost repornit sau deconectat. Se reconectează...".to_string()));
-                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-                }
-                Err(e) => {
-                    yield Ok(Event::default().data(format!("[Console] Se pornește containerul de logs (Eroare API: {})...", e)));
-                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-                }
-            }
-        }
-    };
-
-    Ok(Sse::new(sse_stream))
 }
 
 pub async fn stream_instance_stats(
@@ -770,6 +688,8 @@ pub async fn stream_instance_stats(
                                                 if let Ok(val) = cpu_digits.parse::<u64>() {
                                                     if cpu_str.contains('m') {
                                                         cpu_usage = val * 1_000_000;
+                                                    } else if cpu_str.contains('u') {
+                                                        cpu_usage = val * 1_000;
                                                     } else if cpu_str.contains('n') {
                                                         cpu_usage = val;
                                                     } else {
@@ -778,7 +698,7 @@ pub async fn stream_instance_stats(
                                                 }
                                             }
                                             if cpu_usage == 0 {
-                                                cpu_usage = 100_000 + (rand::random::<u64>() % 150_000);
+                                                cpu_usage = 50_000_000 + (rand::random::<u64>() % 150_000_000);
                                             }
                                             got_real_metrics = true;
                                         }
@@ -798,7 +718,7 @@ pub async fn stream_instance_stats(
                 let rand_val = rand::random::<u64>() % 30;
                 let ram = (30 + rand_val) * 1024 * 1024;
                 sim_cpu_system += 1_000_000_000;
-                sim_cpu_container += 300_000 + (rand::random::<u64>() % 400_000);
+                sim_cpu_container += 50_000_000 + (rand::random::<u64>() % 150_000_000);
                 (ram, sim_cpu_system, sim_cpu_container)
             };
 
@@ -815,10 +735,51 @@ pub async fn stream_instance_stats(
     Ok(Sse::new(sse_stream))
 }
 
+/// Constant-time HMAC-SHA256 verification of a GitHub `X-Hub-Signature-256` header.
+fn verify_github_signature(secret: &[u8], body: &[u8], signature_header: &str) -> bool {
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+
+    let Some(hex) = signature_header.strip_prefix("sha256=") else { return false; };
+    if hex.len() % 2 != 0 { return false; }
+    let expected: Option<Vec<u8>> = (0..hex.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).ok())
+        .collect();
+    let Some(expected) = expected else { return false; };
+
+    let Ok(mut mac) = Hmac::<Sha256>::new_from_slice(secret) else { return false; };
+    mac.update(body);
+    mac.verify_slice(&expected).is_ok()
+}
+
 pub async fn handle_github_webhook(
     State(state): State<AppState>,
-    Json(payload): Json<GitHubWebhookPayload>,
+    headers: HeaderMap,
+    body: axum::body::Bytes,
 ) -> Result<StatusCode, AppError> {
+    // When a webhook secret is configured, every delivery must carry a valid
+    // HMAC-SHA256 signature — otherwise forged payloads could trigger builds or
+    // create/delete instances. With no secret set, validation is skipped (a
+    // warning is logged) so existing deployments keep working.
+    match std::env::var("HERMES_GITHUB_WEBHOOK_SECRET") {
+        Ok(secret) if !secret.is_empty() => {
+            let signature = headers
+                .get("x-hub-signature-256")
+                .and_then(|v| v.to_str().ok())
+                .ok_or_else(|| AppError::Auth("Missing webhook signature.".to_string()))?;
+            if !verify_github_signature(secret.as_bytes(), &body, signature) {
+                return Err(AppError::Auth("Invalid webhook signature.".to_string()));
+            }
+        }
+        _ => {
+            tracing::warn!("HERMES_GITHUB_WEBHOOK_SECRET not set — webhook signature validation is DISABLED.");
+        }
+    }
+
+    let payload: GitHubWebhookPayload = serde_json::from_slice(&body)
+        .map_err(|e| AppError::Validation(format!("Invalid webhook payload: {}", e)))?;
+
     let mut target_branch = None;
 
     if let Some(ref action) = payload.action {
@@ -874,6 +835,99 @@ pub async fn handle_github_webhook(
                 let _ = sqlx::query!("DELETE FROM environment_variables WHERE app_instance_id = $1", inst_id).execute(&pool_clone).await;
                 let _ = sqlx::query!("DELETE FROM app_instances WHERE id = $1", inst_id).execute(&pool_clone).await;
             });
+        }
+    }
+
+    // Preview environments: PR opened/reopened → spin up a preview instance for
+    // the PR's head branch on every app that tracks this repository. The matching
+    // teardown already happens above when the PR is closed.
+    if let (Some(action), Some(pr), Some(repo)) = (&payload.action, &payload.pull_request, &payload.repository) {
+        if action == "opened" || action == "reopened" {
+            let branch_name = pr.head.r#ref.clone();
+            let ssh_url = repo.ssh_url.clone().unwrap_or_default().trim().to_lowercase();
+            let clone_url = repo.clone_url.clone().unwrap_or_default().trim().to_lowercase();
+
+            let apps = sqlx::query!(
+                "SELECT id, slug, git_repository, build_command, workspace_id FROM apps"
+            )
+            .fetch_all(&state.pool)
+            .await?;
+
+            for app in apps {
+                let db_repo = app.git_repository.trim().to_lowercase();
+                let is_match = db_repo == ssh_url
+                    || db_repo == clone_url
+                    || db_repo.replace(".git", "") == ssh_url.replace(".git", "")
+                    || db_repo.replace(".git", "") == clone_url.replace(".git", "");
+                if !is_match {
+                    continue;
+                }
+
+                // One instance per app+branch: skip if it already exists.
+                let exists = sqlx::query_scalar!(
+                    "SELECT EXISTS(SELECT 1 FROM app_instances WHERE app_id = $1 AND branch_name = $2)",
+                    app.id, branch_name
+                )
+                .fetch_one(&state.pool)
+                .await?
+                .unwrap_or(false);
+                if exists {
+                    continue;
+                }
+
+                // Inherit the internal port from the production instance.
+                let internal_port = sqlx::query_scalar!(
+                    "SELECT internal_port FROM app_instances WHERE app_id = $1 AND instance_type = 'production' LIMIT 1",
+                    app.id
+                )
+                .fetch_optional(&state.pool)
+                .await?
+                .unwrap_or(3000);
+
+                let external_port = get_random_available_port(&state.pool).await?;
+                let instance_id = Uuid::new_v4();
+                let container_name = crate::utils::string_gen::sanitize_k8s_name(
+                    &format!("hermes-app-{}-{}-{}", app.slug, branch_name, &instance_id.to_string()[..8])
+                );
+
+                sqlx::query!(
+                    "INSERT INTO app_instances (id, app_id, branch_name, instance_type, status, internal_port, assigned_domain, container_name, cpu_limit, memory_limit_mb, external_port)
+                     VALUES ($1, $2, $3, $4, $5, $6, NULL, $7, 0, 0, $8)",
+                    instance_id,
+                    app.id,
+                    branch_name,
+                    AppInstanceType::Preview as AppInstanceType,
+                    AppStatus::Building as AppStatus,
+                    internal_port,
+                    container_name,
+                    external_port
+                )
+                .execute(&state.pool)
+                .await?;
+
+                crate::utils::event_broadcaster::broadcast_event(
+                    crate::utils::event_broadcaster::SystemEvent::InstanceStatusChanged {
+                        workspace_id: app.workspace_id,
+                        instance_id,
+                        container_name,
+                        status: "building".to_string(),
+                    }
+                );
+
+                let pool_clone = state.pool.clone();
+                let git_repo = app.git_repository.clone();
+                let branch_clone = branch_name.clone();
+                let build_cmd = app.build_command.clone();
+                tokio::spawn(async move {
+                    crate::utils::builder::run_ephemeral_build(
+                        pool_clone,
+                        instance_id,
+                        git_repo,
+                        branch_clone,
+                        build_cmd,
+                    ).await;
+                });
+            }
         }
     }
 
@@ -968,7 +1022,7 @@ pub async fn list_app_builds(
     }
 
     let records = sqlx::query!(
-        "SELECT ab.id, ab.app_id, ab.app_instance_id, ab.status, ab.created_at, ai.branch_name, ab.commit_message, ab.commit_sha, ab.duration_sec 
+        "SELECT ab.id, ab.app_id, ab.app_instance_id, ab.status, ab.phase, ab.failure_reason, ab.failure_category, ab.created_at, ai.branch_name, ab.commit_message, ab.commit_sha, ab.duration_sec
          FROM app_builds ab
          JOIN app_instances ai ON ab.app_instance_id = ai.id
          WHERE ab.app_id = $1
@@ -977,7 +1031,7 @@ pub async fn list_app_builds(
     )
     .fetch_all(&state.pool)
     .await?;
- 
+
     let builds = records
         .into_iter()
         .map(|r| BuildResponse {
@@ -986,6 +1040,9 @@ pub async fn list_app_builds(
             app_instance_id: r.app_instance_id,
             branch_name: r.branch_name,
             status: r.status,
+            phase: r.phase,
+            failure_reason: r.failure_reason,
+            failure_category: r.failure_category,
             created_at: r.created_at,
             commit_message: r.commit_message,
             commit_sha: r.commit_sha,
@@ -1014,7 +1071,7 @@ pub async fn get_build_details(
     }
  
     let record = sqlx::query!(
-        "SELECT ab.id, ab.app_id, ab.app_instance_id, ab.status, ab.logs, ab.created_at, ai.branch_name, ab.commit_message, ab.commit_sha, ab.duration_sec 
+        "SELECT ab.id, ab.app_id, ab.app_instance_id, ab.status, ab.phase, ab.failure_reason, ab.failure_category, ab.logs, ab.created_at, ai.branch_name, ab.commit_message, ab.commit_sha, ab.duration_sec
          FROM app_builds ab
          JOIN app_instances ai ON ab.app_instance_id = ai.id
          WHERE ab.id = $1 AND ab.app_id = $2",
@@ -1069,12 +1126,189 @@ pub async fn get_build_details(
         app_instance_id: record.app_instance_id,
         branch_name: record.branch_name,
         status: record.status,
+        phase: record.phase,
+        failure_reason: record.failure_reason,
+        failure_category: record.failure_category,
         logs,
         created_at: record.created_at,
         commit_message: record.commit_message,
         commit_sha: record.commit_sha,
         duration_sec: record.duration_sec,
     }))
+}
+
+/// Cancel an in-progress build: mark it cancelled and tear down its builder pod.
+pub async fn cancel_build(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path((app_id, build_id)): Path<(Uuid, Uuid)>,
+) -> Result<StatusCode, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let build = sqlx::query!(
+        "SELECT ab.status, ab.app_instance_id, a.workspace_id
+         FROM app_builds ab
+         JOIN apps a ON ab.app_id = a.id
+         WHERE ab.id = $1 AND ab.app_id = $2 AND a.workspace_id = $3",
+        build_id, app_id, ws_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Build not found for this application.".to_string()))?;
+
+    if build.status != "building" {
+        return Err(AppError::Conflict("Doar build-urile în curs pot fi anulate.".to_string()));
+    }
+
+    // Signal the running build loop to stop, and reflect it on the build record.
+    sqlx::query!(
+        "UPDATE app_builds SET status = 'cancelled', phase = 'cancelled', failure_reason = $2, failure_category = 'CANCELLED' WHERE id = $1",
+        build_id, "Build anulat manual de utilizator."
+    )
+    .execute(&state.pool)
+    .await?;
+
+    sqlx::query!(
+        "UPDATE app_instances SET status = 'stopped', updated_at = now() WHERE id = $1",
+        build.app_instance_id
+    )
+    .execute(&state.pool)
+    .await?;
+
+    // Tear down the builder pod immediately.
+    let namespace = format!("hermes-ws-{}", build.workspace_id);
+    let pod_name = format!("hermes-builder-{}", build.app_instance_id);
+    tokio::spawn(async move {
+        if let Ok(client) = crate::utils::k8s::K8sManager::get_client().await {
+            let pods: kube::Api<k8s_openapi::api::core::v1::Pod> = kube::Api::namespaced(client, &namespace);
+            let _ = pods.delete(&pod_name, &kube::api::DeleteParams::default()).await;
+        }
+    });
+
+    crate::utils::event_broadcaster::broadcast_event(
+        crate::utils::event_broadcaster::SystemEvent::BuildStatusChanged {
+            workspace_id: build.workspace_id,
+            build_id,
+            app_id,
+            status: "cancelled".to_string(),
+            phase: Some("cancelled".to_string()),
+        }
+    );
+
+    Ok(StatusCode::OK)
+}
+
+/// Roll back an instance to the image produced by a previous successful build.
+pub async fn rollback_build(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path((app_id, build_id)): Path<(Uuid, Uuid)>,
+) -> Result<StatusCode, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let build = sqlx::query!(
+        "SELECT ab.status, ab.image_tag, ab.app_instance_id
+         FROM app_builds ab
+         JOIN apps a ON ab.app_id = a.id
+         WHERE ab.id = $1 AND ab.app_id = $2 AND a.workspace_id = $3",
+        build_id, app_id, ws_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Build not found for this application.".to_string()))?;
+
+    if build.status != "succeeded" {
+        return Err(AppError::Conflict("Se poate face rollback doar la un build reușit.".to_string()));
+    }
+    let image_tag = build.image_tag.ok_or_else(|| {
+        AppError::Conflict("Acest build nu are o imagine asociată (build vechi, dinainte de tagurile imutabile).".to_string())
+    })?;
+
+    let busy = sqlx::query_scalar!(
+        "SELECT EXISTS(SELECT 1 FROM app_builds WHERE app_instance_id = $1 AND status = 'building')",
+        build.app_instance_id
+    )
+    .fetch_one(&state.pool)
+    .await?
+    .unwrap_or(false);
+    if busy {
+        return Err(AppError::Conflict("Există deja un build/deploy în curs pentru această instanță.".to_string()));
+    }
+
+    // Point the instance at the chosen image and redeploy it.
+    sqlx::query!(
+        "UPDATE app_instances SET current_image_tag = $1, status = 'building', updated_at = now() WHERE id = $2",
+        image_tag, build.app_instance_id
+    )
+    .execute(&state.pool)
+    .await?;
+
+    let pool_clone = state.pool.clone();
+    let instance_id = build.app_instance_id;
+    tokio::spawn(async move {
+        crate::utils::builder::deploy_compiled_app(pool_clone, instance_id, image_tag).await;
+    });
+
+    Ok(StatusCode::ACCEPTED)
+}
+
+/// Re-run a build with the same configuration (same repo, branch and build command).
+pub async fn retry_build(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path((app_id, build_id)): Path<(Uuid, Uuid)>,
+) -> Result<StatusCode, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let meta = sqlx::query!(
+        "SELECT ab.app_instance_id, ai.branch_name, a.git_repository, a.build_command
+         FROM app_builds ab
+         JOIN app_instances ai ON ab.app_instance_id = ai.id
+         JOIN apps a ON ab.app_id = a.id
+         WHERE ab.id = $1 AND ab.app_id = $2 AND a.workspace_id = $3",
+        build_id, app_id, ws_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Build not found for this application.".to_string()))?;
+
+    let busy = sqlx::query_scalar!(
+        "SELECT EXISTS(SELECT 1 FROM app_builds WHERE app_instance_id = $1 AND status = 'building')",
+        meta.app_instance_id
+    )
+    .fetch_one(&state.pool)
+    .await?
+    .unwrap_or(false);
+
+    if busy {
+        return Err(AppError::Conflict("Există deja un build în curs pentru această instanță.".to_string()));
+    }
+
+    sqlx::query!(
+        "UPDATE app_instances SET status = 'building', updated_at = now() WHERE id = $1",
+        meta.app_instance_id
+    )
+    .execute(&state.pool)
+    .await?;
+
+    let pool_clone = state.pool.clone();
+    tokio::spawn(async move {
+        crate::utils::builder::run_ephemeral_build(
+            pool_clone,
+            meta.app_instance_id,
+            meta.git_repository,
+            meta.branch_name,
+            meta.build_command,
+        ).await;
+    });
+
+    Ok(StatusCode::ACCEPTED)
 }
 
 #[derive(Debug, Deserialize)]
@@ -1106,7 +1340,7 @@ pub async fn get_instance_metrics(
     let container_name = instance.container_name.clone();
     let range = query.range.unwrap_or_else(|| "1h".to_string());
 
-    let (timestamps, values) = crate::utils::prometheus::get_historical_metrics(
+    let (timestamps, values, simulated) = crate::utils::prometheus::get_historical_metrics(
         &namespace,
         &container_name,
         &query.metric,
@@ -1116,6 +1350,7 @@ pub async fn get_instance_metrics(
     Ok(Json(MetricsHistoryResponse {
         timestamps,
         values,
+        simulated,
     }))
 }
 
@@ -1259,13 +1494,14 @@ pub async fn update_instance_settings(
 
     // Update settings in database
     sqlx::query!(
-        "UPDATE app_instances 
+        "UPDATE app_instances
          SET cpu_limit = COALESCE($1, cpu_limit),
              memory_limit_mb = COALESCE($2, memory_limit_mb),
              internal_port = COALESCE($3, internal_port),
+             port_is_auto = CASE WHEN $3 IS NOT NULL THEN false ELSE port_is_auto END,
              external_port = $4,
              status = 'building',
-             updated_at = now() 
+             updated_at = now()
          WHERE id = $5",
         payload.cpu_limit,
         payload.memory_limit_mb,
@@ -1278,8 +1514,6 @@ pub async fn update_instance_settings(
 
     // Trigger redeployment asynchronously
     let pool_clone = state.pool.clone();
-    let registry_url = std::env::var("HERMES_REGISTRY_URL").unwrap_or_else(|_| "localhost:5000".to_string());
-    let image_tag = format!("{}/hermes-app-image:{}", registry_url, instance_id);
 
     tokio::spawn(async move {
         if rebuild_needed {
@@ -1306,6 +1540,7 @@ pub async fn update_instance_settings(
             }
         } else {
             // Redeploy the existing container image with the updated limits & ports
+            let image_tag = crate::utils::builder::resolve_instance_image_tag(&pool_clone, instance_id).await;
             crate::utils::builder::deploy_compiled_app(pool_clone, instance_id, image_tag).await;
         }
     });
@@ -1372,4 +1607,322 @@ pub async fn delete_app(
         .await?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn stream_build_logs(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path((app_id, build_id)): Path<(Uuid, Uuid)>,
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    // Verify build belongs to app and workspace
+    let build = sqlx::query!(
+        "SELECT ab.id, ab.status, ab.logs, ab.app_instance_id
+         FROM app_builds ab
+         JOIN apps a ON ab.app_id = a.id
+         WHERE ab.id = $1 AND ab.app_id = $2 AND a.workspace_id = $3",
+        build_id, app_id, ws_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Build not found.".to_string()))?;
+
+    let pool = state.pool.clone();
+    let instance_id = build.app_instance_id;
+
+    let sse_stream = async_stream::stream! {
+        // 1. If build is already completed, stream static logs from DB
+        if build.status != "building" {
+            for line in build.logs.lines() {
+                yield Ok(Event::default().data(line.to_string()));
+            }
+            return;
+        }
+
+        // 2. Build is active, connect to Kubernetes and stream live logs
+        let k8s_client = match crate::utils::k8s::K8sManager::get_client().await {
+            Ok(c) => c,
+            Err(e) => {
+                yield Ok(Event::default().data(format!("[System Error] Conexiunea la Kubernetes a eșuat: {}", e)));
+                return;
+            }
+        };
+
+        let namespace = format!("hermes-ws-{}", ws_id);
+        let builder_pod_name = format!("hermes-builder-{}", instance_id);
+        let pods_api: kube::Api<k8s_openapi::api::core::v1::Pod> = kube::Api::namespaced(k8s_client, &namespace);
+
+        // Așteptăm ca pod-ul de build să fie programat/pornit (max 30 secunde)
+        let mut pod_ready = false;
+        for _ in 0..15 {
+            if let Ok(pod) = pods_api.get(&builder_pod_name).await {
+                if pod.status.is_some() {
+                    pod_ready = true;
+                    break;
+                }
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        }
+
+        if !pod_ready {
+            yield Ok(Event::default().data("[System] Se inițializează mediul de compilare...".to_string()));
+        }
+
+        // --- ETAPA 1: CLONER ---
+        yield Ok(Event::default().data("=========================================\n ETAPA 1: DESCĂRCARE COD (GIT CLONE) (LIVE)\n=========================================\n".to_string()));
+
+        let cloner_params = kube::api::LogParams {
+            container: Some("cloner".to_string()),
+            follow: true,
+            ..Default::default()
+        };
+
+        let mut cloner_stream_success = false;
+        if let Ok(log_stream) = pods_api.log_stream(&builder_pod_name, &cloner_params).await {
+            cloner_stream_success = true;
+            use futures_util::io::AsyncBufReadExt;
+            let mut lines = log_stream.lines();
+            while let Some(line_res) = lines.next().await {
+                match line_res {
+                    Ok(line) => {
+                        yield Ok(Event::default().data(line));
+                    }
+                    Err(_) => {
+                        break;
+                    }
+                }
+            }
+        }
+
+        if !cloner_stream_success {
+            yield Ok(Event::default().data("Pregătire clonare cod...".to_string()));
+            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+        }
+
+        // --- ETAPA 2: KANIKO ---
+        yield Ok(Event::default().data("\n\n=========================================\n ETAPA 2: CONSTRUIRE IMAGINE (KANIKO) (LIVE)\n=========================================\n".to_string()));
+
+        // Așteptăm ca containerul Kaniko să devină activ (max 120 secunde, util în caz de pulling imagine mare)
+        let mut kaniko_active = false;
+        for _ in 0..60 {
+            if let Ok(pod) = pods_api.get(&builder_pod_name).await {
+                if let Some(status) = pod.status {
+                    let container_statuses = status.container_statuses.unwrap_or_default();
+                    if let Some(kaniko_status) = container_statuses.iter().find(|c| c.name == "kaniko") {
+                        if kaniko_status.state.as_ref().map(|s| s.running.is_some() || s.terminated.is_some()).unwrap_or(false) {
+                            kaniko_active = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        }
+
+        if !kaniko_active {
+            yield Ok(Event::default().data("Se așteaptă pornirea motorului de build (Kaniko)...".to_string()));
+            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+        }
+
+        let kaniko_params = kube::api::LogParams {
+            container: Some("kaniko".to_string()),
+            follow: true,
+            ..Default::default()
+        };
+
+        if let Ok(log_stream) = pods_api.log_stream(&builder_pod_name, &kaniko_params).await {
+            use futures_util::io::AsyncBufReadExt;
+            let mut lines = log_stream.lines();
+            while let Some(line_res) = lines.next().await {
+                match line_res {
+                    Ok(line) => {
+                        yield Ok(Event::default().data(line));
+                    }
+                    Err(_) => {
+                        break;
+                    }
+                }
+            }
+        }
+
+        // --- ETAPA 3: DEPLOY & FINALIZARE (LIVE) ---
+        // Cloner/Kaniko au fost transmise live mai sus, dar orchestratorul mai
+        // scrie log-uri (deploy, clasificare erori, sumar final) în DB DUPĂ ce
+        // Kaniko termină. Le transmitem incremental aici, urmărind ce se adaugă în
+        // coloana `logs` până când build-ul nu mai e `building` — astfel
+        // utilizatorul vede totul fără să dea refresh pe pagină.
+        let mut last_len: usize = sqlx::query_scalar!("SELECT logs FROM app_builds WHERE id = $1", build_id)
+            .fetch_optional(&pool)
+            .await
+            .ok()
+            .flatten()
+            .map(|l| l.len())
+            .unwrap_or(0);
+        let mut separator_sent = false;
+        // Maxim ~6 minute pentru fazele post-build (240 * 1500ms).
+        for _ in 0..240 {
+            match sqlx::query!("SELECT status, logs FROM app_builds WHERE id = $1", build_id)
+                .fetch_optional(&pool)
+                .await
+            {
+                Ok(Some(row)) => {
+                    if row.logs.len() > last_len {
+                        if let Some(appended) = row.logs.get(last_len..) {
+                            if !separator_sent {
+                                yield Ok(Event::default().data("\n=========================================\n ETAPA 3: DEPLOY & FINALIZARE (LIVE)\n=========================================".to_string()));
+                                separator_sent = true;
+                            }
+                            for line in appended.lines() {
+                                yield Ok(Event::default().data(line.to_string()));
+                            }
+                            last_len = row.logs.len();
+                        }
+                    }
+                    if row.status != "building" {
+                        yield Ok(Event::default().data(format!("\n--- Build finalizat (status: {}) ---", row.status)));
+                        break;
+                    }
+                }
+                _ => break,
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
+        }
+    };
+
+    Ok(Sse::new(sse_stream))
+}
+
+/// Live container logs over a WebSocket (push, no polling on the client side).
+/// Authenticated via the standard `?token=` query param like the SSE streams.
+pub async fn stream_instance_logs_ws(
+    ws: WebSocketUpgrade,
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Query(query): Query<LogQuery>,
+    Path((_app_id, instance_id)): Path<(Uuid, Uuid)>,
+) -> Result<Response, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let instance = sqlx::query_as::<_, AppInstance>(
+        "SELECT ai.* FROM app_instances ai
+         JOIN apps a ON ai.app_id = a.id
+         WHERE ai.id = $1 AND a.workspace_id = $2"
+    )
+    .bind(instance_id)
+    .bind(ws_id)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Application instance not found.".to_string()))?;
+
+    let container_name = instance.container_name.clone();
+    let is_previous = query.previous.unwrap_or(false);
+
+    Ok(ws.on_upgrade(move |socket| handle_instance_log_socket(socket, ws_id, container_name, is_previous)))
+}
+
+async fn handle_instance_log_socket(
+    socket: WebSocket,
+    ws_id: Uuid,
+    container_name: String,
+    is_previous: bool,
+) {
+    let (mut sender, mut receiver) = socket.split();
+
+    // Pump Kubernetes container logs into the websocket.
+    let mut send_task = tokio::spawn(async move {
+        let k8s_client = match crate::utils::k8s::K8sManager::get_client().await {
+            Ok(c) => c,
+            Err(e) => {
+                let _ = sender.send(Message::Text(format!("[Console Error] Conexiunea la Kubernetes a eșuat: {}", e))).await;
+                return;
+            }
+        };
+        let namespace = format!("hermes-ws-{}", ws_id);
+        let pods_api: kube::Api<k8s_openapi::api::core::v1::Pod> = kube::Api::namespaced(k8s_client, &namespace);
+        let lp = kube::api::ListParams::default().labels(&format!("app={}", container_name));
+
+        loop {
+            let pod_list = match pods_api.list(&lp).await {
+                Ok(list) => list,
+                Err(e) => {
+                    if sender.send(Message::Text(format!("[Console Error] Eșec la listarea pod-urilor: {}", e))).await.is_err() { break; }
+                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                    continue;
+                }
+            };
+
+            let pod = match pod_list.items.first() {
+                Some(p) => p,
+                None => {
+                    if sender.send(Message::Text("[Console] Se așteaptă programarea pod-ului pe nod...".to_string())).await.is_err() { break; }
+                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                    continue;
+                }
+            };
+
+            let pod_name = match &pod.metadata.name {
+                Some(name) => name.clone(),
+                None => {
+                    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                    continue;
+                }
+            };
+
+            let phase = pod.status.as_ref().and_then(|s| s.phase.clone()).unwrap_or_else(|| "Unknown".to_string());
+            if phase == "Pending" || phase == "Unknown" {
+                if sender.send(Message::Text(format!("[Console] Instanța se inițializează (Stare: {})...", phase))).await.is_err() { break; }
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                continue;
+            }
+
+            let log_params = kube::api::LogParams {
+                follow: !is_previous && (phase == "Running"),
+                previous: is_previous,
+                tail_lines: Some(100),
+                ..Default::default()
+            };
+
+            match pods_api.log_stream(&pod_name, &log_params).await {
+                Ok(log_stream) => {
+                    if sender.send(Message::Text("[Console] Conexiune stabilă cu containerul. Se preiau logurile:".to_string())).await.is_err() { break; }
+                    use futures_util::io::AsyncBufReadExt;
+                    let mut lines = log_stream.lines();
+                    while let Some(line_res) = lines.next().await {
+                        match line_res {
+                            Ok(line) => {
+                                if sender.send(Message::Text(line)).await.is_err() { return; }
+                            }
+                            Err(_) => break,
+                        }
+                    }
+                    // Snapshot mode (previous logs) is one-shot.
+                    if is_previous { break; }
+                    // The follow stream ended (pod restarted/terminated) — wait and reconnect.
+                    if sender.send(Message::Text("[Console] Fluxul s-a încheiat. Reconectare...".to_string())).await.is_err() { break; }
+                    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                }
+                Err(e) => {
+                    if sender.send(Message::Text(format!("[Console Warning] Eroare la fluxul de logs: {}", e))).await.is_err() { break; }
+                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                }
+            }
+        }
+    });
+
+    // Detect client disconnect.
+    let mut recv_task = tokio::spawn(async move {
+        while let Some(Ok(msg)) = receiver.next().await {
+            if let Message::Close(_) = msg { break; }
+        }
+    });
+
+    tokio::select! {
+        _ = &mut send_task => recv_task.abort(),
+        _ = &mut recv_task => send_task.abort(),
+    };
 }

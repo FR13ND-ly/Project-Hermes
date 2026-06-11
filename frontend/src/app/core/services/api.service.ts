@@ -44,4 +44,10 @@ export class ApiService {
     const token = localStorage.getItem('hermes_token') || '';
     return `${this.baseUrl}${path}?token=${encodeURIComponent(token)}`;
   }
+
+  getWsUrl(path: string): string {
+    const token = localStorage.getItem('hermes_token') || '';
+    const wsBase = this.baseUrl.replace(/^http/, 'ws');
+    return `${wsBase}${path}?token=${encodeURIComponent(token)}`;
+  }
 }

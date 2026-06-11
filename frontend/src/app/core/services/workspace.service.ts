@@ -22,6 +22,22 @@ export interface WorkspaceUsage {
   usedStorageGb: number;
 }
 
+export interface AdminWorkspaceStats {
+  id: string;
+  name: string;
+  slug: string;
+  maxMemoryMb: number;
+  maxStorageGb: number;
+  createdAt: string;
+  creator: string | null;
+  memberCount: number;
+  appCount: number;
+  activeAppCount: number;
+  databaseCount: number;
+  allocatedMemoryMb: number;
+  allocatedStorageGb: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -70,6 +86,15 @@ export class WorkspaceService {
 
   removeMember(userId: string): Observable<void> {
     return this.api.delete<void>(`/workspaces/members/${userId}`);
+  }
+
+  // --- Admin (super-admin only) ---
+  adminListWorkspaces(): Observable<AdminWorkspaceStats[]> {
+    return this.api.get<AdminWorkspaceStats[]>('/admin/workspaces');
+  }
+
+  adminDeleteWorkspace(workspaceId: string): Observable<void> {
+    return this.api.delete<void>(`/workspaces/${workspaceId}`);
   }
 }
 

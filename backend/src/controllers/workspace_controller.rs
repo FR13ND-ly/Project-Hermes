@@ -14,6 +14,10 @@ pub async fn create_workspace(
     AuthenticatedUser(claims): AuthenticatedUser,
     Json(payload): Json<CreateWorkspaceRequest>,
 ) -> Result<(StatusCode, Json<WorkspaceResponse>), AppError> {
+    if !claims.is_super_admin {
+        return Err(AppError::Permission("Only platform administrators can create workspaces.".to_string()));
+    }
+
     let slug = payload.name.to_lowercase().trim().replace(" ", "-");
     let workspace_id = Uuid::new_v4();
 
@@ -463,4 +467,236 @@ pub async fn remove_workspace_member(
     }
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn delete_workspace(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(workspace_id): Path<Uuid>,
+) -> Result<StatusCode, AppError> {
+    let is_super_admin = claims.is_super_admin;
+    
+    let is_owner = if !is_super_admin {
+        let owner_role_id = sqlx::query_scalar!(
+            "SELECT id FROM roles WHERE name = 'owner'"
+        )
+        .fetch_one(&state.pool)
+        .await?;
+        
+        sqlx::query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 AND role_id = $3)",
+            workspace_id, claims.sub, owner_role_id
+        )
+        .fetch_one(&state.pool)
+        .await?
+        .unwrap_or(false)
+    } else {
+        true
+    };
+
+    if !is_owner {
+        return Err(AppError::Permission("Only workspace owners or super admins can delete workspaces.".to_string()));
+    }
+
+    // 1. Delete Kubernetes Namespace
+    let client = crate::utils::k8s::K8sManager::get_client().await?;
+    let k8s_ns_name = format!("hermes-ws-{}", workspace_id);
+    let _ = crate::utils::k8s::K8sManager::delete_namespace(&client, &k8s_ns_name).await;
+
+    // 2. Clean up physical storage buckets directories on host
+    if let Ok(buckets) = sqlx::query!(
+        "SELECT slug, access_type::text as \"access_type!\" FROM storage_buckets WHERE workspace_id = $1",
+        workspace_id
+    )
+    .fetch_all(&state.pool)
+    .await {
+        for bucket in buckets {
+            let bucket_access = match bucket.access_type.as_str() {
+                "public_assets" => crate::models::storage_model::BucketAccessType::PublicAssets,
+                "private_storage" => crate::models::storage_model::BucketAccessType::PrivateStorage,
+                "static_website" => crate::models::storage_model::BucketAccessType::StaticWebsite,
+                _ => crate::models::storage_model::BucketAccessType::AppBounded,
+            };
+            let _ = crate::utils::storage_engine::StorageEngine::delete_bucket_physical(&workspace_id.to_string(), &bucket.slug, &bucket_access).await;
+        }
+    }
+
+    // 3. Clean up physical database backups on host disk
+    let backups_dir = format!("/var/lib/hermes/backups");
+    if let Ok(dbs) = sqlx::query!("SELECT id FROM databases WHERE workspace_id = $1", workspace_id)
+        .fetch_all(&state.pool)
+        .await {
+        for db in dbs {
+            let db_backup_path = format!("{}/{}", backups_dir, db.id);
+            let _ = std::fs::remove_dir_all(db_backup_path);
+        }
+    }
+
+    // 4. Cascade delete tables in Postgres (using transaction)
+    let mut tx = state.pool.begin().await?;
+
+    // Delete environment variables
+    sqlx::query!("DELETE FROM environment_variables WHERE workspace_id = $1", workspace_id)
+        .execute(&mut *tx)
+        .await?;
+
+    // Delete domains
+    sqlx::query!("DELETE FROM domains WHERE workspace_id = $1", workspace_id)
+        .execute(&mut *tx)
+        .await?;
+
+    // Delete storage objects and buckets
+    sqlx::query!(
+        "DELETE FROM storage_objects WHERE bucket_id IN (SELECT id FROM storage_buckets WHERE workspace_id = $1)",
+        workspace_id
+    )
+    .execute(&mut *tx)
+    .await?;
+    sqlx::query!("DELETE FROM storage_buckets WHERE workspace_id = $1", workspace_id)
+        .execute(&mut *tx)
+        .await?;
+
+    // Delete database backups and databases
+    sqlx::query!(
+        "DELETE FROM database_backups WHERE database_id IN (SELECT id FROM databases WHERE workspace_id = $1)",
+        workspace_id
+    )
+    .execute(&mut *tx)
+    .await?;
+    sqlx::query!("DELETE FROM databases WHERE workspace_id = $1", workspace_id)
+        .execute(&mut *tx)
+        .await?;
+
+    // Delete app builds, app instances and apps
+    sqlx::query!(
+        "DELETE FROM app_builds WHERE app_id IN (SELECT id FROM apps WHERE workspace_id = $1)",
+        workspace_id
+    )
+    .execute(&mut *tx)
+    .await?;
+    sqlx::query!(
+        "DELETE FROM app_instances WHERE app_id IN (SELECT id FROM apps WHERE workspace_id = $1)",
+        workspace_id
+    )
+    .execute(&mut *tx)
+    .await?;
+    sqlx::query!(
+        "DELETE FROM app_volumes WHERE workspace_id = $1",
+        workspace_id
+    )
+    .execute(&mut *tx)
+    .await?;
+    sqlx::query!("DELETE FROM apps WHERE workspace_id = $1", workspace_id)
+        .execute(&mut *tx)
+        .await?;
+
+    // Delete projects
+    sqlx::query!("DELETE FROM projects WHERE workspace_id = $1", workspace_id)
+        .execute(&mut *tx)
+        .await?;
+
+    // Delete members
+    sqlx::query!("DELETE FROM workspace_members WHERE workspace_id = $1", workspace_id)
+        .execute(&mut *tx)
+        .await?;
+
+    // Reset current_workspace_id for any users who had this workspace selected
+    sqlx::query!(
+        "UPDATE users SET current_workspace_id = NULL WHERE current_workspace_id = $1",
+        workspace_id
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    // Set some other workspace for these users if they have any, otherwise leave as NULL
+    sqlx::query!(
+        "UPDATE users u 
+         SET current_workspace_id = (SELECT workspace_id FROM workspace_members WHERE user_id = u.id LIMIT 1)
+         WHERE u.current_workspace_id IS NULL"
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    // Finally delete workspace
+    sqlx::query!("DELETE FROM workspaces WHERE id = $1", workspace_id)
+        .execute(&mut *tx)
+        .await?;
+
+    tx.commit().await?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdminWorkspaceStatsResponse {
+    pub id: Uuid,
+    pub name: String,
+    pub slug: String,
+    pub max_memory_mb: i32,
+    pub max_storage_gb: i32,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub creator: Option<String>,
+    pub member_count: i64,
+    pub app_count: i64,
+    pub active_app_count: i64,
+    pub database_count: i64,
+    pub allocated_memory_mb: i64,
+    pub allocated_storage_gb: i64,
+}
+
+pub async fn admin_list_all_workspaces(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+) -> Result<Json<Vec<AdminWorkspaceStatsResponse>>, AppError> {
+    if !claims.is_super_admin {
+        return Err(AppError::Permission("Access denied. Admin privileges required.".to_string()));
+    }
+
+    let records = sqlx::query!(
+        "SELECT 
+            w.id, 
+            w.name, 
+            w.slug, 
+            w.max_memory_mb, 
+            w.max_storage_gb, 
+            w.created_at, 
+            (SELECT username FROM users WHERE id = w.created_by) as creator,
+            (SELECT COUNT(*) FROM workspace_members WHERE workspace_id = w.id) as \"member_count!\",
+            (SELECT COUNT(*) FROM apps WHERE workspace_id = w.id) as \"app_count!\",
+            (SELECT COUNT(*) FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE a.workspace_id = w.id AND ai.status = 'running') as \"active_app_count!\",
+            (SELECT COUNT(*) FROM databases WHERE workspace_id = w.id) as \"database_count!\",
+            COALESCE((SELECT SUM(ai.memory_limit_mb) FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE a.workspace_id = w.id), 0)::bigint as \"app_mem!\",
+            COALESCE((SELECT SUM(d.memory_limit_mb) FROM databases d WHERE d.workspace_id = w.id), 0)::bigint as \"db_mem!\",
+            (
+                (SELECT COALESCE(COUNT(*), 0) FROM databases d WHERE d.workspace_id = w.id)
+                +
+                (SELECT COALESCE(COUNT(*), 0) FROM app_volumes av WHERE av.workspace_id = w.id)
+            )::bigint as \"allocated_storage!\"
+         FROM workspaces w
+         ORDER BY w.name ASC"
+    )
+    .fetch_all(&state.pool)
+    .await?;
+
+    let response = records
+        .into_iter()
+        .map(|r| AdminWorkspaceStatsResponse {
+            id: r.id,
+            name: r.name,
+            slug: r.slug,
+            max_memory_mb: r.max_memory_mb,
+            max_storage_gb: r.max_storage_gb,
+            created_at: r.created_at,
+            creator: r.creator,
+            member_count: r.member_count,
+            app_count: r.app_count,
+            active_app_count: r.active_app_count,
+            database_count: r.database_count,
+            allocated_memory_mb: r.app_mem + r.db_mem,
+            allocated_storage_gb: r.allocated_storage,
+        })
+        .collect();
+
+    Ok(Json(response))
 }

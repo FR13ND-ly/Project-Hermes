@@ -8,19 +8,49 @@ use serde::Deserialize;
 use chrono::Utc;
 
 use crate::app_state::AppState;
-use crate::models::env_variable_model::{EnvironmentVariable, EnvScope};
-use crate::dtos::env_variable_dto::{SetEnvRequest, EnvResponse};
+use crate::models::env_variable_model::EnvironmentVariable;
+use crate::dtos::env_variable_dto::{
+    SetEnvRequest, SetEnvBulkRequest, EnvResponse, GroupedAppEnv, GroupedInstanceEnv,
+};
 use crate::middlewares::auth_middleware::AuthenticatedUser;
 use crate::utils::{crypto, error::AppError};
-
-
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListEnvParams {
-    pub project_id: Option<Uuid>,
-    pub app_instance_id: Option<Uuid>,
-    pub scope: Option<EnvScope>,
+    pub app_instance_id: Uuid,
+}
+
+/// Resolve and authorize the workspace that owns a given app instance.
+/// Returns the workspace_id when the instance belongs to the caller's active workspace.
+async fn resolve_instance_workspace(
+    pool: &sqlx::PgPool,
+    instance_id: Uuid,
+    expected_ws: Uuid,
+) -> Result<Uuid, AppError> {
+    let row = sqlx::query!(
+        "SELECT a.workspace_id FROM app_instances ai
+         JOIN apps a ON ai.app_id = a.id
+         WHERE ai.id = $1",
+        instance_id
+    )
+    .fetch_optional(pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("App instance not found.".to_string()))?;
+
+    if row.workspace_id != expected_ws {
+        return Err(AppError::Permission("Instance does not belong to the active workspace.".to_string()));
+    }
+
+    Ok(row.workspace_id)
+}
+
+fn clean_env_key(raw: &str) -> Result<String, AppError> {
+    let clean = raw.trim().to_uppercase().replace(' ', "_");
+    if clean.is_empty() {
+        return Err(AppError::Validation("Variable key cannot be empty.".to_string()));
+    }
+    Ok(clean)
 }
 
 pub async fn set_env_variable(
@@ -32,82 +62,103 @@ pub async fn set_env_variable(
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
-    let clean_key = payload.key.trim().to_uppercase().replace(' ', "_");
-    if clean_key.is_empty() {
-        return Err(AppError::Validation("Variable key cannot be empty.".to_string()));
-    }
+    let workspace_id = resolve_instance_workspace(&state.pool, payload.app_instance_id, ws_id).await?;
 
+    let clean_key = clean_env_key(&payload.key)?;
     let is_secret = payload.is_secret.unwrap_or(true);
-    let scope = payload.scope.unwrap_or(EnvScope::All);
     let (encrypted_value, nonce) = crypto::encrypt_env_value(&payload.value)?;
     let record_id = Uuid::new_v4();
 
     sqlx::query!(
-        "INSERT INTO environment_variables (id, workspace_id, project_id, app_instance_id, key, encrypted_value, nonce, scope, is_secret)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-         ON CONFLICT (workspace_id, project_id, app_instance_id, key, scope) 
-         DO UPDATE SET encrypted_value = $6, nonce = $7, is_secret = $9, updated_at = now()",
-        record_id, 
-        ws_id, 
-        payload.project_id, 
-        payload.app_instance_id, 
-        clean_key, 
-        encrypted_value, 
-        nonce, 
-        scope.clone() as EnvScope,
+        "INSERT INTO environment_variables (id, workspace_id, app_instance_id, key, encrypted_value, nonce, is_secret)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (app_instance_id, key)
+         DO UPDATE SET encrypted_value = $5, nonce = $6, is_secret = $7, updated_at = now()",
+        record_id,
+        workspace_id,
+        payload.app_instance_id,
+        clean_key,
+        encrypted_value,
+        nonce,
         is_secret
     )
     .execute(&state.pool)
     .await?;
 
-    // Find and hot-reload all running instances affected by this environment variable change
-    let pool_clone = state.pool.clone();
-    let payload_app_instance_id = payload.app_instance_id;
-    let payload_project_id = payload.project_id;
-    tokio::spawn(async move {
-        let affected_instances = sqlx::query!(
-            "SELECT ai.id, ai.container_name, a.workspace_id, ai.status::TEXT as \"status!\", ai.meta_data
-             FROM app_instances ai 
-             JOIN apps a ON ai.app_id = a.id
-             WHERE ai.status = 'running'
-               AND ($1::uuid IS NULL OR ai.id = $1)
-               AND ($2::uuid IS NULL OR a.project_id = $2)
-               AND ($3::uuid IS NULL OR a.workspace_id = $3)",
-            payload_app_instance_id,
-            payload_project_id,
-            Some(ws_id)
-        )
-        .fetch_all(&pool_clone)
-        .await;
-
-        if let Ok(instances) = affected_instances {
-            for inst in instances {
-                let _ = hot_reload_instance_envs(
-                    &pool_clone,
-                    inst.id,
-                    &inst.container_name,
-                    inst.workspace_id,
-                    &inst.meta_data,
-                )
-                .await;
-            }
-        }
-    });
+    hot_reload_if_running(&state.pool, payload.app_instance_id);
 
     Ok((
         StatusCode::OK,
         Json(EnvResponse {
             id: record_id,
-            project_id: payload.project_id,
             app_instance_id: payload.app_instance_id,
             key: clean_key,
             value: if is_secret { None } else { Some(payload.value) },
-            scope,
             is_secret,
         }),
     ))
 }
 
+/// Replace the entire set of env vars for one instance in a single shot.
+/// Powers the "edit .env as JSON" workflow.
+pub async fn set_envs_bulk(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Json(payload): Json<SetEnvBulkRequest>,
+) -> Result<(StatusCode, Json<Vec<EnvResponse>>), AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let workspace_id = resolve_instance_workspace(&state.pool, payload.app_instance_id, ws_id).await?;
+
+    let mut tx = state.pool.begin().await?;
+
+    sqlx::query!(
+        "DELETE FROM environment_variables WHERE app_instance_id = $1",
+        payload.app_instance_id
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    let mut response = Vec::new();
+    for var in &payload.variables {
+        let clean_key = clean_env_key(&var.key)?;
+        let is_secret = var.is_secret.unwrap_or(true);
+        let (encrypted_value, nonce) = crypto::encrypt_env_value(&var.value)?;
+        let record_id = Uuid::new_v4();
+
+        sqlx::query!(
+            "INSERT INTO environment_variables (id, workspace_id, app_instance_id, key, encrypted_value, nonce, is_secret)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             ON CONFLICT (app_instance_id, key)
+             DO UPDATE SET encrypted_value = $5, nonce = $6, is_secret = $7, updated_at = now()",
+            record_id,
+            workspace_id,
+            payload.app_instance_id,
+            clean_key,
+            encrypted_value,
+            nonce,
+            is_secret
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        response.push(EnvResponse {
+            id: record_id,
+            app_instance_id: payload.app_instance_id,
+            key: clean_key,
+            value: if is_secret { None } else { Some(var.value.clone()) },
+            is_secret,
+        });
+    }
+
+    tx.commit().await?;
+
+    hot_reload_if_running(&state.pool, payload.app_instance_id);
+
+    Ok((StatusCode::OK, Json(response)))
+}
 
 pub async fn list_env_variables(
     State(state): State<AppState>,
@@ -118,80 +169,77 @@ pub async fn list_env_variables(
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
-    let envs = if let Some(inst_id) = params.app_instance_id {
-        // Resolve parent project_id
-        let parent_project_id = sqlx::query!(
-            "SELECT a.project_id FROM app_instances ai 
-             JOIN apps a ON ai.app_id = a.id 
-             WHERE ai.id = $1", 
-            inst_id
-        )
-        .fetch_optional(&state.pool)
-        .await?
-        .map(|r| r.project_id);
+    resolve_instance_workspace(&state.pool, params.app_instance_id, ws_id).await?;
 
-        sqlx::query_as::<_, EnvironmentVariable>(
-            "SELECT * FROM environment_variables 
-             WHERE workspace_id = $1 
-               AND (app_instance_id = $2 OR (app_instance_id IS NULL AND project_id = $3))
-               AND (scope = $4 OR $4 IS NULL)
-             ORDER BY key ASC"
+    let envs = sqlx::query_as::<_, EnvironmentVariable>(
+        "SELECT * FROM environment_variables
+         WHERE app_instance_id = $1
+         ORDER BY key ASC"
+    )
+    .bind(params.app_instance_id)
+    .fetch_all(&state.pool)
+    .await?;
+
+    Ok(Json(envs.into_iter().map(to_env_response).collect()))
+}
+
+/// Project-level view: every app in the project, with its instances and their env.
+pub async fn list_project_envs_grouped(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(project_id): Path<Uuid>,
+) -> Result<Json<Vec<GroupedAppEnv>>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let apps = sqlx::query!(
+        "SELECT id, name FROM apps
+         WHERE project_id = $1 AND workspace_id = $2
+         ORDER BY name ASC",
+        project_id,
+        ws_id
+    )
+    .fetch_all(&state.pool)
+    .await?;
+
+    let mut grouped = Vec::new();
+    for app in apps {
+        let instances = sqlx::query!(
+            "SELECT id, branch_name FROM app_instances
+             WHERE app_id = $1
+             ORDER BY branch_name ASC",
+            app.id
         )
-        .bind(ws_id)
-        .bind(inst_id)
-        .bind(parent_project_id)
-        .bind(params.scope)
         .fetch_all(&state.pool)
-        .await?
-    } else if let Some(proj_id) = params.project_id {
-        sqlx::query_as::<_, EnvironmentVariable>(
-            "SELECT * FROM environment_variables 
-             WHERE workspace_id = $1 
-               AND project_id = $2 AND app_instance_id IS NULL
-               AND (scope = $3 OR $3 IS NULL)
-             ORDER BY key ASC"
-        )
-        .bind(ws_id)
-        .bind(proj_id)
-        .bind(params.scope)
-        .fetch_all(&state.pool)
-        .await?
-    } else {
-        sqlx::query_as::<_, EnvironmentVariable>(
-            "SELECT * FROM environment_variables 
-             WHERE workspace_id = $1 
-               AND project_id IS NULL AND app_instance_id IS NULL
-               AND (scope = $2 OR $2 IS NULL)
-             ORDER BY key ASC"
-        )
-        .bind(ws_id)
-        .bind(params.scope)
-        .fetch_all(&state.pool)
-        .await?
-    };
+        .await?;
 
-    let response = envs
-        .into_iter()
-        .map(|env| {
-            let decrypted_value = if !env.is_secret {
-                crypto::decrypt_env_value(&env.encrypted_value, &env.nonce).ok()
-            } else {
-                None
-            };
+        let mut instance_groups = Vec::new();
+        for inst in instances {
+            let envs = sqlx::query_as::<_, EnvironmentVariable>(
+                "SELECT * FROM environment_variables
+                 WHERE app_instance_id = $1
+                 ORDER BY key ASC"
+            )
+            .bind(inst.id)
+            .fetch_all(&state.pool)
+            .await?;
 
-            EnvResponse {
-                id: env.id,
-                project_id: env.project_id,
-                app_instance_id: env.app_instance_id,
-                key: env.key,
-                value: decrypted_value,
-                scope: env.scope,
-                is_secret: env.is_secret,
-            }
-        })
-        .collect();
+            instance_groups.push(GroupedInstanceEnv {
+                instance_id: inst.id,
+                branch_name: inst.branch_name,
+                variables: envs.into_iter().map(to_env_response).collect(),
+            });
+        }
 
-    Ok(Json(response))
+        grouped.push(GroupedAppEnv {
+            app_id: app.id,
+            app_name: app.name,
+            instances: instance_groups,
+        });
+    }
+
+    Ok(Json(grouped))
 }
 
 pub async fn delete_env_variable(
@@ -204,55 +252,64 @@ pub async fn delete_env_variable(
     })?;
 
     let affected = sqlx::query!(
-        "DELETE FROM environment_variables 
+        "DELETE FROM environment_variables
          WHERE id = $1 AND workspace_id = $2
-         RETURNING project_id, app_instance_id",
+         RETURNING app_instance_id",
         env_id, ws_id
     )
     .fetch_optional(&state.pool)
     .await?;
 
-    if affected.is_none() {
-        return Err(AppError::NotFound("Environment variable not found.".to_string()));
-    }
+    let record = affected.ok_or_else(|| {
+        AppError::NotFound("Environment variable not found.".to_string())
+    })?;
 
-    let record = affected.unwrap();
-
-    // Find and hot-reload all running instances affected by this environment variable deletion
-    let pool_clone = state.pool.clone();
-    let record_app_instance_id = record.app_instance_id;
-    let record_project_id = record.project_id;
-    tokio::spawn(async move {
-        let affected_instances = sqlx::query!(
-            "SELECT ai.id, ai.container_name, a.workspace_id, ai.status::TEXT as \"status!\", ai.meta_data
-             FROM app_instances ai 
-             JOIN apps a ON ai.app_id = a.id
-             WHERE ai.status = 'running'
-               AND ($1::uuid IS NULL OR ai.id = $1)
-               AND ($2::uuid IS NULL OR a.project_id = $2)
-               AND ($3::uuid IS NULL OR a.workspace_id = $3)",
-            record_app_instance_id,
-            record_project_id,
-            Some(ws_id)
-        )
-        .fetch_all(&pool_clone)
-        .await;
-
-        if let Ok(instances) = affected_instances {
-            for inst in instances {
-                let _ = hot_reload_instance_envs(
-                    &pool_clone,
-                    inst.id,
-                    &inst.container_name,
-                    inst.workspace_id,
-                    &inst.meta_data,
-                )
-                .await;
-            }
-        }
-    });
+    hot_reload_if_running(&state.pool, record.app_instance_id);
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+fn to_env_response(env: EnvironmentVariable) -> EnvResponse {
+    let decrypted_value = if !env.is_secret {
+        crypto::decrypt_env_value(&env.encrypted_value, &env.nonce).ok()
+    } else {
+        None
+    };
+
+    EnvResponse {
+        id: env.id,
+        app_instance_id: env.app_instance_id,
+        key: env.key,
+        value: decrypted_value,
+        is_secret: env.is_secret,
+    }
+}
+
+/// Spawn a background hot-reload of the instance if it is currently running.
+pub(crate) fn hot_reload_if_running(pool: &sqlx::PgPool, instance_id: Uuid) {
+    let pool = pool.clone();
+    tokio::spawn(async move {
+        let instance = sqlx::query!(
+            "SELECT ai.container_name, a.workspace_id, ai.status::TEXT as \"status!\", ai.meta_data
+             FROM app_instances ai
+             JOIN apps a ON ai.app_id = a.id
+             WHERE ai.id = $1 AND ai.status = 'running'",
+            instance_id
+        )
+        .fetch_optional(&pool)
+        .await;
+
+        if let Ok(Some(inst)) = instance {
+            let _ = hot_reload_instance_envs(
+                &pool,
+                instance_id,
+                &inst.container_name,
+                inst.workspace_id,
+                &inst.meta_data,
+            )
+            .await;
+        }
+    });
 }
 
 async fn hot_reload_instance_envs(
@@ -262,33 +319,8 @@ async fn hot_reload_instance_envs(
     workspace_id: Uuid,
     meta_data: &serde_json::Value,
 ) -> Result<(), crate::utils::error::AppError> {
-    let instance_info = sqlx::query!(
-        "SELECT a.project_id FROM app_instances ai
-         JOIN apps a ON ai.app_id = a.id
-         WHERE ai.id = $1",
-        instance_id
-    )
-    .fetch_one(pool)
-    .await?;
-
-    let env_records = sqlx::query!(
-        "SELECT key, encrypted_value, nonce FROM environment_variables 
-         WHERE workspace_id = $1 
-           AND (project_id = $2 OR project_id IS NULL)
-           AND (app_instance_id = $3 OR app_instance_id IS NULL)",
-        workspace_id,
-        instance_info.project_id,
-        instance_id
-    )
-    .fetch_all(pool)
-    .await?;
-
-    let mut envs = Vec::new();
-    for rec in env_records {
-        if let Ok(decrypted_value) = crate::utils::crypto::decrypt_env_value(&rec.encrypted_value, &rec.nonce) {
-            envs.push((rec.key, decrypted_value));
-        }
-    }
+    // Effective env = linked project-pool vars + this instance's own vars.
+    let envs = crate::utils::app_env::resolve_instance_env(pool, instance_id).await;
 
     let k8s_client = crate::utils::k8s::K8sManager::get_client().await?;
     let namespace = format!("hermes-ws-{}", workspace_id);

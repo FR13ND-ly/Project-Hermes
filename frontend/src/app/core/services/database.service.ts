@@ -18,6 +18,9 @@ export interface DatabaseServiceInfo {
   status: 'provisioning' | 'running' | 'stopped' | 'failed';
   cpuLimit: number;
   memoryLimitMb: number;
+  backupEnabled?: boolean;
+  backupCount?: number;
+  lastBackupAt?: string | null;
   connectionUrl?: string;
   createdAt: string;
   updatedAt: string;
@@ -76,7 +79,12 @@ export class DatabaseService {
     return this.api.getStreamUrl(`/databases/${id}/logs`);
   }
 
-  updateSettings(id: string, payload: { cpuLimit: number; memoryLimitMb: number }): Observable<any> {
+  updateSettings(id: string, payload: { 
+    cpuLimit: number; 
+    memoryLimitMb: number;
+    backupEnabled?: boolean;
+    backupCount?: number;
+  }): Observable<any> {
     return this.api.post<any>(`/databases/${id}/settings`, payload);
   }
 
@@ -95,4 +103,14 @@ export class DatabaseService {
   restoreBackup(dbId: string, backupId: string): Observable<any> {
     return this.api.post<any>(`/databases/${dbId}/backups/${backupId}/restore`, {});
   }
+
+  getMetrics(dbId: string, metric: string, range: string): Observable<DbMetricsHistory> {
+    return this.api.get<DbMetricsHistory>(`/databases/${dbId}/metrics?metric=${metric}&range=${range}`);
+  }
+}
+
+export interface DbMetricsHistory {
+  timestamps: number[];
+  values: number[];
+  simulated?: boolean;
 }

@@ -62,9 +62,9 @@
     <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
       <div class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Stare Servicii (Uptime pe ultimele 30 de zile)</h3>
+        <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Stare Servicii</h3>
       </div>
-      <div class="text-[10px] text-zinc-550 font-mono">Uptime general: 99.98%</div>
+      <div class="text-[10px] text-zinc-550 font-mono">Status în timp real, de la crearea serviciului</div>
     </div>
 
     <div class="space-y-3">
@@ -73,32 +73,39 @@
           <div class="space-y-0.5 shrink-0">
             <div class="flex items-center gap-2">
               <span class="text-xs font-bold text-zinc-200">{{ app.name }}</span>
-              <span class="px-1.5 py-0.2 rounded text-[7px] bg-emerald-950/25 border border-emerald-900/30 text-emerald-400 font-mono uppercase font-bold">Activ</span>
+              <span
+                class="px-1.5 py-0.2 rounded text-[7px] font-mono uppercase font-bold border"
+                [ngClass]="{
+                  'bg-emerald-950/25 border-emerald-900/30 text-emerald-400': getAppStatus(app) === 'running',
+                  'bg-amber-950/25 border-amber-900/30 text-amber-400': getAppStatus(app) === 'building',
+                  'bg-zinc-900 border-zinc-800 text-zinc-500': getAppStatus(app) === 'stopped'
+                }"
+              >{{ getStatusLabel(app) }}</span>
             </div>
             <div class="text-[9px] text-zinc-500 font-mono">Instanțe active: {{ (app.instances || []).length }}</div>
           </div>
 
           <div class="flex items-center gap-2 flex-1 justify-end min-w-0">
             <div class="flex items-center gap-[4px] select-none">
-              @for (bar of uptimeBars; track $index) {
-                <div 
+              @for (bar of getUptimeBars(app); track bar.daysAgo) {
+                <div
                   class="group relative w-[8px] h-4 rounded-[2px] transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
                   [ngClass]="{
-                    'bg-emerald-500 hover:bg-emerald-400': $index !== 7 && $index !== 18,
-                    'bg-amber-500 hover:bg-amber-400': $index === 7,
-                    'bg-emerald-600 hover:bg-emerald-500': $index === 18
+                    'bg-emerald-500 hover:bg-emerald-400': !bar.isToday || getAppStatus(app) === 'running',
+                    'bg-amber-500 hover:bg-amber-400': bar.isToday && getAppStatus(app) === 'building',
+                    'bg-zinc-700 hover:bg-zinc-600': bar.isToday && getAppStatus(app) === 'stopped'
                   }"
                 >
                   <!-- Tooltip -->
                   <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 bg-zinc-950 border border-zinc-850 rounded px-2 py-1 text-[8px] font-mono text-zinc-300 whitespace-nowrap shadow-2xl pointer-events-none">
-                    <div class="font-bold text-center">Acum {{ 30 - $index }} zile</div>
+                    <div class="font-bold text-center">
+                      @if (bar.isToday) { Astăzi } @else { Acum {{ bar.daysAgo }} zile }
+                    </div>
                     <div class="text-[7px] text-zinc-500 mt-0.5 text-center">
-                      @if ($index === 7) {
-                        Uptime: 98.4% (Incident minor - 23m)
-                      } @else if ($index === 18) {
-                        Uptime: 99.8% (Repornire deployment)
+                      @if (bar.isToday) {
+                        {{ getStatusLabel(app) }}
                       } @else {
-                        Uptime: 100.0% (Operațional)
+                        Fără incidente înregistrate
                       }
                     </div>
                   </div>
@@ -106,7 +113,7 @@
               }
             </div>
 
-            <span class="text-[10px] text-zinc-400 font-mono ml-2 shrink-0">99.9%</span>
+            <span class="text-[10px] text-zinc-400 font-mono ml-2 shrink-0">{{ getDaysActive(app) }}z</span>
           </div>
         </div>
       } @empty {

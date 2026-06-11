@@ -1,164 +1,98 @@
 <div class="space-y-6 animate-fade-in">
-  
+
   <!-- Section Header -->
   <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
     <div>
       <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Variabile de Mediu</h3>
-      <p class="text-xs text-zinc-500">Injectează variabile de sistem și secrete criptate în containerele aplicației.</p>
+      <p class="text-xs text-zinc-500">Pool partajat la nivel de proiect + variabile per aplicație.</p>
     </div>
-    
-    <button 
-      (click)="showCreateForm.set(!showCreateForm())"
-      class="px-3 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5"
-      [attr.aria-expanded]="showCreateForm()"
-      aria-controls="env-provision-form"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-      </svg>
-      {{ showCreateForm() ? 'Închide Formular' : 'Adaugă Variabilă' }}
-    </button>
+    <span class="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">{{ totalVars }} per-app</span>
   </div>
 
-  <!-- Form: Add/Set Env Variable -->
-  @if (showCreateForm()) {
-    <div 
-      id="env-provision-form"
-      class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm"
-      role="dialog"
-      aria-label="Adaugă Variabilă de Mediu"
-    >
-      <div class="border-b border-zinc-900 pb-2.5">
-        <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Configurare Variabilă</h4>
+  <!-- PROJECT-LEVEL ENV POOL -->
+  <div class="bg-[#0a0a0a] rounded-lg border border-zinc-800 shadow-sm">
+    <div class="flex items-center justify-between gap-3 border-b border-zinc-900 px-5 py-3.5">
+      <div>
+        <h3 class="text-xs font-bold text-zinc-200 uppercase tracking-wider font-mono">Pool de Variabile (Proiect)</h3>
+        <p class="text-[10px] text-zinc-550 mt-0.5">Partajate în proiect. Resursele (ex. baza de date) le publică aici; aplicațiile le atrașează din editorul lor de env.</p>
       </div>
+      <button
+        (click)="toggleProjectAddForm()"
+        class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5 shrink-0 font-mono"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        Adaugă
+      </button>
+    </div>
 
-      <div class="grid gap-4" [class]="parent.appDetail() ? 'md:grid-cols-3' : 'md:grid-cols-2'">
-        <!-- Key -->
-        <div class="space-y-1.5">
-          <label for="env-key-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Cheie (Key)</label>
-          <input 
-            id="env-key-input"
-            type="text" 
-            placeholder="ex. API_KEY, DATABASE_URL"
-            [ngModel]="envKey()"
-            (ngModelChange)="envKey.set($event)"
-            [disabled]="settingEnv()"
-            class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
-            style="text-transform: uppercase;"
+    @if (showProjectAddForm()) {
+      <div class="px-5 py-4 border-b border-zinc-900 bg-black/40 space-y-3 animate-fade-in">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <input
+            type="text"
+            placeholder="CHEIE"
+            [ngModel]="pKey()"
+            (ngModelChange)="pKey.set($event)"
+            class="w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 font-mono"
+          />
+          <input
+            type="text"
+            placeholder="valoare"
+            [ngModel]="pVal()"
+            (ngModelChange)="pVal.set($event)"
+            class="w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 font-mono"
           />
         </div>
+        <div class="flex items-center justify-between gap-3">
+          <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" [checked]="pIsSecret()" (change)="pIsSecret.set(!pIsSecret())" class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer" />
+            <span class="text-[10px] font-semibold text-zinc-400">Secretă (criptată, doar runtime)</span>
+          </label>
+          <button
+            (click)="saveProjectEnv()"
+            [disabled]="savingProjectEnv() || !pKey().trim() || !pVal().trim()"
+            class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold disabled:opacity-50 cursor-pointer font-mono"
+          >
+            {{ savingProjectEnv() ? 'Se salvează...' : 'Salvează' }}
+          </button>
+        </div>
+      </div>
+    }
 
-        <!-- Target Selection (Only if app details context is active) -->
-        @if (parent.appDetail()) {
-          <div class="space-y-1.5">
-            <label for="env-target-select" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Nivel Salvare (Target)</label>
-            <div class="relative">
-              <select 
-                id="env-target-select"
-                [ngModel]="saveTarget()"
-                (ngModelChange)="saveTarget.set($event)"
-                [disabled]="settingEnv()"
-                class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-zinc-300 focus:outline-none focus:border-zinc-500 transition-colors appearance-none cursor-pointer"
+    @if (projectEnv().length === 0) {
+      <div class="px-5 py-8 text-center text-[11px] text-zinc-600 font-mono">Nicio variabilă la nivel de proiect încă.</div>
+    } @else {
+      <div class="divide-y divide-zinc-900">
+        @for (env of projectEnv(); track env.id) {
+          <div class="flex items-center justify-between gap-3 px-5 py-2.5">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="font-mono text-xs text-white truncate">{{ env.key }}</span>
+              @if (env.source !== 'manual') {
+                <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 shrink-0">{{ env.source }}</span>
+              }
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+              @if (env.isSecret) {
+                <span class="font-mono text-[10px] text-zinc-600">••••••••</span>
+              } @else {
+                <span class="font-mono text-[10px] text-zinc-400 max-w-[240px] truncate">{{ env.value }}</span>
+              }
+              <button
+                (click)="deleteProjectEnv(env.id)"
+                class="text-[10px] text-red-500 hover:text-red-400 font-semibold cursor-pointer"
               >
-                <option value="app">Doar Aplicația Curentă</option>
-                <option value="project">Moștenit la Proiect (Toate)</option>
-              </select>
-              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-500" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                </svg>
-              </div>
+                Șterge
+              </button>
             </div>
           </div>
         }
-
-        <!-- Scope -->
-        <div class="space-y-1.5">
-          <label for="env-scope-select" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Mediu Aplicabilitate (Scope)</label>
-          <div class="relative">
-            <select 
-              id="env-scope-select"
-              [ngModel]="envScope()"
-              (ngModelChange)="envScope.set($event)"
-              [disabled]="settingEnv()"
-              class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-zinc-300 focus:outline-none focus:border-zinc-500 transition-colors appearance-none cursor-pointer"
-            >
-              <option value="all">Toate Mediile (All)</option>
-              <option value="production">Producție (Production)</option>
-              <option value="staging">Staging</option>
-              <option value="preview">Preview (Branches)</option>
-            </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-500" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-              </svg>
-            </div>
-          </div>
-        </div>
       </div>
+    }
+  </div>
 
-      <!-- Value -->
-      <div class="space-y-1.5">
-        <label for="env-val-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Valoare (Value)</label>
-        <textarea 
-          id="env-val-input"
-          rows="3"
-          placeholder="Introduceți valoarea variabilei..."
-          [ngModel]="envVal()"
-          (ngModelChange)="envVal.set($event)"
-          [disabled]="settingEnv()"
-          class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono resize-none"
-        ></textarea>
-      </div>
-
-      <!-- Secret and Cryptographic Toggles -->
-      <div class="flex items-center gap-2.5 pt-1">
-        <input 
-          id="env-secret-toggle"
-          type="checkbox" 
-          [ngModel]="isSecret()"
-          (ngModelChange)="isSecret.set($event)"
-          [disabled]="settingEnv()"
-          class="w-3.5 h-3.5 bg-black rounded border-zinc-800 accent-white"
-        />
-        <div class="space-y-0.5 select-none">
-          <label for="env-secret-toggle" class="text-xs text-zinc-350 font-medium cursor-pointer">
-            Ascunde valoarea (Secret criptat în baza de date)
-          </label>
-          <p class="text-[10px] text-zinc-600">Valorile secrete sunt stocate criptat și nu pot fi decriptate direct în interfață.</p>
-        </div>
-      </div>
-
-      <!-- Form Actions -->
-      <div class="pt-4 border-t border-zinc-900 flex justify-end gap-3">
-        <button 
-          (click)="showCreateForm.set(false)"
-          [disabled]="settingEnv()"
-          class="px-3.5 py-1.5 rounded text-zinc-455 hover:text-white text-xs font-semibold border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer"
-        >
-          Anulează
-        </button>
-
-        <button 
-          (click)="onSaveEnv()"
-          [disabled]="settingEnv() || !envKey() || !envVal()"
-          class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-        >
-          @if (!settingEnv()) {
-            <span>Salvează Variabila</span>
-          } @else {
-            <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span>Se salvează...</span>
-          }
-        </button>
-      </div>
-    </div>
-  }
-
-  <!-- Error Alerts -->
+  <!-- Error -->
   @if (error()) {
     <div class="p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-xs flex items-center gap-2" role="alert">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0">
@@ -168,173 +102,178 @@
     </div>
   }
 
-  <!-- Loading State -->
+  <!-- Loading -->
   @if (loading()) {
     <div class="flex flex-col items-center justify-center py-16 gap-2">
       <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
       </svg>
       <span class="text-zinc-500 text-[9px] uppercase font-mono tracking-widest">Se citesc variabilele...</span>
     </div>
   }
 
-  <!-- Variables list -->
   @if (!loading()) {
-    <!-- Empty State -->
-    @if (envVariables().length === 0) {
+    <!-- Empty: no apps -->
+    @if (groups().length === 0) {
       <div class="bg-[#0a0a0a] p-10 rounded-lg border border-zinc-800 flex flex-col items-center justify-center text-center max-w-sm mx-auto shadow-sm">
-        <div class="w-10 h-10 rounded border border-zinc-900 bg-black flex items-center justify-center text-zinc-550 mb-3 shadow">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4.75 9h14.5M4.75 14h14.5M12 4.75v14.5" />
-          </svg>
-        </div>
-        <h4 class="text-xs font-bold text-zinc-200 mb-1 uppercase tracking-wider font-mono">Fără variabile</h4>
-        <p class="text-xs text-zinc-500 mb-4">Adăugați prima variabilă de mediu pentru acest proiect.</p>
-        <button 
-          (click)="showCreateForm.set(true)"
-          class="px-3.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer"
-        >
-          Adaugă Variabilă
-        </button>
+        <h4 class="text-xs font-bold text-zinc-200 mb-1 uppercase tracking-wider font-mono">Nicio aplicație</h4>
+        <p class="text-xs text-zinc-500">Variabilele de mediu se definesc pe aplicații. Creați o aplicație mai întâi.</p>
       </div>
     }
 
-    <!-- Variables Grid/Table -->
-    @if (envVariables().length > 0) {
+    <!-- App groups -->
+    @for (app of groups(); track app.appId) {
       <div class="rounded-lg border border-zinc-800 bg-[#0a0a0a] overflow-hidden shadow-sm">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="border-b border-zinc-900 text-[9px] text-zinc-550 font-mono uppercase tracking-wider">
-                <th class="px-5 py-3 font-bold">Cheie</th>
-                <th class="px-5 py-3 font-bold">Mediu</th>
-                <th class="px-5 py-3 font-bold">Tip</th>
-                <th class="px-5 py-3 font-bold">Valoare</th>
-                <th class="px-5 py-3 font-bold text-right">Acțiuni</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-zinc-900 text-xs font-mono text-zinc-350">
-              @for (env of envVariables(); track env.id) {
-                <tr class="hover:bg-zinc-950/40 transition-colors">
-                  <!-- Key -->
-                  <!-- Key -->
-                  <td class="px-5 py-3 font-bold text-white tracking-wide select-all truncate max-w-[200px]">
-                    <div class="flex flex-col gap-1">
-                      <span>{{ env.key }}</span>
-                      <div class="flex items-center gap-1.5 flex-wrap">
-                        @if (env.appInstanceId) {
-                          <span class="px-1.5 py-0.2 bg-indigo-950/40 border border-indigo-900/30 text-[8px] font-bold text-indigo-400 rounded uppercase font-sans">Specific Aplicație</span>
-                        } @else {
-                          @if (isOverridden(env)) {
-                            <span class="px-1.5 py-0.2 bg-red-950/20 border border-red-900/30 text-[8px] font-bold text-red-400 rounded uppercase font-sans line-through opacity-60" title="Această valoare este suprascrisă de o variabilă specifică aplicației.">Moștenit (Suprascris)</span>
-                          } @else {
-                            <span class="px-1.5 py-0.2 bg-zinc-900 border border-zinc-850 text-[8px] font-bold text-zinc-500 rounded uppercase font-sans">Moștenit din Proiect</span>
-                          }
-                        }
-                      </div>
-                    </div>
-                  </td>
-                  
-                  <!-- Scope -->
-                  <td class="px-5 py-3" [class.opacity-40]="isOverridden(env)">
-                    <span 
-                      class="px-1.5 py-0.5 rounded text-[9px] font-semibold border capitalize"
-                      [class]="
-                        env.scope === 'production' ? 'bg-zinc-950 border-zinc-800 text-white' :
-                        env.scope === 'staging' ? 'bg-zinc-950 border-zinc-800 text-zinc-400' :
-                        env.scope === 'preview' ? 'bg-zinc-950 border-zinc-800 text-zinc-500' :
-                        'bg-zinc-950 border-zinc-850 text-zinc-600'
-                      "
-                    >
-                      {{ env.scope }}
-                    </span>
-                  </td>
 
-                  <!-- Type -->
-                  <td class="px-5 py-3" [class.opacity-40]="isOverridden(env)">
-                    <span class="text-[9px] flex items-center gap-1">
-                      @if (env.isSecret) {
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-zinc-400">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                        </svg>
-                        Secret
-                      } @else {
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-zinc-600">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                        </svg>
-                        Plaintext
-                      }
-                    </span>
-                  </td>
-
-                  <!-- Value display -->
-                  <td class="px-5 py-3 max-w-[280px] truncate" [class.opacity-40]="isOverridden(env)">
-                    @if (env.isSecret) {
-                      <span class="text-zinc-700 font-bold select-none tracking-widest">••••••••</span>
-                    } @else {
-                      @if (revealedEnvIds()[env.id]) {
-                        <span class="text-zinc-200 select-all font-semibold font-mono">{{ env.value }}</span>
-                      } @else {
-                        <span class="text-zinc-700 select-none tracking-widest">••••••••</span>
-                      }
-                    }
-                  </td>
-
-                  <!-- Actions -->
-                  <td class="px-5 py-3 text-right">
-                    <div class="flex items-center justify-end gap-2.5">
-                      <!-- Reveal toggle for plaintext -->
-                      @if (!env.isSecret) {
-                        <button
-                          (click)="onToggleReveal(env.id)"
-                          class="p-1 rounded text-zinc-500 hover:text-white hover:bg-zinc-900 transition-colors cursor-pointer"
-                          [attr.aria-expanded]="!!revealedEnvIds()[env.id]"
-                          [attr.aria-label]="revealedEnvIds()[env.id] ? 'Ascunde valoarea' : 'Arată valoarea'"
-                        >
-                          @if (revealedEnvIds()[env.id]) {
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                            </svg>
-                          } @else {
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                          }
-                        </button>
-                      }
-
-                      <!-- Copy button (if plaintext or if revealed) -->
-                      @if (!env.isSecret && env.value) {
-                        <button
-                          (click)="copyToClipboard(env.value)"
-                          class="p-1 rounded text-zinc-500 hover:text-white hover:bg-zinc-900 transition-colors cursor-pointer"
-                          aria-label="Copiază valoarea"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H5.25m9.9-3.6h-9.9c-.621 0-1.125.504-1.125 1.125v13.5c0 .621.504 1.125 1.125 1.125h9.75a1.125 1.125 0 001.125-1.125V6.75a1.125 1.125 0 00-1.125-1.125h-3.6z" />
-                          </svg>
-                        </button>
-                      }
-
-                      <!-- Delete button -->
-                      <button
-                        (click)="onDeleteEnv(env.id)"
-                        class="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-red-950/20 transition-colors cursor-pointer"
-                        aria-label="Șterge variabila"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
+        <!-- App header -->
+        <div class="flex items-center gap-2 px-5 py-3 border-b border-zinc-900 bg-black">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-500">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+          </svg>
+          <h4 class="text-xs font-bold text-zinc-200 font-mono truncate">{{ app.appName }}</h4>
         </div>
+
+        <!-- Instances -->
+        @for (inst of app.instances; track inst.instanceId) {
+          <div class="border-b border-zinc-900 last:border-b-0">
+
+            <!-- Instance header -->
+            <div class="flex items-center justify-between px-5 py-2.5 bg-zinc-950/40">
+              <div class="flex items-center gap-2">
+                <span class="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[9px] font-bold text-zinc-400 font-mono uppercase">{{ inst.branchName }}</span>
+                <span class="text-[10px] text-zinc-600 font-mono">{{ inst.variables.length }} var</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button
+                  (click)="openJsonEditor(inst.instanceId, inst.variables)"
+                  class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold transition-colors cursor-pointer"
+                >JSON</button>
+                <button
+                  (click)="openAddForm(inst.instanceId)"
+                  class="px-2 py-1 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-semibold transition-colors cursor-pointer"
+                >+ Adaugă</button>
+              </div>
+            </div>
+
+            <!-- Inline add form -->
+            @if (addFormInstance() === inst.instanceId) {
+              <div class="px-5 py-3 bg-black border-t border-zinc-900 space-y-3">
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <input
+                    type="text"
+                    placeholder="CHEIE"
+                    [ngModel]="formKey()"
+                    (ngModelChange)="formKey.set($event)"
+                    class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors uppercase font-mono font-bold"
+                  />
+                  <input
+                    type="text"
+                    placeholder="valoare"
+                    [ngModel]="formVal()"
+                    (ngModelChange)="formVal.set($event)"
+                    class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  />
+                </div>
+                <div class="flex items-center justify-between">
+                  <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      [checked]="formIsSecret()"
+                      (change)="formIsSecret.set(!formIsSecret())"
+                      class="h-3.5 w-3.5 bg-zinc-950 border border-zinc-800 rounded accent-white cursor-pointer"
+                    />
+                    <span class="text-[10px] font-semibold text-zinc-400">Secretă (criptată)</span>
+                  </label>
+                  <button
+                    (click)="saveEnv()"
+                    [disabled]="savingEnv() || !formKey().trim() || !formVal().trim()"
+                    class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                  >{{ savingEnv() ? 'Se salvează...' : 'Salvează' }}</button>
+                </div>
+              </div>
+            }
+
+            <!-- JSON editor -->
+            @if (jsonInstance() === inst.instanceId) {
+              <div class="px-5 py-3 bg-black border-t border-zinc-900 space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-bold text-zinc-300 uppercase tracking-wider font-mono">Editor JSON (.env)</span>
+                  <span class="text-[9px] text-amber-500/80">Rescrie toate variabilele · secretele nu sunt afișate</span>
+                </div>
+                <textarea
+                  rows="10"
+                  [ngModel]="jsonText()"
+                  (ngModelChange)="jsonText.set($event)"
+                  spellcheck="false"
+                  class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-200 focus:outline-none focus:border-zinc-500 transition-colors font-mono resize-y"
+                ></textarea>
+                <div class="flex items-center justify-end">
+                  <button
+                    (click)="saveJson()"
+                    [disabled]="savingJson()"
+                    class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                  >{{ savingJson() ? 'Se salvează...' : 'Aplică JSON' }}</button>
+                </div>
+              </div>
+            }
+
+            <!-- Variables table -->
+            @if (inst.variables.length > 0) {
+              <table class="w-full text-left border-collapse text-xs">
+                <tbody class="divide-y divide-zinc-900 font-mono text-zinc-350">
+                  @for (env of inst.variables; track env.id) {
+                    <tr class="hover:bg-zinc-950/40 transition-colors">
+                      <td class="px-5 py-2.5 font-bold text-white tracking-wide select-all truncate max-w-[220px]">{{ env.key }}</td>
+                      <td class="px-5 py-2.5">
+                        @if (env.isSecret) {
+                          <span class="px-1.5 py-0.2 bg-zinc-900 border border-zinc-800 text-[8px] font-bold text-zinc-500 rounded uppercase font-sans">Secret</span>
+                        } @else {
+                          <span class="px-1.5 py-0.2 bg-zinc-950 border border-zinc-850 text-[8px] font-bold text-zinc-600 rounded uppercase font-sans">Plaintext</span>
+                        }
+                      </td>
+                      <td class="px-5 py-2.5 max-w-[260px] truncate">
+                        @if (env.isSecret) {
+                          <span class="text-zinc-700 tracking-widest select-none">••••••••</span>
+                        } @else if (revealedEnvIds()[env.id]) {
+                          <span class="text-zinc-200 select-all">{{ env.value }}</span>
+                        } @else {
+                          <span class="text-zinc-700 tracking-widest select-none">••••••••</span>
+                        }
+                      </td>
+                      <td class="px-5 py-2.5 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                          @if (!env.isSecret) {
+                            <button (click)="toggleReveal(env.id)" class="p-1 rounded text-zinc-500 hover:text-white hover:bg-zinc-900 transition-colors cursor-pointer" title="Arată/Ascunde">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                            </button>
+                          }
+                          @if (!env.isSecret && env.value) {
+                            <button (click)="copyToClipboard(env.value)" class="p-1 rounded text-zinc-500 hover:text-white hover:bg-zinc-900 transition-colors cursor-pointer" title="Copiază">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H5.25m9.9-3.6h-9.9c-.621 0-1.125.504-1.125 1.125v13.5c0 .621.504 1.125 1.125 1.125h9.75a1.125 1.125 0 001.125-1.125V6.75a1.125 1.125 0 00-1.125-1.125h-3.6z" />
+                              </svg>
+                            </button>
+                          }
+                          <button (click)="deleteEnv(env.id)" class="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-red-950/20 transition-colors cursor-pointer" title="Șterge">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <div class="px-5 py-3 text-[10px] text-zinc-600 font-mono">Fără variabile pentru această instanță.</div>
+            }
+          </div>
+        }
       </div>
     }
   }

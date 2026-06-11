@@ -19,7 +19,41 @@ export class Overview implements OnInit {
 
   readonly databases = signal<DatabaseServiceInfo[]>([]);
   readonly loadingDbs = signal(false);
-  readonly uptimeBars = Array(30).fill(0);
+
+  /** Days the app has actually existed (capped at 30), so we never render
+   *  status bars for days before the resource was created. */
+  getDaysActive(app: AppDetail): number {
+    if (!app.created_at) return 1;
+    const created = new Date(app.created_at).getTime();
+    if (isNaN(created)) return 1;
+    const days = Math.floor((Date.now() - created) / (1000 * 60 * 60 * 24)) + 1;
+    return Math.max(1, Math.min(30, days));
+  }
+
+  /** One entry per real day of existence, oldest first. */
+  getUptimeBars(app: AppDetail): { daysAgo: number; isToday: boolean }[] {
+    const n = this.getDaysActive(app);
+    const bars: { daysAgo: number; isToday: boolean }[] = [];
+    for (let i = n - 1; i >= 0; i--) {
+      bars.push({ daysAgo: i, isToday: i === 0 });
+    }
+    return bars;
+  }
+
+  getAppStatus(app: AppDetail): 'running' | 'building' | 'stopped' {
+    const insts = app.instances || [];
+    if (insts.some(i => i.status === 'running')) return 'running';
+    if (insts.some(i => i.status === 'building')) return 'building';
+    return 'stopped';
+  }
+
+  getStatusLabel(app: AppDetail): string {
+    switch (this.getAppStatus(app)) {
+      case 'running': return 'Activ';
+      case 'building': return 'Build';
+      default: return 'Oprit';
+    }
+  }
 
   ngOnInit(): void {
     this.loadDatabases();

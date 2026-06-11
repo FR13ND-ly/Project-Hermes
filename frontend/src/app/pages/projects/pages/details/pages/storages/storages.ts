@@ -2,7 +2,8 @@ import { Component, inject, signal, OnInit, OnDestroy, effect, computed } from '
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Details } from '../../details';
-import { StorageService, StorageBucket, StorageObject, BucketAccessType, ImageVariant } from '../../../../../../core/services/storage.service';
+import { StorageService, StorageBucket, StorageObject, BucketAccessType, ImageVariant, ProjectVolume } from '../../../../../../core/services/storage.service';
+import { VolumeService, VolumeFileItem } from '../../../../../../core/services/volume.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 import { HttpEvent, HttpEventType } from '@angular/common/http';
@@ -36,8 +37,17 @@ export interface VirtualItem {
 export class Storages implements OnInit, OnDestroy {
   readonly parent = inject(Details);
   private readonly storageService = inject(StorageService);
+  private readonly volumeService = inject(VolumeService);
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
+
+  // PVCs (app volumes) listed + browsed centrally in Storage
+  readonly pvcs = signal<ProjectVolume[]>([]);
+  readonly loadingPvcs = signal(false);
+  readonly pvcExplorer = signal<ProjectVolume | null>(null);
+  readonly pvcFiles = signal<VolumeFileItem[]>([]);
+  readonly loadingPvcFiles = signal(false);
+  readonly pvcPath = signal<string>('/');
 
   readonly buckets = signal<StorageBucket[]>([]);
   readonly selectedBucket = signal<StorageBucket | null>(null);
@@ -121,6 +131,88 @@ export class Storages implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadBuckets();
+    this.loadPvcs();
+  }
+
+  // --- PVCs (read-only browse from Storage) ---
+  loadPvcs(): void {
+    const projectId = this.parent.projectId();
+    if (!projectId) return;
+    this.loadingPvcs.set(true);
+    this.storageService.listProjectVolumes(projectId).subscribe({
+      next: (res) => { this.pvcs.set(res || []); this.loadingPvcs.set(false); },
+      error: () => { this.pvcs.set([]); this.loadingPvcs.set(false); }
+    });
+  }
+
+  openPvcExplorer(pvc: ProjectVolume): void {
+    this.pvcExplorer.set(pvc);
+    this.pvcPath.set('/');
+    this.loadPvcFiles(pvc.id, '/');
+  }
+
+  closePvcExplorer(): void {
+    this.pvcExplorer.set(null);
+    this.pvcFiles.set([]);
+    this.pvcPath.set('/');
+  }
+
+  loadPvcFiles(volumeId: string, path: string): void {
+    this.loadingPvcFiles.set(true);
+    this.volumeService.listFiles(volumeId, path).subscribe({
+      next: (res) => { this.pvcFiles.set(res || []); this.loadingPvcFiles.set(false); },
+      error: () => { this.pvcFiles.set([]); this.loadingPvcFiles.set(false); }
+    });
+  }
+
+  pvcNavigateTo(folderName: string): void {
+    const pvc = this.pvcExplorer();
+    if (!pvc) return;
+    const base = this.pvcPath().endsWith('/') ? this.pvcPath() : this.pvcPath() + '/';
+    const next = `${base}${folderName}`;
+    this.pvcPath.set(next);
+    this.loadPvcFiles(pvc.id, next);
+  }
+
+  pvcNavigateUp(): void {
+    const pvc = this.pvcExplorer();
+    if (!pvc) return;
+    const parts = this.pvcPath().split('/').filter(p => p.length > 0);
+    parts.pop();
+    const parent = '/' + parts.join('/');
+    this.pvcPath.set(parent);
+    this.loadPvcFiles(pvc.id, parent);
+  }
+
+  pvcBreadcrumbs(): { name: string; path: string }[] {
+    const parts = this.pvcPath().split('/').filter(p => p.length > 0);
+    const crumbs: { name: string; path: string }[] = [];
+    let acc = '';
+    for (const p of parts) {
+      acc += '/' + p;
+      crumbs.push({ name: p, path: acc });
+    }
+    return crumbs;
+  }
+
+  pvcGoToCrumb(path: string): void {
+    const pvc = this.pvcExplorer();
+    if (!pvc) return;
+    this.pvcPath.set(path);
+    this.loadPvcFiles(pvc.id, path);
+  }
+
+  pvcDownload(item: VolumeFileItem): void {
+    const pvc = this.pvcExplorer();
+    if (!pvc || item.isDir) return;
+    const base = this.pvcPath().endsWith('/') ? this.pvcPath() : this.pvcPath() + '/';
+    const url = this.volumeService.downloadFileUrl(pvc.id, `${base}${item.name}`);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = item.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
   loadBuckets(): void {
@@ -299,8 +391,7 @@ export class Storages implements OnInit, OnDestroy {
     // Build processing rules payload
     const payload = {
       name: this.editName().trim(),
-      accessType: this.editAccessType(),
-      isPublic: this.editIsPublic() || this.editAccessType() === 'public_assets' || this.editAccessType() === 'static_website',
+      isPublic: this.editIsPublic(),
       maxBucketSizeBytes: this.editMaxSizeGb() * 1024 * 1024 * 1024,
       allowedFileTypes: allowed.length > 0 ? allowed : null,
       defaultProcessingRules: {
@@ -556,8 +647,8 @@ export class Storages implements OnInit, OnDestroy {
     this.creatingBucket.set(true);
     this.storageService.createBucket({
       name: this.newBucketName().trim(),
-      accessType: this.newBucketAccessType(),
-      isPublic: this.isPublicToggle() || this.newBucketAccessType() === 'public_assets' || this.newBucketAccessType() === 'static_website',
+      projectId: this.parent.projectId() || undefined,
+      isPublic: this.isPublicToggle(),
       maxBucketSizeBytes: this.maxBucketSizeGb() * 1024 * 1024 * 1024
     }).subscribe({
       next: (newBucket) => {
@@ -732,11 +823,7 @@ export class Storages implements OnInit, OnDestroy {
   resolveVariantUrl(variant: ImageVariant): string {
     const bucket = this.selectedBucket();
     if (!bucket || !variant.filePath) return '';
-    // Variants are stored on disk alongside the original; for public buckets use the assets path
-    if (bucket.accessType === 'public_assets' || bucket.accessType === 'static_website') {
-      return `http://localhost:8000/storage/assets/${this.parent.project()?.workspace_id}/${bucket.slug}/${variant.filePath}`;
-    }
-    // For private buckets, serve through API with auth token
+    // All buckets are private — serve through the API with an auth token.
     const token = localStorage.getItem('hermes_token') || '';
     return `http://localhost:8000/storage/assets/${this.parent.project()?.workspace_id}/${bucket.slug}/${variant.filePath}?token=${encodeURIComponent(token)}`;
   }

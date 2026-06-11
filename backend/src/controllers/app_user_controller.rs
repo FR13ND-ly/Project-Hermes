@@ -501,13 +501,11 @@ pub async fn create_app_api_key(
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
-    let app_exists = sqlx::query!("SELECT id FROM apps WHERE id = $1 AND workspace_id = $2", app_id, ws_id)
+    let app_row = sqlx::query!("SELECT project_id FROM apps WHERE id = $1 AND workspace_id = $2", app_id, ws_id)
         .fetch_optional(&state.pool)
-        .await?;
-
-    if app_exists.is_none() {
-        return Err(AppError::NotFound("Application not found in this workspace.".to_string()));
-    }
+        .await?
+        .ok_or_else(|| AppError::NotFound("Application not found in this workspace.".to_string()))?;
+    let project_id = app_row.project_id;
 
     let chars: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let prefix: String = format!(
@@ -547,6 +545,17 @@ pub async fn create_app_api_key(
     .execute(&state.pool)
     .await?;
 
+    // Publish the BaaS API key into the app's project pool so any app in the
+    // project can opt into it (e.g. to call this app's authenticated backend).
+    let key_name = format!(
+        "{}_API_KEY",
+        crate::utils::app_env::sanitize_key_fragment(&payload.name, "BAAS")
+    );
+    let _ = crate::utils::app_env::publish_project_env(
+        &state.pool, ws_id, project_id, &key_name, &raw_key, true, "baas", new_id,
+    )
+    .await;
+
     Ok((
         StatusCode::CREATED,
         Json(crate::dtos::app_user_dto::CreateApiKeyResponse {
@@ -585,6 +594,12 @@ pub async fn delete_app_api_key(
     )
     .execute(&state.pool)
     .await?;
+
+    // Remove the published project-pool var and reload any linked apps.
+    let linked = crate::utils::app_env::unpublish_project_env(&state.pool, "baas", key_id).await;
+    for inst in linked {
+        crate::controllers::env_variable_controller::hot_reload_if_running(&state.pool, inst);
+    }
 
     Ok(StatusCode::NO_CONTENT)
 }

@@ -321,6 +321,7 @@ dependencies = [
  "dotenvy",
  "flate2",
  "futures-util",
+ "hmac",
  "image",
  "jsonwebtoken",
  "k8s-openapi",

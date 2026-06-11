@@ -24,6 +24,8 @@ pub enum SystemEvent {
         build_id: Uuid,
         app_id: Uuid,
         status: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        phase: Option<String>,
     },
     IncidentCreated {
         workspace_id: Uuid,

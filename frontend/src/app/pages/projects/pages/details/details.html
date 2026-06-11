@@ -370,6 +370,15 @@
                 </div>
               }
               
+              <!-- Wizard stepper: Repo / Setări / Env -->
+              <div class="flex items-center gap-2 pb-1">
+                <button type="button" (click)="createStep.set(1)" class="flex-1 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors" [class]="createStep() === 1 ? 'bg-white text-black' : 'bg-zinc-950 border border-zinc-850 text-zinc-500 hover:text-zinc-300'">1 · Repo</button>
+                <button type="button" (click)="createStep.set(2)" class="flex-1 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors" [class]="createStep() === 2 ? 'bg-white text-black' : 'bg-zinc-950 border border-zinc-850 text-zinc-500 hover:text-zinc-300'">2 · Setări</button>
+                <button type="button" (click)="createStep.set(3)" class="flex-1 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors" [class]="createStep() === 3 ? 'bg-white text-black' : 'bg-zinc-950 border border-zinc-850 text-zinc-500 hover:text-zinc-300'">3 · Env</button>
+              </div>
+
+              <!-- STEP 1: REPO -->
+              @if (createStep() === 1) {
               <!-- Fields Grid -->
               <div class="grid gap-4 sm:grid-cols-2">
                 <div class="space-y-1.5">
@@ -379,7 +388,7 @@
                     type="text" 
                     placeholder="ex. magazin-frontend"
                     [ngModel]="appName()"
-                    (ngModelChange)="appName.set($event)"
+                    (ngModelChange)="onAppNameChange($event)"
                     [disabled]="deployingApp()"
                     class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
                     required
@@ -439,15 +448,42 @@
               <div class="space-y-1.5">
                 <label for="new-app-git-subpath" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Subdirector Proiect (Opțional)</label>
                 <div class="flex gap-2">
-                  <input 
-                    id="new-app-git-subpath"
-                    type="text" 
-                    placeholder="ex. frontend sau apps/api (lasă gol pentru rădăcină)"
-                    [ngModel]="gitSubpath()"
-                    (ngModelChange)="gitSubpath.set($event)"
-                    [disabled]="deployingApp()"
-                    class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
-                  />
+                  @if (detectedSubdirectories().length > 0 && subpathSelectionMode() === 'select') {
+                    <select
+                      id="new-app-git-subpath-select"
+                      [ngModel]="selectedSubpathOption()"
+                      (ngModelChange)="onSubpathSelectChange($event)"
+                      [disabled]="deployingApp()"
+                      class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer font-mono"
+                    >
+                      <option value="">Rădăcină (rădăcina proiectului)</option>
+                      @for (sub of detectedSubdirectories(); track sub) {
+                        <option [value]="sub">{{ sub }}/</option>
+                      }
+                      <option value="custom">[Scrie subdirector personalizat...]</option>
+                    </select>
+                  } @else {
+                    <div class="relative flex-1">
+                      <input 
+                        id="new-app-git-subpath"
+                        type="text" 
+                        placeholder="ex. frontend sau apps/api (lasă gol pentru rădăcină)"
+                        [ngModel]="gitSubpath()"
+                        (ngModelChange)="onSubpathInputChange($event)"
+                        [disabled]="deployingApp()"
+                        class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono pr-24"
+                      />
+                      @if (detectedSubdirectories().length > 0) {
+                        <button
+                          type="button"
+                          (click)="subpathSelectionMode.set('select')"
+                          class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                        >
+                          Revino la listă
+                        </button>
+                      }
+                    </div>
+                  }
                   @if (selectedImportRepo()) {
                     <button 
                       type="button"
@@ -459,9 +495,12 @@
                     </button>
                   }
                 </div>
-                <span class="text-[9px] text-zinc-600 block leading-normal">Util în monorepo-uri. Dacă folosești un subdirector, re-detectarea va citi configurările specifice acelui folder.</span>
+                <span class="text-[9px] text-zinc-600 block leading-normal">Util în monorepo-uri. Dacă folosești un subdirector, configurările (port, comenzi, variabile de mediu) vor fi auto-detectate din acel folder.</span>
               </div>
-        
+              }
+
+              <!-- STEP 2: SETĂRI -->
+              @if (createStep() === 2) {
               <div class="grid gap-4 sm:grid-cols-2">
                 <div class="space-y-1.5">
                   <label for="new-app-port" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Port Container Intern</label>
@@ -521,31 +560,102 @@
                   </div>
                 </div>
               </div>
-        
-              <div class="pt-4 border-t border-zinc-900 flex items-center justify-end gap-3">
-                <button 
-                  (click)="onBackToSelection()"
+              }
+
+              <!-- STEP 3: ENV -->
+              @if (createStep() === 3) {
+              <!-- Environment Variables (optional, at creation time) -->
+              <div class="pt-4 border-t border-zinc-900 space-y-3">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h4 class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Variabile de Mediu</h4>
+                    <p class="text-[10px] text-zinc-600">Opțional · injectate în container la primul deploy</p>
+                  </div>
+                  <button
+                    type="button"
+                    (click)="addEnvRow()"
+                    [disabled]="deployingApp()"
+                    class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-semibold transition-colors cursor-pointer"
+                  >+ Adaugă Variabilă</button>
+                </div>
+
+                @for (row of newAppEnvRows(); track $index) {
+                  <div class="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="CHEIE"
+                      [ngModel]="row.key"
+                      (ngModelChange)="updateEnvRow($index, 'key', $event)"
+                      [disabled]="deployingApp()"
+                      class="flex-1 px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors uppercase font-mono font-bold"
+                    />
+                    <input
+                      type="text"
+                      placeholder="valoare"
+                      [ngModel]="row.value"
+                      (ngModelChange)="updateEnvRow($index, 'value', $event)"
+                      [disabled]="deployingApp()"
+                      class="flex-1 px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                    />
+                    <button
+                      type="button"
+                      (click)="toggleEnvRowSecret($index)"
+                      [disabled]="deployingApp()"
+                      class="px-2 py-2 rounded border text-[9px] font-bold uppercase transition-colors cursor-pointer shrink-0"
+                      [class]="row.isSecret ? 'bg-zinc-900 border-zinc-700 text-zinc-300' : 'bg-zinc-950 border-zinc-850 text-zinc-600'"
+                      [title]="row.isSecret ? 'Secret (criptat)' : 'Plaintext'"
+                    >{{ row.isSecret ? 'Secret' : 'Plain' }}</button>
+                    <button
+                      type="button"
+                      (click)="removeEnvRow($index)"
+                      [disabled]="deployingApp()"
+                      class="p-2 rounded text-zinc-500 hover:text-red-400 hover:bg-red-950/20 transition-colors cursor-pointer shrink-0"
+                      title="Elimină"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                }
+              </div>
+              }
+
+              <!-- Wizard footer -->
+              <div class="pt-4 border-t border-zinc-900 flex items-center justify-between gap-3">
+                <button
+                  (click)="createStep() === 1 ? onBackToSelection() : prevCreateStep()"
                   [disabled]="deployingApp()"
                   class="px-4 py-2 rounded text-zinc-400 hover:text-white text-xs font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer"
                 >
-                  Înapoi
+                  {{ createStep() === 1 ? 'Înapoi la repo' : '← Înapoi' }}
                 </button>
-                
-                <button 
-                  (click)="onDeployApp()"
-                  [disabled]="deployingApp() || !appName() || !gitRepository()"
-                  class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  @if (!deployingApp()) {
-                    <span>Lansează Aplicație</span>
-                  } @else {
-                    <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Se lansează...</span>
-                  }
-                </button>
+
+                @if (createStep() < 3) {
+                  <button
+                    (click)="nextCreateStep()"
+                    [disabled]="deployingApp() || (createStep() === 1 && (!appName() || !gitRepository()))"
+                    class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    Continuă →
+                  </button>
+                } @else {
+                  <button
+                    (click)="onDeployApp()"
+                    [disabled]="deployingApp() || !appName() || !gitRepository()"
+                    class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    @if (!deployingApp()) {
+                      <span>Lansează Aplicație</span>
+                    } @else {
+                      <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Se lansează...</span>
+                    }
+                  </button>
+                }
               </div>
             </div>
           </div>

@@ -3,7 +3,7 @@ import { ActivatedRoute, RouterLink, RouterOutlet, Router } from '@angular/route
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { forkJoin } from 'rxjs';
-import { ProjectService, AppDetail, Project } from '../../../../core/services/project.service';
+import { ProjectService, AppDetail, Project, EnvVarInput } from '../../../../core/services/project.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth';
 import { GithubService, GithubRepo, GithubBranch } from '../../../../core/services/github.service';
@@ -44,6 +44,33 @@ export class Details implements OnInit {
   readonly internalPort = signal<number>(8080);
   readonly externalPort = signal<number | null>(null);
   readonly gitSubpath = signal('');
+  readonly detectedSubdirectories = signal<string[]>([]);
+  readonly subpathSelectionMode = signal<'select' | 'custom'>('select');
+  readonly selectedSubpathOption = signal('');
+  private detectionTimeout: any = null;
+
+  // Environment variables provided at app-creation time
+  readonly newAppEnvRows = signal<EnvVarInput[]>([]);
+
+  addEnvRow(): void {
+    this.newAppEnvRows.update(rows => [...rows, { key: '', value: '', isSecret: true }]);
+  }
+
+  removeEnvRow(index: number): void {
+    this.newAppEnvRows.update(rows => rows.filter((_, i) => i !== index));
+  }
+
+  updateEnvRow(index: number, field: 'key' | 'value', value: string): void {
+    this.newAppEnvRows.update(rows =>
+      rows.map((row, i) => (i === index ? { ...row, [field]: value } : row))
+    );
+  }
+
+  toggleEnvRowSecret(index: number): void {
+    this.newAppEnvRows.update(rows =>
+      rows.map((row, i) => (i === index ? { ...row, isSecret: !row.isSecret } : row))
+    );
+  }
 
   // GitHub account integration state
   readonly githubTokenInput = signal('');
@@ -60,6 +87,11 @@ export class Details implements OnInit {
 
   readonly repoSearchQuery = signal('');
   readonly selectedImportRepo = signal<any | null>(null);
+
+  // Create-app wizard: 1 = Repo, 2 = Setări, 3 = Env
+  readonly createStep = signal(1);
+  nextCreateStep(): void { this.createStep.update(s => Math.min(3, s + 1)); }
+  prevCreateStep(): void { this.createStep.update(s => Math.max(1, s - 1)); }
   readonly isCustomGitUrl = signal(false);
 
   readonly filteredRepos = computed(() => {
@@ -149,6 +181,7 @@ export class Details implements OnInit {
 
   onImportRepo(repo: any): void {
     this.selectedImportRepo.set(repo);
+    this.createStep.set(1);
     this.isCustomGitUrl.set(false);
     this.appName.set(repo.name);
     this.gitRepository.set(repo.html_url || repo.url);
@@ -157,6 +190,9 @@ export class Details implements OnInit {
     this.internalPort.set(8080);
     this.externalPort.set(null);
     this.gitSubpath.set('');
+    this.detectedSubdirectories.set([]);
+    this.subpathSelectionMode.set('select');
+    this.selectedSubpathOption.set('');
     this.buildCommand.set('');
     this.startCommand.set('');
     this.detectedType.set('');
@@ -170,6 +206,7 @@ export class Details implements OnInit {
 
   onUseCustomGitUrl(): void {
     this.selectedImportRepo.set(null);
+    this.createStep.set(1);
     this.isCustomGitUrl.set(true);
     this.appName.set('');
     this.gitRepository.set('');
@@ -185,6 +222,7 @@ export class Details implements OnInit {
   onBackToSelection(): void {
     this.selectedImportRepo.set(null);
     this.isCustomGitUrl.set(false);
+    this.createStep.set(1);
   }
 
   ngOnInit(): void {
@@ -246,6 +284,10 @@ export class Details implements OnInit {
     const projectId = this.projectId();
     if (!projectId) return;
 
+    const envVariables = this.newAppEnvRows()
+      .map(row => ({ key: row.key.trim(), value: row.value, isSecret: row.isSecret }))
+      .filter(row => row.key.length > 0);
+
     this.deployingApp.set(true);
     this.projectService.createApp({
       projectId,
@@ -256,7 +298,8 @@ export class Details implements OnInit {
       startCommand: this.startCommand() || undefined,
       internalPort: this.internalPort() || undefined,
       externalPort: this.externalPort() || undefined,
-      gitSubpath: this.gitSubpath() || undefined
+      gitSubpath: this.gitSubpath() || undefined,
+      envVariables: envVariables.length > 0 ? envVariables : undefined
     }).subscribe({
       next: (res) => {
         this.deployingApp.set(false);
@@ -269,6 +312,7 @@ export class Details implements OnInit {
         this.internalPort.set(8080);
         this.externalPort.set(null);
         this.gitSubpath.set('');
+        this.newAppEnvRows.set([]);
         this.selectedImportRepo.set(null);
         this.isCustomGitUrl.set(false);
         this.toast.success('Aplicația a fost înregistrată pentru deployment cu succes!');
@@ -304,6 +348,32 @@ export class Details implements OnInit {
         this.internalPort.set(res.internalPort);
         this.buildCommand.set(res.buildCommand);
         this.startCommand.set(res.startCommand);
+
+        // Populate subdirectories if returned (only at root/first detection)
+        if (res.subdirectories && res.subdirectories.length > 0) {
+          this.detectedSubdirectories.set(res.subdirectories);
+          // Auto-select match if subpath is already set
+          if (subpathVal && res.subdirectories.includes(subpathVal)) {
+            this.selectedSubpathOption.set(subpathVal);
+            this.subpathSelectionMode.set('select');
+          } else if (!subpathVal) {
+            this.selectedSubpathOption.set('');
+            this.subpathSelectionMode.set('select');
+          }
+        }
+
+        // Auto-populate env variables
+        if (res.detectedEnvs && res.detectedEnvs.length > 0) {
+          const rows: EnvVarInput[] = res.detectedEnvs.map((env: any) => ({
+            key: env.key,
+            value: env.value,
+            isSecret: true
+          }));
+          this.newAppEnvRows.set(rows);
+        } else {
+          this.newAppEnvRows.set([]);
+        }
+
         this.toast.success(`Tip proiect detectat: ${res.projectType.toUpperCase()}`);
       },
       error: () => {
@@ -313,6 +383,51 @@ export class Details implements OnInit {
         this.toast.error('Nu s-a putut detecta tipul în subdirector.');
       }
     });
+  }
+
+  onSubpathSelectChange(value: string): void {
+    this.selectedSubpathOption.set(value);
+    if (value === 'custom') {
+      this.subpathSelectionMode.set('custom');
+      this.gitSubpath.set('');
+    } else {
+      this.subpathSelectionMode.set('select');
+      this.gitSubpath.set(value);
+      this.triggerAutoDetection();
+    }
+  }
+
+  onSubpathInputChange(value: string): void {
+    this.gitSubpath.set(value);
+    
+    if (this.detectionTimeout) {
+      clearTimeout(this.detectionTimeout);
+    }
+    
+    this.detectionTimeout = setTimeout(() => {
+      this.triggerAutoDetection();
+    }, 600); // 600ms debounce
+  }
+
+  onAppNameChange(value: string): void {
+    this.appName.set(value);
+    if (value.includes(':')) {
+      const parts = value.split(':');
+      if (parts.length > 1) {
+        const sub = parts[1].trim();
+        if (sub && !this.gitSubpath()) {
+          this.gitSubpath.set(sub);
+          if (this.detectedSubdirectories().includes(sub)) {
+            this.selectedSubpathOption.set(sub);
+            this.subpathSelectionMode.set('select');
+          } else {
+            this.selectedSubpathOption.set('custom');
+            this.subpathSelectionMode.set('custom');
+          }
+          this.triggerAutoDetection();
+        }
+      }
+    }
   }
 
   getAppStatus(app: AppDetail | null): 'ACTIV' | 'INACTIV' | 'CONSTRUIRE' | 'EȘUAT' | 'CRASHED' | 'OPRIT' {

@@ -89,7 +89,7 @@
                     }
                   </td>
                   <td class="p-3 text-zinc-400">
-                    <span class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-850 text-white font-semibold">{{ fn.memoryLimitMb }} MB</span>
+                    <span class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-850 text-white font-semibold">@if (fn.memoryLimitMb === 0) { Nelimitat } @else { {{ fn.memoryLimitMb }} MB }</span>
                   </td>
                   <td class="p-3 text-zinc-550 text-[11px]">
                     {{ fn.createdAt | date:'dd MMM yyyy, HH:mm' }}
@@ -183,6 +183,7 @@
                 (ngModelChange)="newFnMemory.set($event)"
                 class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
               >
+                <option [ngValue]="0">Nelimitat</option>
                 <option [ngValue]="128">128 MB (Recomandat pentru scripturi simple)</option>
                 <option [ngValue]="256">256 MB</option>
                 <option [ngValue]="512">512 MB</option>
@@ -318,7 +319,7 @@
             <div class="p-4 rounded border border-zinc-900 bg-zinc-950/20 space-y-2">
               <span class="text-[9px] font-bold text-zinc-550 uppercase tracking-widest font-mono">Configurație Resurse</span>
               <div class="text-xs font-bold text-white font-mono flex items-center gap-2">
-                <span>{{ selectedFunction()?.memoryLimitMb }} MB RAM</span>
+                <span>@if (selectedFunction()?.memoryLimitMb === 0) { Nelimitat } @else { {{ selectedFunction()?.memoryLimitMb }} MB RAM }</span>
                 <span class="text-zinc-700">|</span>
                 <span class="text-zinc-400">Scalare Automată: 0 - 5 Pods</span>
               </div>
@@ -443,6 +444,7 @@
                   (ngModelChange)="editMemory.set($event)"
                   class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
                 >
+                  <option [ngValue]="0">Nelimitat</option>
                   <option [ngValue]="128">128 MB RAM</option>
                   <option [ngValue]="256">256 MB RAM</option>
                   <option [ngValue]="512">512 MB RAM</option>

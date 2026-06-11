@@ -176,6 +176,9 @@ export class CronComponent implements OnInit, OnDestroy {
   }
 
   selectCronJob(job: CronJob): void {
+    // Synthetic auto-backup entries are read-only and managed from DB settings.
+    if (job.source === 'backup') return;
+
     this.selectedCronJob.set(job);
     this.activeTab.set('details');
 

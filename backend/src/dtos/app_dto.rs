@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use crate::models::app_model::{AppInstanceType, AppStatus};
+use crate::dtos::env_variable_dto::EnvVarInput;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -15,6 +16,8 @@ pub struct CreateAppRequest {
     pub internal_port: Option<i32>,
     pub external_port: Option<i32>,
     pub git_subpath: Option<String>,
+    #[serde(default)]
+    pub env_variables: Option<Vec<EnvVarInput>>,
 }
 
 #[derive(Debug, Deserialize)]

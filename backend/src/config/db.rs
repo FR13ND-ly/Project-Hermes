@@ -36,14 +36,14 @@ pub async fn seed_initial_super_admin(state: &AppState) -> Result<(), anyhow::Er
         .expect("CRITICAL: HERMES_ROOT_PASSWORD must be set for first-time platform boot.");
 
     let max_memory: i32 = std::env::var("WORKSPACE_MAX_MEMORY_MB")
-        .unwrap_or_else(|_| "2048".to_string())
+        .unwrap_or_else(|_| "0".to_string())
         .parse()
-        .unwrap_or(2048);
+        .unwrap_or(0);
 
     let max_storage: i32 = std::env::var("WORKSPACE_MAX_STORAGE_GB")
-        .unwrap_or_else(|_| "10".to_string())
+        .unwrap_or_else(|_| "0".to_string())
         .parse()
-        .unwrap_or(10);
+        .unwrap_or(0);
 
     let hashed_password = crypto::hash_password(&root_raw_password)
         .map_err(|e| anyhow::anyhow!("Crypto error: {:?}", e))?;

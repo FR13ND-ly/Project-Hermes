@@ -36,14 +36,14 @@ export class ServerlessComponent implements OnInit, OnDestroy {
   readonly newFnName = signal('');
   readonly newFnMethod = signal('GET');
   readonly newFnRoutePath = signal('');
-  readonly newFnMemory = signal(128);
+  readonly newFnMemory = signal(0);
 
   // Edit / Settings Signals
   readonly editName = signal('');
   readonly editCode = signal('');
   readonly editMethod = signal('GET');
   readonly editRoutePath = signal('');
-  readonly editMemory = signal(128);
+  readonly editMemory = signal(0);
   readonly editAssignedDomain = signal<string | null>(null);
   readonly editEnvVariables = signal<{ key: string, value: string }[]>([]);
   readonly savingSettings = signal(false);

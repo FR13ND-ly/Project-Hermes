@@ -44,6 +44,9 @@ pub struct DatabaseService {
     pub status: DbStatus,
     pub cpu_limit: i32,
     pub memory_limit_mb: i64,
+    pub backup_enabled: bool,
+    pub backup_count: i32,
+    pub last_backup_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

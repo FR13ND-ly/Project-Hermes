@@ -44,6 +44,9 @@ export interface AppBuild {
   appInstanceId: string;
   branchName: string;
   status: string;
+  phase?: string;
+  failureReason?: string | null;
+  failureCategory?: string | null;
   logs: string | null;
   createdAt: string;
   commitMessage?: string;
@@ -54,6 +57,7 @@ export interface AppBuild {
 export interface MetricsHistory {
   timestamps: number[];
   values: number[];
+  simulated?: boolean;
 }
 
 @Injectable({
@@ -88,6 +92,7 @@ export class ProjectService {
     internalPort?: number;
     externalPort?: number;
     gitSubpath?: string;
+    envVariables?: EnvVarInput[];
   }): Observable<any> {
     return this.api.post<any>('/apps', payload);
   }
@@ -116,6 +121,18 @@ export class ProjectService {
     return this.api.get<AppBuild>(`/apps/${appId}/builds/${buildId}`);
   }
 
+  retryBuild(appId: string, buildId: string): Observable<any> {
+    return this.api.post<any>(`/apps/${appId}/builds/${buildId}/retry`, {});
+  }
+
+  cancelBuild(appId: string, buildId: string): Observable<any> {
+    return this.api.post<any>(`/apps/${appId}/builds/${buildId}/cancel`, {});
+  }
+
+  rollbackBuild(appId: string, buildId: string): Observable<any> {
+    return this.api.post<any>(`/apps/${appId}/builds/${buildId}/rollback`, {});
+  }
+
   getMetrics(appId: string, instanceId: string, metric: string, range: string): Observable<MetricsHistory> {
     return this.api.get<MetricsHistory>(`/apps/${appId}/instances/${instanceId}/metrics?metric=${metric}&range=${range}`);
   }
@@ -129,49 +146,75 @@ export class ProjectService {
     return this.api.getStreamUrl(`/apps/${appId}/instances/${instanceId}/stats`);
   }
 
-  // Helper method for EventSource URL for container build/deployment log SSE stream
-  getLogsStreamUrl(appId: string, instanceId: string): string {
-    return this.api.getStreamUrl(`/apps/${appId}/instances/${instanceId}/logs`);
+  // WebSocket URL for live container logs (push, no polling)
+  getLogsWsUrl(appId: string, instanceId: string): string {
+    return this.api.getWsUrl(`/apps/${appId}/instances/${instanceId}/logs/ws`);
   }
 
-  listEnvVariables(projectId?: string | null, appInstanceId?: string | null, scope?: string | null): Observable<EnvResponse[]> {
-    let url = '/envs';
-    const params: string[] = [];
-    if (projectId) {
-      params.push(`projectId=${projectId}`);
-    }
-    if (appInstanceId) {
-      params.push(`appInstanceId=${appInstanceId}`);
-    }
-    if (scope) {
-      params.push(`scope=${scope.toLowerCase()}`);
-    }
-    if (params.length > 0) {
-      url += `?${params.join('&')}`;
-    }
-    return this.api.get<EnvResponse[]>(url);
+  // Helper method for EventSource URL for Kaniko builder/cloner pod log SSE stream
+  getBuildLogsStreamUrl(appId: string, buildId: string): string {
+    return this.api.getStreamUrl(`/apps/${appId}/builds/${buildId}/logs/stream`);
+  }
+
+  listEnvVariables(appInstanceId: string): Observable<EnvResponse[]> {
+    return this.api.get<EnvResponse[]>(`/envs?appInstanceId=${appInstanceId}`);
+  }
+
+  listProjectEnvsGrouped(projectId: string): Observable<GroupedAppEnv[]> {
+    return this.api.get<GroupedAppEnv[]>(`/projects/${projectId}/envs-grouped`);
   }
 
   setEnvVariable(payload: {
-    projectId?: string | null;
-    appInstanceId?: string | null;
+    appInstanceId: string;
     key: string;
     value: string;
-    scope?: string | null;
     isSecret?: boolean;
   }): Observable<EnvResponse> {
     return this.api.post<EnvResponse>('/envs', {
-      projectId: payload.projectId || null,
-      appInstanceId: payload.appInstanceId || null,
+      appInstanceId: payload.appInstanceId,
       key: payload.key,
       value: payload.value,
-      scope: payload.scope || 'all',
       isSecret: payload.isSecret !== undefined ? payload.isSecret : true
     });
   }
 
+  setEnvsBulk(appInstanceId: string, variables: EnvVarInput[]): Observable<EnvResponse[]> {
+    return this.api.post<EnvResponse[]>('/envs/bulk', { appInstanceId, variables });
+  }
+
   deleteEnvVariable(id: string): Observable<any> {
     return this.api.delete<any>(`/envs/${id}`);
+  }
+
+  // --- Project-level env pool ---
+
+  listProjectEnv(projectId: string): Observable<ProjectEnvResponse[]> {
+    return this.api.get<ProjectEnvResponse[]>(`/projects/${projectId}/env`);
+  }
+
+  setProjectEnv(projectId: string, payload: { key: string; value: string; isSecret?: boolean }): Observable<ProjectEnvResponse> {
+    return this.api.post<ProjectEnvResponse>(`/projects/${projectId}/env`, {
+      key: payload.key,
+      value: payload.value,
+      isSecret: payload.isSecret !== undefined ? payload.isSecret : true
+    });
+  }
+
+  deleteProjectEnv(projectId: string, id: string): Observable<any> {
+    return this.api.delete<any>(`/projects/${projectId}/env/${id}`);
+  }
+
+  // Project-pool vars available to an instance, each flagged as linked or not.
+  listInstanceProjectEnv(instanceId: string): Observable<ProjectEnvResponse[]> {
+    return this.api.get<ProjectEnvResponse[]>(`/instances/${instanceId}/project-env`);
+  }
+
+  linkProjectEnv(instanceId: string, projectEnvId: string): Observable<any> {
+    return this.api.post<any>(`/instances/${instanceId}/env-links`, { projectEnvId });
+  }
+
+  unlinkProjectEnv(instanceId: string, projectEnvId: string): Observable<any> {
+    return this.api.delete<any>(`/instances/${instanceId}/env-links/${projectEnvId}`);
   }
 
   updateInstanceSettings(appId: string, instanceId: string, payload: {
@@ -331,6 +374,8 @@ export interface CronJob {
   status: 'active' | 'paused' | 'failed';
   nextRunAt?: string | null;
   next_run_at?: string | null;
+  source?: 'user' | 'backup';
+  databaseId?: string | null;
 }
 
 export interface CronJobLog {
@@ -348,12 +393,38 @@ export interface CronJobLog {
 
 export interface EnvResponse {
   id: string;
-  projectId: string | null;
-  appInstanceId: string | null;
+  appInstanceId: string;
   key: string;
   value: string | null;
-  scope: string;
   isSecret: boolean;
+}
+
+export interface EnvVarInput {
+  key: string;
+  value: string;
+  isSecret?: boolean;
+}
+
+export interface ProjectEnvResponse {
+  id: string;
+  projectId: string;
+  key: string;
+  value: string | null;
+  isSecret: boolean;
+  source: string;        // manual | database | storage | serverless
+  linked?: boolean;      // only set when listed in an instance context
+}
+
+export interface GroupedInstanceEnv {
+  instanceId: string;
+  branchName: string;
+  variables: EnvResponse[];
+}
+
+export interface GroupedAppEnv {
+  appId: string;
+  appName: string;
+  instances: GroupedInstanceEnv[];
 }
 
 export interface ServerlessFunction {

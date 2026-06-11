@@ -30,35 +30,19 @@
           <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Creare Bucket Nou</h4>
         </div>
 
-        <div class="grid gap-4 md:grid-cols-3">
+        <div class="grid gap-4 md:grid-cols-2">
           <!-- Bucket Name -->
           <div class="space-y-1.5">
             <label for="bucket-name" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Nume Bucket (slug)</label>
-            <input 
+            <input
               id="bucket-name"
-              type="text" 
-              placeholder="ex. imagini-produs, static-site"
+              type="text"
+              placeholder="ex. imagini-produs, uploads"
               [ngModel]="newBucketName()"
               (ngModelChange)="newBucketName.set($event)"
               [disabled]="creatingBucket()"
               class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-550 transition-colors font-mono"
             />
-          </div>
-
-          <!-- Access Type -->
-          <div class="space-y-1.5">
-            <label for="access-type" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Tip Acces</label>
-            <select 
-              id="access-type"
-              [ngModel]="newBucketAccessType()"
-              (ngModelChange)="newBucketAccessType.set($event)"
-              [disabled]="creatingBucket()"
-              class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-550 transition-colors font-mono"
-            >
-              <option value="public_assets">Public Assets (Citire Publică Optimizată)</option>
-              <option value="private_storage">Private Storage (Securizat / Tokenizat)</option>
-              <option value="static_website">Static Website (SPA Hosting)</option>
-            </select>
           </div>
 
           <!-- Max Size Limit -->
@@ -80,19 +64,7 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-2.5 pt-2">
-          <input 
-            id="public-toggle"
-            type="checkbox" 
-            [ngModel]="isPublicToggle()"
-            (ngModelChange)="isPublicToggle.set($event)"
-            [disabled]="creatingBucket() || newBucketAccessType() === 'public_assets' || newBucketAccessType() === 'static_website'"
-            class="w-3.5 h-3.5 bg-black rounded border-zinc-800 accent-white cursor-pointer"
-          />
-          <label for="public-toggle" class="text-xs text-zinc-400 cursor-pointer select-none">
-            Forțează acces public anonim direct de citire (URL direct)
-          </label>
-        </div>
+        <p class="text-[10px] text-zinc-600 pt-1">Bucket-urile sunt private — accesul la fișiere se face securizat, cu token.</p>
 
         <!-- Form Actions -->
         <div class="pt-4 border-t border-zinc-900 flex justify-end gap-3">
@@ -176,15 +148,7 @@
                   </td>
                   
                   <td class="p-3.5">
-                    @if (bucket.accessType === 'public_assets') {
-                      <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border border-emerald-950 bg-emerald-950/20 text-emerald-400 uppercase">Public Assets</span>
-                    } @else if (bucket.accessType === 'private_storage') {
-                      <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border border-purple-950 bg-purple-950/20 text-purple-400 uppercase">Private</span>
-                    } @else if (bucket.accessType === 'static_website') {
-                      <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border border-blue-950 bg-blue-950/20 text-blue-400 uppercase">Static Site</span>
-                    } @else {
-                      <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border border-zinc-800 bg-zinc-900 text-zinc-400 uppercase">Bounded</span>
-                    }
+                    <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border border-purple-950 bg-purple-950/20 text-purple-400 uppercase">Private</span>
                   </td>
                   
                   <td class="p-3.5 text-zinc-300 font-mono">
@@ -227,8 +191,50 @@
         </div>
       }
     }
+
+    <!-- PVC (Persistent Volumes) -->
+    <div class="bg-[#0a0a0a] rounded border border-zinc-900 shadow-sm">
+      <div class="border-b border-zinc-900 px-5 py-3.5">
+        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Volume Persistente (PVC)</h3>
+        <p class="text-[10px] text-zinc-555 mt-0.5">Create automat la build din directivele <code>VOLUME</code> ale aplicațiilor. Răsfoiește conținutul lor aici.</p>
+      </div>
+      @if (loadingPvcs()) {
+        <div class="px-5 py-6 text-center text-[11px] text-zinc-600">Se încarcă volumele...</div>
+      } @else if (pvcs().length === 0) {
+        <div class="px-5 py-6 text-center text-[11px] text-zinc-600">Niciun volum persistent. Apar aici când o aplicație declară <code>VOLUME</code> în Dockerfile.</div>
+      } @else {
+        <table class="w-full text-left text-xs">
+          <thead>
+            <tr class="border-b border-zinc-900 text-zinc-600 uppercase tracking-wider text-[9px]">
+              <th class="p-3.5">Aplicație</th>
+              <th class="p-3.5">Cale Container</th>
+              <th class="p-3.5">Sursă</th>
+              <th class="p-3.5 text-right">Acțiuni</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-zinc-900">
+            @for (pvc of pvcs(); track pvc.id) {
+              <tr class="hover:bg-zinc-950/40 transition-colors">
+                <td class="p-3.5 font-semibold text-white">{{ pvc.appName }}</td>
+                <td class="p-3.5 font-mono text-zinc-400">{{ pvc.containerPath }}</td>
+                <td class="p-3.5">
+                  @if (pvc.isAuto) {
+                    <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border border-sky-950 bg-sky-950/20 text-sky-400 uppercase">Auto (build)</span>
+                  } @else {
+                    <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border border-zinc-800 bg-zinc-900 text-zinc-400 uppercase">Manual</span>
+                  }
+                </td>
+                <td class="p-3.5 text-right">
+                  <button (click)="openPvcExplorer(pvc)" class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-white hover:border-zinc-700 text-[10px] font-semibold transition-all cursor-pointer">Explorează</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
   } @else {
-    
+
     <!-- CASE 2: Selected Bucket Details view -->
     @let bucket = selectedBucket()!;
     
@@ -247,27 +253,11 @@
         <div>
           <div class="flex items-center gap-2">
             <h3 class="text-xs font-bold text-white uppercase tracking-wider">{{ bucket.name }}</h3>
-            @if (bucket.accessType === 'public_assets') {
-              <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border border-emerald-900 bg-emerald-950/20 text-emerald-400 uppercase">Public Assets</span>
-            } @else if (bucket.accessType === 'private_storage') {
-              <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border border-purple-900 bg-purple-950/20 text-purple-400 uppercase">Private</span>
-            } @else if (bucket.accessType === 'static_website') {
-              <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border border-blue-900 bg-blue-950/20 text-blue-400 uppercase">Static Site</span>
-            }
+            <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border border-purple-900 bg-purple-950/20 text-purple-400 uppercase">Private</span>
           </div>
           <p class="text-[10px] text-zinc-555 font-mono mt-0.5">slug: {{ bucket.slug }} | limită: {{ formatBytes(bucket.maxBucketSizeBytes) }}</p>
         </div>
       </div>
-
-      <!-- Quick Domain Info if Static Site -->
-      @if (bucket.accessType === 'static_website' && bucket.assignedDomain) {
-        <div class="text-[10px] bg-black/40 border border-zinc-900 p-2 rounded max-w-xs truncate">
-          <span class="text-zinc-650 font-semibold block uppercase text-[8px] tracking-wider mb-0.5">Domeniu Asignat</span>
-          <a [href]="'https://' + bucket.assignedDomain" target="_blank" class="text-blue-400 hover:underline font-mono select-all">
-            {{ bucket.assignedDomain }}
-          </a>
-        </div>
-      }
     </div>
 
     <!-- Tab Menu -->
@@ -773,21 +763,6 @@
               />
             </div>
 
-            <!-- Access Type selector -->
-            <div class="space-y-1.5">
-              <label for="edit-access" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Tip Acces (Politică de stocare)</label>
-              <select 
-                id="edit-access"
-                [ngModel]="editAccessType()"
-                (ngModelChange)="editAccessType.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
-              >
-                <option value="public_assets">Public Assets (Citire Publică)</option>
-                <option value="private_storage">Private Storage (Securizat / Tokenizat)</option>
-                <option value="static_website">Static Website (SPA Hosting)</option>
-              </select>
-            </div>
-
             <!-- Bucket size slider -->
             <div class="space-y-1.5 pt-1.5">
               <div class="flex items-center justify-between">
@@ -805,20 +780,6 @@
               />
             </div>
 
-            <!-- Force Public anonymous checkbox -->
-            <div class="flex items-center gap-2.5 pt-3 border-t border-zinc-900">
-              <input 
-                id="edit-public-toggle"
-                type="checkbox" 
-                [ngModel]="editIsPublic()"
-                (ngModelChange)="editIsPublic.set($event)"
-                [disabled]="editAccessType() === 'public_assets' || editAccessType() === 'static_website'"
-                class="w-3.5 h-3.5 bg-black rounded border-zinc-800 accent-white cursor-pointer"
-              />
-              <label for="edit-public-toggle" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">
-                Forțează acces public anonim direct (URL public)
-              </label>
-            </div>
           </div>
 
           <!-- Column B: Allowed file types and advanced processing options -->
@@ -1120,6 +1081,60 @@
       </div>
     }
 
+  }
+
+  <!-- PVC file explorer modal (read-only browse) -->
+  @if (pvcExplorer(); as pvc) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" (click)="closePvcExplorer()">
+      <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col shadow-xl" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between border-b border-zinc-900 px-5 py-3">
+          <div class="min-w-0">
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider truncate">{{ pvc.appName }} · {{ pvc.containerPath }}</h3>
+            <p class="text-[10px] text-zinc-600 font-mono truncate">{{ pvc.name }}</p>
+          </div>
+          <button (click)="closePvcExplorer()" class="p-1.5 rounded hover:bg-zinc-900 text-zinc-400 hover:text-white cursor-pointer shrink-0">✕</button>
+        </div>
+
+        <div class="flex items-center gap-1 px-5 py-2 border-b border-zinc-900 text-[10px] font-mono flex-wrap">
+          <button (click)="pvcGoToCrumb('/')" class="text-zinc-400 hover:text-white cursor-pointer">root</button>
+          @for (c of pvcBreadcrumbs(); track c.path) {
+            <span class="text-zinc-700">/</span>
+            <button (click)="pvcGoToCrumb(c.path)" class="text-zinc-400 hover:text-white cursor-pointer">{{ c.name }}</button>
+          }
+          @if (pvcPath() !== '/') {
+            <button (click)="pvcNavigateUp()" class="ml-2 px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white cursor-pointer">↑ Sus</button>
+          }
+        </div>
+
+        <div class="overflow-y-auto flex-1 p-2">
+          @if (loadingPvcFiles()) {
+            <div class="py-8 text-center text-[11px] text-zinc-600">Se încarcă...</div>
+          } @else if (pvcFiles().length === 0) {
+            <div class="py-8 text-center text-[11px] text-zinc-600">Director gol.</div>
+          } @else {
+            @for (item of pvcFiles(); track item.name) {
+              <div class="flex items-center justify-between gap-2 px-3 py-1.5 rounded hover:bg-zinc-950/60">
+                @if (item.isDir) {
+                  <button (click)="pvcNavigateTo(item.name)" class="flex items-center gap-2 text-zinc-300 hover:text-white cursor-pointer min-w-0">
+                    <span class="text-amber-500">📁</span>
+                    <span class="font-mono text-xs truncate">{{ item.name }}</span>
+                  </button>
+                } @else {
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-zinc-500">📄</span>
+                    <span class="font-mono text-xs text-zinc-300 truncate">{{ item.name }}</span>
+                    <span class="text-[9px] text-zinc-600 shrink-0">{{ formatBytes(item.sizeBytes) }}</span>
+                  </div>
+                }
+                @if (!item.isDir) {
+                  <button (click)="pvcDownload(item)" class="text-[10px] text-zinc-400 hover:text-white cursor-pointer shrink-0">Descarcă</button>
+                }
+              </div>
+            }
+          }
+        </div>
+      </div>
+    </div>
   }
 
 </div>

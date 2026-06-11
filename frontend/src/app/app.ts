@@ -21,6 +21,7 @@ export class App {
 
   readonly isAuthenticated = computed(() => this.auth.isAuthenticated());
   readonly currentUser = computed(() => this.auth.currentUser());
+  readonly isSuperAdmin = computed(() => this.auth.currentUser()?.is_super_admin === true);
 
   readonly workspaces = signal<Workspace[]>([]);
   readonly showWorkspaceDropdown = signal(false);
@@ -98,7 +99,7 @@ export class App {
     setTimeout(() => {
       if (!this.auth.isAuthenticated()) {
         this.router.navigate(['/auth']);
-      } else if (this.router.url === '/' || this.router.url === '/auth') {
+      } else if (window.location.pathname === '/' || window.location.pathname === '/auth') {
         this.router.navigate(['/dashboard']);
       }
     }, 50);

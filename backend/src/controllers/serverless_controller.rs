@@ -20,7 +20,7 @@ use crate::dtos::serverless_dto::{CreateFunctionRequest, UpdateFunctionRequest, 
 use crate::middlewares::auth_middleware::AuthenticatedUser;
 use crate::utils::{error::AppError, k8s::K8sManager};
 
-fn slugify(name: &str) -> String {
+pub fn slugify(name: &str) -> String {
     name.trim()
         .to_lowercase()
         .replace(' ', "-")
@@ -69,7 +69,7 @@ pub async fn create_function(
         "module.exports = async (req, res) => {\n    res.status(200).json({\n        success: true,\n        message: \"Hello from Serverless function!\"\n    });\n};".to_string()
     });
 
-    let memory = payload.memory_limit_mb.unwrap_or(128);
+    let memory = payload.memory_limit_mb.unwrap_or(0);
 
     // Check workspace memory limits
     crate::utils::limits::check_workspace_memory_limit(
@@ -154,6 +154,7 @@ pub async fn update_function(
     .await?
     .ok_or_else(|| AppError::NotFound("Serverless function not found.".to_string()))?;
 
+    let old_name = function.name.clone();
     let name = payload.name.unwrap_or(function.name);
     let code = payload.code.unwrap_or(function.code);
     let method = payload.method.unwrap_or(function.method).to_uppercase();
@@ -197,6 +198,39 @@ pub async fn update_function(
     .fetch_one(&state.pool)
     .await?;
 
+    // Publish the function's public URL into the project pool so apps can opt in.
+    // Only meaningful once a domain is assigned; the URL value tracks the function.
+    let new_url_key = format!("{}_FUNCTION_URL", crate::utils::app_env::sanitize_key_fragment(&updated_fn.name, "FUNCTION"));
+    let old_url_key = format!("{}_FUNCTION_URL", crate::utils::app_env::sanitize_key_fragment(&old_name, "FUNCTION"));
+    if old_url_key != new_url_key {
+        let _ = sqlx::query!(
+            "DELETE FROM project_env_variables WHERE source = 'serverless' AND source_id = $1 AND key = $2",
+            id, old_url_key
+        )
+        .execute(&state.pool)
+        .await;
+    }
+    if let Some(domain) = updated_fn.assigned_domain.as_ref().filter(|d| !d.trim().is_empty()) {
+        let url = format!("https://{}{}", domain.trim(), updated_fn.route_path);
+        let _ = crate::utils::app_env::publish_project_env(
+            &state.pool, ws_id, updated_fn.project_id, &new_url_key, &url, false, "serverless", id
+        ).await;
+        // The value may have changed for already-linked instances; reload them.
+        if let Ok(insts) = sqlx::query_scalar!(
+            "SELECT ael.app_instance_id FROM app_env_links ael
+             JOIN project_env_variables pev ON pev.id = ael.project_env_id
+             WHERE pev.source = 'serverless' AND pev.source_id = $1",
+            id
+        )
+        .fetch_all(&state.pool)
+        .await
+        {
+            for inst in insts {
+                crate::controllers::env_variable_controller::hot_reload_if_running(&state.pool, inst);
+            }
+        }
+    }
+
     crate::utils::event_broadcaster::broadcast_event(
         crate::utils::event_broadcaster::SystemEvent::ServerlessFunctionUpdated {
             workspace_id: ws_id,
@@ -224,6 +258,12 @@ pub async fn delete_function(
     .fetch_optional(&state.pool)
     .await?
     .ok_or_else(|| AppError::NotFound("Serverless function not found.".to_string()))?;
+
+    // Remove the function's published project-pool var and reload linked apps.
+    let linked = crate::utils::app_env::unpublish_project_env(&state.pool, "serverless", id).await;
+    for inst in linked {
+        crate::controllers::env_variable_controller::hot_reload_if_running(&state.pool, inst);
+    }
 
     // Delete in DB
     sqlx::query!("DELETE FROM serverless_functions WHERE id = $1", id)
@@ -341,6 +381,8 @@ pub async fn deploy_function(
 
         let configmap_name = format!("fn-build-context-{}", function_id);
         let builder_pod_name = format!("fn-builder-{}", function_id);
+        // Per-function secret name so concurrent serverless builds don't delete each other's registry credentials.
+        let registry_secret_name = format!("hermes-registry-creds-fn-{}", function_id);
 
         // Files to package inside ConfigMap
         let dockerfile = "FROM node:20-alpine\nWORKDIR /app\nCOPY package.json index.js function.js ./\nRUN npm install --production\nEXPOSE 8080\nCMD [\"node\", \"index.js\"]";
@@ -401,7 +443,7 @@ pub async fn deploy_function(
                 "apiVersion": "v1",
                 "kind": "Secret",
                 "metadata": {
-                    "name": "hermes-registry-credentials",
+                    "name": registry_secret_name,
                     "namespace": namespace
                 },
                 "type": "kubernetes.io/dockerconfigjson",
@@ -411,7 +453,7 @@ pub async fn deploy_function(
             });
 
             if let Ok(sec_obj) = serde_json::from_value(secret_manifest) {
-                let _ = secrets_api.delete("hermes-registry-credentials", &DeleteParams::default()).await;
+                let _ = secrets_api.delete(&registry_secret_name, &DeleteParams::default()).await;
                 if secrets_api.create(&PostParams::default(), &sec_obj).await.is_ok() {
                     has_registry_creds = true;
                 }
@@ -500,7 +542,7 @@ pub async fn deploy_function(
                         volumes_arr.push(json!({
                             "name": "registry-creds",
                             "secret": {
-                                "secretName": "hermes-registry-credentials"
+                                "secretName": registry_secret_name
                             }
                         }));
                     }
@@ -561,7 +603,7 @@ pub async fn deploy_function(
         let _ = configmaps.delete(&configmap_name, &DeleteParams::default()).await;
         let _ = pods_api.delete(&builder_pod_name, &DeleteParams::default()).await;
         if has_registry_creds {
-            let _ = secrets_api.delete("hermes-registry-credentials", &DeleteParams::default()).await;
+            let _ = secrets_api.delete(&registry_secret_name, &DeleteParams::default()).await;
         }
 
         let duration = start_time.elapsed().as_secs();

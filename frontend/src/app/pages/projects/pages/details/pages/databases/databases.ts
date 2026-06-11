@@ -33,8 +33,8 @@ export class Databases implements OnInit, OnDestroy {
   
   readonly dbName = signal('');
   readonly dbType = signal<'postgres' | 'redis' | 'mysql' | 'mongodb'>('postgres');
-  readonly cpuLimit = signal(250); // Millicores
-  readonly memLimit = signal(512); // Megabytes
+  readonly cpuLimit = signal(0); // Millicores
+  readonly memLimit = signal(0); // Megabytes
   readonly isExternal = signal(false);
   readonly externalPort = signal(5432);
 

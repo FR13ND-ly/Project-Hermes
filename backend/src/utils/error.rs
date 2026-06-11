@@ -83,6 +83,37 @@ impl From<sqlx::Error> for AppError {
     fn from(err: sqlx::Error) -> Self {
         match err {
             sqlx::Error::RowNotFound => AppError::NotFound("The requested resource was not found.".to_string()),
+            sqlx::Error::Database(db_err) => {
+                if db_err.code().as_deref() == Some("23505") {
+                    let constraint_msg = match db_err.constraint() {
+                        Some("unique_workspace_app_slug") => {
+                            "O aplicație cu această denumire (slug) există deja în acest workspace."
+                        }
+                        Some("users_username_key") => {
+                            "Numele de utilizator este deja folosit."
+                        }
+                        Some("users_email_key") => {
+                            "Adresa de email este deja înregistrată."
+                        }
+                        Some("workspaces_slug_key") => {
+                            "Un workspace cu această denumire (slug) există deja."
+                        }
+                        Some("unique_workspace_bucket_slug") => {
+                            "Un bucket de stocare cu această denumire există deja în acest workspace."
+                        }
+                        Some("unique_route_path_per_project") => {
+                            "Această rută serverless există deja în cadrul proiectului."
+                        }
+                        Some("unique_env_per_instance") => {
+                            "O variabilă de mediu cu această cheie există deja în instanță."
+                        }
+                        _ => "Resursa duplicată încalcă o constrângere de unicitate.",
+                    };
+                    AppError::Conflict(constraint_msg.to_string())
+                } else {
+                    AppError::Fatal(sqlx::Error::Database(db_err).into())
+                }
+            }
             _ => AppError::Fatal(err.into()),
         }
     }

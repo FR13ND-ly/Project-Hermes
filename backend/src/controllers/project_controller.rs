@@ -159,16 +159,28 @@ pub async fn delete_project(
 
     // Get all databases in the project
     let databases = sqlx::query!(
-        "SELECT container_name FROM databases WHERE project_id = $1 AND workspace_id = $2",
+        "SELECT id, container_name FROM databases WHERE project_id = $1 AND workspace_id = $2",
         project.id, ws_id
     )
     .fetch_all(&state.pool)
     .await?;
 
+    let db_ids_to_clean = databases.iter().map(|db| db.id).collect::<Vec<_>>();
     let db_containers_to_delete = databases
         .into_iter()
         .map(|db| db.container_name)
         .collect::<Vec<_>>();
+
+    // Get all serverless functions in the project (their K8s services live in the workspace namespace)
+    let serverless_names = sqlx::query!(
+        "SELECT name FROM serverless_functions WHERE project_id = $1",
+        project.id
+    )
+    .fetch_all(&state.pool)
+    .await?
+    .into_iter()
+    .map(|f| f.name)
+    .collect::<Vec<_>>();
 
     // Delete Kubernetes resources asynchronously
     tokio::spawn(async move {
@@ -186,8 +198,30 @@ pub async fn delete_project(
             for db_container in db_containers_to_delete {
                 let _ = crate::utils::k8s::K8sManager::delete_database(&k8s_client, &namespace, &db_container).await;
             }
+
+            // Tear down serverless functions (Knative service, ingress and proxy resources)
+            for fn_name in serverless_names {
+                let svc = format!("fn-{}", crate::controllers::serverless_controller::slugify(&fn_name));
+                let _ = crate::utils::k8s::K8sManager::delete_knative_service(&k8s_client, &namespace, &svc).await;
+                let _ = crate::utils::k8s::K8sManager::delete_ingress(&k8s_client, &namespace, &svc).await;
+
+                use kube::api::{Api, DeleteParams};
+                let configmaps: Api<k8s_openapi::api::core::v1::ConfigMap> = Api::namespaced(k8s_client.clone(), &namespace);
+                let _ = configmaps.delete(&format!("{}-proxy-config", svc), &DeleteParams::default()).await;
+                let deployments: Api<k8s_openapi::api::apps::v1::Deployment> = Api::namespaced(k8s_client.clone(), &namespace);
+                let _ = deployments.delete(&format!("{}-proxy", svc), &DeleteParams::default()).await;
+                let services: Api<k8s_openapi::api::core::v1::Service> = Api::namespaced(k8s_client.clone(), &namespace);
+                let _ = services.delete(&format!("{}-external", svc), &DeleteParams::default()).await;
+                let _ = services.delete(&format!("{}-proxy-svc", svc), &DeleteParams::default()).await;
+            }
         }
     });
+
+    // Remove physical database backup directories on host disk
+    for db_id in &db_ids_to_clean {
+        let db_backup_path = format!("/var/lib/hermes/backups/{}", db_id);
+        let _ = std::fs::remove_dir_all(db_backup_path);
+    }
 
     // Delete all dependent rows manually since there are no foreign key ON DELETE CASCADE on apps/databases
     let mut tx = state.pool.begin().await?;
@@ -204,9 +238,9 @@ pub async fn delete_project(
     .execute(&mut *tx)
     .await?;
 
-    // 2. Delete environment variables
+    // 2. Delete environment variables for every instance of every app in the project
     sqlx::query!(
-        "DELETE FROM environment_variables WHERE project_id = $1 OR app_instance_id IN (
+        "DELETE FROM environment_variables WHERE app_instance_id IN (
             SELECT id FROM app_instances WHERE app_id IN (
                 SELECT id FROM apps WHERE project_id = $1
             )

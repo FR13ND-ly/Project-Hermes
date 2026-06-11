@@ -90,9 +90,9 @@ pub async fn import_compose_stack(
             for (key, val) in env_map {
                 if let Ok((encrypted_val, generated_nonce)) = crate::utils::crypto::encrypt_env_value(&val) {
                     sqlx::query!(
-                        "INSERT INTO environment_variables (id, workspace_id, project_id, app_instance_id, key, encrypted_value, nonce, is_secret)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-                        Uuid::new_v4(), ws_id, payload.project_id, instance_id, key, encrypted_val, generated_nonce, false
+                        "INSERT INTO environment_variables (id, workspace_id, app_instance_id, key, encrypted_value, nonce, is_secret)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                        Uuid::new_v4(), ws_id, instance_id, key, encrypted_val, generated_nonce, false
                     )
                     .execute(&mut *tx)
                     .await?;

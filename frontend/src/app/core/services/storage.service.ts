@@ -63,10 +63,21 @@ export interface StorageObject {
 
 export interface CreateBucketRequest {
   name: string;
-  accessType: BucketAccessType;
+  projectId?: string;
   isPublic?: boolean;
   allowedFileTypes?: string[];
   maxBucketSizeBytes?: number;
+}
+
+// A PVC listed in the central Storage interface (auto-created at app build).
+export interface ProjectVolume {
+  id: string;
+  appId: string;
+  appName: string;
+  name: string;
+  containerPath: string;
+  hostPath: string;
+  isAuto: boolean;
 }
 
 export interface InitUploadRequest {
@@ -91,6 +102,11 @@ export class StorageService {
 
   listBuckets(): Observable<StorageBucket[]> {
     return this.api.get<StorageBucket[]>('/storage/buckets');
+  }
+
+  // PVCs (app volumes) across the project — created only at app build time.
+  listProjectVolumes(projectId: string): Observable<ProjectVolume[]> {
+    return this.api.get<ProjectVolume[]>(`/projects/${projectId}/volumes`);
   }
 
   createBucket(payload: CreateBucketRequest): Observable<StorageBucket> {

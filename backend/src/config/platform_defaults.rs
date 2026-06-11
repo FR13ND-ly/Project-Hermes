@@ -1,5 +1,5 @@
-pub const WORKSPACE_MAX_MEMORY_MB: i32 = 2048; 
-pub const WORKSPACE_MAX_STORAGE_GB: i32 = 10;  
+pub const WORKSPACE_MAX_MEMORY_MB: i32 = 0; 
+pub const WORKSPACE_MAX_STORAGE_GB: i32 = 0;  
 
 pub const DEFAULT_EMAIL_NOTIFICATIONS: bool = true;
 

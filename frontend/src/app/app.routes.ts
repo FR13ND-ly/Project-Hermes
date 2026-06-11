@@ -14,16 +14,16 @@ export const routes: Routes = [
         loadChildren: () => import('./pages/projects/projects-routes').then(m => m.ProjectsModule)
     },
     {
-        path: 'workspace/environments',
-        loadComponent: () => import('./pages/workspace/environments/environments').then(m => m.WorkspaceEnvironments)
-    },
-    {
         path: 'workspace/settings',
         loadComponent: () => import('./pages/workspace/settings/settings').then(m => m.WorkspaceSettings)
     },
     {
         path: 'admin/users',
         loadComponent: () => import('./pages/admin/users/users').then(m => m.AdminUsers)
+    },
+    {
+        path: 'admin/workspaces',
+        loadComponent: () => import('./pages/admin/workspaces/workspaces').then(m => m.AdminWorkspaces)
     },
     {
         path: '**',

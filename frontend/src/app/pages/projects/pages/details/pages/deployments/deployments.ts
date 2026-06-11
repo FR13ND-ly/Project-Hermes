@@ -24,7 +24,8 @@ export class Deployments implements OnInit, OnDestroy {
   readonly sseConnected = signal(false);
   readonly autoScroll = signal(true);
 
-  private eventSource: EventSource | null = null;
+  private logsSocket: WebSocket | null = null;
+  private logsReconnectTimer: any = null;
   private connectedInstanceId: string | null = null;
 
   constructor() {
@@ -73,36 +74,51 @@ export class Deployments implements OnInit, OnDestroy {
 
     this.disconnectLogs();
     this.connectedInstanceId = instanceId;
-    this.logs.set(['[Console] Se conectează la fluxul de logs Kubernetes...']);
+    this.logs.set(['[Console] Se conectează la fluxul de logs (WebSocket)...']);
 
-    const streamUrl = this.projectService.getLogsStreamUrl(appId, instanceId);
-    this.eventSource = new EventSource(streamUrl);
+    const wsUrl = this.projectService.getLogsWsUrl(appId, instanceId);
+    const socket = new WebSocket(wsUrl);
+    this.logsSocket = socket;
 
-    this.eventSource.onopen = () => {
+    socket.onopen = () => {
       this.sseConnected.set(true);
-      this.logs.update(lines => [...lines, '[Console] Conexiune stabilă. Recepționare logs în timp real:']);
+      this.logs.update(lines => [...lines, '[Console] Conexiune WebSocket stabilă. Recepționare logs în timp real:']);
     };
 
-    this.eventSource.onmessage = (event) => {
+    socket.onmessage = (event) => {
       if (event.data) {
-        this.logs.update(lines => [...lines, event.data]);
+        this.logs.update(lines => [...lines, event.data as string]);
         if (this.autoScroll()) {
           this.scrollToBottom();
         }
       }
     };
 
-    this.eventSource.onerror = () => {
+    socket.onclose = () => {
+      if (this.logsSocket !== socket) return;
       this.sseConnected.set(false);
-      this.logs.update(lines => [...lines, '[Aviz] Conexiunea la stream a fost întreruptă. Se încearcă reconectarea...']);
-      this.disconnectLogs();
+      this.logs.update(lines => [...lines, '[Aviz] Conexiunea la stream a fost întreruptă. Se reconectează...']);
+      this.logsReconnectTimer = setTimeout(() => {
+        if (this.logsSocket === socket && this.connectedInstanceId === instanceId) {
+          this.connectLogs(instanceId);
+        }
+      }, 2500);
+    };
+
+    socket.onerror = () => {
+      this.sseConnected.set(false);
     };
   }
 
   disconnectLogs(): void {
-    if (this.eventSource) {
-      this.eventSource.close();
-      this.eventSource = null;
+    if (this.logsReconnectTimer) {
+      clearTimeout(this.logsReconnectTimer);
+      this.logsReconnectTimer = null;
+    }
+    if (this.logsSocket) {
+      const sock = this.logsSocket;
+      this.logsSocket = null;
+      try { sock.close(); } catch { /* ignore */ }
     }
     this.connectedInstanceId = null;
     this.sseConnected.set(false);

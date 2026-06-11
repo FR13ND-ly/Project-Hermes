@@ -9,8 +9,9 @@ use crate::controllers::volume_controller;
 use crate::middlewares::permission_middleware::{check_permission, RequiredPermission};
 
 pub fn routes(state: AppState) -> Router {
+    // Manual PVC creation is not allowed — PVCs are created only at build time
+    // from Dockerfile VOLUME directives. Only file operations remain here.
     let create_vol = Router::new()
-        .route("/volumes", post(volume_controller::create_volume))
         .route("/volumes/:volume_id/files/upload", post(volume_controller::upload_volume_file))
         .route("/volumes/:volume_id/files/mkdir", post(volume_controller::create_volume_directory))
         .layer(from_fn_with_state(state.clone(), check_permission))
@@ -18,6 +19,7 @@ pub fn routes(state: AppState) -> Router {
 
     let list_vol = Router::new()
         .route("/apps/:app_id/volumes", get(volume_controller::list_app_volumes))
+        .route("/projects/:project_id/volumes", get(volume_controller::list_project_volumes))
         .route("/volumes/:volume_id/files", get(volume_controller::list_volume_files))
         .route("/volumes/:volume_id/files/download", get(volume_controller::download_volume_file))
         .layer(from_fn_with_state(state.clone(), check_permission))

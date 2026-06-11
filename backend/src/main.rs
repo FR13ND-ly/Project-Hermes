@@ -29,6 +29,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     crate::utils::cron::start_auto_sleep_worker(pool.clone());
     crate::utils::cron::start_cron_scheduler_engine(pool.clone());
+    crate::utils::cron::start_auto_backup_worker(pool.clone());
     crate::utils::health::start_health_check_worker(pool.clone());
 
     info!("Executing schema migrations...");

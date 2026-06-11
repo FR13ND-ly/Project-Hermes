@@ -46,103 +46,46 @@ pub async fn create_bucket(
     }
 
     let base_domain = std::env::var("HERMES_BASE_DOMAIN").unwrap_or_else(|_| "hermes-host.vip".to_string());
-    let auto_fqdn = format!("{}.{}", slug, base_domain);
 
-    if payload.access_type == BucketAccessType::StaticWebsite {
-        let domain_exists = sqlx::query_scalar!(
-            "SELECT EXISTS(SELECT 1 FROM domains WHERE fqdn = $1)",
-            auto_fqdn
-        )
-        .fetch_one(&state.pool)
-        .await?
-        .unwrap_or(false);
-
-        if domain_exists {
-            return Err(AppError::Conflict(format!("The generated domain '{}' is already taken.", auto_fqdn)));
-        }
-    }
+    // Buckets are private-only now (no static-website / public-assets types).
+    let access_type = BucketAccessType::PrivateStorage;
 
     let mut tx = state.pool.begin().await?;
     let bucket_id = Uuid::new_v4();
-    let bucket_dir = StorageEngine::get_bucket_path(&ws_id.to_string(), &slug, &payload.access_type);
-    let path_str = bucket_dir.to_string_lossy().to_string();
+    let bucket_dir = StorageEngine::get_bucket_path(&ws_id.to_string(), &slug, &access_type);
 
     sqlx::query!(
-        "INSERT INTO storage_buckets (id, workspace_id, name, slug, access_type, is_public, max_bucket_size_bytes, default_processing_rules, created_by)
-         VALUES ($1, $2, $3, $4, $5::bucket_access_type, $6, $7, $8, $9)",
-        bucket_id, ws_id, payload.name.trim(), slug, payload.access_type as _, is_public, max_size, sqlx::types::Json(processing_rules.clone()) as _, claims.sub
+        "INSERT INTO storage_buckets (id, workspace_id, project_id, name, slug, access_type, is_public, max_bucket_size_bytes, default_processing_rules, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6::bucket_access_type, $7, $8, $9, $10)",
+        bucket_id, ws_id, payload.project_id, payload.name.trim(), slug, access_type as _, is_public, max_size, sqlx::types::Json(processing_rules.clone()) as _, claims.sub
     )
     .execute(&mut *tx)
     .await?;
 
-    let mut assigned_domain = None;
-
-    if payload.access_type == BucketAccessType::StaticWebsite {
-        let domain_id = Uuid::new_v4();
-        sqlx::query!(
-            "INSERT INTO domains (id, workspace_id, fqdn, routing_type, client_max_body_size, is_ssl, nginx_root_path, created_by) 
-             VALUES ($1, $2, $3, 'static_host'::domain_routing_type, 50, true, $4, $5)",
-            domain_id, ws_id, auto_fqdn, path_str, claims.sub
-        )
-        .execute(&mut *tx)
-        .await?;
-
-        let workspace = sqlx::query!(
-            "SELECT cloudflare_api_token, cloudflare_zone_id, ingress_ip FROM workspaces WHERE id = $1",
-            ws_id
-        )
-        .fetch_one(&mut *tx)
-        .await?;
-
-        let target_ip = match &workspace.ingress_ip {
-            Some(ip) if !ip.trim().is_empty() => ip.clone(),
-            _ => std::env::var("HERMES_INGRESS_IP").unwrap_or_else(|_| "127.0.0.1".to_string()),
-        };
-        let (cf_zone_id, cf_record_id) = crate::utils::cloudflare::create_dns_record(
-            &auto_fqdn, 
-            &target_ip, 
-            true,
-            workspace.cloudflare_api_token.as_deref(),
-            workspace.cloudflare_zone_id.as_deref()
-        ).await?;
-
-        fs::create_dir_all(&bucket_dir)
-            .map_err(|e| AppError::Infrastructure(format!("Failed to create bucket directory: {}", e)))?;
-
-        let cert_path = format!("/etc/ssl/hermes/{}.crt", auto_fqdn);
-        let key_path = format!("/etc/ssl/hermes/{}.key", auto_fqdn);
-
-        let final_nginx_content = crate::utils::nginx::NginxManager::deploy_site(
-            "static_host",
-            &auto_fqdn,
-            None,
-            Some(&path_str),
-            50,
-            true,
-            &cert_path,
-            &key_path,
-            None
-        )?;
-
-        sqlx::query!(
-            "UPDATE domains 
-             SET status = 'active'::domain_status, 
-                 cloudflare_zone_id = $1, 
-                 cloudflare_record_id = $2, 
-                 nginx_config_content = $3
-             WHERE id = $4",
-            cf_zone_id, cf_record_id, final_nginx_content, domain_id
-        )
-        .execute(&mut *tx)
-        .await?;
-
-        assigned_domain = Some(auto_fqdn);
-    } else {
-        fs::create_dir_all(&bucket_dir)
-            .map_err(|e| AppError::Infrastructure(format!("Failed to create bucket directory: {}", e)))?;
-    }
+    let assigned_domain: Option<String> = None;
+    fs::create_dir_all(&bucket_dir)
+        .map_err(|e| AppError::Infrastructure(format!("Failed to create bucket directory: {}", e)))?;
 
     tx.commit().await?;
+
+    // Publish the bucket's URL into the project env pool when scoped to a project.
+    if let Some(pid) = payload.project_id {
+        let in_workspace = sqlx::query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1 AND workspace_id = $2)",
+            pid, ws_id
+        )
+        .fetch_one(&state.pool)
+        .await?
+        .unwrap_or(false);
+        if in_workspace {
+            let bucket_url = format!("https://{}.{}", slug, base_domain);
+            let key = format!("BUCKET_{}_URL", crate::utils::app_env::sanitize_key_fragment(&slug, "STORAGE"));
+            let _ = crate::utils::app_env::publish_project_env(
+                &state.pool, ws_id, pid, &key, &bucket_url, false, "storage", bucket_id,
+            )
+            .await;
+        }
+    }
 
     Ok((
         StatusCode::CREATED,
@@ -150,7 +93,7 @@ pub async fn create_bucket(
             id: bucket_id,
             name: payload.name,
             slug,
-            access_type: payload.access_type,
+            access_type,
             is_public,
             assigned_domain,
             allowed_file_types: payload.allowed_file_types,
@@ -534,59 +477,13 @@ pub async fn download_private_file(
 
 fn calculate_virtual_url(
     object_id: Uuid,
-    file_path: &str,
-    bucket_slug: &str,
-    workspace_id: Uuid,
-    access_type: &BucketAccessType,
+    _file_path: &str,
+    _bucket_slug: &str,
+    _workspace_id: Uuid,
+    _access_type: &BucketAccessType,
 ) -> String {
-    let base_domain = std::env::var("HERMES_BASE_DOMAIN").unwrap_or_else(|_| "hermes-host.vip".to_string());
-    let provider = std::env::var("STORAGE_PROVIDER").unwrap_or_else(|_| "local".to_string());
-    
-    if provider == "s3" {
-        let s3_bucket_name = std::env::var("S3_BUCKET").unwrap_or_default();
-        let s3_endpoint = std::env::var("S3_ENDPOINT").unwrap_or_default();
-        let s3_region = std::env::var("AWS_REGION").unwrap_or_else(|_| "us-east-1".to_string());
-        
-        match access_type {
-            BucketAccessType::PublicAssets => {
-                if !s3_endpoint.is_empty() {
-                    let clean_endpoint = s3_endpoint.trim_end_matches('/');
-                    format!("{}/{}/hermes/{}/{}/{}", clean_endpoint, s3_bucket_name, workspace_id, bucket_slug, file_path)
-                } else {
-                    format!("https://{}.s3.{}.amazonaws.com/hermes/{}/{}/{}", s3_bucket_name, s3_region, workspace_id, bucket_slug, file_path)
-                }
-            }
-            BucketAccessType::StaticWebsite => {
-                if !s3_endpoint.is_empty() {
-                    let clean_endpoint = s3_endpoint.trim_end_matches('/');
-                    format!("{}/{}/hermes/{}/{}/index.html", clean_endpoint, s3_bucket_name, workspace_id, bucket_slug)
-                } else {
-                    format!("https://{}.s3.{}.amazonaws.com/hermes/{}/{}/index.html", s3_bucket_name, s3_region, workspace_id, bucket_slug)
-                }
-            }
-            _ => format!("/api/v1/storage/private/{}", object_id),
-        }
-    } else {
-        match access_type {
-            BucketAccessType::StaticWebsite => {
-                if base_domain.contains("localhost") || base_domain.contains("127.0.0.1") || base_domain == "hermes-host.vip" {
-                    let port = std::env::var("PORT").unwrap_or_else(|_| "8000".to_string());
-                    format!("http://localhost:{}/storage/assets/{}/{}/index.html", port, workspace_id, bucket_slug)
-                } else {
-                    format!("https://{}.{}", bucket_slug, base_domain)
-                }
-            }
-            BucketAccessType::PublicAssets => {
-                if base_domain.contains("localhost") || base_domain.contains("127.0.0.1") || base_domain == "hermes-host.vip" {
-                    let port = std::env::var("PORT").unwrap_or_else(|_| "8000".to_string());
-                    format!("http://localhost:{}/storage/assets/{}/{}/{}", port, workspace_id, bucket_slug, file_path)
-                } else {
-                    format!("https://api.{}/storage/assets/{}/{}/{}", base_domain, workspace_id, bucket_slug, file_path)
-                }
-            }
-            _ => format!("/api/v1/storage/private/{}", object_id),
-        }
-    }
+    // All buckets are private now — access is always via the tokenized API route.
+    format!("/api/v1/storage/private/{}", object_id)
 }
 
 pub async fn list_buckets(
@@ -607,12 +504,7 @@ pub async fn list_buckets(
     let response = buckets
         .into_iter()
         .map(|b| {
-            let assigned_domain = if b.access_type == BucketAccessType::StaticWebsite {
-                let base_domain = std::env::var("HERMES_BASE_DOMAIN").unwrap_or_else(|_| "hermes-host.vip".to_string());
-                Some(format!("{}.{}", b.slug, base_domain))
-            } else {
-                None
-            };
+            let assigned_domain: Option<String> = None;
             BucketResponse {
                 id: b.id,
                 name: b.name,
@@ -669,41 +561,15 @@ pub async fn delete_bucket(
 
     StorageEngine::delete_bucket_physical(&ws_id.to_string(), &bucket.slug, &bucket.access_type).await?;
 
-    if bucket.access_type == BucketAccessType::StaticWebsite {
-        let base_domain = std::env::var("HERMES_BASE_DOMAIN").unwrap_or_else(|_| "hermes-host.vip".to_string());
-        let auto_fqdn = format!("{}.{}", bucket.slug, base_domain);
-
-        let domain_info = sqlx::query!(
-            "SELECT id, cloudflare_zone_id, cloudflare_record_id FROM domains WHERE fqdn = $1 AND workspace_id = $2",
-            auto_fqdn, ws_id
-        )
-        .fetch_optional(&state.pool)
-        .await?;
-
-        if let Some(d) = domain_info {
-            if let (Some(zone_id), Some(record_id)) = (d.cloudflare_zone_id, d.cloudflare_record_id) {
-                let workspace = sqlx::query!(
-                    "SELECT cloudflare_api_token FROM workspaces WHERE id = $1",
-                    ws_id
-                )
-                .fetch_one(&state.pool)
-                .await?;
-
-                let _ = crate::utils::cloudflare::delete_dns_record(
-                    &zone_id, 
-                    &record_id,
-                    workspace.cloudflare_api_token.as_deref()
-                ).await;
-            }
-            let _ = sqlx::query!("DELETE FROM domains WHERE id = $1", d.id)
-                .execute(&state.pool)
-                .await?;
-        }
-    }
-
     sqlx::query!("DELETE FROM storage_buckets WHERE id = $1", bucket_id)
         .execute(&state.pool)
         .await?;
+
+    // Remove the bucket's published project-pool var and reload any linked apps.
+    let linked = crate::utils::app_env::unpublish_project_env(&state.pool, "storage", bucket_id).await;
+    for inst in linked {
+        crate::controllers::env_variable_controller::hot_reload_if_running(&state.pool, inst);
+    }
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -809,8 +675,8 @@ pub async fn serve_public_file(
     Query(params): Query<std::collections::HashMap<String, String>>,
     Path((workspace_id, bucket_slug, file_path)): Path<(Uuid, String, String)>,
 ) -> Result<axum::response::Response, AppError> {
-    let (bucket_id, access_type): (Uuid, BucketAccessType) = sqlx::query_as(
-        "SELECT id, access_type FROM storage_buckets WHERE workspace_id = $1 AND slug = $2"
+    let bucket_id: Uuid = sqlx::query_scalar(
+        "SELECT id FROM storage_buckets WHERE workspace_id = $1 AND slug = $2"
     )
     .bind(workspace_id)
     .bind(&bucket_slug)
@@ -818,7 +684,8 @@ pub async fn serve_public_file(
     .await?
     .ok_or_else(|| AppError::NotFound("Storage bucket not found.".to_string()))?;
 
-    if access_type != BucketAccessType::PublicAssets && access_type != BucketAccessType::StaticWebsite {
+    // All buckets are private — a valid token is always required.
+    {
         let token = params.get("token").ok_or_else(|| {
             AppError::Permission("Access denied to private storage bucket. Missing token.".to_string())
         })?;
@@ -878,7 +745,7 @@ pub async fn serve_public_file(
         found.ok_or_else(|| AppError::NotFound("Requested variant file not found.".to_string()))?
     };
 
-    let bucket_dir = StorageEngine::get_bucket_path(&workspace_id.to_string(), &bucket_slug, &access_type);
+    let bucket_dir = StorageEngine::get_bucket_path(&workspace_id.to_string(), &bucket_slug, &BucketAccessType::PrivateStorage);
     let full_disk_path = bucket_dir.join(&variant_file_path);
 
     let file = tokio::fs::File::open(&full_disk_path)
@@ -921,7 +788,8 @@ pub async fn update_bucket(
     .ok_or_else(|| AppError::NotFound("Storage bucket not found.".to_string()))?;
 
     let name = payload.name.unwrap_or(bucket.name);
-    let access_type = payload.access_type.unwrap_or(bucket.access_type);
+    // Buckets are private-only; the access type can no longer be changed.
+    let access_type = BucketAccessType::PrivateStorage;
     let is_public = payload.is_public.unwrap_or(bucket.is_public);
     let allowed_file_types = payload.allowed_file_types.or(bucket.allowed_file_types);
     let max_size = payload.max_bucket_size_bytes.unwrap_or(bucket.max_bucket_size_bytes);
@@ -936,12 +804,7 @@ pub async fn update_bucket(
     .execute(&state.pool)
     .await?;
 
-    let assigned_domain = if access_type == BucketAccessType::StaticWebsite {
-        let base_domain = std::env::var("HERMES_BASE_DOMAIN").unwrap_or_else(|_| "hermes-host.vip".to_string());
-        Some(format!("{}.{}", bucket.slug, base_domain))
-    } else {
-        None
-    };
+    let assigned_domain: Option<String> = None;
 
     Ok(Json(BucketResponse {
         id: bucket_id,

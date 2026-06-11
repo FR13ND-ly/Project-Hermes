@@ -8,7 +8,7 @@ use crate::models::storage_model::{StorageStatus, CompressionType, ImageVariant,
 #[serde(rename_all = "camelCase")]
 pub struct CreateBucketRequest {
     pub name: String,
-    pub access_type: BucketAccessType,
+    pub project_id: Option<Uuid>,
     pub is_public: Option<bool>,
     pub allowed_file_types: Option<Vec<String>>,
     pub max_bucket_size_bytes: Option<i64>,

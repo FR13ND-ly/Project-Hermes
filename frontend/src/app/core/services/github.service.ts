@@ -21,12 +21,19 @@ export interface GithubBranch {
   name: string;
 }
 
+export interface DetectedEnvVar {
+  key: string;
+  value: string;
+}
+
 export interface ProjectDetectionResponse {
   projectType: string;
   buildCommand: string;
   startCommand: string;
   internalPort: number;
   description: string;
+  detectedEnvs?: DetectedEnvVar[];
+  subdirectories?: string[];
 }
 
 @Injectable({

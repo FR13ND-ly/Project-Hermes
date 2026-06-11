@@ -83,8 +83,8 @@
                   Stop
                 }
               </button>
-            } @else if (getSelectedInstance()?.status === 'stopped') {
-              <button 
+            } @else if (getSelectedInstance()?.status === 'stopped' || getSelectedInstance()?.status === 'crashed' || getSelectedInstance()?.status === 'failed') {
+              <button
                 (click)="onStartInstance()"
                 [disabled]="startingInstance()"
                 class="px-3 py-1.5 rounded bg-emerald-950/20 border border-emerald-900/30 hover:border-emerald-900/50 hover:bg-emerald-950/35 text-emerald-450 text-xs font-bold cursor-pointer transition-all flex items-center gap-1.5 font-mono disabled:opacity-55"
@@ -104,15 +104,6 @@
               </button>
             }
 
-            <button 
-              (click)="onOpenAddDomainModal()"
-              class="px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 font-mono"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-400">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              Asociază Domeniu
-            </button>
           }
 
           <!-- Sub-tab selector menu -->
@@ -131,26 +122,26 @@
             >
               Logs & Consolă
             </button>
-            <button 
+            <button
+              (click)="onSubTabChange('general')"
+              class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
+              [class]="activeSubTab() === 'general' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
+            >
+              General
+            </button>
+            <button
               (click)="onSubTabChange('env')"
               class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
               [class]="activeSubTab() === 'env' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
             >
               Variabile Mediu
             </button>
-            <button 
-              (click)="onSubTabChange('settings')"
+            <button
+              (click)="onSubTabChange('advanced')"
               class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
-              [class]="activeSubTab() === 'settings' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
+              [class]="activeSubTab() === 'advanced' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
             >
-              Setări
-            </button>
-            <button 
-              (click)="onSubTabChange('volumes')"
-              class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
-              [class]="activeSubTab() === 'volumes' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
-            >
-              Volume Stocare
+              Avansat
             </button>
           </div>
         </div>
@@ -204,16 +195,21 @@
                 </div>
 
                 <!-- Range -->
-                <div class="flex items-center rounded bg-black border border-zinc-800 p-0.5 font-mono text-[9px]">
-                  @for (r of ['1h', '24h', '7d']; track r) {
-                    <button 
-                      (click)="onRangeChange(r)"
-                      class="px-2 py-0.5 rounded text-zinc-500 hover:text-zinc-300 cursor-pointer font-semibold transition-colors uppercase"
-                      [ngClass]="{'bg-zinc-900 text-white!': selectedRange() === r}"
-                    >
-                      {{ r }}
-                    </button>
+                <div class="flex items-center gap-2">
+                  @if (metricsSimulated()) {
+                    <span class="px-1.5 py-0.5 rounded bg-amber-950/30 border border-amber-900/40 text-[8px] font-bold uppercase tracking-wider text-amber-400" title="Prometheus indisponibil — valori demonstrative, nu reale">Date simulate</span>
                   }
+                  <div class="flex items-center rounded bg-black border border-zinc-800 p-0.5 font-mono text-[9px]">
+                    @for (r of ['1h', '24h', '7d']; track r) {
+                      <button
+                        (click)="onRangeChange(r)"
+                        class="px-2 py-0.5 rounded text-zinc-500 hover:text-zinc-300 cursor-pointer font-semibold transition-colors uppercase"
+                        [ngClass]="{'bg-zinc-900 text-white!': selectedRange() === r}"
+                      >
+                        {{ r }}
+                      </button>
+                    }
+                  </div>
                 </div>
               </div>
             </div>
@@ -235,9 +231,13 @@
                 <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
                   <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
                     <span>Utilizare CPU (Milicores)</span>
-                    @if (cpuValues().length > 0) {
-                      <span class="text-white font-mono font-bold">{{ cpuValues()[cpuValues().length - 1] | number:'1.0-1' }}m</span>
-                    }
+                    <span class="text-white font-mono font-bold">{{ cpuCurrent() | number:'1.0-1' }}m / @if (cpuLimit() === 0) { Nelimitat } @else { {{ cpuLimit() }}m }</span>
+                  </div>
+                  <div class="space-y-1">
+                    <div class="w-full h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+                      <div class="h-full transition-all" [class]="cpuUsedPct() >= 90 ? 'bg-red-500' : 'bg-emerald-500'" [style.width.%]="cpuUsedPct()"></div>
+                    </div>
+                    <div class="text-[9px] text-zinc-600 font-mono text-right">@if (cpuLimit() === 0) { Nelimitat } @else { {{ cpuUsedPct() }}% din cota alocată }</div>
                   </div>
                   <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[120px] relative">
                     @if (cpuValues().length > 1) {
@@ -261,9 +261,13 @@
                 <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
                   <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
                     <span>Utilizare Memorie RAM</span>
-                    @if (memValues().length > 0) {
-                      <span class="text-white font-mono font-bold">{{ memValues()[memValues().length - 1] | number:'1.0-1' }} MB</span>
-                    }
+                    <span class="text-white font-mono font-bold">{{ memCurrent() | number:'1.0-1' }} / @if (memLimit() === 0) { Nelimitat } @else { {{ memLimit() }} MB }</span>
+                  </div>
+                  <div class="space-y-1">
+                    <div class="w-full h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+                      <div class="h-full transition-all" [class]="memUsedPct() >= 90 ? 'bg-red-500' : 'bg-emerald-500'" [style.width.%]="memUsedPct()"></div>
+                    </div>
+                    <div class="text-[9px] text-zinc-600 font-mono text-right">@if (memLimit() === 0) { Nelimitat } @else { {{ memUsedPct() }}% din cota alocată }</div>
                   </div>
                   <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[120px] relative">
                     @if (memValues().length > 1) {
@@ -399,6 +403,103 @@
 
     <!-- SUB-TAB 2: LOGS & CONSOLE -->
     @if (activeSubTab() === 'logs') {
+      <!-- Build lifecycle stepper -->
+      @if (displayBuild(); as build) {
+        <div class="bg-[#0a0a0a] p-4 rounded-lg border mb-4 animate-fade-in font-mono"
+             [class]="isBuildFailed(build) ? 'border-red-900/40' : 'border-zinc-800'">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Ciclu de Viață Build</h3>
+            <div class="flex items-center gap-3">
+              <span class="text-[9px] font-mono text-zinc-600">{{ build.branchName }} · {{ build.id.substring(0, 8) }}</span>
+              @if (isBuildInProgress(build)) {
+                <button
+                  (click)="onCancelBuild(build)"
+                  [disabled]="cancellingBuild()"
+                  class="px-2.5 py-1 rounded border border-red-900/40 bg-red-950/20 hover:bg-red-950/40 text-red-400 text-[10px] font-bold transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  @if (cancellingBuild()) {
+                    <svg class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                  } @else {
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  }
+                  Anulează
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1 px-1">
+            @for (step of buildPhaseSteps; track step.key; let i = $index; let last = $last) {
+              <div class="flex flex-col items-center gap-1.5 shrink-0 w-16">
+                <div
+                  class="w-6 h-6 rounded-full flex items-center justify-center border text-[9px] font-bold transition-all duration-300"
+                  [ngClass]="{
+                    'bg-emerald-500 border-emerald-500 text-black': !isBuildFailed(build) && stepState(build, i) === 'done',
+                    'bg-amber-500 border-amber-500 text-black animate-pulse': !isBuildFailed(build) && stepState(build, i) === 'active',
+                    'bg-zinc-900 border-zinc-800 text-zinc-600': isBuildFailed(build) || stepState(build, i) === 'pending'
+                  }"
+                >
+                  @if (!isBuildFailed(build) && stepState(build, i) === 'done') {
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-3 h-3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  } @else {
+                    {{ i + 1 }}
+                  }
+                </div>
+                <span
+                  class="text-[8px] font-mono uppercase tracking-wider text-center leading-tight"
+                  [class]="(!isBuildFailed(build) && stepState(build, i) !== 'pending') ? 'text-zinc-300' : 'text-zinc-600'"
+                >{{ step.label }}</span>
+              </div>
+              @if (!last) {
+                <div class="h-px flex-1 mb-4 transition-colors duration-300"
+                     [class]="(!isBuildFailed(build) && stepState(build, i) === 'done') ? 'bg-emerald-600' : 'bg-zinc-800'"></div>
+              }
+            }
+          </div>
+
+          @if (isBuildFailed(build)) {
+            <div class="mt-4 p-3 rounded border border-red-900/40 bg-red-950/20 flex items-start gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" class="w-4 h-4 text-red-400 shrink-0 mt-0.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              </svg>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] font-bold text-red-400 uppercase tracking-wider">{{ buildOutcomeLabel(build) }}</span>
+                  @if (build.failureCategory) {
+                    <span class="px-1.5 py-0.2 rounded bg-red-950/40 border border-red-900/40 text-[8px] font-bold text-red-400 font-mono uppercase">{{ build.failureCategory }}</span>
+                  }
+                </div>
+                <div class="text-[11px] text-red-300/80 mt-0.5 font-sans">{{ build.failureReason || 'Cauză necunoscută — consultă log-urile de mai jos pentru detalii.' }}</div>
+              </div>
+              <button
+                (click)="onRetryBuild(build)"
+                [disabled]="retryingBuild()"
+                class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-bold shadow transition-all cursor-pointer disabled:opacity-50 shrink-0 flex items-center gap-1.5"
+              >
+                @if (retryingBuild()) {
+                  <svg class="animate-spin h-3 w-3 text-black" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  </svg>
+                }
+                Reîncearcă
+              </button>
+            </div>
+          }
+        </div>
+      }
+
       <div class="grid gap-4 lg:grid-cols-3 animate-fade-in font-mono">
         
         <!-- Sidebar Selector (Live stdout + Build History) -->
@@ -478,7 +579,8 @@
                           class="px-1.5 py-0.2 rounded text-[8px] font-bold border shrink-0 uppercase"
                           [class]="
                             build.status === 'succeeded' ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-400' :
-                            build.status === 'failed' ? 'bg-red-950/20 border-red-900/30 text-red-400' :
+                            (build.status === 'failed' || build.status === 'crashed') ? 'bg-red-950/20 border-red-900/30 text-red-400' :
+                            build.status === 'timed_out' ? 'bg-amber-950/20 border-amber-900/30 text-amber-400' :
                             'bg-zinc-900 border-zinc-800 text-zinc-450'
                           "
                         >
@@ -545,8 +647,29 @@
                 </svg>
               </button>
 
+              @if (isBuildSucceeded(selectedBuild())) {
+                <button
+                  (click)="onRollbackBuild(selectedBuild()!)"
+                  [disabled]="rollingBackId() === selectedBuild()!.id"
+                  title="Redeployează imaginea acestui build"
+                  class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border border-zinc-700 bg-black hover:border-zinc-400 text-zinc-300 hover:text-white transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  @if (rollingBackId() === selectedBuild()!.id) {
+                    <svg class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                  } @else {
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                    </svg>
+                  }
+                  Rollback
+                </button>
+              }
+
               @if (selectedBuildId()) {
-                <button 
+                <button
                   (click)="onBackToLiveLogs()"
                   class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase transition-all bg-white hover:bg-zinc-200 text-black shadow cursor-pointer border border-white"
                 >
@@ -593,20 +716,104 @@
     <!-- SUB-TAB 3: ENVIRONMENT VARIABLES -->
     @if (activeSubTab() === 'env') {
       <div class="space-y-6 animate-fade-in font-mono">
-        
+
         <div class="flex items-center justify-between border-b border-zinc-900 pb-3">
           <div>
-            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Variabile de Mediu specifice Aplicației</h3>
-            <p class="text-[10px] text-zinc-550 mt-0.5">Definire cotele locale și secrete moștenite din proiect</p>
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Variabile de Mediu</h3>
+            <p class="text-[10px] text-zinc-550 mt-0.5">Injectate în instanța selectată a aplicației</p>
           </div>
-          
-          <button 
-            (click)="showCreateEnvForm.set(!showCreateEnvForm())"
-            class="px-2.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5"
-          >
-            {{ showCreateEnvForm() ? 'Închide Formular' : 'Adaugă Variabilă' }}
-          </button>
+
+          <div class="flex items-center gap-2">
+            <button
+              (click)="toggleProjectEnvSelector()"
+              class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold transition-all cursor-pointer"
+            >
+              {{ showProjectEnvSelector() ? 'Închide' : 'Din Proiect' }}
+            </button>
+            <button
+              (click)="openJsonEditor()"
+              class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold transition-all cursor-pointer"
+            >
+              Editează ca JSON
+            </button>
+            <button
+              (click)="showCreateEnvForm.set(!showCreateEnvForm())"
+              class="px-2.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer"
+            >
+              {{ showCreateEnvForm() ? 'Închide' : 'Adaugă Variabilă' }}
+            </button>
+          </div>
         </div>
+
+        <!-- Project-pool selector: opt this instance into shared project vars -->
+        @if (showProjectEnvSelector()) {
+          <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-3 shadow-sm animate-fade-in">
+            <div class="border-b border-zinc-900 pb-2.5">
+              <h4 class="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">Variabile din Pool-ul Proiectului</h4>
+              <p class="text-[9px] text-zinc-550 mt-0.5">Conectează variabile partajate la nivel de proiect (referință vie — schimbările se propagă automat).</p>
+            </div>
+            @if (availableProjectEnv().length === 0) {
+              <p class="text-[10px] text-zinc-600 py-2">Niciun env la nivel de proiect. Adaugă-le din tab-ul „Environments" al proiectului.</p>
+            } @else {
+              <div class="divide-y divide-zinc-900">
+                @for (env of availableProjectEnv(); track env.id) {
+                  <div class="flex items-center justify-between gap-3 py-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span class="font-mono text-xs text-white truncate">{{ env.key }}</span>
+                      @if (env.source !== 'manual') {
+                        <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 shrink-0">{{ env.source }}</span>
+                      }
+                      @if (env.isSecret) {
+                        <span class="text-[8px] uppercase text-zinc-600 shrink-0">secret</span>
+                      }
+                    </div>
+                    <button
+                      (click)="onToggleProjectEnvLink(env)"
+                      [disabled]="togglingLinkId() === env.id"
+                      [class]="env.linked
+                        ? 'px-2.5 py-1 rounded text-[10px] font-semibold border border-emerald-900/50 bg-emerald-950/30 text-emerald-400 hover:bg-emerald-950/50 cursor-pointer disabled:opacity-50 shrink-0'
+                        : 'px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 cursor-pointer disabled:opacity-50 shrink-0'"
+                    >
+                      {{ env.linked ? 'Conectată ✓' : 'Conectează' }}
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <!-- JSON Editor -->
+        @if (jsonEditMode()) {
+          <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-3 shadow-sm">
+            <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+              <h4 class="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">Editor JSON (.env)</h4>
+              <span class="text-[9px] text-amber-500/80">Rescrie TOATE variabilele instanței · secretele nu sunt afișate</span>
+            </div>
+            <textarea
+              rows="12"
+              [ngModel]="jsonText()"
+              (ngModelChange)="jsonText.set($event)"
+              spellcheck="false"
+              class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-zinc-200 focus:outline-none focus:border-zinc-500 transition-colors font-mono resize-y"
+            ></textarea>
+            <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
+              <button
+                (click)="closeJsonEditor()"
+                class="px-3 py-1.5 rounded text-zinc-400 hover:text-white text-xs font-semibold border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer"
+              >
+                Anulează
+              </button>
+              <button
+                (click)="saveJsonEnvs()"
+                [disabled]="savingJson()"
+                class="px-3.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
+              >
+                {{ savingJson() ? 'Se salvează...' : 'Aplică JSON' }}
+              </button>
+            </div>
+          </div>
+        }
 
         <!-- Add Variable Form -->
         @if (showCreateEnvForm()) {
@@ -614,10 +821,10 @@
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="space-y-1.5">
                 <label for="env-key-in" class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Cheie</label>
-                <input 
+                <input
                   id="env-key-in"
-                  type="text" 
-                  placeholder="ex. API_KEY" 
+                  type="text"
+                  placeholder="ex. API_KEY"
                   [ngModel]="envKey()"
                   (ngModelChange)="envKey.set($event)"
                   class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors uppercase font-bold"
@@ -625,10 +832,10 @@
               </div>
               <div class="space-y-1.5">
                 <label for="env-val-in" class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Valoare</label>
-                <input 
+                <input
                   id="env-val-in"
-                  type="text" 
-                  placeholder="ex. secret_value_123" 
+                  type="text"
+                  placeholder="ex. secret_value_123"
                   [ngModel]="envVal()"
                   (ngModelChange)="envVal.set($event)"
                   class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
@@ -636,49 +843,28 @@
               </div>
             </div>
 
-            <div class="flex flex-wrap gap-4 items-center justify-between pt-2">
-              <div class="flex items-center gap-4">
-                <div class="flex items-center gap-2">
-                  <input 
-                    id="secret-chk"
-                    type="checkbox" 
-                    [checked]="isSecret()"
-                    (change)="isSecret.set(!isSecret())"
-                    class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
-                  />
-                  <label for="secret-chk" class="text-[10px] font-semibold text-zinc-400 cursor-pointer select-none">Variabilă Secretă (Criptată)</label>
-                </div>
+            <div class="space-y-1 pt-1">
+              <div class="flex items-center gap-2">
+                <input
+                  id="secret-chk"
+                  type="checkbox"
+                  [checked]="isSecret()"
+                  (change)="isSecret.set(!isSecret())"
+                  class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
+                />
+                <label for="secret-chk" class="text-[10px] font-semibold text-zinc-400 cursor-pointer select-none">Variabilă Secretă (Criptată)</label>
               </div>
-
-              <!-- Scope and Target selection -->
-              <div class="flex items-center gap-3">
-                <div class="relative">
-                  <select 
-                    [ngModel]="saveEnvTarget()"
-                    (ngModelChange)="saveEnvTarget.set($event)"
-                    class="bg-black border border-zinc-800 text-zinc-400 text-[10px] font-semibold py-1 pl-2 pr-6 rounded focus:outline-none appearance-none cursor-pointer"
-                  >
-                    <option value="app">Doar Aplicație</option>
-                    <option value="project">Moștenită la Proiect (Toate)</option>
-                  </select>
-                </div>
-                <div class="relative">
-                  <select 
-                    [ngModel]="envScope()"
-                    (ngModelChange)="envScope.set($event)"
-                    class="bg-black border border-zinc-800 text-zinc-400 text-[10px] font-semibold py-1 pl-2 pr-6 rounded focus:outline-none appearance-none cursor-pointer"
-                  >
-                    <option value="all">Toate Mediile</option>
-                    <option value="production">Prod</option>
-                    <option value="staging">Staging</option>
-                    <option value="preview">Preview</option>
-                  </select>
-                </div>
-              </div>
+              <p class="text-[9px] text-zinc-600 pl-6 leading-relaxed">
+                @if (isSecret()) {
+                  Disponibilă doar la <strong>runtime</strong> (injectată ca secret în container).
+                } @else {
+                  Disponibilă la <strong>runtime</strong> și la <strong>build</strong> (ex. VITE_*, NEXT_PUBLIC_* pentru aplicații frontend).
+                }
+              </p>
             </div>
 
             <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
-              <button 
+              <button
                 (click)="onSaveEnv()"
                 [disabled]="settingEnv() || !envKey().trim() || !envVal().trim()"
                 class="px-3.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
@@ -704,20 +890,14 @@
                 <tr class="border-b border-zinc-900 text-zinc-500 font-bold bg-black uppercase tracking-wider text-[9px]">
                   <th class="p-3.5">Cheie</th>
                   <th class="p-3.5">Valoare</th>
-                  <th class="p-3.5">Nivel Alocare</th>
-                  <th class="p-3.5">Scope</th>
+                  <th class="p-3.5">Tip</th>
                   <th class="p-3.5 text-right">Acțiuni</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-zinc-900">
                 @for (env of envVariables(); track env.id) {
-                  <tr class="hover:bg-zinc-950/20 transition-colors" [class.opacity-45]="isOverridden(env)">
-                    <td class="p-3.5 font-bold font-mono text-zinc-300">
-                      {{ env.key }}
-                      @if (isOverridden(env)) {
-                        <span class="ml-1.5 px-1 py-0.2 bg-red-950/20 border border-red-900/30 text-red-500 rounded text-[8px] font-bold uppercase tracking-wider">Suprascrisă</span>
-                      }
-                    </td>
+                  <tr class="hover:bg-zinc-950/20 transition-colors">
+                    <td class="p-3.5 font-bold font-mono text-zinc-300">{{ env.key }}</td>
                     <td class="p-3.5 text-zinc-400 font-mono">
                       @if (env.isSecret && !revealedEnvIds()[env.id]) {
                         <span>••••••••••••••••</span>
@@ -725,17 +905,16 @@
                         <span class="select-all">{{ env.value || '••••••••' }}</span>
                       }
                     </td>
-                    <td class="p-3.5 text-zinc-500 font-mono">
-                      @if (env.appInstanceId) {
-                        <span class="px-1.5 py-0.2 bg-indigo-950/20 border border-indigo-900/30 text-indigo-400 rounded text-[9px] font-bold">Specific Aplicație</span>
+                    <td class="p-3.5">
+                      @if (env.isSecret) {
+                        <span class="px-1.5 py-0.2 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded text-[9px] font-bold uppercase">Secret</span>
                       } @else {
-                        <span class="px-1.5 py-0.2 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded text-[9px] font-bold">Moștenit din Proiect</span>
+                        <span class="px-1.5 py-0.2 bg-zinc-950 border border-zinc-850 text-zinc-600 rounded text-[9px] font-bold uppercase">Plaintext</span>
                       }
                     </td>
-                    <td class="p-3.5 text-zinc-500 font-mono text-[9px] uppercase font-bold">{{ env.scope }}</td>
                     <td class="p-3.5 text-right flex items-center justify-end gap-2">
                       @if (env.isSecret) {
-                        <button 
+                        <button
                           (click)="onToggleReveal(env.id)"
                           class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white transition-colors cursor-pointer"
                           title="Arată/Ascunde"
@@ -746,7 +925,7 @@
                           </svg>
                         </button>
                       }
-                      <button 
+                      <button
                         (click)="copyToClipboard(env.value || '')"
                         class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white transition-colors cursor-pointer"
                         title="Copiază valoarea"
@@ -755,24 +934,20 @@
                           <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5A3.375 3.375 0 006.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0015 2.25h-1.5a2.251 2.251 0 00-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125h1.5A1.125 1.125 0 008.625 10.125v-1.5C8.625 8.004 8.121 7.5 7.5 7.5z" />
                         </svg>
                       </button>
-                      
-                      <!-- Delete variable only if it's app specific -->
-                      @if (env.appInstanceId) {
-                        <button 
-                          (click)="onDeleteEnv(env.id)"
-                          class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-red-400 transition-colors cursor-pointer"
-                          title="Șterge"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                          </svg>
-                        </button>
-                      }
+                      <button
+                        (click)="onDeleteEnv(env.id)"
+                        class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-red-400 transition-colors cursor-pointer"
+                        title="Șterge"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                      </button>
                     </td>
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="5" class="p-8 text-center text-zinc-550 font-medium">Nu există nicio variabilă definită.</td>
+                    <td colspan="4" class="p-8 text-center text-zinc-550 font-medium">Nu există nicio variabilă definită.</td>
                   </tr>
                 }
               </tbody>
@@ -782,10 +957,10 @@
       </div>
     }
 
-    <!-- SUB-TAB 4: APP SETTINGS & DESTRUCTION -->
-    @if (activeSubTab() === 'settings') {
+    <!-- SUB-TAB: ADVANCED — resource limits (continues with volumes + danger zone below) -->
+    @if (activeSubTab() === 'advanced') {
       <div class="space-y-6 animate-fade-in max-w-2xl font-mono">
-        
+
         <!-- Resource Limits Settings -->
         <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
           <div class="border-b border-zinc-900 pb-2.5">
@@ -806,7 +981,7 @@
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
                 required
               />
-              <span class="text-[9px] text-zinc-600 block">ex: 500m reprezintă 0.5 nuclee CPU (vCPU).</span>
+              <span class="text-[9px] text-zinc-600 block">ex: 500m reprezintă 0.5 nuclee CPU (vCPU). Setați 0 pentru Nelimitat.</span>
             </div>
 
             <!-- Memory Limit -->
@@ -821,11 +996,36 @@
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
                 required
               />
-              <span class="text-[9px] text-zinc-600 block">Minim recomandat: 256 MB.</span>
+              <span class="text-[9px] text-zinc-600 block">Minim recomandat: 256 MB. Setați 0 pentru Nelimitat.</span>
             </div>
           </div>
 
-          <div class="grid gap-4 sm:grid-cols-2 pt-2">
+          <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
+            <button
+              (click)="onSaveSettings()"
+              [disabled]="savingSettings()"
+              class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
+            >
+              {{ savingSettings() ? 'Se salvează...' : 'Salvează Setările' }}
+            </button>
+          </div>
+        </div>
+
+      </div>
+    }
+
+    <!-- SUB-TAB: GENERAL SETTINGS -->
+    @if (activeSubTab() === 'general') {
+      <div class="space-y-6 animate-fade-in max-w-2xl font-mono">
+
+        <!-- General config: ports + build/start commands -->
+        <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+          <div class="border-b border-zinc-900 pb-2.5">
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Configurare Generală</h3>
+            <p class="text-[10px] text-zinc-550 mt-0.5 font-mono">Setările vor forța o redeploiere asincronă a serviciului</p>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
             <!-- Port Intern -->
             <div class="space-y-1.5">
               <label for="port-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Port Intern Container</label>
@@ -838,7 +1038,7 @@
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
                 required
               />
-              <span class="text-[9px] text-zinc-600 block">Portul pe care ascultă aplicația ta.</span>
+              <span class="text-[9px] text-zinc-600 block">Portul pe care ascultă aplicația ta. Detectat automat din <code>EXPOSE</code> (Dockerfile) la build, până îl setezi manual aici.</span>
             </div>
 
             <!-- Port Extern -->
@@ -886,7 +1086,7 @@
           </div>
 
           <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
-            <button 
+            <button
               (click)="onSaveSettings()"
               [disabled]="savingSettings()"
               class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
@@ -895,6 +1095,53 @@
             </button>
           </div>
         </div>
+
+        <!-- Domains & Routing -->
+        <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+          <div class="border-b border-zinc-900 pb-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Domenii & Rutare</h3>
+              <p class="text-[10px] text-zinc-550 mt-0.5 font-mono">Asociază un domeniu personalizat cu această aplicație (Reverse Proxy)</p>
+            </div>
+            <button
+              (click)="onOpenAddDomainModal()"
+              class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Asociază Domeniu
+            </button>
+          </div>
+        </div>
+
+      </div>
+    }
+
+    <!-- SUB-TAB: ADVANCED — persistent volumes (managed centrally in Storage) -->
+    @if (activeSubTab() === 'advanced') {
+      <div class="space-y-6 animate-fade-in font-mono max-w-2xl">
+        <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-3 shadow-sm">
+          <div class="border-b border-zinc-900 pb-2.5">
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Volume Persistente (PVC)</h3>
+            <p class="text-[10px] text-zinc-550 mt-0.5 font-sans leading-relaxed">
+              Volumele persistente se creează automat la build, din directivele <code>VOLUME</code> ale Dockerfile-ului. Se gestionează și se răsfoiesc central în <strong>Storage</strong>.
+            </p>
+          </div>
+          <a [routerLink]="['/projects', parent.projectId(), 'storages']"
+             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+            </svg>
+            Deschide Storage
+          </a>
+        </div>
+      </div>
+    }
+
+    <!-- SUB-TAB: ADVANCED — danger zone -->
+    @if (activeSubTab() === 'advanced') {
+      <div class="space-y-6 animate-fade-in max-w-2xl font-mono">
 
         <!-- Danger Zone (Delete App) -->
         <div class="bg-red-950/5 p-5 rounded-lg border border-red-900/20 space-y-4 shadow-sm">
@@ -911,152 +1158,13 @@
               </p>
             </div>
 
-            <button 
+            <button
               (click)="onDeleteApp()"
               class="px-4 py-2 rounded bg-[#0a0202] hover:bg-red-950/20 text-red-500 hover:text-red-400 font-bold border border-red-900/40 hover:border-red-900/60 transition-all text-xs cursor-pointer shadow-sm"
             >
               Șterge Aplicație
             </button>
           </div>
-        </div>
-
-      </div>
-    }
-
-    <!-- SUB-TAB 7: PERSISTENT VOLUMES -->
-    @if (activeSubTab() === 'volumes') {
-      <div class="space-y-6 animate-fade-in font-mono">
-        
-        <!-- Info Banner explaining Volumes storage -->
-        <div class="relative overflow-hidden rounded-xl border border-zinc-850 bg-gradient-to-r from-zinc-950 via-[#0a0a0d] to-zinc-950 p-6 shadow-md">
-          <div class="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/[0.02] blur-xl"></div>
-          <div class="relative flex gap-4">
-            <div class="p-3 bg-zinc-900 border border-zinc-800 rounded-lg text-white shrink-0 shadow-inner flex items-center justify-center h-12 w-12">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6 text-zinc-350">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-              </svg>
-            </div>
-            <div class="space-y-1.5 font-sans">
-              <h3 class="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-2">
-                Volume Stocare Persistente
-              </h3>
-              <p class="text-[11px] text-zinc-450 leading-relaxed font-sans">
-                Asigurați stocarea persistentă a fișierelor aplicației dumneavoastră pe server. 
-                Volumele sunt directoare din host legate de directoare din containerul aplicației, 
-                permițând păstrarea datelor între restartări sau redesfășurări.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Volumes List Card -->
-        <div class="bg-[#0a0a0a]/90 backdrop-blur-md p-6 rounded-lg border border-zinc-800 space-y-4 shadow-lg">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
-            <div>
-              <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Volume Active</h3>
-              <p class="text-[10px] text-zinc-550">Directoare montate în container</p>
-            </div>
-            <button 
-              (click)="showAddVolumeForm.set(!showAddVolumeForm())"
-              class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5 font-sans"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              Adaugă Volum
-            </button>
-          </div>
-
-          <!-- Add Volume Inline Form -->
-          <div *ngIf="showAddVolumeForm()" class="p-4 rounded border border-zinc-850 bg-black/40 space-y-4 animate-fade-in">
-            <h4 class="text-xs font-bold text-zinc-350">Montare Volum Nou</h4>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="space-y-1.5">
-                <label class="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Nume Volum</label>
-                <input 
-                  type="text" 
-                  placeholder="ex. uploads"
-                  [ngModel]="newVolumeName()"
-                  (ngModelChange)="newVolumeName.set($event)"
-                  class="w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 font-mono"
-                />
-              </div>
-              <div class="space-y-1.5">
-                <label class="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Cale în Container</label>
-                <input 
-                  type="text" 
-                  placeholder="ex. /app/uploads"
-                  [ngModel]="newVolumePath()"
-                  (ngModelChange)="newVolumePath.set($event)"
-                  class="w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 font-mono"
-                />
-              </div>
-            </div>
-            <div class="flex justify-end gap-2 pt-2">
-              <button 
-                (click)="showAddVolumeForm.set(false)"
-                class="px-3 py-1.5 rounded bg-transparent text-zinc-450 hover:text-white border border-zinc-850 hover:border-zinc-700 text-xs font-semibold font-sans cursor-pointer"
-              >
-                Anulează
-              </button>
-              <button 
-                (click)="onCreateVolume()"
-                [disabled]="!newVolumeName().trim() || !newVolumePath().trim()"
-                class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold disabled:opacity-50 font-sans cursor-pointer"
-              >
-                Salvează
-              </button>
-            </div>
-          </div>
-
-          <!-- Loading & Empty states -->
-          <div *ngIf="loadingVolumes()" class="flex flex-col items-center justify-center py-10">
-            <svg class="animate-spin h-6 w-6 text-zinc-550 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span class="text-xs text-zinc-550">Se încarcă volumele...</span>
-          </div>
-
-          <div *ngIf="!loadingVolumes() && volumes().length === 0" class="flex flex-col items-center justify-center py-10 text-center">
-            <p class="text-xs text-zinc-550">Nu există volume persistente adăugate pentru această aplicație.</p>
-          </div>
-
-          <!-- Volumes Table -->
-          <div *ngIf="!loadingVolumes() && volumes().length > 0" class="overflow-x-auto">
-            <table class="w-full border-collapse text-left text-xs">
-              <thead>
-                <tr class="border-b border-zinc-900 text-zinc-550 uppercase tracking-wider text-[9px] font-mono pb-2">
-                  <th class="py-2 px-3">Nume</th>
-                  <th class="py-2 px-3">Cale Container</th>
-                  <th class="py-2 px-3">Cale Host</th>
-                  <th class="py-2 px-3 text-right">Acțiuni</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-zinc-900 text-zinc-350">
-                <tr *ngFor="let volume of volumes()" class="hover:bg-zinc-950/40 transition-colors">
-                  <td class="py-3 px-3 font-semibold text-white">{{ volume.name }}</td>
-                  <td class="py-3 px-3 font-mono text-zinc-400">{{ volume.containerPath }}</td>
-                  <td class="py-3 px-3 font-mono text-zinc-650 text-[10px] select-all">{{ volume.hostPath }}</td>
-                  <td class="py-3 px-3 text-right space-x-2">
-                    <button 
-                      (click)="openExplorer(volume)"
-                      class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-white text-[10px] border border-zinc-850 transition-colors font-sans cursor-pointer"
-                    >
-                      Explorează Fișiere
-                    </button>
-                    <button 
-                      (click)="onDeleteVolume(volume.id)"
-                      class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-red-400 text-[10px] border border-zinc-850 transition-colors font-sans cursor-pointer"
-                    >
-                      Șterge
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
         </div>
 
       </div>
@@ -1155,221 +1263,5 @@
     </div>
   }
 
-  <!-- Modal: Volume File Explorer -->
-  @if (showExplorerModal() && currentExplorerVolume()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in font-mono">
-      <div class="w-full max-w-4xl bg-[#0a0a0a] border border-zinc-800 rounded-lg shadow-2xl flex flex-col h-[600px] overflow-hidden">
-        
-        <!-- Modal Header -->
-        <div class="flex items-center justify-between border-b border-zinc-900 p-4 shrink-0 bg-[#0d0d0d]">
-          <div class="space-y-1">
-            <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <span>File Explorer</span>
-              <span class="px-1.5 py-0.2 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded text-[9px] lowercase">{{ currentExplorerVolume()?.name }}</span>
-            </h3>
-            <p class="text-[9px] text-zinc-500">Montare: {{ currentExplorerVolume()?.containerPath }}</p>
-          </div>
-          <button 
-            (click)="closeExplorer()"
-            class="text-zinc-550 hover:text-white cursor-pointer transition-colors p-1 rounded hover:bg-zinc-900"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <!-- Path Breadcrumb & Actions Bar -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-900 p-3 bg-black/20 shrink-0 text-xs">
-          <!-- Breadcrumbs -->
-          <div class="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap text-zinc-400">
-            <button (click)="explorerCurrentPath.set('/'); loadExplorerFiles(currentExplorerVolume()!.id, '/')" class="hover:text-white font-bold cursor-pointer">root</button>
-            @for (crumb of getBreadcrumbs(); track crumb.path; let last = $last) {
-              <span class="text-zinc-650">/</span>
-              @if (last) {
-                <span class="text-white font-bold">{{ crumb.name }}</span>
-              } @else {
-                <button (click)="explorerCurrentPath.set(crumb.path); loadExplorerFiles(currentExplorerVolume()!.id, crumb.path)" class="hover:text-white font-bold cursor-pointer">{{ crumb.name }}</button>
-              }
-            }
-          </div>
-
-          <!-- Actions -->
-          <div class="flex items-center gap-2 shrink-0">
-            <!-- Back button if not root -->
-            <button 
-              *ngIf="explorerCurrentPath() !== '/'"
-              (click)="navigateUp()"
-              class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-[10px] border border-zinc-850 transition-colors flex items-center gap-1 cursor-pointer"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3 h-3">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-              </svg>
-              Sus
-            </button>
-
-            <!-- Mkdir button -->
-            <button 
-              (click)="showCreateFolderForm.set(!showCreateFolderForm())"
-              class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-[10px] border border-zinc-850 transition-colors flex items-center gap-1 cursor-pointer"
-            >
-              Director Nou
-            </button>
-
-            <!-- Upload File Input Button -->
-            <label class="px-2.5 py-1 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-bold shadow transition-colors flex items-center gap-1 cursor-pointer select-none">
-              <input 
-                type="file" 
-                class="hidden" 
-                (change)="onUploadFile($event)" 
-                [disabled]="uploadingFile()"
-              />
-              <span *ngIf="!uploadingFile()">Încarcă Fișier</span>
-              <span *ngIf="uploadingFile()" class="flex items-center gap-1">
-                <svg class="animate-spin h-3 w-3 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                </svg>
-                Se încarcă...
-              </span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Inline Folder Creation form -->
-        <div *ngIf="showCreateFolderForm()" class="bg-[#0f0f0f] border-b border-zinc-900 p-3 shrink-0 flex items-center gap-2 animate-fade-in">
-          <input 
-            type="text" 
-            placeholder="Nume director nou..."
-            [ngModel]="newFolderName()"
-            (ngModelChange)="newFolderName.set($event)"
-            (keyup.enter)="onCreateFolder()"
-            class="px-2.5 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 font-mono w-48"
-          />
-          <button 
-            (click)="onCreateFolder()"
-            [disabled]="!newFolderName().trim()"
-            class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-bold cursor-pointer disabled:opacity-50"
-          >
-            Creează
-          </button>
-          <button 
-            (click)="showCreateFolderForm.set(false)"
-            class="text-[10px] text-zinc-550 hover:text-white cursor-pointer px-2 py-1.5"
-          >
-            Renunță
-          </button>
-        </div>
-
-        <!-- Upload progress bar -->
-        @if (uploadingFile() && uploadProgress() > 0) {
-          <div class="w-full bg-zinc-950 h-1 shrink-0 relative overflow-hidden">
-            <div class="bg-white h-full transition-all duration-150" [style.width.%]="uploadProgress()"></div>
-          </div>
-        }
-
-        <!-- Files list grid/table -->
-        <div 
-          class="flex-grow overflow-y-auto p-4 bg-black/40 relative"
-          (dragover)="onDragOver($event)"
-          (dragleave)="onDragLeave($event)"
-          (drop)="onDrop($event)"
-        >
-          <!-- Drag-and-drop overlay when dragging -->
-          @if (isDragging()) {
-            <div class="absolute inset-0 bg-white/5 border border-dashed border-zinc-700 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center gap-2 pointer-events-none animate-fade-in">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-8 h-8 text-zinc-400 animate-bounce">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
-              </svg>
-              <span class="text-white text-xs font-bold font-mono">Trageți fișierul aici pentru a-l încărca</span>
-            </div>
-          }
-          
-          <!-- Loading files -->
-          <div *ngIf="loadingExplorerFiles()" class="flex flex-col items-center justify-center h-full py-20">
-            <svg class="animate-spin h-6 w-6 text-zinc-650 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-            </svg>
-            <span class="text-xs text-zinc-550">Se citesc fișierele...</span>
-          </div>
-
-          <!-- Empty folder -->
-          <div *ngIf="!loadingExplorerFiles() && explorerFiles().length === 0" class="flex flex-col items-center justify-center h-full text-center py-20 text-zinc-550 text-xs italic">
-            Directorul este gol. Încărcați un fișier sau creați un folder.
-          </div>
-
-          <!-- Files Table -->
-          <table *ngIf="!loadingExplorerFiles() && explorerFiles().length > 0" class="w-full border-collapse text-left text-xs text-zinc-300">
-            <thead>
-              <tr class="border-b border-zinc-900 text-zinc-550 uppercase tracking-wider text-[9px] font-mono pb-2">
-                <th class="pb-2 px-2">Nume</th>
-                <th class="pb-2 px-2">Dimensiune</th>
-                <th class="pb-2 px-2 text-right">Acțiuni</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-zinc-950">
-              <tr *ngFor="let item of explorerFiles()" class="hover:bg-zinc-950/40 transition-colors">
-                <!-- Name -->
-                <td class="py-2.5 px-2">
-                  <div class="flex items-center gap-2">
-                    <!-- Directory icon -->
-                    <span *ngIf="item.isDir" class="text-yellow-600">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-                        <path d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 01.75.75v10.5a.75.75 0 01-.75.75H2.75A.75.75 0 012 15.25V4.75z" />
-                        <path d="M2 7h16v8.25a.75.75 0 01-.75.75H2.75A.75.75 0 012 15.25V7z" />
-                      </svg>
-                    </span>
-                    <!-- File icon -->
-                    <span *ngIf="!item.isDir" class="text-zinc-500">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                      </svg>
-                    </span>
-                    
-                    <!-- Text link -->
-                    <button 
-                      *ngIf="item.isDir" 
-                      (click)="navigateToFolder(item.name)" 
-                      class="hover:underline hover:text-white font-bold text-left cursor-pointer"
-                    >
-                      {{ item.name }}/
-                    </button>
-                    <span *ngIf="!item.isDir" class="text-zinc-350">{{ item.name }}</span>
-                  </div>
-                </td>
-
-                <!-- Size -->
-                <td class="py-2.5 px-2 text-zinc-550 font-mono">
-                  <span *ngIf="item.isDir">-</span>
-                  <span *ngIf="!item.isDir">{{ (item.sizeBytes / 1024) | number:'1.1-1' }} KB</span>
-                </td>
-
-                <!-- Actions -->
-                <td class="py-2.5 px-2 text-right space-x-1">
-                  <!-- Download button for files only -->
-                  <button 
-                    *ngIf="!item.isDir"
-                    (click)="downloadFile(item)"
-                    class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-[10px] border border-zinc-850 cursor-pointer"
-                  >
-                    Download
-                  </button>
-                  <button 
-                    (click)="onDeleteFile(item)"
-                    class="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-red-500 hover:text-red-400 text-[10px] border border-zinc-850 cursor-pointer"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-        </div>
-        
-      </div>
-    </div>
-  }
 
 </div>

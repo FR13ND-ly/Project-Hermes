@@ -42,12 +42,20 @@
           Prezentare Generală
         </button>
 
-        <button 
+        <button
           (click)="switchTab('console')"
           class="px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border"
           [ngClass]="activeSubTab() === 'console' ? 'bg-white text-black border-white' : 'bg-transparent text-zinc-450 hover:text-white border-zinc-850'"
         >
           Consolă Interogări
+        </button>
+
+        <button
+          (click)="switchTab('telemetry')"
+          class="px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border"
+          [ngClass]="activeSubTab() === 'telemetry' ? 'bg-white text-black border-white' : 'bg-transparent text-zinc-450 hover:text-white border-zinc-850'"
+        >
+          Telemetrie
         </button>
 
         <button 
@@ -246,70 +254,216 @@
         </div>
       </div>
 
-      <!-- Command input line -->
-      <div class="flex gap-2.5">
-        <input 
-          type="text" 
-          placeholder="Scrie comanda sau query-ul aici..."
-          [ngModel]="queryInput()"
-          (ngModelChange)="queryInput.set($event)"
-          (keyup.enter)="onRunQuery()"
-          [disabled]="queryLoading() || db()?.status !== 'running'"
-          class="flex-grow px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white font-mono focus:outline-none focus:border-zinc-500 transition-colors disabled:opacity-50"
-        />
-        <button 
-          (click)="onRunQuery()"
-          [disabled]="queryLoading() || !queryInput().trim() || db()?.status !== 'running'"
-          class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+      <!-- Terminal: scrollable output (grows) with the input pinned at the bottom -->
+      <div class="border border-zinc-900 rounded bg-black flex flex-col h-[440px] overflow-hidden">
+
+        <!-- Output region (newest output appears at the bottom, auto-scrolled) -->
+        <div
+          id="query-terminal-window"
+          class="flex-1 min-h-0 overflow-y-auto p-4 font-mono text-xs flex flex-col gap-4 scroll-container"
         >
-          <span *ngIf="!queryLoading()">Execută</span>
-          <span *ngIf="queryLoading()" class="flex items-center gap-1">
-            <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Se rulează...
-          </span>
-        </button>
-      </div>
-      <p class="text-[9px] text-zinc-650" *ngIf="db()?.status !== 'running'">Baza de date trebuie să fie în starea 'running' pentru a putea rula interogări.</p>
+          <!-- Welcome terminal banner -->
+          <div class="text-zinc-550 border-b border-zinc-950 pb-2">
+            <p>HERMES DATABASE SHELL v1.0.0</p>
+            <p>Instanță: {{ db()?.containerName }}-0</p>
+            <p>Sesiune activă în sandbox. Comanda va rula securizat direct în container.</p>
+          </div>
 
-      <!-- Terminal output window (fixed height and scrollbar) -->
-      <div 
-        id="query-terminal-window" 
-        class="border border-zinc-900 rounded bg-black p-4 h-[350px] overflow-y-auto font-mono text-xs flex flex-col gap-4 scroll-container"
-      >
-        
-        <!-- Welcome terminal banner -->
-        <div class="text-zinc-550 border-b border-zinc-950 pb-2">
-          <p>HERMES DATABASE SHELL v1.0.0</p>
-          <p>Instanță: {{ db()?.containerName }}-0</p>
-          <p>Sesiune activă în sandbox. Comanda va rula securizat direct în container.</p>
-        </div>
+          <!-- Empty history state -->
+          <div *ngIf="queryHistory().length === 0" class="text-zinc-600 italic py-10 text-center">
+            Nicio comandă rulată în această sesiune. Introduceți o interogare în inputul de mai jos.
+          </div>
 
-        <!-- Empty history state -->
-        <div *ngIf="queryHistory().length === 0" class="text-zinc-600 italic py-10 text-center">
-          Nicio comandă rulată în această sesiune. Introduceți o interogare în inputul de mai sus.
-        </div>
-
-        <!-- History items -->
-        @for (item of queryHistory(); track item.timestamp) {
-          <div class="space-y-1.5 border-b border-zinc-950 pb-3">
-            <div class="flex items-center justify-between text-[10px]">
-              <div class="flex items-center gap-1.5 font-bold">
-                <span class="text-zinc-550">></span>
-                <span class="text-zinc-350 select-all">{{ item.query }}</span>
+          <!-- History items (oldest first, newest at the bottom) -->
+          @for (item of queryHistory(); track item.timestamp) {
+            <div class="space-y-1.5 border-b border-zinc-950 pb-3">
+              <div class="flex items-center justify-between text-[10px]">
+                <div class="flex items-center gap-1.5 font-bold">
+                  <span class="text-zinc-550">></span>
+                  <span class="text-zinc-350 select-all">{{ item.query }}</span>
+                </div>
+                <span class="text-zinc-600">{{ item.timestamp | date:'HH:mm:ss' }}</span>
               </div>
-              <span class="text-zinc-600">{{ item.timestamp | date:'HH:mm:ss' }}</span>
+
+              <pre
+                class="p-2.5 rounded text-[11px] overflow-x-auto whitespace-pre select-text bg-zinc-950 border"
+                [ngClass]="item.isError ? 'border-red-900/35 text-red-400' : 'border-zinc-900 text-zinc-300'"
+              >{{ item.output || '(Niciun rezultat returnat)' }}</pre>
             </div>
-            
-            <pre 
-              class="p-2.5 rounded text-[11px] overflow-x-auto whitespace-pre select-text bg-zinc-950 border"
-              [ngClass]="item.isError ? 'border-red-900/35 text-red-400' : 'border-zinc-900 text-zinc-300'"
-            >{{ item.output || '(Niciun rezultat returnat)' }}</pre>
+          }
+        </div>
+
+        <!-- Command input line pinned to the bottom of the terminal -->
+        <div class="flex items-center gap-2 border-t border-zinc-900 bg-[#050505] px-3 py-2.5">
+          <span class="text-emerald-500 font-mono text-sm font-bold select-none">></span>
+          <input
+            type="text"
+            placeholder="Scrie comanda sau query-ul aici..."
+            [ngModel]="queryInput()"
+            (ngModelChange)="queryInput.set($event)"
+            (keyup.enter)="onRunQuery()"
+            [disabled]="queryLoading() || db()?.status !== 'running'"
+            class="flex-grow bg-transparent text-white font-mono text-sm focus:outline-none disabled:opacity-50 placeholder:text-zinc-700"
+          />
+          <button
+            (click)="onRunQuery()"
+            [disabled]="queryLoading() || !queryInput().trim() || db()?.status !== 'running'"
+            class="px-4 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+          >
+            <span *ngIf="!queryLoading()">Execută</span>
+            <span *ngIf="queryLoading()" class="flex items-center gap-1">
+              <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Se rulează...
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TELEMETRY TAB PANEL -->
+  <div *ngIf="activeSubTab() === 'telemetry'" class="space-y-4 animate-fade-in">
+    <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4">
+      <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+        <div>
+          <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Telemetrie Bază de Date</h3>
+          <p class="text-[10px] text-zinc-550">Metrici de resurse și activitate, colectate din Prometheus.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          @if (dbMetricsSimulated()) {
+            <span class="px-1.5 py-0.5 rounded bg-amber-950/30 border border-amber-900/40 text-[8px] font-bold uppercase tracking-wider text-amber-400" title="Prometheus indisponibil — valori demonstrative, nu reale">Date simulate</span>
+          }
+          <div class="flex items-center rounded bg-black border border-zinc-800 p-0.5 font-mono text-[9px]">
+            @for (r of ['1h', '24h', '7d']; track r) {
+              <button
+                (click)="onDbRangeChange(r)"
+                class="px-2 py-0.5 rounded text-zinc-500 hover:text-zinc-300 cursor-pointer font-semibold transition-colors uppercase"
+                [ngClass]="{'bg-zinc-900 text-white!': dbRange() === r}"
+              >{{ r }}</button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="relative min-h-[200px]">
+        @if (dbMetricsLoading()) {
+          <div class="absolute inset-0 bg-black/45 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center gap-1.5">
+            <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <span class="text-zinc-500 text-[9px] uppercase font-mono tracking-widest">Interogare Prometheus...</span>
           </div>
         }
 
+        <div class="grid gap-4 md:grid-cols-2">
+          <!-- CPU consumed vs allocated -->
+          <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+            <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+              <span>Utilizare CPU (Milicores)</span>
+              <span class="text-white font-mono font-bold">{{ lastVal(dbCpuValues()) | number:'1.0-1' }}m / {{ cpuLimit() }}m</span>
+            </div>
+            <div class="space-y-1">
+              <div class="w-full h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+                <div class="h-full transition-all" [ngClass]="cpuUsedPct() >= 90 ? 'bg-red-500' : 'bg-emerald-500'" [style.width.%]="cpuUsedPct()"></div>
+              </div>
+              <div class="text-[9px] text-zinc-600 font-mono text-right">{{ cpuUsedPct() }}% din cota alocată</div>
+            </div>
+            <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[110px]">
+              @if (dbCpuValues().length > 1) {
+                <svg viewBox="0 0 500 150" width="100%" height="110" preserveAspectRatio="none">
+                  <path [attr.d]="getSvgFillPath(dbCpuValues())" fill="rgba(16,185,129,0.10)"></path>
+                  <path [attr.d]="getSvgPath(dbCpuValues())" fill="none" stroke="#10b981" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+              } @else {
+                <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">Date indisponibile în acest interval</div>
+              }
+            </div>
+          </div>
+
+          <!-- Memory consumed vs allocated -->
+          <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+            <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+              <span>Utilizare Memorie RAM</span>
+              <span class="text-white font-mono font-bold">{{ lastVal(dbMemValues()) | number:'1.0-1' }} / {{ memLimit() }} MB</span>
+            </div>
+            <div class="space-y-1">
+              <div class="w-full h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+                <div class="h-full transition-all" [ngClass]="memUsedPct() >= 90 ? 'bg-red-500' : 'bg-emerald-500'" [style.width.%]="memUsedPct()"></div>
+              </div>
+              <div class="text-[9px] text-zinc-600 font-mono text-right">{{ memUsedPct() }}% din cota alocată</div>
+            </div>
+            <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[110px]">
+              @if (dbMemValues().length > 1) {
+                <svg viewBox="0 0 500 150" width="100%" height="110" preserveAspectRatio="none">
+                  <path [attr.d]="getSvgFillPath(dbMemValues())" fill="rgba(161,161,170,0.10)"></path>
+                  <path [attr.d]="getSvgPath(dbMemValues())" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+              } @else {
+                <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">Date indisponibile în acest interval</div>
+              }
+            </div>
+          </div>
+
+          <!-- Disk size -->
+          <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+            <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+              <span>Dimensiune pe Disc</span>
+              <span class="text-white font-mono font-bold">{{ lastVal(dbSizeValues()) | number:'1.0-1' }} MB</span>
+            </div>
+            <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[110px]">
+              @if (dbSizeValues().length > 1) {
+                <svg viewBox="0 0 500 150" width="100%" height="110" preserveAspectRatio="none">
+                  <path [attr.d]="getSvgFillPath(dbSizeValues())" fill="rgba(96,165,250,0.10)"></path>
+                  <path [attr.d]="getSvgPath(dbSizeValues())" fill="none" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+              } @else {
+                <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">Date indisponibile în acest interval</div>
+              }
+            </div>
+          </div>
+
+          <!-- Connections -->
+          <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+            <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+              <span>Conexiuni Active</span>
+              <span class="text-white font-mono font-bold">{{ lastVal(dbConnValues()) | number:'1.0-0' }}</span>
+            </div>
+            <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[110px]">
+              @if (dbConnValues().length > 1) {
+                <svg viewBox="0 0 500 150" width="100%" height="110" preserveAspectRatio="none">
+                  <path [attr.d]="getSvgFillPath(dbConnValues())" fill="rgba(251,191,36,0.10)"></path>
+                  <path [attr.d]="getSvgPath(dbConnValues())" fill="none" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+              } @else {
+                <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">Date indisponibile în acest interval</div>
+              }
+            </div>
+          </div>
+
+          <!-- Cache hit rate (Postgres only) -->
+          @if (db()?.type === 'postgres') {
+            <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner md:col-span-2">
+              <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+                <span>Rată Cache Hit (%)</span>
+                <span class="text-white font-mono font-bold">{{ lastVal(dbCacheValues()) | number:'1.0-2' }}%</span>
+              </div>
+              <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[110px]">
+                @if (dbCacheValues().length > 1) {
+                  <svg viewBox="0 0 500 150" width="100%" height="110" preserveAspectRatio="none">
+                    <path [attr.d]="getSvgFillPath(dbCacheValues())" fill="rgba(52,211,153,0.10)"></path>
+                    <path [attr.d]="getSvgPath(dbCacheValues())" fill="none" stroke="#34d399" stroke-width="1.8" stroke-linecap="round"></path>
+                  </svg>
+                } @else {
+                  <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">Date indisponibile în acest interval</div>
+                }
+              </div>
+            </div>
+          }
+        </div>
       </div>
     </div>
   </div>
@@ -397,10 +551,56 @@
         </div>
       </div>
 
+      <!-- Backup automat settings -->
+      <div class="border-t border-zinc-900 pt-4.5 space-y-4">
+        <div>
+          <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Backup-uri Automate</h3>
+          <p class="text-[10px] text-zinc-550">Configurează copierea de siguranță automată periodică a bazei de date.</p>
+        </div>
+
+        <div class="grid gap-6 md:grid-cols-2">
+          <!-- Enable Backups Toggle -->
+          <div class="flex items-center justify-between p-3.5 rounded bg-zinc-950/60 border border-zinc-900">
+            <div class="space-y-0.5">
+              <label class="text-xs font-bold text-zinc-350">Activează Backup Automat</label>
+              <p class="text-[10px] text-zinc-500">Salvează zilnic starea bazei de date în fundal</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer select-none">
+              <input 
+                type="checkbox" 
+                [ngModel]="backupEnabled()" 
+                (ngModelChange)="backupEnabled.set($event)"
+                [disabled]="savingSettings()"
+                class="sr-only peer"
+              />
+              <div class="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-white peer-checked:after:bg-black peer-checked:after:border-black"></div>
+            </label>
+          </div>
+
+          <!-- Retention Count Input -->
+          <div class="space-y-2" *ngIf="backupEnabled()">
+            <div class="flex items-center justify-between text-xs text-zinc-450">
+              <span class="uppercase tracking-wider font-semibold text-[10px]">Număr Backup-uri Păstrate</span>
+              <span class="text-white font-mono font-bold">{{ backupCount() }}</span>
+            </div>
+            <input 
+              type="number" 
+              min="1" 
+              max="30"
+              [ngModel]="backupCount()"
+              (ngModelChange)="backupCount.set($event)"
+              [disabled]="savingSettings()"
+              class="w-full px-3 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white font-mono focus:outline-none focus:border-zinc-500 transition-colors"
+            />
+            <p class="text-[9px] text-zinc-550">Cele mai vechi backup-uri vor fi șterse automat când limita este atinsă.</p>
+          </div>
+        </div>
+      </div>
+
       <div class="pt-4 border-t border-zinc-900 flex justify-end gap-3">
         <button 
           (click)="onSaveSettings()"
-          [disabled]="savingSettings() || (db()?.status === 'running' && cpuLimit() === db()?.cpuLimit && memLimit() === db()?.memoryLimitMb)"
+          [disabled]="savingSettings() || (db()?.status === 'running' && cpuLimit() === db()?.cpuLimit && memLimit() === db()?.memoryLimitMb && backupEnabled() === db()?.backupEnabled && backupCount() === db()?.backupCount)"
           class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
         >
           <span *ngIf="!savingSettings()">Salvează Setări</span>

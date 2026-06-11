@@ -58,17 +58,19 @@
                 }
               </div>
               
-              <div class="border-t border-zinc-850 my-1"></div>
-              
-              <button 
-                (click)="onOpenCreateWorkspaceModal(); showWorkspaceDropdown.set(false)"
-                class="w-full text-left px-3 py-2 text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors flex items-center gap-1.5 font-semibold cursor-pointer"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                <span>Spațiu de lucru nou</span>
-              </button>
+              @if (isSuperAdmin()) {
+                <div class="border-t border-zinc-850 my-1"></div>
+
+                <button
+                  (click)="onOpenCreateWorkspaceModal(); showWorkspaceDropdown.set(false)"
+                  class="w-full text-left px-3 py-2 text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors flex items-center gap-1.5 font-semibold cursor-pointer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  <span>Spațiu de lucru nou</span>
+                </button>
+              }
             </div>
           }
         </div>
@@ -84,27 +86,27 @@
         >
           Proiecte
         </a>
-        <a 
-          routerLink="/workspace/environments" 
-          routerLinkActive="text-white border-b-2 border-white!"
-          class="text-xs font-medium text-zinc-400 hover:text-white transition-colors h-full flex items-center px-1 border-b-2 border-transparent"
-        >
-          Variabile Mediu
-        </a>
-        <a 
-          routerLink="/workspace/settings" 
+        <a
+          routerLink="/workspace/settings"
           routerLinkActive="text-white border-b-2 border-white!"
           class="text-xs font-medium text-zinc-400 hover:text-white transition-colors h-full flex items-center px-1 border-b-2 border-transparent"
         >
           Setări Workspace
         </a>
         @if (currentUser()?.is_super_admin) {
-          <a 
-            routerLink="/admin/users" 
+          <a
+            routerLink="/admin/users"
             routerLinkActive="text-white border-b-2 border-white!"
             class="text-xs font-medium text-zinc-400 hover:text-white transition-colors h-full flex items-center px-1 border-b-2 border-transparent"
           >
             Consolă Admin
+          </a>
+          <a
+            routerLink="/admin/workspaces"
+            routerLinkActive="text-white border-b-2 border-white!"
+            class="text-xs font-medium text-zinc-400 hover:text-white transition-colors h-full flex items-center px-1 border-b-2 border-transparent"
+          >
+            Workspaces
           </a>
         }
       </nav>

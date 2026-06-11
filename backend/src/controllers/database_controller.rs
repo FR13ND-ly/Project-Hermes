@@ -10,7 +10,6 @@ use uuid::Uuid;
 
 use crate::app_state::AppState;
 use crate::models::database_model::{DatabaseService, DbType, DbStatus};
-use crate::models::env_variable_model::EnvScope;
 use crate::dtos::database_dto::{CreateDatabaseRequest, DatabaseResponse};
 use crate::dtos::database_backup_dto::BackupResponse;
 use crate::middlewares::auth_middleware::AuthenticatedUser;
@@ -64,12 +63,6 @@ pub async fn create_database(
         None
     };
 
-    let scope = if payload.app_instance_id.is_some() {
-        EnvScope::Preview
-    } else {
-        EnvScope::Production
-    };
-
     // --- Resource availability check BEFORE creating the DB record ---
     let db_memory_needed_mb = payload.memory_limit_mb.filter(|&m| m > 0).unwrap_or(256) as i64;
     crate::utils::limits::check_workspace_memory_limit(
@@ -88,15 +81,58 @@ pub async fn create_database(
     .execute(&state.pool)
     .await?;
 
+    // Publish the connection string into the project's env pool so any app in the
+    // project can opt into it. If another database already published DATABASE_URL
+    // in this project, disambiguate the key with the database name.
     let (enc_url, nonce_url) = crypto::encrypt_env_value(&connection_url)?;
-    sqlx::query!(
-        "INSERT INTO environment_variables (id, workspace_id, project_id, app_instance_id, key, encrypted_value, nonce, scope, is_secret)
-         VALUES ($1, $2, $3, $4, 'DATABASE_URL', $5, $6, $7, true)
-         ON CONFLICT (workspace_id, project_id, app_instance_id, key, scope) DO UPDATE SET encrypted_value = $5, nonce = $6",
-        Uuid::new_v4(), ws_id, payload.project_id, payload.app_instance_id, enc_url, nonce_url, scope.clone() as EnvScope
+    let url_taken = sqlx::query_scalar!(
+        "SELECT EXISTS(SELECT 1 FROM project_env_variables
+         WHERE project_id = $1 AND key = 'DATABASE_URL' AND source_id IS DISTINCT FROM $2)",
+        payload.project_id,
+        db_id
     )
-    .execute(&state.pool)
+    .fetch_one(&state.pool)
+    .await?
+    .unwrap_or(false);
+    let env_key = if url_taken {
+        let mut name_key: String = payload
+            .name
+            .trim()
+            .to_uppercase()
+            .chars()
+            .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+            .collect();
+        if name_key.is_empty() {
+            name_key = type_str.to_uppercase();
+        }
+        format!("{}_DATABASE_URL", name_key)
+    } else {
+        "DATABASE_URL".to_string()
+    };
+    let project_env_id = sqlx::query_scalar!(
+        "INSERT INTO project_env_variables (id, workspace_id, project_id, key, encrypted_value, nonce, is_secret, source, source_id)
+         VALUES ($1, $2, $3, $4, $5, $6, true, 'database', $7)
+         ON CONFLICT (project_id, key)
+         DO UPDATE SET encrypted_value = $5, nonce = $6, source = 'database', source_id = $7, updated_at = now()
+         RETURNING id",
+        Uuid::new_v4(), ws_id, payload.project_id, env_key, enc_url, nonce_url, db_id
+    )
+    .fetch_one(&state.pool)
     .await?;
+
+    // If the database was created bound to a specific app instance, opt that
+    // instance into the new var straight away (existing bind UX preserved).
+    if let Some(instance_id) = payload.app_instance_id {
+        sqlx::query!(
+            "INSERT INTO app_env_links (app_instance_id, project_env_id) VALUES ($1, $2)
+             ON CONFLICT DO NOTHING",
+            instance_id,
+            project_env_id
+        )
+        .execute(&state.pool)
+        .await?;
+        crate::controllers::env_variable_controller::hot_reload_if_running(&state.pool, instance_id);
+    }
 
     let pool_clone = state.pool.clone();
     let container_name_clone = container_name.clone();
@@ -258,13 +294,26 @@ pub async fn delete_database(
         }
     });
 
+    // Remove the project-pool var this database published; the link cascade
+    // detaches it from every app. Hot-reload the running ones that used it.
+    let linked: Vec<Uuid> = sqlx::query_scalar!(
+        "SELECT ael.app_instance_id FROM app_env_links ael
+         JOIN project_env_variables pev ON pev.id = ael.project_env_id
+         WHERE pev.source = 'database' AND pev.source_id = $1",
+        db_id
+    )
+    .fetch_all(&state.pool)
+    .await
+    .unwrap_or_default();
     sqlx::query!(
-        "DELETE FROM environment_variables 
-         WHERE workspace_id = $1 AND project_id = $2 AND (app_instance_id = $3 OR ($3 IS NULL AND app_instance_id IS NULL)) AND key = 'DATABASE_URL'",
-        ws_id, db_service.project_id, db_service.app_instance_id
+        "DELETE FROM project_env_variables WHERE source = 'database' AND source_id = $1",
+        db_id
     )
     .execute(&state.pool)
     .await?;
+    for instance_id in linked {
+        crate::controllers::env_variable_controller::hot_reload_if_running(&state.pool, instance_id);
+    }
 
     sqlx::query!("DELETE FROM databases WHERE id = $1 AND workspace_id = $2", db_id, ws_id)
         .execute(&state.pool)
@@ -582,6 +631,8 @@ pub async fn stream_database_logs(
 pub struct UpdateDatabaseSettingsRequest {
     pub cpu_limit: i32,
     pub memory_limit_mb: i64,
+    pub backup_enabled: Option<bool>,
+    pub backup_count: Option<i32>,
 }
 
 pub async fn update_database_settings(
@@ -607,10 +658,12 @@ pub async fn update_database_settings(
         Some(db_id)
     ).await?;
 
-    // 2. Update resource limits in databases table
+    // 2. Update resource limits and backup settings in databases table
+    let backup_enabled = payload.backup_enabled.unwrap_or(false);
+    let backup_count = payload.backup_count.unwrap_or(7);
     sqlx::query!(
-        "UPDATE databases SET cpu_limit = $1, memory_limit_mb = $2, updated_at = now() WHERE id = $3",
-        payload.cpu_limit, payload.memory_limit_mb, db_id
+        "UPDATE databases SET cpu_limit = $1, memory_limit_mb = $2, backup_enabled = $3, backup_count = $4, updated_at = now() WHERE id = $5",
+        payload.cpu_limit, payload.memory_limit_mb, backup_enabled, backup_count, db_id
     )
     .execute(&state.pool)
     .await?;
@@ -631,21 +684,17 @@ pub async fn update_database_settings(
         DbType::Mongodb => format!("mongodb://{}:{}@{}:{}", db_service.db_user, decrypted_password, db_service.container_name, db_service.internal_port),
     };
     
-    let scope = if db_service.app_instance_id.is_some() {
-        EnvScope::Preview
-    } else {
-        EnvScope::Production
-    };
-
-    let (enc_url, nonce_url) = crypto::encrypt_env_value(&new_connection_url)?;
-    sqlx::query!(
-        "INSERT INTO environment_variables (id, workspace_id, project_id, app_instance_id, key, encrypted_value, nonce, scope, is_secret)
-         VALUES ($1, $2, $3, $4, 'DATABASE_URL', $5, $6, $7, true)
-         ON CONFLICT (workspace_id, project_id, app_instance_id, key, scope) DO UPDATE SET encrypted_value = $5, nonce = $6",
-        Uuid::new_v4(), ws_id, db_service.project_id, db_service.app_instance_id, enc_url, nonce_url, scope.clone() as EnvScope
-    )
-    .execute(&state.pool)
-    .await?;
+    if let Some(instance_id) = db_service.app_instance_id {
+        let (enc_url, nonce_url) = crypto::encrypt_env_value(&new_connection_url)?;
+        sqlx::query!(
+            "INSERT INTO environment_variables (id, workspace_id, app_instance_id, key, encrypted_value, nonce, is_secret)
+             VALUES ($1, $2, $3, 'DATABASE_URL', $4, $5, true)
+             ON CONFLICT (app_instance_id, key) DO UPDATE SET encrypted_value = $4, nonce = $5",
+            Uuid::new_v4(), ws_id, instance_id, enc_url, nonce_url
+        )
+        .execute(&state.pool)
+        .await?;
+    }
 
     // 5. Build K8s configuration and deploy database
     let k8s_client = crate::utils::k8s::K8sManager::get_client().await?;
@@ -738,17 +787,9 @@ async fn get_actual_db_status(
     }
 }
 
-pub async fn create_database_backup(
-    State(state): State<AppState>,
-    AuthenticatedUser(claims): AuthenticatedUser,
-    Path(db_id): Path<Uuid>,
-) -> Result<(StatusCode, Json<BackupResponse>), AppError> {
-    let ws_id = claims.current_workspace_id.ok_or_else(|| {
-        AppError::Validation("No active workspace selected.".to_string())
-    })?;
-
-    let db_service = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1 AND workspace_id = $2")
-        .bind(db_id).bind(ws_id).fetch_optional(&state.pool).await?
+pub async fn perform_database_backup(pool: &sqlx::PgPool, db_id: Uuid) -> Result<BackupResponse, AppError> {
+    let db_service = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1")
+        .bind(db_id).fetch_optional(pool).await?
         .ok_or_else(|| AppError::NotFound("Database service not found.".to_string()))?;
 
     let decrypted_password = match db_service.db_password_nonce {
@@ -756,7 +797,7 @@ pub async fn create_database_backup(
         None => crypto::decrypt_env_value(&db_service.db_password, "AAAAAAAAAAAAAAAA")?
     };
 
-    let namespace = format!("hermes-ws-{}", ws_id);
+    let namespace = format!("hermes-ws-{}", db_service.workspace_id);
     let pod_name = format!("{}-0", db_service.container_name);
 
     let extension = match db_service.r#type {
@@ -782,6 +823,10 @@ pub async fn create_database_backup(
     match db_service.r#type {
         DbType::Postgres => {
             cmd.arg("pg_dump");
+            // --clean --if-exists make the dump drop each object before recreating it,
+            // so a restore replaces existing data instead of appending duplicate rows.
+            cmd.arg("--clean");
+            cmd.arg("--if-exists");
             cmd.arg("-U");
             cmd.arg(&db_service.db_user);
             cmd.arg("-d");
@@ -789,6 +834,9 @@ pub async fn create_database_backup(
         }
         DbType::Mysql => {
             cmd.arg("mysqldump");
+            // --add-drop-table (default on) emits DROP TABLE before each CREATE,
+            // making restores replace rather than append; set explicitly to be safe.
+            cmd.arg("--add-drop-table");
             cmd.arg("-u");
             cmd.arg(&db_service.db_user);
             cmd.arg(format!("-p{}", decrypted_password));
@@ -832,19 +880,66 @@ pub async fn create_database_backup(
          VALUES ($1, $2, $3, $4, 'completed', $5)",
         backup_id, db_id, filename, file_size, created_at
     )
-    .execute(&state.pool)
+    .execute(pool)
     .await?;
+
+    sqlx::query!(
+        "UPDATE databases SET last_backup_at = $1 WHERE id = $2",
+        created_at, db_id
+    )
+    .execute(pool)
+    .await?;
+
+    let backup_limit = db_service.backup_count;
+    let old_backups = sqlx::query!(
+        "SELECT id, filename FROM database_backups WHERE database_id = $1 ORDER BY created_at DESC OFFSET $2",
+        db_id, backup_limit as i64
+    )
+    .fetch_all(pool)
+    .await;
+
+    if let Ok(backups_to_delete) = old_backups {
+        for old_b in backups_to_delete {
+            let old_filepath = format!("{}/{}", backups_dir, old_b.filename);
+            let _ = std::fs::remove_file(&old_filepath);
+            let _ = sqlx::query!(
+                "DELETE FROM database_backups WHERE id = $1",
+                old_b.id
+            )
+            .execute(pool)
+            .await;
+        }
+    }
+
+    Ok(BackupResponse {
+        id: backup_id,
+        database_id: db_id,
+        filename,
+        file_size_bytes: file_size,
+        status: "completed".to_string(),
+        created_at,
+    })
+}
+
+pub async fn create_database_backup(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(db_id): Path<Uuid>,
+) -> Result<(StatusCode, Json<BackupResponse>), AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let _ = sqlx::query!("SELECT id FROM databases WHERE id = $1 AND workspace_id = $2", db_id, ws_id)
+        .fetch_optional(&state.pool)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Database service not found.".to_string()))?;
+
+    let backup_res = perform_database_backup(&state.pool, db_id).await?;
 
     Ok((
         StatusCode::CREATED,
-        Json(BackupResponse {
-            id: backup_id,
-            database_id: db_id,
-            filename,
-            file_size_bytes: file_size,
-            status: "completed".to_string(),
-            created_at,
-        }),
+        Json(backup_res),
     ))
 }
 
@@ -1003,6 +1098,11 @@ pub async fn restore_database_backup(
 
         match db_service.r#type {
             DbType::Postgres => {
+                // Drop and recreate schema public cascade to get a clean slate
+                let mut prep_cmd = std::process::Command::new("kubectl");
+                prep_cmd.args(&["exec", "-n", &namespace, &pod_name, "--", "psql", "-U", &db_service.db_user, "-d", &db_service.db_name, "-c", "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"]);
+                let _ = prep_cmd.status(); // Ignore failure, just try our best to clean
+                
                 cmd.arg("psql");
                 cmd.arg("-U");
                 cmd.arg(&db_service.db_user);
@@ -1010,6 +1110,11 @@ pub async fn restore_database_backup(
                 cmd.arg(&db_service.db_name);
             }
             DbType::Mysql => {
+                // Drop and recreate database to get a clean slate
+                let mut prep_cmd = std::process::Command::new("kubectl");
+                prep_cmd.args(&["exec", "-n", &namespace, &pod_name, "--", "mysql", "-u", &db_service.db_user, &format!("-p{}", decrypted_password), "-e", &format!("DROP DATABASE IF EXISTS {}; CREATE DATABASE {};", db_service.db_name, db_service.db_name)]);
+                let _ = prep_cmd.status(); // Ignore failure, just try our best to clean
+                
                 cmd.arg("mysql");
                 cmd.arg("-u");
                 cmd.arg(&db_service.db_user);
@@ -1024,6 +1129,7 @@ pub async fn restore_database_backup(
                 cmd.arg(&decrypted_password);
                 cmd.arg("--authenticationDatabase");
                 cmd.arg("admin");
+                cmd.arg("--drop");
                 cmd.arg("--archive");
             }
             DbType::Redis => unreachable!(),
@@ -1037,10 +1143,49 @@ pub async fn restore_database_backup(
         let output = child.wait_with_output().map_err(|e| AppError::Fatal(anyhow::anyhow!("Restore process execution failed: {}", e)))?;
 
         if !output.status.success() {
-            let err_msg = String::from_utf8_lossy(&output.stderr).to_string();
-            return Err(AppError::Fatal(anyhow::anyhow!("Restore command failed: {}", err_msg)));
-        }
-    }
+             let err_msg = String::from_utf8_lossy(&output.stderr).to_string();
+             return Err(AppError::Fatal(anyhow::anyhow!("Restore command failed: {}", err_msg)));
+         }
+     }
+ 
+     Ok(StatusCode::OK)
+ }
+ 
+ #[derive(Debug, serde::Deserialize)]
+ #[serde(rename_all = "camelCase")]
+ pub struct DatabaseMetricsQuery {
+     pub metric: String,
+     pub range: Option<String>,
+ }
+ 
+ pub async fn get_database_metrics(
+     State(state): State<AppState>,
+     AuthenticatedUser(claims): AuthenticatedUser,
+     Query(query): Query<DatabaseMetricsQuery>,
+     Path(db_id): Path<Uuid>,
+ ) -> Result<Json<crate::dtos::metrics_dto::MetricsHistoryResponse>, AppError> {
+     let ws_id = claims.current_workspace_id.ok_or_else(|| {
+         AppError::Validation("No active workspace selected.".to_string())
+     })?;
+ 
+     let db_service = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1 AND workspace_id = $2")
+         .bind(db_id).bind(ws_id).fetch_optional(&state.pool).await?
+         .ok_or_else(|| AppError::NotFound("Database service not found.".to_string()))?;
+ 
+     let namespace = format!("hermes-ws-{}", ws_id);
+     let container_name = db_service.container_name.clone();
+     let range = query.range.unwrap_or_else(|| "1h".to_string());
+ 
+     let (timestamps, values, simulated) = crate::utils::prometheus::get_historical_metrics(
+         &namespace,
+         &container_name,
+         &query.metric,
+         &range,
+     ).await?;
 
-    Ok(StatusCode::OK)
-}
+     Ok(Json(crate::dtos::metrics_dto::MetricsHistoryResponse {
+         timestamps,
+         values,
+         simulated,
+     }))
+ }

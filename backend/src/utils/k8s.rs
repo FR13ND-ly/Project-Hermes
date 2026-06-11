@@ -39,32 +39,51 @@ impl K8sManager {
         Ok(())
     }
 
+    pub async fn delete_namespace(client: &Client, name: &str) -> Result<(), AppError> {
+        let namespaces: Api<Namespace> = Api::all(client.clone());
+        let _ = namespaces.delete(name, &DeleteParams::default()).await;
+        Ok(())
+    }
+
     pub async fn apply_namespace_limits(client: &Client, namespace: &str, max_mem: i32, max_storage: i32) -> Result<(), AppError> {
         let quotas: Api<k8s_openapi::api::core::v1::ResourceQuota> = Api::namespaced(client.clone(), namespace);
         let limit_ranges: Api<k8s_openapi::api::core::v1::LimitRange> = Api::namespaced(client.clone(), namespace);
 
-        let quota_manifest: k8s_openapi::api::core::v1::ResourceQuota = serde_json::from_value(json!({
-            "apiVersion": "v1",
-            "kind": "ResourceQuota",
-            "metadata": {
-                "name": "hermes-quota",
-                "namespace": namespace
-            },
-            "spec": {
-                "hard": {
-                    "requests.memory": format!("{}Mi", max_mem),
-                    "limits.memory": format!("{}Mi", max_mem),
-                    "requests.storage": format!("{}Gi", max_storage)
-                }
+        if max_mem <= 0 && max_storage <= 0 {
+            let _ = quotas.delete("hermes-quota", &DeleteParams::default()).await;
+        } else {
+            let mut hard = serde_json::Map::new();
+            if max_mem > 0 {
+                hard.insert("requests.memory".to_string(), json!(format!("{}Mi", max_mem)));
+                hard.insert("limits.memory".to_string(), json!(format!("{}Mi", max_mem)));
             }
-        })).map_err(|e| AppError::Fatal(anyhow::anyhow!("ResourceQuota serialization failed: {}", e)))?;
+            if max_storage > 0 {
+                hard.insert("requests.storage".to_string(), json!(format!("{}Gi", max_storage)));
+            }
 
-        let _ = quotas.patch(
-            "hermes-quota",
-            &PatchParams::apply("hermes-orchestrator").force(),
-            &Patch::Apply(&quota_manifest)
-        ).await
-        .map_err(|e| AppError::Infrastructure(format!("Failed to apply ResourceQuota: {}", e)))?;
+            if !hard.is_empty() {
+                let quota_manifest: k8s_openapi::api::core::v1::ResourceQuota = serde_json::from_value(json!({
+                    "apiVersion": "v1",
+                    "kind": "ResourceQuota",
+                    "metadata": {
+                        "name": "hermes-quota",
+                        "namespace": namespace
+                    },
+                    "spec": {
+                        "hard": hard
+                    }
+                })).map_err(|e| AppError::Fatal(anyhow::anyhow!("ResourceQuota serialization failed: {}", e)))?;
+
+                let _ = quotas.patch(
+                    "hermes-quota",
+                    &PatchParams::apply("hermes-orchestrator").force(),
+                    &Patch::Apply(&quota_manifest)
+                ).await
+                .map_err(|e| AppError::Infrastructure(format!("Failed to apply ResourceQuota: {}", e)))?;
+            } else {
+                let _ = quotas.delete("hermes-quota", &DeleteParams::default()).await;
+            }
+        }
 
         // LimitRange: default limits per container as safety net
         let limit_manifest: k8s_openapi::api::core::v1::LimitRange = serde_json::from_value(json!({
@@ -297,11 +316,46 @@ impl K8sManager {
         let mut volumes = Vec::new();
         let mut volume_mounts = Vec::new();
         let pvc_api: Api<k8s_openapi::api::core::v1::PersistentVolumeClaim> = Api::namespaced(client.clone(), namespace);
+        let pv_api: Api<k8s_openapi::api::core::v1::PersistentVolume> = Api::all(client.clone());
 
-        for (i, (_host_path, container_path)) in binds.into_iter().enumerate() {
+        for (i, (host_path, container_path)) in binds.into_iter().enumerate() {
             let vol_name = format!("volume-{}", i);
             let pvc_name = format!("{}-pvc-{}", name, i);
+            let pv_name = format!("{}-pv-{}", name, i);
 
+            let k8s_host_path = host_path.replace('\\', "/");
+
+            // Create/patch PersistentVolume pointing to the host path
+            let pv_manifest = serde_json::from_value::<k8s_openapi::api::core::v1::PersistentVolume>(json!({
+                "apiVersion": "v1",
+                "kind": "PersistentVolume",
+                "metadata": {
+                    "name": pv_name
+                },
+                "spec": {
+                    "capacity": {
+                        "storage": "1Gi"
+                    },
+                    "accessModes": ["ReadWriteOnce"],
+                    "persistentVolumeReclaimPolicy": "Retain",
+                    "hostPath": {
+                        "path": k8s_host_path
+                    },
+                    "storageClassName": "manual",
+                    "claimRef": {
+                        "namespace": namespace,
+                        "name": pvc_name
+                    }
+                }
+            })).map_err(|e| AppError::Fatal(anyhow::anyhow!("PV serialization failed: {}", e)))?;
+
+            let _ = pv_api.patch(
+                &pv_name,
+                &PatchParams::apply("hermes-orchestrator").force(),
+                &Patch::Apply(&pv_manifest)
+            ).await;
+
+            // Create/patch PersistentVolumeClaim bound to the custom PV
             let pvc_manifest = serde_json::from_value::<k8s_openapi::api::core::v1::PersistentVolumeClaim>(json!({
                 "apiVersion": "v1",
                 "kind": "PersistentVolumeClaim",
@@ -311,6 +365,8 @@ impl K8sManager {
                 },
                 "spec": {
                     "accessModes": ["ReadWriteOnce"],
+                    "storageClassName": "manual",
+                    "volumeName": pv_name,
                     "resources": {
                         "requests": {
                             "storage": "1Gi"
@@ -394,8 +450,7 @@ impl K8sManager {
                             "volumeMounts": volume_mounts,
                             "resources": resources,
                             "readinessProbe": {
-                                "httpGet": {
-                                    "path": "/",
+                                "tcpSocket": {
                                     "port": port
                                 },
                                 "initialDelaySeconds": 3,
@@ -617,6 +672,18 @@ impl K8sManager {
                 if let Some(ref pvc_name) = pvc.metadata.name {
                     if pvc_name.starts_with(&format!("{}-pvc-", name)) {
                         let _ = pvc_api.delete(pvc_name, &DeleteParams::default()).await;
+                    }
+                }
+            }
+        }
+
+        // Clean up PVs associated with the application
+        let pv_api: Api<k8s_openapi::api::core::v1::PersistentVolume> = Api::all(client.clone());
+        if let Ok(pv_list) = pv_api.list(&kube::api::ListParams::default()).await {
+            for pv in pv_list.items {
+                if let Some(ref pv_name) = pv.metadata.name {
+                    if pv_name.starts_with(&format!("{}-pv-", name)) {
+                        let _ = pv_api.delete(pv_name, &DeleteParams::default()).await;
                     }
                 }
             }

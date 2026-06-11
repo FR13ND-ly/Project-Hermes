@@ -88,11 +88,11 @@
             <div class="space-y-2">
               <div class="flex items-center justify-between text-xs">
                 <span class="uppercase tracking-wider font-semibold text-[10px] text-zinc-500">Limită CPU</span>
-                <span class="text-white font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-[10px]">{{ cpuLimit() }}m</span>
+                <span class="text-white font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-[10px]">@if (cpuLimit() === 0) { Nelimitat } @else { {{ cpuLimit() }}m }</span>
               </div>
               <input 
                 type="range" 
-                min="100" 
+                min="0" 
                 max="2000" 
                 step="50"
                 [ngModel]="cpuLimit()"
@@ -101,7 +101,7 @@
                 class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-white custom-slider"
               />
               <div class="flex justify-between text-[8px] text-zinc-600 font-mono">
-                <span>100m</span>
+                <span>Nelimitat (0)</span>
                 <span>2000m (2 cores)</span>
               </div>
             </div>
@@ -110,11 +110,11 @@
             <div class="space-y-2">
               <div class="flex items-center justify-between text-xs">
                 <span class="uppercase tracking-wider font-semibold text-[10px] text-zinc-500">Limită Memorie (RAM)</span>
-                <span class="text-white font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-[10px]">{{ memLimit() }} MB</span>
+                <span class="text-white font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-[10px]">@if (memLimit() === 0) { Nelimitat } @else { {{ memLimit() }} MB }</span>
               </div>
               <input 
                 type="range" 
-                min="128" 
+                min="0" 
                 max="4096" 
                 step="128"
                 [ngModel]="memLimit()"
@@ -123,7 +123,7 @@
                 class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-white custom-slider"
               />
               <div class="flex justify-between text-[8px] text-zinc-600 font-mono">
-                <span>128 MB</span>
+                <span>Nelimitat (0)</span>
                 <span>4096 MB (4 GB)</span>
               </div>
             </div>
@@ -289,6 +289,8 @@
               <div class="grid grid-cols-2 gap-2 p-2.5 rounded bg-black border border-zinc-900 text-[10px] text-zinc-400 font-mono">
                 <div>Tip: <span class="text-white font-bold uppercase">{{ db.type }}</span></div>
                 <div>Port: <span class="text-white font-bold">{{ db.internalPort }}</span></div>
+                <div>CPU: <span class="text-white font-bold">@if (db.cpuLimit === 0) { Nelimitat } @else { {{ db.cpuLimit }}m }</span></div>
+                <div>RAM: <span class="text-white font-bold">@if (db.memoryLimitMb === 0) { Nelimitat } @else { {{ db.memoryLimitMb }} MB }</span></div>
                 <div class="col-span-2 truncate">Pod: <span class="text-zinc-300">{{ db.containerName }}</span></div>
                 
                 <!-- External exposure info -->

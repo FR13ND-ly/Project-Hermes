@@ -4,12 +4,14 @@ use reqwest::Client;
 use serde_json::Value;
 use crate::utils::error::AppError;
 
+/// Returns `(timestamps, values, simulated)`. `simulated` is true when the data
+/// is synthetic because Prometheus could not be reached.
 pub async fn get_historical_metrics(
     namespace: &str,
     container_name: &str,
     metric_type: &str,
     range_str: &str,
-) -> Result<(Vec<i64>, Vec<f64>), AppError> {
+) -> Result<(Vec<i64>, Vec<f64>, bool), AppError> {
     let now = Utc::now();
     let end_time = now.timestamp();
     
@@ -43,6 +45,18 @@ pub async fn get_historical_metrics(
         "fs_write" => format!(
             "sum(rate(container_fs_writes_bytes_total{{namespace=\"{}\",pod=~\"{}-.*\"}}[5m]))",
             namespace, container_name
+        ),
+        "db_size" => format!(
+            "sum(container_fs_usage_bytes{{namespace=\"{}\",pod=~\"{}-.*\"}})",
+            namespace, container_name
+        ),
+        "db_connections" => format!(
+            "sum(pg_stat_database_numbackends{{namespace=\"{}\",pod=~\"{}-0\"}})",
+            namespace, container_name
+        ),
+        "db_cache_hit_rate" => format!(
+            "sum(rate(pg_stat_database_blks_hit{{namespace=\"{}\",pod=~\"{}-0\"}}[5m])) / (sum(rate(pg_stat_database_blks_hit{{namespace=\"{}\",pod=~\"{}-0\"}}[5m])) + sum(rate(pg_stat_database_blks_read{{namespace=\"{}\",pod=~\"{}-0\"}}[5m])) + 1) * 100",
+            namespace, container_name, namespace, container_name, namespace, container_name
         ),
         _ => return Err(AppError::Validation(format!("Unsupported metric type: {}", metric_type))),
     };
@@ -87,7 +101,7 @@ pub async fn get_historical_metrics(
                                             let val_str = val_arr[1].as_str().unwrap_or("0");
                                             let metric_val = val_str.parse::<f64>().unwrap_or(0.0);
                                             
-                                            let adjusted_val = if metric_type == "memory" {
+                                            let adjusted_val = if metric_type == "memory" || metric_type == "db_size" {
                                                 metric_val / (1024.0 * 1024.0)
                                             } else if metric_type == "network_rx" || metric_type == "network_tx" || metric_type == "fs_read" || metric_type == "fs_write" {
                                                 metric_val / 1024.0
@@ -137,7 +151,7 @@ pub async fn get_historical_metrics(
                                                 let val_str = val_arr[1].as_str().unwrap_or("0");
                                                 let metric_val = val_str.parse::<f64>().unwrap_or(0.0);
                                                 
-                                                let adjusted_val = if metric_type == "memory" {
+                                                let adjusted_val = if metric_type == "memory" || metric_type == "db_size" {
                                                     metric_val / (1024.0 * 1024.0)
                                                 } else if metric_type == "network_rx" || metric_type == "network_tx" || metric_type == "fs_read" || metric_type == "fs_write" {
                                                     metric_val / 1024.0
@@ -163,7 +177,7 @@ pub async fn get_historical_metrics(
     }
 
     if got_real_metrics {
-        return Ok((timestamps, metric_vals));
+        return Ok((timestamps, metric_vals, false));
     }
 
     // Prometheus simulation fallback for local development or disconnected environments
@@ -178,6 +192,9 @@ pub async fn get_historical_metrics(
         "network_tx" => 0.05,
         "fs_read" => 0.0,
         "fs_write" => 0.02,
+        "db_size" => 45.2 * 1024.0 * 1024.0, // 45.2 MB (base val in bytes, adjusted_val will divide by 1024^2)
+        "db_connections" => 8.0,
+        "db_cache_hit_rate" => 99.4,
         _ => 1.0,
     };
 
@@ -195,5 +212,5 @@ pub async fn get_historical_metrics(
         i += 1;
     }
 
-    Ok((timestamps, values))
+    Ok((timestamps, values, true))
 }

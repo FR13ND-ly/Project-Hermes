@@ -18,6 +18,9 @@ pub async fn check_workspace_memory_limit(
     .ok_or_else(|| AppError::NotFound("Workspace not found.".to_string()))?;
 
     let max_mem = ws_limits.max_memory_mb as i64;
+    if max_mem <= 0 {
+        return Ok(());
+    }
 
     // 2. Sum app instances memory
     let app_mem = match exclude_resource_id {

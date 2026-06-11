@@ -194,8 +194,7 @@ async fn execute_cron_container(pool: PgPool, job_id: Uuid, app_id: Uuid, comman
         }
     };
     
-    let registry_url = std::env::var("HERMES_REGISTRY_URL").unwrap_or_else(|_| "localhost:5000".to_string());
-    let image_tag = format!("{}/hermes-app-image:{}", registry_url, inst_meta.id);
+    let image_tag = crate::utils::builder::resolve_instance_image_tag(&pool, inst_meta.id).await;
     let job_name = format!(
         "hermes-cron-{}-{}",
         &job_id.to_string()[..18],
@@ -204,11 +203,9 @@ async fn execute_cron_container(pool: PgPool, job_id: Uuid, app_id: Uuid, comman
 
     let mut env_variables = Vec::new();
     let env_records = sqlx::query!(
-        "SELECT key, encrypted_value, nonce FROM environment_variables 
-         WHERE workspace_id = $1 
-           AND (project_id = $2 OR project_id IS NULL)
-           AND app_instance_id IS NULL",
-        app_meta.workspace_id, app_meta.project_id
+        "SELECT key, encrypted_value, nonce FROM environment_variables
+         WHERE app_instance_id = $1",
+        inst_meta.id
     )
     .fetch_all(&pool)
     .await;
@@ -292,4 +289,40 @@ async fn execute_cron_container(pool: PgPool, job_id: Uuid, app_id: Uuid, comman
     );
 
     Ok(())
+}
+
+pub fn start_auto_backup_worker(pool: PgPool) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(60));
+        
+        loop {
+            interval.tick().await;
+            
+            let query_res = sqlx::query!(
+                "SELECT id FROM databases 
+                 WHERE backup_enabled = true 
+                   AND (last_backup_at IS NULL OR last_backup_at < now() - interval '24 hours')"
+            )
+            .fetch_all(&pool)
+            .await;
+
+            if let Ok(dbs) = query_res {
+                for db in dbs {
+                    let pool_clone = pool.clone();
+                    let db_id = db.id;
+                    tokio::spawn(async move {
+                        println!("[Auto Backup Worker] Triggering automatic backup for database: {}", db_id);
+                        match crate::controllers::database_controller::perform_database_backup(&pool_clone, db_id).await {
+                            Ok(res) => {
+                                println!("[Auto Backup Worker] Backup completed successfully for db={}: filename={}", db_id, res.filename);
+                            }
+                            Err(e) => {
+                                eprintln!("[Auto Backup Worker] Backup failed for db={}: {:?}", db_id, e);
+                            }
+                        }
+                    });
+                }
+            }
+        }
+    });
 }

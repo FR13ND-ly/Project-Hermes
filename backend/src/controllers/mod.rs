@@ -6,6 +6,7 @@ pub mod cron_controller;
 pub mod database_controller;
 pub mod domain_controller;
 pub mod env_variable_controller;
+pub mod project_env_controller;
 pub mod project_controller;
 pub mod storage_controller;
 pub mod volume_controller;

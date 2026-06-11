@@ -11,7 +11,8 @@ use crate::middlewares::permission_middleware::{check_permission, RequiredPermis
 
 pub fn routes(state: AppState) -> Router {
     let base_routes = Router::new()
-        .route("/workspaces", post(workspace_controller::create_workspace).get(workspace_controller::list_my_workspaces));
+        .route("/workspaces", post(workspace_controller::create_workspace).get(workspace_controller::list_my_workspaces))
+        .route("/workspaces/:id", delete(workspace_controller::delete_workspace));
 
     let developer_routes = Router::new()
         .route("/workspaces/usage", get(workspace_controller::get_workspace_usage))
@@ -23,8 +24,13 @@ pub fn routes(state: AppState) -> Router {
         .layer(from_fn_with_state(state.clone(), check_permission))
         .layer(Extension(RequiredPermission("project:read")));
 
+    let admin_routes = Router::new()
+        .route("/admin/workspaces", get(workspace_controller::admin_list_all_workspaces))
+        .layer(axum::middleware::from_fn(crate::middlewares::auth_middleware::enforce_super_admin));
+
     Router::new()
         .merge(base_routes)
         .merge(developer_routes)
+        .merge(admin_routes)
         .with_state(state)
 }

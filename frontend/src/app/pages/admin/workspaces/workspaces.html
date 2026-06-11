@@ -1,0 +1,110 @@
+<div class="max-w-6xl mx-auto px-6 py-8 space-y-6 animate-fade-in">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
+    <div>
+      <h1 class="text-sm font-bold text-white uppercase tracking-wider">Workspaces · Consolă Admin</h1>
+      <p class="text-xs text-zinc-500 mt-0.5">Telemetrie și management pentru toate spațiile de lucru ale platformei.</p>
+    </div>
+    <span class="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">{{ workspaces().length }} workspaces</span>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="flex flex-col items-center justify-center py-20 gap-2">
+      <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+      </svg>
+      <span class="text-zinc-500 text-[9px] uppercase font-mono tracking-widest">Se încarcă workspace-urile...</span>
+    </div>
+  }
+
+  @if (!loading()) {
+    @if (workspaces().length === 0) {
+      <div class="bg-[#0a0a0a] p-10 rounded-lg border border-zinc-800 text-center text-xs text-zinc-500">
+        Nu există niciun workspace pe platformă.
+      </div>
+    }
+
+    <div class="grid gap-4 md:grid-cols-2">
+      @for (ws of workspaces(); track ws.id) {
+        <div class="rounded-lg border border-zinc-800 bg-[#0a0a0a] shadow-sm overflow-hidden flex flex-col">
+
+          <!-- Card header -->
+          <div class="flex items-start justify-between px-5 py-3.5 border-b border-zinc-900 bg-black">
+            <div class="min-w-0">
+              <h3 class="text-xs font-bold text-white font-mono truncate">{{ ws.name }}</h3>
+              <p class="text-[10px] text-zinc-600 font-mono truncate">{{ ws.slug }}</p>
+            </div>
+            <button
+              (click)="onDelete(ws)"
+              [disabled]="deletingId() === ws.id"
+              class="p-1.5 rounded text-zinc-500 hover:text-red-400 hover:bg-red-950/20 transition-colors cursor-pointer disabled:opacity-40 shrink-0"
+              title="Șterge workspace"
+            >
+              @if (deletingId() === ws.id) {
+                <svg class="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+              }
+            </button>
+          </div>
+
+          <!-- Stats row -->
+          <div class="grid grid-cols-4 divide-x divide-zinc-900 border-b border-zinc-900">
+            <div class="px-3 py-3 text-center">
+              <div class="text-sm font-bold text-white font-mono">{{ ws.memberCount }}</div>
+              <div class="text-[9px] text-zinc-600 uppercase tracking-wider mt-0.5">Membri</div>
+            </div>
+            <div class="px-3 py-3 text-center">
+              <div class="text-sm font-bold text-white font-mono">{{ ws.activeAppCount }}/{{ ws.appCount }}</div>
+              <div class="text-[9px] text-zinc-600 uppercase tracking-wider mt-0.5">Apps active</div>
+            </div>
+            <div class="px-3 py-3 text-center">
+              <div class="text-sm font-bold text-white font-mono">{{ ws.databaseCount }}</div>
+              <div class="text-[9px] text-zinc-600 uppercase tracking-wider mt-0.5">DB-uri</div>
+            </div>
+            <div class="px-3 py-3 text-center">
+              <div class="text-sm font-bold text-white font-mono">{{ ws.creator || '—' }}</div>
+              <div class="text-[9px] text-zinc-600 uppercase tracking-wider mt-0.5">Creator</div>
+            </div>
+          </div>
+
+          <!-- Resource bars -->
+          <div class="px-5 py-4 space-y-3 flex-1">
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-[10px] font-mono">
+                <span class="text-zinc-500 uppercase tracking-wider">RAM alocat</span>
+                <span class="text-zinc-400">{{ ws.allocatedMemoryMb | number }} / {{ ws.maxMemoryMb | number }} MB</span>
+              </div>
+              <div class="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+                <div class="h-full transition-all" [class]="memoryPct(ws) >= 90 ? 'bg-red-500' : 'bg-zinc-400'" [style.width.%]="memoryPct(ws)"></div>
+              </div>
+            </div>
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-[10px] font-mono">
+                <span class="text-zinc-500 uppercase tracking-wider">Stocare alocată</span>
+                <span class="text-zinc-400">{{ ws.allocatedStorageGb | number }} / {{ ws.maxStorageGb | number }} GB</span>
+              </div>
+              <div class="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+                <div class="h-full transition-all" [class]="storagePct(ws) >= 90 ? 'bg-red-500' : 'bg-zinc-400'" [style.width.%]="storagePct(ws)"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="px-5 py-2.5 border-t border-zinc-900 bg-black/40">
+            <span class="text-[9px] text-zinc-600 font-mono">Creat {{ ws.createdAt | date:'mediumDate' }}</span>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+</div>

@@ -3,14 +3,14 @@ import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Details } from '../../details';
-import { ProjectService, AppDetail, AppBuild, EnvResponse, AppInstance } from '../../../../../../core/services/project.service';
+import { ProjectService, AppDetail, AppBuild, EnvResponse, AppInstance, ProjectEnvResponse } from '../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 import { DomainService } from '../../../../../../core/services/domain.service';
 import { WorkspaceService, Workspace } from '../../../../../../core/services/workspace.service';
 import { VolumeService, VolumeInfo, VolumeFileItem } from '../../../../../../core/services/volume.service';
 import { WebSocketService } from '../../../../../../core/services/websocket.service';
-import { Subscription } from 'rxjs';
+import { Subscription, interval } from 'rxjs';
 import { HttpEventType } from '@angular/common/http';
 
 @Component({
@@ -38,7 +38,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   readonly error = signal<string | null>(null);
 
   // Active sub-tab state
-  readonly activeSubTab = signal<'telemetry' | 'logs' | 'env' | 'settings' | 'volumes'>('telemetry');
+  readonly activeSubTab = signal<'telemetry' | 'logs' | 'general' | 'env' | 'advanced'>('telemetry');
 
   // Telemetry signals
   readonly activeInstanceId = signal<string | null>(null);
@@ -50,6 +50,25 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   readonly fsReadValues = signal<number[]>([]);
   readonly fsWriteValues = signal<number[]>([]);
   readonly metricsLoading = signal(false);
+  readonly metricsSimulated = signal(false);
+
+  // Current usage vs allocated quota (consumed / allocated)
+  readonly cpuCurrent = computed(() => {
+    const v = this.cpuValues();
+    return v.length > 0 ? v[v.length - 1] : 0;
+  });
+  readonly memCurrent = computed(() => {
+    const v = this.memValues();
+    return v.length > 0 ? v[v.length - 1] : 0;
+  });
+  readonly cpuUsedPct = computed(() => {
+    const limit = this.cpuLimit();
+    return limit > 0 ? Math.min(100, Math.round((this.cpuCurrent() / limit) * 100)) : 0;
+  });
+  readonly memUsedPct = computed(() => {
+    const limit = this.memLimit();
+    return limit > 0 ? Math.min(100, Math.round((this.memCurrent() / limit) * 100)) : 0;
+  });
 
   // Deploy new branch signals
   readonly newBranchName = signal('');
@@ -75,28 +94,155 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     return this.builds().find(b => b.id === id) || null;
   });
 
-  private eventSource: EventSource | null = null;
+  // Build lifecycle stepper
+  readonly buildPhaseSteps = [
+    { key: 'queued', label: 'În coadă' },
+    { key: 'cloning', label: 'Clonare cod' },
+    { key: 'building', label: 'Construire imagine' },
+    { key: 'deploying', label: 'Deploy cluster' },
+    { key: 'running', label: 'Live' },
+  ];
+
+  // The build whose lifecycle the stepper reflects: the selected one, else the latest.
+  readonly displayBuild = computed(() => this.selectedBuild() || this.builds()[0] || null);
+
+  phaseIndex(phase: string | undefined | null): number {
+    if (!phase) return -1;
+    return this.buildPhaseSteps.findIndex(s => s.key === phase);
+  }
+
+  isBuildFailed(build: AppBuild | null): boolean {
+    if (!build) return false;
+    const s = build.status;
+    const p = build.phase;
+    return s === 'failed' || s === 'cancelled' || s === 'timed_out' || s === 'superseded' || s === 'crashed'
+        || p === 'failed' || p === 'cancelled' || p === 'timed_out' || p === 'superseded' || p === 'crashed';
+  }
+
+  isBuildSucceeded(build: AppBuild | null): boolean {
+    return !!build && build.status === 'succeeded';
+  }
+
+  isBuildInProgress(build: AppBuild | null): boolean {
+    return !!build && build.status === 'building';
+  }
+
+  buildOutcomeLabel(build: AppBuild | null): string {
+    if (!build) return '';
+    const v = build.status === 'building' ? (build.phase || 'building') : build.status;
+    switch (v) {
+      case 'cancelled': return 'Build anulat';
+      case 'timed_out': return 'Build expirat (timeout)';
+      case 'superseded': return 'Înlocuit de un build mai nou';
+      case 'crashed': return 'Aplicația a crăpat la pornire';
+      case 'queued': return 'În coadă';
+      default: return 'Build eșuat';
+    }
+  }
+
+  readonly retryingBuild = signal(false);
+  readonly cancellingBuild = signal(false);
+  readonly rollingBackId = signal<string | null>(null);
+
+  onRollbackBuild(build: AppBuild): void {
+    const appId = this.appId();
+    if (!appId || this.rollingBackId()) return;
+
+    this.rollingBackId.set(build.id);
+    this.projectService.rollbackBuild(appId, build.id).subscribe({
+      next: () => {
+        this.rollingBackId.set(null);
+        this.toast.success('Rollback pornit — se redeployează imaginea acestui build.');
+        this.loadAppDetails();
+      },
+      error: (err) => {
+        this.rollingBackId.set(null);
+        this.toast.error(err.error?.message || err.error?.error?.message || 'Eroare la rollback.');
+      }
+    });
+  }
+
+  onCancelBuild(build: AppBuild): void {
+    const appId = this.appId();
+    if (!appId || this.cancellingBuild()) return;
+
+    this.cancellingBuild.set(true);
+    this.projectService.cancelBuild(appId, build.id).subscribe({
+      next: () => {
+        this.cancellingBuild.set(false);
+        this.toast.success('Build-ul a fost anulat.');
+        this.loadAppDetails();
+      },
+      error: (err) => {
+        this.cancellingBuild.set(false);
+        this.toast.error(err.error?.message || err.error?.error?.message || 'Eroare la anularea build-ului.');
+      }
+    });
+  }
+
+  onRetryBuild(build: AppBuild): void {
+    const appId = this.appId();
+    if (!appId || this.retryingBuild()) return;
+
+    this.retryingBuild.set(true);
+    this.projectService.retryBuild(appId, build.id).subscribe({
+      next: () => {
+        this.retryingBuild.set(false);
+        this.toast.success('Build-ul a fost repornit cu aceeași configurație.');
+        this.selectedBuildId.set(null);
+        this.loadAppDetails();
+      },
+      error: (err) => {
+        this.retryingBuild.set(false);
+        this.toast.error(err.error?.message || err.error?.error?.message || 'Eroare la repornirea build-ului.');
+      }
+    });
+  }
+
+  stepState(build: AppBuild | null, stepIndex: number): 'done' | 'active' | 'pending' {
+    if (!build) return 'pending';
+    // A succeeded build with no phase recorded counts as fully live.
+    const cur = build.status === 'succeeded' && !build.phase
+      ? this.buildPhaseSteps.length - 1
+      : this.phaseIndex(build.phase);
+    if (cur < 0) return 'pending';
+    if (stepIndex < cur) return 'done';
+    if (stepIndex === cur) return 'active';
+    return 'pending';
+  }
+
+  private logsSocket: WebSocket | null = null;
+  private logsReconnectTimer: any = null;
   private statsEventSource: EventSource | null = null;
   private lastCpuSystem: number | null = null;
   private lastCpuContainer: number | null = null;
   private connectedInstanceId: string | null = null;
   private wsSubscriptions = new Subscription();
+  private buildLogsEventSource: EventSource | null = null;
 
   // Environment variables signals
   readonly envVariables = signal<EnvResponse[]>([]);
   readonly envVariablesLoading = signal(false);
+
+  // Project-pool env available to this instance (with linked flag)
+  readonly availableProjectEnv = signal<ProjectEnvResponse[]>([]);
+  readonly showProjectEnvSelector = signal(false);
+  readonly togglingLinkId = signal<string | null>(null);
   readonly showCreateEnvForm = signal(false);
   readonly settingEnv = signal(false);
   readonly envKey = signal('');
   readonly envVal = signal('');
-  readonly envScope = signal<'all' | 'production' | 'staging' | 'preview'>('all');
   readonly isSecret = signal(true);
-  readonly saveEnvTarget = signal<'project' | 'app'>('app');
   readonly revealedEnvIds = signal<Record<string, boolean>>({});
 
+  // JSON editor signals
+  readonly jsonEditMode = signal(false);
+  readonly jsonText = signal('');
+  readonly savingJson = signal(false);
+
   // App settings signals
-  readonly cpuLimit = signal(500); // mCPU
-  readonly memLimit = signal(1024); // MB
+  readonly cpuLimit = signal(0); // mCPU
+  readonly memLimit = signal(0); // MB
   readonly internalPort = signal(8080);
   readonly externalPort = signal<number | null>(null);
   readonly buildCommand = signal('');
@@ -204,11 +350,8 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
     this.route.queryParams.subscribe(params => {
       const tab = params['tab'];
-      if (tab && ['telemetry', 'logs', 'env', 'settings', 'volumes'].includes(tab)) {
+      if (tab && ['telemetry', 'logs', 'general', 'env', 'advanced'].includes(tab)) {
         this.activeSubTab.set(tab as any);
-        if (tab === 'volumes') {
-          this.loadVolumes();
-        }
       }
     });
 
@@ -223,6 +366,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.disconnectLogs();
     this.disconnectTelemetry();
+    this.disconnectBuildLogs();
     this.wsSubscriptions.unsubscribe();
     if (this.tickerInterval) {
       clearInterval(this.tickerInterval);
@@ -295,8 +439,8 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         // Load settings values from first instance
         if (res.instances && res.instances.length > 0) {
           const inst = res.instances[0];
-          this.cpuLimit.set(inst.cpuLimit || 500);
-          this.memLimit.set(inst.memoryLimitMb || 1024);
+          this.cpuLimit.set(inst.cpuLimit !== undefined && inst.cpuLimit !== null ? inst.cpuLimit : 0);
+          this.memLimit.set(inst.memoryLimitMb !== undefined && inst.memoryLimitMb !== null ? inst.memoryLimitMb : 0);
           this.internalPort.set(inst.internalPort || 8080);
           this.externalPort.set(inst.externalPort || null);
 
@@ -327,6 +471,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       next: (res) => {
         const millicoresValues = (res.values || []).map(val => val * 1000);
         this.cpuValues.set(millicoresValues);
+        this.metricsSimulated.set(!!res.simulated);
         this.metricsLoading.set(false);
       },
       error: () => {
@@ -393,12 +538,15 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
   onInstanceChange(id: string): void {
     this.activeInstanceId.set(id);
+    if (this.activeSubTab() === 'env') {
+      this.loadEnvVariables();
+    }
   }
 
-  onSubTabChange(tab: 'telemetry' | 'logs' | 'env' | 'settings' | 'volumes'): void {
+  onSubTabChange(tab: 'telemetry' | 'logs' | 'general' | 'env' | 'advanced'): void {
     this.activeSubTab.set(tab);
-    if (tab === 'volumes') {
-      this.loadVolumes();
+    if (tab !== 'logs') {
+      this.disconnectBuildLogs();
     }
     this.router.navigate([], {
       relativeTo: this.route,
@@ -492,36 +640,53 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
     this.disconnectLogs();
     this.connectedInstanceId = instanceId;
-    this.logs.set(['[Console] Se conectează la fluxul de logs Kubernetes...']);
+    this.logs.set(['[Console] Se conectează la fluxul de logs (WebSocket)...']);
 
-    const streamUrl = this.projectService.getLogsStreamUrl(appId, instanceId);
-    this.eventSource = new EventSource(streamUrl);
+    const wsUrl = this.projectService.getLogsWsUrl(appId, instanceId);
+    const socket = new WebSocket(wsUrl);
+    this.logsSocket = socket;
 
-    this.eventSource.onopen = () => {
+    socket.onopen = () => {
       this.sseConnected.set(true);
-      this.logs.update(lines => [...lines, '[Console] Conexiune stabilă. Recepționare logs în timp real:']);
+      this.logs.update(lines => [...lines, '[Console] Conexiune WebSocket stabilă. Recepționare logs în timp real:']);
     };
 
-    this.eventSource.onmessage = (event) => {
+    socket.onmessage = (event) => {
       if (event.data) {
-        this.logs.update(lines => [...lines, event.data]);
+        this.logs.update(lines => [...lines, event.data as string]);
         if (this.autoScroll()) {
           this.scrollToBottom();
         }
       }
     };
 
-    this.eventSource.onerror = () => {
+    socket.onclose = () => {
+      // Ignore if this socket was already replaced or intentionally closed.
+      if (this.logsSocket !== socket) return;
       this.sseConnected.set(false);
-      this.logs.update(lines => [...lines, '[Aviz] Conexiunea la stream a fost întreruptă. Se încearcă reconectarea...']);
-      this.disconnectLogs();
+      this.logs.update(lines => [...lines, '[Aviz] Conexiunea la stream a fost întreruptă. Se reconectează...']);
+      this.logsReconnectTimer = setTimeout(() => {
+        if (this.logsSocket === socket && this.connectedInstanceId === instanceId) {
+          this.connectLogs(instanceId);
+        }
+      }, 2500);
+    };
+
+    socket.onerror = () => {
+      // The onclose handler that follows performs the reconnect.
+      this.sseConnected.set(false);
     };
   }
 
   disconnectLogs(): void {
-    if (this.eventSource) {
-      this.eventSource.close();
-      this.eventSource = null;
+    if (this.logsReconnectTimer) {
+      clearTimeout(this.logsReconnectTimer);
+      this.logsReconnectTimer = null;
+    }
+    if (this.logsSocket) {
+      const sock = this.logsSocket;
+      this.logsSocket = null; // null first so onclose treats it as intentional
+      try { sock.close(); } catch { /* ignore */ }
     }
     this.connectedInstanceId = null;
     this.sseConnected.set(false);
@@ -571,52 +736,9 @@ export class AppDetailComponent implements OnInit, OnDestroy {
             });
           }
 
-          // Append live updates for network and disk traffic using minor random fluctuations of last values
-          this.netRxValues.update(vals => {
-            const lastVal = vals.length > 0 ? vals[vals.length - 1] : 0.1;
-            const fluctuation = (Math.random() - 0.5) * (lastVal * 0.15);
-            const nextVal = Math.max(0, lastVal + fluctuation);
-            const next = [...vals, nextVal];
-            if (next.length > 50) next.shift();
-            return next;
-          });
-
-          this.netTxValues.update(vals => {
-            const lastVal = vals.length > 0 ? vals[vals.length - 1] : 0.05;
-            const fluctuation = (Math.random() - 0.5) * (lastVal * 0.15);
-            const nextVal = Math.max(0, lastVal + fluctuation);
-            const next = [...vals, nextVal];
-            if (next.length > 50) next.shift();
-            return next;
-          });
-
-          this.fsReadValues.update(vals => {
-            const lastVal = vals.length > 0 ? vals[vals.length - 1] : 0.0;
-            let nextVal = lastVal;
-            if (lastVal === 0) {
-              if (Math.random() < 0.05) {
-                nextVal = Math.random() * 0.05;
-              }
-            } else {
-              const fluctuation = (Math.random() - 0.5) * (lastVal * 0.15);
-              nextVal = Math.max(0, lastVal + fluctuation);
-              if (Math.random() < 0.1) {
-                nextVal = 0;
-              }
-            }
-            const next = [...vals, nextVal];
-            if (next.length > 50) next.shift();
-            return next;
-          });
-
-          this.fsWriteValues.update(vals => {
-            const lastVal = vals.length > 0 ? vals[vals.length - 1] : 0.02;
-            const fluctuation = (Math.random() - 0.5) * (lastVal * 0.15);
-            const nextVal = Math.max(0, lastVal + fluctuation);
-            const next = [...vals, nextVal];
-            if (next.length > 50) next.shift();
-            return next;
-          });
+          // Network and disk are not part of the live stats stream; they are only
+          // available from the historical Prometheus query, so we leave them as-is
+          // here rather than fabricating values.
         } catch (e) {
           console.error('[Telemetry] Error parsing stats SSE stream:', e);
         }
@@ -663,12 +785,69 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         if (this.autoScroll()) {
           this.scrollToBottom();
         }
+
+        if (res.status === 'building') {
+          this.connectBuildLogs(buildId);
+        } else {
+          this.disconnectBuildLogs();
+        }
       },
       error: () => {
         this.selectedBuildLogs.set('Eroare la încărcarea logurilor de build.');
         this.loadingBuildLogs.set(false);
+        this.disconnectBuildLogs();
       }
     });
+  }
+
+  connectBuildLogs(buildId: string): void {
+    const appId = this.appId();
+    if (!appId) return;
+
+    this.disconnectBuildLogs();
+    this.selectedBuildLogs.set('[Console] Se conectează la fluxul de build live...');
+
+    const streamUrl = this.projectService.getBuildLogsStreamUrl(appId, buildId);
+    this.buildLogsEventSource = new EventSource(streamUrl);
+
+    this.buildLogsEventSource.onmessage = (event) => {
+      if (event.data) {
+        this.selectedBuildLogs.update(logs => {
+          if (logs === '[Console] Se conectează la fluxul de build live...') {
+            return event.data + '\n';
+          }
+          return logs + event.data + '\n';
+        });
+
+        if (this.autoScroll()) {
+          this.scrollToBottom();
+        }
+      }
+    };
+
+    this.buildLogsEventSource.onerror = () => {
+      // Stream completed or disconnected. Stop stream and fetch final state.
+      this.disconnectBuildLogs();
+      this.loadBuilds(true);
+      this.loadAppDetails();
+
+      // Retrieve full logs from database
+      this.projectService.getBuildDetails(appId, buildId).subscribe({
+        next: (res) => {
+          this.selectedBuildLogs.set(res.logs || 'Nu există loguri înregistrate pentru acest build.');
+          if (this.autoScroll()) {
+            this.scrollToBottom();
+          }
+        }
+      });
+    };
+  }
+
+  disconnectBuildLogs(): void {
+    if (this.buildLogsEventSource) {
+      this.buildLogsEventSource.close();
+      this.buildLogsEventSource = null;
+    }
   }
 
   formatDuration(seconds: number | undefined): string {
@@ -688,6 +867,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   onBackToLiveLogs(): void {
     this.selectedBuildId.set(null);
     this.selectedBuildLogs.set('');
+    this.disconnectBuildLogs();
     
     if (this.activeInstanceId()) {
       this.connectLogs(this.activeInstanceId()!);
@@ -703,16 +883,13 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     }, 50);
   }
 
-  // --- Environment Variables ---
+  // --- Environment Variables (scoped to the active instance) ---
   loadEnvVariables(): void {
-    const projectId = this.parent.projectId();
-    const appData = this.app();
-    if (!projectId || !appData) return;
-
-    const appInstanceId = appData.instances?.[0]?.id || null;
+    const appInstanceId = this.activeInstanceId() || this.app()?.instances?.[0]?.id || null;
+    if (!appInstanceId) return;
 
     this.envVariablesLoading.set(true);
-    this.projectService.listEnvVariables(projectId, appInstanceId).subscribe({
+    this.projectService.listEnvVariables(appInstanceId).subscribe({
       next: (res) => {
         this.envVariables.set(res || []);
         this.envVariablesLoading.set(false);
@@ -721,11 +898,44 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         this.envVariablesLoading.set(false);
       }
     });
+    this.loadAvailableProjectEnv();
   }
 
-  isOverridden(env: EnvResponse): boolean {
-    if (env.appInstanceId !== null) return false;
-    return this.envVariables().some(e => e.appInstanceId !== null && e.key === env.key);
+  // --- Project-pool linking ---
+  loadAvailableProjectEnv(): void {
+    const appInstanceId = this.activeInstanceId() || this.app()?.instances?.[0]?.id || null;
+    if (!appInstanceId) return;
+    this.projectService.listInstanceProjectEnv(appInstanceId).subscribe({
+      next: (res) => this.availableProjectEnv.set(res || []),
+      error: () => this.availableProjectEnv.set([])
+    });
+  }
+
+  toggleProjectEnvSelector(): void {
+    this.showProjectEnvSelector.set(!this.showProjectEnvSelector());
+    if (this.showProjectEnvSelector()) this.loadAvailableProjectEnv();
+  }
+
+  onToggleProjectEnvLink(env: ProjectEnvResponse): void {
+    const appInstanceId = this.activeInstanceId() || this.app()?.instances?.[0]?.id || null;
+    if (!appInstanceId || this.togglingLinkId()) return;
+
+    this.togglingLinkId.set(env.id);
+    const req = env.linked
+      ? this.projectService.unlinkProjectEnv(appInstanceId, env.id)
+      : this.projectService.linkProjectEnv(appInstanceId, env.id);
+
+    req.subscribe({
+      next: () => {
+        this.togglingLinkId.set(null);
+        this.toast.success(env.linked ? 'Variabilă deconectată.' : 'Variabilă conectată.');
+        this.loadAvailableProjectEnv();
+      },
+      error: (err) => {
+        this.togglingLinkId.set(null);
+        this.toast.error(err.error?.message || 'Eroare la actualizarea legăturii.');
+      }
+    });
   }
 
   onToggleReveal(id: string): void {
@@ -736,21 +946,15 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   }
 
   onSaveEnv(): void {
-    const projectId = this.parent.projectId();
-    const appData = this.app();
-    if (!projectId || !appData || !this.envKey() || !this.envVal()) return;
-
-    const appInstanceId = appData.instances?.[0]?.id || null;
-    const isAppTarget = this.saveEnvTarget() === 'app' && appInstanceId !== null;
+    const appInstanceId = this.activeInstanceId() || this.app()?.instances?.[0]?.id || null;
+    if (!appInstanceId || !this.envKey() || !this.envVal()) return;
 
     this.settingEnv.set(true);
 
     this.projectService.setEnvVariable({
-      projectId: isAppTarget ? null : projectId,
-      appInstanceId: isAppTarget ? appInstanceId : null,
+      appInstanceId,
       key: this.envKey().trim(),
       value: this.envVal().trim(),
-      scope: this.envScope(),
       isSecret: this.isSecret()
     }).subscribe({
       next: () => {
@@ -764,6 +968,57 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       error: (err) => {
         this.toast.error(err.error?.message || 'Eroare la salvarea variabilei.');
         this.settingEnv.set(false);
+      }
+    });
+  }
+
+  // --- JSON bulk editor ---
+  openJsonEditor(): void {
+    const obj: Record<string, string> = {};
+    for (const env of this.envVariables()) {
+      obj[env.key] = env.isSecret ? '' : (env.value ?? '');
+    }
+    this.jsonText.set(JSON.stringify(obj, null, 2));
+    this.jsonEditMode.set(true);
+  }
+
+  closeJsonEditor(): void {
+    this.jsonEditMode.set(false);
+  }
+
+  saveJsonEnvs(): void {
+    const appInstanceId = this.activeInstanceId() || this.app()?.instances?.[0]?.id || null;
+    if (!appInstanceId) return;
+
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(this.jsonText());
+    } catch {
+      this.toast.error('JSON invalid. Verificați sintaxa.');
+      return;
+    }
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      this.toast.error('JSON-ul trebuie să fie un obiect { "CHEIE": "valoare" }.');
+      return;
+    }
+
+    const variables = Object.entries(parsed).map(([key, value]) => ({
+      key,
+      value: value === null || value === undefined ? '' : String(value),
+      isSecret: false
+    }));
+
+    this.savingJson.set(true);
+    this.projectService.setEnvsBulk(appInstanceId, variables).subscribe({
+      next: () => {
+        this.savingJson.set(false);
+        this.jsonEditMode.set(false);
+        this.toast.success('Variabilele de mediu au fost actualizate.');
+        this.loadEnvVariables();
+      },
+      error: (err) => {
+        this.savingJson.set(false);
+        this.toast.error(err.error?.message || 'Eroare la salvarea variabilelor.');
       }
     });
   }

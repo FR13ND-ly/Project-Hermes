@@ -7,57 +7,51 @@ use uuid::Uuid;
 
 use crate::app_state::AppState;
 use crate::models::volume_model::AppVolume;
-use crate::dtos::volume_dto::{CreateVolumeRequest, VolumeResponse};
+use crate::dtos::volume_dto::{VolumeResponse, ProjectVolumeResponse};
 use crate::middlewares::auth_middleware::AuthenticatedUser;
 use crate::utils::error::AppError;
 
-const VOLUMES_BASE_DIR: &str = "/var/lib/hermes/volumes";
-
-pub async fn create_volume(
+/// All persistent volumes (PVCs) across a project's apps. PVCs are created only
+/// automatically at build (from Dockerfile VOLUME directives); this endpoint
+/// powers the central Storage interface that lists and browses them.
+pub async fn list_project_volumes(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
-    Json(payload): Json<CreateVolumeRequest>,
-) -> Result<(StatusCode, Json<VolumeResponse>), AppError> {
+    Path(project_id): Path<Uuid>,
+) -> Result<Json<Vec<ProjectVolumeResponse>>, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
-    let app_exists = sqlx::query!(
-        "SELECT id FROM apps WHERE id = $1 AND workspace_id = $2",
-        payload.app_id, ws_id
+    let rows = sqlx::query!(
+        "SELECT v.id, v.app_id, a.name AS app_name, v.name, v.container_path, v.host_path
+         FROM app_volumes v
+         JOIN apps a ON v.app_id = a.id
+         WHERE a.project_id = $1 AND a.workspace_id = $2
+         ORDER BY a.name ASC, v.name ASC",
+        project_id,
+        ws_id
     )
-    .fetch_optional(&state.pool)
+    .fetch_all(&state.pool)
     .await?;
 
-    if app_exists.is_none() {
-        return Err(AppError::NotFound("Application not found in this workspace.".to_string()));
-    }
+    let list = rows
+        .into_iter()
+        .map(|r| {
+            let is_auto = r.name.starts_with("auto-");
+            ProjectVolumeResponse {
+                id: r.id,
+                app_id: r.app_id,
+                app_name: r.app_name,
+                name: r.name,
+                container_path: r.container_path,
+                host_path: r.host_path,
+                is_auto,
+            }
+        })
+        .collect();
 
-    let volume_id = Uuid::new_v4();
-    let host_path = format!("{}/{}", VOLUMES_BASE_DIR, volume_id);
-
-    std::fs::create_dir_all(&host_path).map_err(|e| {
-        AppError::Fatal(anyhow::anyhow!("Failed to physically create volume directory: {}", e))
-    })?;
-
-    sqlx::query!(
-        "INSERT INTO app_volumes (id, workspace_id, app_id, name, container_path, host_path)
-         VALUES ($1, $2, $3, $4, $5, $6)",
-        volume_id, ws_id, payload.app_id, payload.name.trim(), payload.container_path.trim(), host_path
-    )
-    .execute(&state.pool)
-    .await?;
-
-    Ok((
-        StatusCode::CREATED,
-        Json(VolumeResponse {
-            id: volume_id,
-            app_id: payload.app_id,
-            name: payload.name,
-            container_path: payload.container_path,
-            host_path,
-        }),
-    ))
+    Ok(Json(list))
 }
 
 pub async fn list_app_volumes(
