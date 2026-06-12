@@ -2,7 +2,7 @@ import { Component, inject, signal, OnInit, OnDestroy, effect, computed } from '
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Details } from '../../details';
-import { StorageService, StorageBucket, StorageObject, BucketAccessType, ImageVariant, ProjectVolume } from '../../../../../../core/services/storage.service';
+import { StorageService, StorageBucket, StorageObject, ImageVariant, ProjectVolume } from '../../../../../../core/services/storage.service';
 import { VolumeService, VolumeFileItem } from '../../../../../../core/services/volume.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
@@ -44,10 +44,9 @@ export class Storages implements OnInit, OnDestroy {
   // PVCs (app volumes) listed + browsed centrally in Storage
   readonly pvcs = signal<ProjectVolume[]>([]);
   readonly loadingPvcs = signal(false);
-  readonly pvcExplorer = signal<ProjectVolume | null>(null);
-  readonly pvcFiles = signal<VolumeFileItem[]>([]);
-  readonly loadingPvcFiles = signal(false);
-  readonly pvcPath = signal<string>('/');
+  // A selected PVC is browsed through the SAME detail view as a bucket.
+  readonly selectedPvc = signal<ProjectVolume | null>(null);
+  readonly pvcDirItems = signal<VolumeFileItem[]>([]);
 
   readonly buckets = signal<StorageBucket[]>([]);
   readonly selectedBucket = signal<StorageBucket | null>(null);
@@ -72,7 +71,6 @@ export class Storages implements OnInit, OnDestroy {
   readonly showCreateForm = signal(false);
   readonly creatingBucket = signal(false);
   readonly newBucketName = signal('');
-  readonly newBucketAccessType = signal<BucketAccessType>('public_assets');
   readonly maxBucketSizeGb = signal<number>(1);
   readonly isPublicToggle = signal<boolean>(false);
 
@@ -86,7 +84,6 @@ export class Storages implements OnInit, OnDestroy {
 
   // Edit Bucket Settings Form States
   readonly editName = signal('');
-  readonly editAccessType = signal<BucketAccessType>('public_assets');
   readonly editMaxSizeGb = signal<number>(1);
   readonly editIsPublic = signal<boolean>(false);
   readonly savingSettings = signal(false);
@@ -145,74 +142,101 @@ export class Storages implements OnInit, OnDestroy {
     });
   }
 
-  openPvcExplorer(pvc: ProjectVolume): void {
-    this.pvcExplorer.set(pvc);
-    this.pvcPath.set('/');
-    this.loadPvcFiles(pvc.id, '/');
+  // Open a PVC in the shared bucket-style detail view.
+  selectPvc(pvc: ProjectVolume): void {
+    this.selectedBucket.set(null);
+    this.selectedPvc.set(pvc);
+    this.activeTab.set('files');
+    this.searchQuery.set('');
+    this.currentPath.set('/');
+    this.loadPvcDir('/');
   }
 
-  closePvcExplorer(): void {
-    this.pvcExplorer.set(null);
-    this.pvcFiles.set([]);
-    this.pvcPath.set('/');
-  }
-
-  loadPvcFiles(volumeId: string, path: string): void {
-    this.loadingPvcFiles.set(true);
-    this.volumeService.listFiles(volumeId, path).subscribe({
-      next: (res) => { this.pvcFiles.set(res || []); this.loadingPvcFiles.set(false); },
-      error: () => { this.pvcFiles.set([]); this.loadingPvcFiles.set(false); }
+  loadPvcDir(path: string): void {
+    const pvc = this.selectedPvc();
+    if (!pvc) return;
+    this.loadingFiles.set(true);
+    this.volumeService.listFiles(pvc.id, path).subscribe({
+      next: (res) => { this.pvcDirItems.set(res || []); this.loadingFiles.set(false); },
+      error: () => { this.pvcDirItems.set([]); this.loadingFiles.set(false); }
     });
   }
 
-  pvcNavigateTo(folderName: string): void {
-    const pvc = this.pvcExplorer();
-    if (!pvc) return;
-    const base = this.pvcPath().endsWith('/') ? this.pvcPath() : this.pvcPath() + '/';
-    const next = `${base}${folderName}`;
-    this.pvcPath.set(next);
-    this.loadPvcFiles(pvc.id, next);
-  }
-
-  pvcNavigateUp(): void {
-    const pvc = this.pvcExplorer();
-    if (!pvc) return;
-    const parts = this.pvcPath().split('/').filter(p => p.length > 0);
-    parts.pop();
-    const parent = '/' + parts.join('/');
-    this.pvcPath.set(parent);
-    this.loadPvcFiles(pvc.id, parent);
-  }
-
-  pvcBreadcrumbs(): { name: string; path: string }[] {
-    const parts = this.pvcPath().split('/').filter(p => p.length > 0);
-    const crumbs: { name: string; path: string }[] = [];
-    let acc = '';
-    for (const p of parts) {
-      acc += '/' + p;
-      crumbs.push({ name: p, path: acc });
-    }
-    return crumbs;
-  }
-
-  pvcGoToCrumb(path: string): void {
-    const pvc = this.pvcExplorer();
-    if (!pvc) return;
-    this.pvcPath.set(path);
-    this.loadPvcFiles(pvc.id, path);
-  }
-
-  pvcDownload(item: VolumeFileItem): void {
-    const pvc = this.pvcExplorer();
-    if (!pvc || item.isDir) return;
-    const base = this.pvcPath().endsWith('/') ? this.pvcPath() : this.pvcPath() + '/';
-    const url = this.volumeService.downloadFileUrl(pvc.id, `${base}${item.name}`);
+  downloadPvcItem(item: VirtualItem): void {
+    const pvc = this.selectedPvc();
+    if (!pvc || item.isFolder) return;
+    const path = item.filePath.startsWith('/') ? item.filePath : `/${item.filePath}`;
+    const url = this.volumeService.downloadFileUrl(pvc.id, path);
     const a = document.createElement('a');
     a.href = url;
     a.download = item.name;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  }
+
+  onPvcFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) this.uploadPvcFile(file);
+    input.value = '';
+  }
+
+  uploadPvcFile(file: File): void {
+    const pvc = this.selectedPvc();
+    if (!pvc) return;
+    this.uploading.set(true);
+    this.uploadProgress.set(0);
+    this.volumeService.uploadFileProgress(pvc.id, this.currentPath(), file).subscribe({
+      next: (event: HttpEvent<any>) => {
+        if (event.type === HttpEventType.UploadProgress) {
+          this.uploadProgress.set(event.total ? Math.round((100 * event.loaded) / event.total) : 0);
+        } else if (event.type === HttpEventType.Response) {
+          this.uploading.set(false);
+          this.uploadProgress.set(0);
+          this.toast.success(`Fișierul "${file.name}" a fost încărcat.`);
+          this.loadPvcDir(this.currentPath());
+        }
+      },
+      error: (err) => {
+        this.uploading.set(false);
+        this.uploadProgress.set(0);
+        this.toast.error(err.error?.message || 'Eroare la încărcarea fișierului.');
+      }
+    });
+  }
+
+  createPvcFolder(): void {
+    const pvc = this.selectedPvc();
+    const name = this.newFolderName().trim().replace(/[\/\\]/g, '');
+    if (!pvc || !name) return;
+    this.volumeService.createFolder(pvc.id, this.currentPath(), name).subscribe({
+      next: () => {
+        this.newFolderName.set('');
+        this.showFolderForm.set(false);
+        this.toast.success('Directorul a fost creat.');
+        this.loadPvcDir(this.currentPath());
+      },
+      error: (err) => this.toast.error(err.error?.message || 'Eroare la crearea directorului.')
+    });
+  }
+
+  async deletePvcItem(item: VirtualItem): Promise<void> {
+    const pvc = this.selectedPvc();
+    if (!pvc) return;
+    const confirmed = await this.confirm.ask({
+      title: 'Ștergere',
+      message: `Sigur ștergi "${item.name}"?`,
+      confirmText: 'Șterge',
+      cancelText: 'Anulează',
+      isDanger: true
+    });
+    if (!confirmed) return;
+    const path = item.filePath.startsWith('/') ? item.filePath : `/${item.filePath}`;
+    this.volumeService.deleteFile(pvc.id, path).subscribe({
+      next: () => { this.toast.success('Șters cu succes.'); this.loadPvcDir(this.currentPath()); },
+      error: (err) => this.toast.error(err.error?.message || 'Eroare la ștergere.')
+    });
   }
 
   loadBuckets(): void {
@@ -246,7 +270,6 @@ export class Storages implements OnInit, OnDestroy {
 
     // Populate form states
     this.editName.set(bucket.name);
-    this.editAccessType.set(bucket.accessType);
     this.editMaxSizeGb.set(Math.round(bucket.maxBucketSizeBytes / (1024 * 1024 * 1024)));
     this.editIsPublic.set(bucket.isPublic);
 
@@ -292,6 +315,8 @@ export class Storages implements OnInit, OnDestroy {
 
   deselectBucket(): void {
     this.selectedBucket.set(null);
+    this.selectedPvc.set(null);
+    this.pvcDirItems.set([]);
     this.stopPolling();
   }
 
@@ -466,6 +491,22 @@ export class Storages implements OnInit, OnDestroy {
 
   // Parses the flat files list to output files and subfolders in active directory path
   readonly currentItems = computed<VirtualItem[]>(() => {
+    // PVCs are browsed per-directory: the server already returns the current
+    // directory's contents, so we map them straight to the shared VirtualItem shape.
+    const pvc = this.selectedPvc();
+    if (pvc) {
+      const cp = this.currentPath();
+      const q = this.searchQuery().trim().toLowerCase();
+      let dir = this.pvcDirItems();
+      if (q) dir = dir.filter(it => it.name.toLowerCase().includes(q));
+      return dir.map(it => ({
+        name: it.name,
+        isFolder: it.isDir,
+        filePath: `${cp}${it.name}${it.isDir ? '/' : ''}`,
+        sizeBytes: it.sizeBytes,
+      }));
+    }
+
     const files = this.allFiles();
     const activePath = this.currentPath();
     const query = this.searchQuery().trim().toLowerCase();
@@ -613,6 +654,7 @@ export class Storages implements OnInit, OnDestroy {
   onNavigate(path: string): void {
     this.currentPath.set(path);
     this.searchQuery.set('');
+    if (this.selectedPvc()) this.loadPvcDir(path);
   }
 
   onNavigateBack(): void {
@@ -620,22 +662,17 @@ export class Storages implements OnInit, OnDestroy {
     if (path === '/') return;
     const parts = path.split('/').filter(p => p.length > 0);
     parts.pop();
-    if (parts.length === 0) {
-      this.currentPath.set('/');
-    } else {
-      this.currentPath.set(`/${parts.join('/')}/`);
-    }
+    const target = parts.length === 0 ? '/' : `/${parts.join('/')}/`;
+    this.currentPath.set(target);
+    if (this.selectedPvc()) this.loadPvcDir(target);
   }
 
   onNavigateBreadcrumb(index: number): void {
     const parts = this.pathParts();
-    if (index === -1) {
-      this.currentPath.set('/');
-    } else {
-      const targetParts = parts.slice(0, index + 1);
-      this.currentPath.set(`/${targetParts.join('/')}/`);
-    }
+    const target = index === -1 ? '/' : `/${parts.slice(0, index + 1).join('/')}/`;
+    this.currentPath.set(target);
     this.searchQuery.set('');
+    if (this.selectedPvc()) this.loadPvcDir(target);
   }
 
   onCreateBucket(): void {

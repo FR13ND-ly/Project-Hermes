@@ -1,13 +1,12 @@
 use axum::{
-    extract::{State, Path},
+    extract::{State, Path, Multipart},
     http::StatusCode,
     Json,
 };
 use uuid::Uuid;
 
 use crate::app_state::AppState;
-use crate::models::volume_model::AppVolume;
-use crate::dtos::volume_dto::{VolumeResponse, ProjectVolumeResponse};
+use crate::dtos::volume_dto::ProjectVolumeResponse;
 use crate::middlewares::auth_middleware::AuthenticatedUser;
 use crate::utils::error::AppError;
 
@@ -52,66 +51,6 @@ pub async fn list_project_volumes(
         .collect();
 
     Ok(Json(list))
-}
-
-pub async fn list_app_volumes(
-    State(state): State<AppState>,
-    AuthenticatedUser(claims): AuthenticatedUser,
-    Path(app_id): Path<Uuid>,
-) -> Result<Json<Vec<VolumeResponse>>, AppError> {
-    let ws_id = claims.current_workspace_id.ok_or_else(|| {
-        AppError::Validation("No active workspace selected.".to_string())
-    })?;
-
-    let volumes = sqlx::query_as::<_, AppVolume>(
-        "SELECT id, workspace_id, app_id, name, container_path, host_path, created_at 
-         FROM app_volumes 
-         WHERE app_id = $1 AND workspace_id = $2 
-         ORDER BY created_at DESC"
-    )
-    .bind(app_id)
-    .bind(ws_id)
-    .fetch_all(&state.pool)
-    .await?;
-
-    let response = volumes
-        .into_iter()
-        .map(|v| VolumeResponse {
-            id: v.id,
-            app_id: v.app_id,
-            name: v.name,
-            container_path: v.container_path,
-            host_path: v.host_path,
-        })
-        .collect();
-
-    Ok(Json(response))
-}
-
-pub async fn delete_volume(
-    State(state): State<AppState>,
-    AuthenticatedUser(claims): AuthenticatedUser,
-    Path(volume_id): Path<Uuid>,
-) -> Result<StatusCode, AppError> {
-    let ws_id = claims.current_workspace_id.ok_or_else(|| {
-        AppError::Validation("No active workspace selected.".to_string())
-    })?;
-
-    let volume = sqlx::query!(
-        "SELECT host_path FROM app_volumes WHERE id = $1 AND workspace_id = $2",
-        volume_id, ws_id
-    )
-    .fetch_optional(&state.pool)
-    .await?
-    .ok_or_else(|| AppError::NotFound("Persistent volume not found.".to_string()))?;
-
-    sqlx::query!("DELETE FROM app_volumes WHERE id = $1", volume_id)
-        .execute(&state.pool)
-        .await?;
-
-    let _ = std::fs::remove_dir_all(&volume.host_path);
-
-    Ok(StatusCode::NO_CONTENT)
 }
 
 fn safe_resolve(base: &std::path::Path, relative: &str) -> Result<std::path::PathBuf, AppError> {
@@ -205,59 +144,6 @@ pub async fn list_volume_files(
     Ok(Json(items))
 }
 
-use axum::extract::Multipart;
-
-#[derive(Debug, serde::Deserialize)]
-pub struct UploadFileQuery {
-    pub path: Option<String>,
-}
-
-pub async fn upload_volume_file(
-    State(state): State<AppState>,
-    AuthenticatedUser(claims): AuthenticatedUser,
-    Path(volume_id): Path<Uuid>,
-    axum::extract::Query(query): axum::extract::Query<UploadFileQuery>,
-    mut multipart: Multipart,
-) -> Result<StatusCode, AppError> {
-    let ws_id = claims.current_workspace_id.ok_or_else(|| {
-        AppError::Validation("No active workspace selected.".to_string())
-    })?;
-
-    let volume = sqlx::query!(
-        "SELECT host_path FROM app_volumes WHERE id = $1 AND workspace_id = $2",
-        volume_id, ws_id
-    )
-    .fetch_optional(&state.pool)
-    .await?
-    .ok_or_else(|| AppError::NotFound("Persistent volume not found.".to_string()))?;
-
-    let base_path = std::path::Path::new(&volume.host_path);
-    let rel_path = query.path.unwrap_or_default();
-    let target_dir = safe_resolve(base_path, &rel_path)?;
-
-    std::fs::create_dir_all(&target_dir).map_err(|e| AppError::Fatal(anyhow::anyhow!("Eroare la crearea directorului destinație: {}", e)))?;
-
-    while let Some(field) = multipart.next_field().await.map_err(|e| AppError::Fatal(anyhow::anyhow!("Multipart reading error: {}", e)))? {
-        let name = field.file_name().unwrap_or("unnamed_file").to_string();
-        let clean_name = std::path::Path::new(&name)
-            .file_name()
-            .ok_or_else(|| AppError::Validation("Nume de fișier invalid.".to_string()))?
-            .to_string_lossy()
-            .to_string();
-
-        let filepath = target_dir.join(&clean_name);
-        
-        if !filepath.starts_with(base_path) {
-            return Err(AppError::Validation("Path transversal blocked.".to_string()));
-        }
-
-        let data = field.bytes().await.map_err(|e| AppError::Fatal(anyhow::anyhow!("Multipart bytes reading error: {}", e)))?;
-        std::fs::write(&filepath, data).map_err(|e| AppError::Fatal(anyhow::anyhow!("Eroare la salvarea fișierului pe host: {}", e)))?;
-    }
-
-    Ok(StatusCode::OK)
-}
-
 use axum::response::IntoResponse;
 use axum::body::Body;
 
@@ -314,6 +200,57 @@ pub async fn download_volume_file(
 }
 
 #[derive(Debug, serde::Deserialize)]
+pub struct UploadFileQuery {
+    pub path: Option<String>,
+}
+
+pub async fn upload_volume_file(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(volume_id): Path<Uuid>,
+    axum::extract::Query(query): axum::extract::Query<UploadFileQuery>,
+    mut multipart: Multipart,
+) -> Result<StatusCode, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let volume = sqlx::query!(
+        "SELECT host_path FROM app_volumes WHERE id = $1 AND workspace_id = $2",
+        volume_id, ws_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Persistent volume not found.".to_string()))?;
+
+    let base_path = std::path::Path::new(&volume.host_path);
+    let rel_path = query.path.unwrap_or_default();
+    let target_dir = safe_resolve(base_path, &rel_path)?;
+
+    std::fs::create_dir_all(&target_dir).map_err(|e| AppError::Fatal(anyhow::anyhow!("Eroare la crearea directorului destinație: {}", e)))?;
+
+    while let Some(field) = multipart.next_field().await.map_err(|e| AppError::Fatal(anyhow::anyhow!("Multipart reading error: {}", e)))? {
+        let name = field.file_name().unwrap_or("unnamed_file").to_string();
+        let clean_name = std::path::Path::new(&name)
+            .file_name()
+            .ok_or_else(|| AppError::Validation("Nume de fișier invalid.".to_string()))?
+            .to_string_lossy()
+            .to_string();
+
+        let filepath = target_dir.join(&clean_name);
+
+        if !filepath.starts_with(base_path) {
+            return Err(AppError::Validation("Path transversal blocked.".to_string()));
+        }
+
+        let data = field.bytes().await.map_err(|e| AppError::Fatal(anyhow::anyhow!("Multipart bytes reading error: {}", e)))?;
+        std::fs::write(&filepath, data).map_err(|e| AppError::Fatal(anyhow::anyhow!("Eroare la salvarea fișierului pe host: {}", e)))?;
+    }
+
+    Ok(StatusCode::OK)
+}
+
+#[derive(Debug, serde::Deserialize)]
 pub struct DeleteFileQuery {
     pub path: String,
 }
@@ -337,7 +274,7 @@ pub async fn delete_volume_file(
     .ok_or_else(|| AppError::NotFound("Persistent volume not found.".to_string()))?;
 
     let base_path = std::path::Path::new(&volume.host_path);
-    
+
     if query.path.trim().is_empty() || query.path == "/" || query.path == "." {
         return Err(AppError::Validation("Nu puteți șterge directorul rădăcină al volumului.".to_string()));
     }
@@ -397,7 +334,7 @@ pub async fn create_volume_directory(
         .to_string();
 
     let new_dir_path = target_dir.join(clean_name);
-    
+
     if !new_dir_path.starts_with(base_path) {
         return Err(AppError::Validation("Path transversal blocked.".to_string()));
     }

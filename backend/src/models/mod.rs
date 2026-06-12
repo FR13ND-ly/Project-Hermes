@@ -7,7 +7,6 @@ pub mod env_variable_model;
 pub mod project_model;
 pub mod storage_model;
 pub mod user_model;
-pub mod volume_model;
 pub mod workspace_model;
 pub mod rbac_model;
 pub mod serverless_model;
