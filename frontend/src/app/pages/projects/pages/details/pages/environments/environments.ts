@@ -30,6 +30,13 @@ export class Environments implements OnInit {
   readonly pIsSecret = signal(true);
   readonly savingProjectEnv = signal(false);
 
+  // Revealed secret values for pool vars (id -> decrypted value), fetched on demand.
+  readonly projectRevealed = signal<Record<string, string>>({});
+  // Inline rename state for a pool var.
+  readonly renamingId = signal<string | null>(null);
+  readonly renameKey = signal('');
+  readonly savingRename = signal(false);
+
   // Inline add form (per instance)
   readonly addFormInstance = signal<string | null>(null);
   readonly formKey = signal('');
@@ -133,6 +140,65 @@ export class Environments implements OnInit {
       },
       error: (err) => {
         this.toast.error(err.error?.message || 'Eroare la ștergere.');
+      }
+    });
+  }
+
+  // Reveal a pool var's value. Non-secrets already carry their value; secrets are
+  // fetched (decrypted) from the backend on demand and cached.
+  toggleRevealProjectEnv(env: ProjectEnvResponse): void {
+    const projectId = this.parent.projectId();
+    if (!projectId) return;
+
+    // Already revealed -> hide.
+    if (this.projectRevealed()[env.id] !== undefined) {
+      this.projectRevealed.update(m => {
+        const next = { ...m };
+        delete next[env.id];
+        return next;
+      });
+      return;
+    }
+
+    if (!env.isSecret && env.value != null) {
+      this.projectRevealed.update(m => ({ ...m, [env.id]: env.value as string }));
+      return;
+    }
+
+    this.projectService.revealProjectEnv(projectId, env.id).subscribe({
+      next: (res) => this.projectRevealed.update(m => ({ ...m, [env.id]: res.value })),
+      error: (err) => this.toast.error(err.error?.message || 'Eroare la dezvăluirea valorii.')
+    });
+  }
+
+  startRename(env: ProjectEnvResponse): void {
+    this.renamingId.set(env.id);
+    this.renameKey.set(env.key);
+  }
+
+  cancelRename(): void {
+    this.renamingId.set(null);
+    this.renameKey.set('');
+  }
+
+  saveRename(env: ProjectEnvResponse): void {
+    const projectId = this.parent.projectId();
+    const key = this.renameKey().trim();
+    if (!projectId || !key || key === env.key) {
+      this.cancelRename();
+      return;
+    }
+    this.savingRename.set(true);
+    this.projectService.renameProjectEnv(projectId, env.id, key).subscribe({
+      next: () => {
+        this.savingRename.set(false);
+        this.cancelRename();
+        this.toast.success('Cheia a fost redenumită.');
+        this.loadProjectEnv();
+      },
+      error: (err) => {
+        this.savingRename.set(false);
+        this.toast.error(err.error?.message || 'Eroare la redenumire.');
       }
     });
   }

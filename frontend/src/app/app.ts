@@ -5,10 +5,11 @@ import { AuthService } from './core/services/auth';
 import { WorkspaceService, Workspace } from './core/services/workspace.service';
 import { ToastService } from './core/services/toast.service';
 import { ConfirmService } from './core/services/confirm.service';
+import { BuildIndicator } from './shared/components/build-indicator/build-indicator';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule, BuildIndicator],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

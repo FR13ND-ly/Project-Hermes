@@ -64,9 +64,9 @@ export class Overview implements OnInit {
     if (!projectId) return;
 
     this.loadingDbs.set(true);
-    this.dbService.listDatabases(projectId).subscribe({
+    this.dbService.listDatabases(projectId, 1, 1000).subscribe({
       next: (res) => {
-        this.databases.set(res || []);
+        this.databases.set(res?.items || []);
         this.loadingDbs.set(false);
       },
       error: () => {

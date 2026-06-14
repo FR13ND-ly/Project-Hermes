@@ -841,6 +841,10 @@ impl K8sManager {
         max_scale: i32,
         target_concurrency: i32,
         memory_limit_mb: Option<i32>,
+        // When set, stamps a changing annotation onto the revision template so Knative
+        // creates a fresh revision even if the image is unchanged — used for env-only
+        // reloads (Knative ignores changes to the referenced envFrom secret alone).
+        reload_token: Option<String>,
     ) -> Result<(), AppError> {
         // Apply Secret for Knative service environment variables
         Self::create_secret(client, namespace, name, envs).await?;
@@ -875,6 +879,15 @@ impl K8sManager {
             }
         }
 
+        let mut template_annotations = json!({
+            "autoscaling.knative.dev/min-scale": min_scale.to_string(),
+            "autoscaling.knative.dev/max-scale": max_scale.to_string(),
+            "autoscaling.knative.dev/target": target_concurrency.to_string()
+        });
+        if let Some(token) = reload_token {
+            template_annotations["hermes.dev/env-reload"] = json!(token);
+        }
+
         let manifest: kube::core::DynamicObject = serde_json::from_value(json!({
             "apiVersion": "serving.knative.dev/v1",
             "kind": "Service",
@@ -885,11 +898,7 @@ impl K8sManager {
             "spec": {
                 "template": {
                     "metadata": {
-                        "annotations": {
-                            "autoscaling.knative.dev/min-scale": min_scale.to_string(),
-                            "autoscaling.knative.dev/max-scale": max_scale.to_string(),
-                            "autoscaling.knative.dev/target": target_concurrency.to_string()
-                        }
+                        "annotations": template_annotations
                     },
                     "spec": {
                         "containers": [container]

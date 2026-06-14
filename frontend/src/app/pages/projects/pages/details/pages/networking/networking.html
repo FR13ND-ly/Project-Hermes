@@ -84,8 +84,49 @@
             </div>
 
             <div class="space-y-1.5">
+              <label class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Conectează la</label>
+              <div class="flex items-center gap-0.5 bg-zinc-955 border border-zinc-850 rounded p-0.5 text-[10px] font-bold uppercase tracking-wider">
+                @for (t of [{v:'app',l:'Aplicație'},{v:'serverless',l:'Funcție'},{v:'database',l:'Bază date'},{v:'custom',l:'Custom'}]; track t.v) {
+                  <button type="button" (click)="onChangeTargetType($any(t.v))"
+                    class="flex-1 px-2 py-1.5 rounded transition-all cursor-pointer"
+                    [class]="newTargetType() === t.v ? 'bg-white text-black' : 'text-zinc-500 hover:text-zinc-300'">{{ t.l }}</button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Resource picker for app/serverless/database; advanced nginx for custom -->
+          @if (newTargetType() !== 'custom') {
+            <div class="space-y-1.5 animate-fade-in">
+              <label class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Resursă</label>
+              @if (targetOptions().length === 0) {
+                <p class="text-[10px] text-amber-500/80 font-sans py-1.5">
+                  @switch (newTargetType()) {
+                    @case ('database') { Nicio bază de date expusă extern. Activează „External (TCP)" pe o bază înainte de a-i atribui un domeniu. }
+                    @case ('serverless') { Nicio funcție serverless în proiect. }
+                    @default { Nicio instanță de aplicație în proiect. }
+                  }
+                </p>
+              } @else {
+                <select [ngModel]="selectedTargetId()" (ngModelChange)="selectedTargetId.set($event)"
+                  class="block w-full px-3 py-2 text-xs bg-zinc-955 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer font-mono">
+                  @for (opt of targetOptions(); track opt.id) {
+                    <option [value]="opt.id">{{ opt.name }}</option>
+                  }
+                </select>
+              }
+              <p class="text-[10px] text-zinc-500 leading-relaxed font-sans">
+                @switch (newTargetType()) {
+                  @case ('database') { Se creează doar un record DNS → IP-ul de ingress. Te conectezi la <span class="font-mono text-zinc-300">{{ fqdn() || 'domeniu' }}:&lt;port&gt;</span> (TCP). }
+                  @case ('serverless') { Hermes rutează automat domeniul către funcția selectată. }
+                  @default { Hermes rezolvă automat containerul și portul instanței — fără configurare manuală. }
+                }
+              </p>
+            </div>
+          } @else {
+            <div class="space-y-1.5 animate-fade-in">
               <label for="routing-type-select" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Tip Rutare Nginx</label>
-              <select 
+              <select
                 id="routing-type-select"
                 [ngModel]="routingType()"
                 (ngModelChange)="routingType.set($event)"
@@ -96,49 +137,49 @@
                 <option value="custom">Nginx Custom Config</option>
               </select>
             </div>
-          </div>
 
-          @if (routingType() === 'reverse_proxy') {
-            <div class="space-y-1.5 animate-fade-in">
-              <label for="proxy-target" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Adresă Țintă Container (nginx_target_host)</label>
-              <input 
-                id="proxy-target"
-                type="text" 
-                placeholder="ex. http://hermes-app-service-name:8080"
-                [ngModel]="nginxTargetHost()"
-                (ngModelChange)="nginxTargetHost.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-zinc-955 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
-              />
-              <p class="text-[10px] text-zinc-500 leading-relaxed font-sans">Nginx va trimite proxy_pass către această adresă.</p>
-            </div>
-          }
+            @if (routingType() === 'reverse_proxy') {
+              <div class="space-y-1.5 animate-fade-in">
+                <label for="proxy-target" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Adresă Țintă Container (nginx_target_host)</label>
+                <input
+                  id="proxy-target"
+                  type="text"
+                  placeholder="ex. hermes-app-service-name"
+                  [ngModel]="nginxTargetHost()"
+                  (ngModelChange)="nginxTargetHost.set($event)"
+                  class="block w-full px-3 py-2 text-xs bg-zinc-955 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                />
+                <p class="text-[10px] text-zinc-500 leading-relaxed font-sans">Nginx va trimite proxy_pass către această adresă.</p>
+              </div>
+            }
 
-          @if (routingType() === 'static_host') {
-            <div class="space-y-1.5 animate-fade-in">
-              <label for="root-path" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Director Rădăcină (nginx_root_path)</label>
-              <input 
-                id="root-path"
-                type="text" 
-                placeholder="ex. /var/www/html sau calea volumului"
-                [ngModel]="nginxRootPath()"
-                (ngModelChange)="nginxRootPath.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-zinc-955 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
-              />
-            </div>
-          }
+            @if (routingType() === 'static_host') {
+              <div class="space-y-1.5 animate-fade-in">
+                <label for="root-path" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Director Rădăcină (nginx_root_path)</label>
+                <input
+                  id="root-path"
+                  type="text"
+                  placeholder="ex. /var/www/html sau calea volumului"
+                  [ngModel]="nginxRootPath()"
+                  (ngModelChange)="nginxRootPath.set($event)"
+                  class="block w-full px-3 py-2 text-xs bg-zinc-955 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                />
+              </div>
+            }
 
-          @if (routingType() === 'custom') {
-            <div class="space-y-1.5 animate-fade-in">
-              <label for="custom-config" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Configurație Nginx Custom Bloc Server</label>
-              <textarea 
-                id="custom-config"
-                rows="5"
-                placeholder="location / { ... }"
-                [ngModel]="nginxConfigContent()"
-                (ngModelChange)="nginxConfigContent.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-zinc-955 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
-              ></textarea>
-            </div>
+            @if (routingType() === 'custom') {
+              <div class="space-y-1.5 animate-fade-in">
+                <label for="custom-config" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Configurație Nginx Custom Bloc Server</label>
+                <textarea
+                  id="custom-config"
+                  rows="5"
+                  placeholder="location / { ... }"
+                  [ngModel]="nginxConfigContent()"
+                  (ngModelChange)="nginxConfigContent.set($event)"
+                  class="block w-full px-3 py-2 text-xs bg-zinc-955 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                ></textarea>
+              </div>
+            }
           }
 
           <div class="grid gap-4 sm:grid-cols-2 pt-2 border-t border-zinc-900">
@@ -233,12 +274,14 @@
                     </span>
                   </td>
                   <td class="p-3">
-                    <span 
-                      class="px-2 py-0.5 rounded text-[8px] font-bold uppercase border"
-                      [class]="route.type === 'automatic' ? 'bg-indigo-950/20 text-indigo-400 border-indigo-900/40' : 'bg-purple-950/20 text-purple-400 border-purple-900/40'"
-                    >
-                      {{ route.type === 'automatic' ? 'Automat (Ingress)' : 'Custom Domain' }}
-                    </span>
+                    @if (route.type === 'automatic') {
+                      <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase border bg-indigo-950/20 text-indigo-400 border-indigo-900/40">Automat (Ingress)</span>
+                    } @else {
+                      <span
+                        class="px-2 py-0.5 rounded text-[8px] font-bold uppercase border"
+                        [class]="route.branchName === 'Bază de date' ? 'bg-amber-950/20 text-amber-400 border-amber-900/40' : (route.branchName === 'Funcție Serverless' ? 'bg-cyan-950/20 text-cyan-400 border-cyan-900/40' : (route.branchName === 'Custom' ? 'bg-zinc-900 text-zinc-400 border-zinc-800' : 'bg-purple-950/20 text-purple-400 border-purple-900/40'))"
+                      >{{ route.branchName === 'Bază de date' ? 'Domeniu DNS (TCP)' : 'Domeniu Custom' }}</span>
+                    }
                   </td>
                   <td class="p-3">
                     @if (route.status === 'active') {
@@ -557,24 +600,38 @@
       </div>
     }
 
-    <!-- TAB 2: LIVE TRAFFIC LOGS -->
+    <!-- TAB 2: REAL NGINX ACCESS LOGS -->
     @if (activeTab() === 'logs') {
       <div class="space-y-4 animate-fade-in font-sans">
         <div class="bg-black border border-zinc-900 rounded-lg p-5 shadow-inner">
           <div class="flex items-center justify-between border-b border-zinc-900 pb-3 mb-4">
-            <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider font-mono">Stream Log-uri Nginx Access (live_traffic_feed.log)</h4>
-            <span class="text-[9px] text-zinc-650 bg-zinc-950 px-2 py-0.5 rounded border border-zinc-900 uppercase font-semibold font-mono animate-pulse">Streaming</span>
-          </div>
-
-          <div class="space-y-2 max-h-[480px] overflow-y-auto pr-1 bg-black p-3.5 rounded border border-zinc-955 select-text font-mono text-[10px]">
-            @for (log of liveLogs(); track $index) {
-              <div class="text-zinc-400 hover:text-zinc-200 leading-relaxed truncate">
-                {{ log }}
-              </div>
-            } @empty {
-              <div class="text-center py-10 text-xs text-zinc-650 font-mono">Se inițializează fluxul de trafic...</div>
+            <div class="flex items-center gap-2">
+              <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider font-mono">Loguri Nginx Access</h4>
+              <code class="text-[9px] text-zinc-600 font-mono hidden sm:inline">/var/log/nginx/{{ route.fqdn }}.access.log</code>
+            </div>
+            @if (logsSupported()) {
+              <button (click)="loadDomainLogs(route.id)" class="text-[9px] text-zinc-400 hover:text-white bg-zinc-950 px-2 py-0.5 rounded border border-zinc-900 uppercase font-semibold font-mono cursor-pointer transition-colors">Reîmprospătează</button>
             }
           </div>
+
+          @if (!logsSupported()) {
+            <div class="text-center py-10 px-4 text-xs text-zinc-550 font-sans space-y-1">
+              <p class="text-zinc-400 font-semibold">Logurile HTTP nu sunt disponibile aici pentru această rută.</p>
+              @if (route.type === 'automatic') {
+                <p class="text-[11px]">Rutele automate (Ingress) nu trec prin nginx-ul gazdă. Vezi logurile în tab-ul <span class="text-zinc-300 font-mono">Logs</span> al aplicației / funcției.</p>
+              } @else {
+                <p class="text-[11px]">Domeniile pe baze de date sunt TCP (fără nginx), deci nu au loguri de access.</p>
+              }
+            </div>
+          } @else {
+            <div class="space-y-1 max-h-[480px] overflow-y-auto pr-1 bg-black p-3.5 rounded border border-zinc-955 select-text font-mono text-[10px]">
+              @for (log of liveLogs(); track $index) {
+                <div class="text-zinc-400 hover:text-zinc-200 leading-relaxed truncate">{{ log }}</div>
+              } @empty {
+                <div class="text-center py-10 text-xs text-zinc-650 font-mono">Niciun request înregistrat încă. Logurile apar pe măsură ce domeniul primește trafic.</div>
+              }
+            </div>
+          }
         </div>
       </div>
     }

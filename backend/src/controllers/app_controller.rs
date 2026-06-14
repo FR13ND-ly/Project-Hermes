@@ -14,10 +14,11 @@ use serde::Deserialize;
 use crate::app_state::AppState;
 use crate::models::app_model::{App, AppInstance, AppInstanceType, AppStatus};
 use crate::dtos::app_dto::{CreateAppRequest, CreateBranchRequest, AppDetailedResponse, AppInstanceResponse, ConfigureServerlessRequest};
-use crate::dtos::build_dto::{BuildResponse, BuildDetailResponse};
+use crate::dtos::build_dto::{BuildResponse, BuildDetailResponse, BuildQueueItem};
 use crate::dtos::metrics_dto::MetricsHistoryResponse;
 use crate::middlewares::auth_middleware::AuthenticatedUser;
 use crate::utils::error::AppError;
+use crate::utils::pagination::{PaginationParams, Paginated};
 
 #[derive(Debug, Deserialize)]
 pub struct GitHubWebhookPayload {
@@ -63,7 +64,7 @@ pub struct RepoDetails {
     pub clone_url: Option<String>,
 }
 
-async fn get_random_available_port(pool: &sqlx::PgPool) -> Result<i32, AppError> {
+pub async fn get_random_available_port(pool: &sqlx::PgPool) -> Result<i32, AppError> {
     for _ in 0..100 {
         let port: i32 = (rand::random::<u32>() % 10000 + 20000) as i32;
         let port_in_use_apps = sqlx::query_scalar!(
@@ -163,18 +164,72 @@ pub async fn create_app(
             if clean_key.is_empty() {
                 continue;
             }
-            let is_secret = var.is_secret.unwrap_or(true);
-            let (encrypted_value, nonce) = crate::utils::crypto::encrypt_env_value(&var.value)?;
 
+            // Check if the key already exists in the project pool.
+            let project_env = sqlx::query!(
+                "SELECT id FROM project_env_variables WHERE project_id = $1 AND key = $2",
+                payload.project_id, clean_key
+            )
+            .fetch_optional(&state.pool)
+            .await?;
+
+            if let Some(pe) = project_env {
+                // Link to the project pool variable.
+                sqlx::query!(
+                    "INSERT INTO app_env_links (app_instance_id, project_env_id)
+                     VALUES ($1, $2)
+                     ON CONFLICT DO NOTHING",
+                    instance_id, pe.id
+                )
+                .execute(&state.pool)
+                .await?;
+            } else {
+                // Put it as a custom/local variable on the app.
+                let is_secret = var.is_secret.unwrap_or(true);
+                let (encrypted_value, nonce) = crate::utils::crypto::encrypt_env_value(&var.value)?;
+
+                sqlx::query!(
+                    "INSERT INTO environment_variables (id, workspace_id, app_instance_id, key, encrypted_value, nonce, is_secret)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7)
+                     ON CONFLICT (app_instance_id, key) DO NOTHING",
+                    Uuid::new_v4(), ws_id, instance_id, clean_key, encrypted_value, nonce, is_secret
+                )
+                .execute(&state.pool)
+                .await?;
+            }
+        }
+    }
+
+    // Opt the new instance into any project-pool env vars chosen at creation time.
+    // Each id is validated to belong to this app's project before linking.
+    if let Some(ids) = &payload.linked_project_env_ids {
+        for project_env_id in ids {
+            let belongs = sqlx::query_scalar!(
+                "SELECT EXISTS(SELECT 1 FROM project_env_variables WHERE id = $1 AND project_id = $2)",
+                project_env_id, payload.project_id
+            )
+            .fetch_one(&state.pool)
+            .await?
+            .unwrap_or(false);
+            if !belongs {
+                continue;
+            }
             sqlx::query!(
-                "INSERT INTO environment_variables (id, workspace_id, app_instance_id, key, encrypted_value, nonce, is_secret)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7)
-                 ON CONFLICT (app_instance_id, key) DO NOTHING",
-                Uuid::new_v4(), ws_id, instance_id, clean_key, encrypted_value, nonce, is_secret
+                "INSERT INTO app_env_links (app_instance_id, project_env_id) VALUES ($1, $2)
+                 ON CONFLICT DO NOTHING",
+                instance_id, project_env_id
             )
             .execute(&state.pool)
             .await?;
         }
+    }
+
+    // Generate the app's BaaS signing secret up front so it's published to the
+    // project pool and linked to the new instance from the start.
+    if let Err(e) = crate::utils::app_auth::get_or_create_app_auth_secret(
+        &state.pool, app_id, ws_id, payload.project_id,
+    ).await {
+        tracing::warn!(app_id = %app_id, "Failed to provision BaaS auth secret: {}", e);
     }
 
     let pool_clone = state.pool.clone();
@@ -542,7 +597,62 @@ pub async fn start_app_instance(
     Ok(StatusCode::OK)
 }
 
+/// Redeploy = full rebuild from Git (fresh clone + image build + deploy), using the
+/// instance's current repo/branch/build command. For re-applying the already-built
+/// image without a rebuild, use `reload_app_instance` instead.
 pub async fn redeploy_app_instance(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path((_app_id, instance_id)): Path<(Uuid, Uuid)>,
+) -> Result<StatusCode, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let meta = sqlx::query!(
+        "SELECT ai.id, ai.branch_name, a.git_repository, a.build_command
+         FROM app_instances ai
+         JOIN apps a ON ai.app_id = a.id
+         WHERE ai.id = $1 AND a.workspace_id = $2",
+        instance_id, ws_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Application branch instance not found.".to_string()))?;
+
+    let busy = sqlx::query_scalar!(
+        "SELECT EXISTS(SELECT 1 FROM app_builds WHERE app_instance_id = $1 AND status = 'building')",
+        meta.id
+    )
+    .fetch_one(&state.pool)
+    .await?
+    .unwrap_or(false);
+    if busy {
+        return Err(AppError::Conflict("Există deja un build în curs pentru această instanță.".to_string()));
+    }
+
+    sqlx::query!(
+        "UPDATE app_instances SET status = 'building', updated_at = now() WHERE id = $1",
+        meta.id
+    )
+    .execute(&state.pool)
+    .await?;
+
+    let pool_clone = state.pool.clone();
+    let git_repo = meta.git_repository.clone();
+    let branch = meta.branch_name.clone();
+    let build_cmd = meta.build_command.clone();
+    let iid = meta.id;
+    tokio::spawn(async move {
+        crate::utils::builder::run_ephemeral_build(pool_clone, iid, git_repo, branch, build_cmd).await;
+    });
+
+    Ok(StatusCode::ACCEPTED)
+}
+
+/// Reload = re-apply the already-built image with freshly-resolved config/env, no
+/// rebuild (the previous behavior of "redeploy"). Picks up env/limit/domain changes.
+pub async fn reload_app_instance(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
     Path((_app_id, instance_id)): Path<(Uuid, Uuid)>,
@@ -1004,11 +1114,122 @@ pub async fn handle_github_webhook(
     Ok(StatusCode::OK)
 }
 
+/// Global build/work queue: app builds (queued/building) + databases provisioning
+/// + serverless builds, oldest first. Super admins see all workspaces; everyone
+/// else sees their active workspace.
+pub async fn list_build_queue(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+) -> Result<Json<Vec<BuildQueueItem>>, AppError> {
+    let filter_ws: Option<Uuid> = if claims.is_super_admin {
+        None
+    } else {
+        Some(claims.current_workspace_id.ok_or_else(|| {
+            AppError::Validation("No active workspace selected.".to_string())
+        })?)
+    };
+
+    let mut items: Vec<BuildQueueItem> = Vec::new();
+
+    // App builds.
+    let app_rows = sqlx::query!(
+        r#"SELECT ab.id, ab.app_id, a.name AS app_name, a.project_id, p.name AS project_name,
+                  a.workspace_id, w.name AS workspace_name, ai.branch_name, ab.status, ab.created_at
+           FROM app_builds ab
+           JOIN apps a ON ab.app_id = a.id
+           JOIN projects p ON a.project_id = p.id
+           JOIN workspaces w ON a.workspace_id = w.id
+           JOIN app_instances ai ON ab.app_instance_id = ai.id
+           WHERE ab.status IN ('queued', 'building')
+             AND ($1::uuid IS NULL OR a.workspace_id = $1)"#,
+        filter_ws
+    )
+    .fetch_all(&state.pool)
+    .await?;
+    for r in app_rows {
+        items.push(BuildQueueItem {
+            id: r.id,
+            kind: "app".to_string(),
+            resource_id: r.app_id,
+            name: r.app_name,
+            detail: Some(r.branch_name),
+            project_id: r.project_id,
+            project_name: r.project_name,
+            workspace_id: r.workspace_id,
+            workspace_name: r.workspace_name,
+            status: r.status,
+            created_at: r.created_at,
+        });
+    }
+
+    // Databases currently provisioning.
+    let db_rows = sqlx::query!(
+        r#"SELECT d.id, d.name, d.type::text AS "db_type!", d.project_id, p.name AS project_name,
+                  d.workspace_id, w.name AS workspace_name, d.created_at
+           FROM databases d
+           JOIN projects p ON d.project_id = p.id
+           JOIN workspaces w ON d.workspace_id = w.id
+           WHERE d.status = 'provisioning'
+             AND ($1::uuid IS NULL OR d.workspace_id = $1)"#,
+        filter_ws
+    )
+    .fetch_all(&state.pool)
+    .await?;
+    for r in db_rows {
+        items.push(BuildQueueItem {
+            id: r.id,
+            kind: "database".to_string(),
+            resource_id: r.id,
+            name: r.name,
+            detail: Some(r.db_type),
+            project_id: r.project_id,
+            project_name: r.project_name,
+            workspace_id: r.workspace_id,
+            workspace_name: r.workspace_name,
+            status: "provisioning".to_string(),
+            created_at: r.created_at,
+        });
+    }
+
+    // Serverless functions currently building.
+    let fn_rows = sqlx::query!(
+        r#"SELECT f.id, f.name, f.route_path, f.project_id, p.name AS project_name,
+                  f.workspace_id, w.name AS workspace_name, f.updated_at
+           FROM serverless_functions f
+           JOIN projects p ON f.project_id = p.id
+           JOIN workspaces w ON f.workspace_id = w.id
+           WHERE f.status = 'building'
+             AND ($1::uuid IS NULL OR f.workspace_id = $1)"#,
+        filter_ws
+    )
+    .fetch_all(&state.pool)
+    .await?;
+    for r in fn_rows {
+        items.push(BuildQueueItem {
+            id: r.id,
+            kind: "serverless".to_string(),
+            resource_id: r.id,
+            name: r.name,
+            detail: Some(r.route_path),
+            project_id: r.project_id,
+            project_name: r.project_name,
+            workspace_id: r.workspace_id,
+            workspace_name: r.workspace_name,
+            status: "building".to_string(),
+            created_at: r.updated_at,
+        });
+    }
+
+    items.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+    Ok(Json(items))
+}
+
 pub async fn list_app_builds(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
     Path(app_id): Path<Uuid>,
-) -> Result<Json<Vec<BuildResponse>>, AppError> {
+    Query(pagination): Query<PaginationParams>,
+) -> Result<Json<Paginated<BuildResponse>>, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
@@ -1021,36 +1242,53 @@ pub async fn list_app_builds(
         return Err(AppError::NotFound("Application not found in this workspace.".to_string()));
     }
 
+    let (page, page_size, offset) = pagination.resolve();
+
+    let total: i64 = sqlx::query_scalar!("SELECT COUNT(*) FROM app_builds WHERE app_id = $1", app_id)
+        .fetch_one(&state.pool)
+        .await?
+        .unwrap_or(0);
+
     let records = sqlx::query!(
-        "SELECT ab.id, ab.app_id, ab.app_instance_id, ab.status, ab.phase, ab.failure_reason, ab.failure_category, ab.created_at, ai.branch_name, ab.commit_message, ab.commit_sha, ab.duration_sec
+        "SELECT ab.id, ab.app_id, ab.app_instance_id, ab.status, ab.phase, ab.failure_reason, ab.failure_category, ab.created_at, ai.branch_name, ab.commit_message, ab.commit_sha, ab.duration_sec, ab.image_tag, ai.current_image_tag
          FROM app_builds ab
          JOIN app_instances ai ON ab.app_instance_id = ai.id
          WHERE ab.app_id = $1
-         ORDER BY ab.created_at DESC",
-        app_id
+         ORDER BY ab.created_at DESC
+         LIMIT $2 OFFSET $3",
+        app_id, page_size, offset
     )
     .fetch_all(&state.pool)
     .await?;
 
-    let builds = records
+    let items: Vec<BuildResponse> = records
         .into_iter()
-        .map(|r| BuildResponse {
-            id: r.id,
-            app_id: r.app_id,
-            app_instance_id: r.app_instance_id,
-            branch_name: r.branch_name,
-            status: r.status,
-            phase: r.phase,
-            failure_reason: r.failure_reason,
-            failure_category: r.failure_category,
-            created_at: r.created_at,
-            commit_message: r.commit_message,
-            commit_sha: r.commit_sha,
-            duration_sec: r.duration_sec,
+        .map(|r| {
+            // The build whose image matches the instance's deployed image is "live".
+            let is_live = match (&r.image_tag, &r.current_image_tag) {
+                (Some(img), Some(cur)) => img == cur,
+                _ => false,
+            };
+            BuildResponse {
+                id: r.id,
+                app_id: r.app_id,
+                app_instance_id: r.app_instance_id,
+                branch_name: r.branch_name,
+                status: r.status,
+                phase: r.phase,
+                failure_reason: r.failure_reason,
+                failure_category: r.failure_category,
+                created_at: r.created_at,
+                commit_message: r.commit_message,
+                commit_sha: r.commit_sha,
+                duration_sec: r.duration_sec,
+                image_tag: r.image_tag,
+                is_live,
+            }
         })
         .collect();
- 
-    Ok(Json(builds))
+
+    Ok(Json(Paginated::new(items, total, page, page_size)))
 }
  
 pub async fn get_build_details(
@@ -1358,7 +1596,8 @@ pub async fn list_project_apps(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
     Path(project_id): Path<Uuid>,
-) -> Result<Json<Vec<AppDetailedResponse>>, AppError> {
+    Query(pagination): Query<PaginationParams>,
+) -> Result<Json<Paginated<AppDetailedResponse>>, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
@@ -1377,15 +1616,27 @@ pub async fn list_project_apps(
         return Err(AppError::NotFound("Project not found in this workspace.".to_string()));
     }
 
+    let (page, page_size, offset) = pagination.resolve();
+
+    let total: i64 = sqlx::query_scalar!(
+        "SELECT COUNT(*) FROM apps WHERE project_id = $1 AND workspace_id = $2",
+        project_id, ws_id
+    )
+    .fetch_one(&state.pool)
+    .await?
+    .unwrap_or(0);
+
     let apps_records = sqlx::query_as::<_, App>(
-        "SELECT * FROM apps WHERE project_id = $1 AND workspace_id = $2 ORDER BY created_at DESC"
+        "SELECT * FROM apps WHERE project_id = $1 AND workspace_id = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4"
     )
     .bind(project_id)
     .bind(ws_id)
+    .bind(page_size)
+    .bind(offset)
     .fetch_all(&state.pool)
     .await?;
 
-    let mut response = Vec::new();
+    let mut items = Vec::new();
     for app in apps_records {
         let instances_records = sqlx::query_as::<_, AppInstance>(
             "SELECT * FROM app_instances WHERE app_id = $1 ORDER BY created_at DESC"
@@ -1406,7 +1657,7 @@ pub async fn list_project_apps(
             meta_data: inst.meta_data,
         }).collect();
 
-        response.push(AppDetailedResponse {
+        items.push(AppDetailedResponse {
             id: app.id,
             project_id: app.project_id,
             name: app.name,
@@ -1420,7 +1671,7 @@ pub async fn list_project_apps(
         });
     }
 
-    Ok(Json(response))
+    Ok(Json(Paginated::new(items, total, page, page_size)))
 }
 
 pub async fn update_instance_settings(
@@ -1600,6 +1851,22 @@ pub async fn delete_app(
     )
     .execute(&state.pool)
     .await?;
+
+    // Clean up project-pool vars published by this app's BaaS resources (no FK
+    // cascade reaches project_env_variables): the auth secret and any API keys.
+    let _ = sqlx::query!(
+        "DELETE FROM project_env_variables WHERE source = 'baas_auth' AND source_id = $1",
+        app.id
+    )
+    .execute(&state.pool)
+    .await;
+    let _ = sqlx::query!(
+        "DELETE FROM project_env_variables WHERE source = 'baas'
+         AND source_id IN (SELECT id FROM app_api_keys WHERE app_id = $1)",
+        app.id
+    )
+    .execute(&state.pool)
+    .await;
 
     // Delete the application (cascades to app_instances, app_volumes, app_builds, app_user_roles, cron_jobs)
     sqlx::query!("DELETE FROM apps WHERE id = $1", app.id)

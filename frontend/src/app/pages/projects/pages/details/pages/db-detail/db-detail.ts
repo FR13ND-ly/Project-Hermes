@@ -3,7 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Details } from '../../details';
-import { DatabaseService, DatabaseServiceInfo, DbBackup } from '../../../../../../core/services/database.service';
+import { DatabaseService, DatabaseServiceInfo, DbBackup, BackupCron } from '../../../../../../core/services/database.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 import { WebSocketService } from '../../../../../../core/services/websocket.service';
@@ -57,6 +57,12 @@ export class DbDetailComponent implements OnInit, OnDestroy {
   readonly backupCount = signal(7);
   readonly savingSettings = signal(false);
   readonly saveSettingsSuccess = signal(false);
+
+  // Auto-backup as a real cron, managed from settings.
+  readonly backupCron = signal<BackupCron | null>(null);
+  readonly showAddBackup = signal(false);
+  readonly newBackupCount = signal(7);
+  readonly savingBackup = signal(false);
 
   // Backups state
   readonly backups = signal<DbBackup[]>([]);
@@ -264,6 +270,7 @@ export class DbDetailComponent implements OnInit, OnDestroy {
         this.memLimit.set(res.memoryLimitMb || 512);
         this.backupEnabled.set(res.backupEnabled || false);
         this.backupCount.set(res.backupCount || 7);
+        this.loadBackupCron(id);
         this.loading.set(false);
         
         // Start ticker if database is still provisioning
@@ -440,6 +447,71 @@ export class DbDetailComponent implements OnInit, OnDestroy {
         this.toast.error(err.error?.message || 'Eroare la salvarea setărilor.');
       }
     });
+  }
+
+  // --- Auto-backup (managed cron) ---
+  loadBackupCron(dbId: string): void {
+    this.dbService.getBackupCron(dbId).subscribe({
+      next: (res) => this.backupCron.set(res),
+      error: () => this.backupCron.set(null)
+    });
+  }
+
+  openAddBackup(): void {
+    this.newBackupCount.set(this.backupCount() || 7);
+    this.showAddBackup.set(true);
+  }
+
+  // Persist backup settings (cpu/mem kept as-is) and refresh the linked cron.
+  private persistBackup(enabled: boolean, count: number, okMsg: string): void {
+    const id = this.dbId();
+    if (!id) return;
+    this.savingBackup.set(true);
+    this.dbService.updateSettings(id, {
+      cpuLimit: this.cpuLimit(),
+      memoryLimitMb: this.memLimit(),
+      backupEnabled: enabled,
+      backupCount: count
+    }).subscribe({
+      next: () => {
+        this.savingBackup.set(false);
+        this.showAddBackup.set(false);
+        this.backupEnabled.set(enabled);
+        this.backupCount.set(count);
+        this.toast.success(okMsg);
+        this.loadBackupCron(id);
+      },
+      error: (err) => {
+        this.savingBackup.set(false);
+        this.toast.error(err.error?.message || 'Eroare la actualizarea backup-ului automat.');
+      }
+    });
+  }
+
+  onEnableBackup(): void {
+    const count = Math.max(1, Math.min(30, this.newBackupCount() || 7));
+    this.persistBackup(true, count, 'Backup automat activat — un cron editabil a fost creat.');
+  }
+
+  onUpdateBackupRetention(): void {
+    const count = Math.max(1, Math.min(30, this.backupCount() || 7));
+    this.persistBackup(true, count, 'Numărul de backup-uri păstrate a fost actualizat.');
+  }
+
+  async onDisableBackup(): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Dezactivare Backup Automat',
+      message: 'Sigur doriți să dezactivați backup-ul automat? Cron-ul asociat va fi șters. Backup-urile deja create rămân.',
+      confirmText: 'Dezactivează',
+      cancelText: 'Anulează',
+      isDanger: true
+    });
+    if (!confirmed) return;
+    this.persistBackup(false, this.backupCount() || 7, 'Backup automat dezactivat.');
+  }
+
+  goToBackupCron(): void {
+    this.router.navigate(['/projects', this.parent.projectId(), 'cron']);
   }
 
   // Backups operations

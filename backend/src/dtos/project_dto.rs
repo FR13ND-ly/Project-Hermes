@@ -7,6 +7,27 @@ pub struct CreateProjectRequest {
     pub name: String,
 }
 
+/// Cloudflare / Ingress settings for a project. The API token is a secret: an
+/// empty/omitted token leaves the stored value unchanged.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateProjectSettingsRequest {
+    pub cloudflare_api_token: Option<String>,
+    pub cloudflare_zone_id: Option<String>,
+    pub ingress_ip: Option<String>,
+    pub base_domain: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectSettingsResponse {
+    pub cloudflare_zone_id: Option<String>,
+    pub ingress_ip: Option<String>,
+    pub base_domain: Option<String>,
+    /// The token itself is never returned; only whether one is configured.
+    pub has_cloudflare_token: bool,
+}
+
 #[derive(Debug, Serialize)]
 pub struct ProjectResponse {
     pub id: Uuid,

@@ -6,15 +6,24 @@ use chrono::Utc;
 use cron::Schedule;
 
 use crate::models::app_model::AppStatus;
-use crate::models::cron_model::CronStatus;
+use crate::models::cron_model::{CronStatus, CronJobLog};
+use crate::models::database_model::{DatabaseService, DbType};
+use crate::models::user_model::UserStatus;
+use crate::middlewares::auth_middleware::Claims;
+use crate::utils::k8s::K8sManager;
+use crate::utils::crypto;
+use crate::utils::event_broadcaster::{broadcast_event, SystemEvent};
+
+/// Full column list for `cron_jobs` selects (mirrors the CronJob model).
+const CRON_COLS: &str = "id, workspace_id, project_id, app_id, target_type, target_id, is_backup, name, schedule, command, status, next_run_at, created_at, updated_at";
 
 pub fn start_auto_sleep_worker(pool: PgPool) {
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(300));
-        
+
         loop {
             interval.tick().await;
-            
+
             let k8s_client = match crate::utils::k8s::K8sManager::get_client().await {
                 Ok(c) => c,
                 Err(_) => continue,
@@ -23,8 +32,8 @@ pub fn start_auto_sleep_worker(pool: PgPool) {
             let inactive_instances = sqlx::query!(
                 "SELECT ai.id, ai.container_name, a.workspace_id FROM app_instances ai
                  JOIN apps a ON ai.app_id = a.id
-                 WHERE ai.instance_type != 'production' 
-                   AND ai.status = 'running' 
+                 WHERE ai.instance_type != 'production'
+                   AND ai.status = 'running'
                    AND ai.updated_at < now() - interval '30 minutes'"
             )
             .fetch_all(&pool)
@@ -46,7 +55,7 @@ pub fn start_auto_sleep_worker(pool: PgPool) {
                             )
                             .execute(&pool_clone)
                             .await;
-                            
+
                             crate::utils::event_broadcaster::broadcast_event(
                                 crate::utils::event_broadcaster::SystemEvent::InstanceStatusChanged {
                                     workspace_id,
@@ -55,26 +64,38 @@ pub fn start_auto_sleep_worker(pool: PgPool) {
                                     status: "stopped".to_string(),
                                 }
                             );
-                            
+
                             println!("[Hermes Auto-Sleep] Deployment scaled to 0 replicas: {}", container);
                         }
-                    });                }
+                    });
+                }
             }
         }
     });
 }
 
+/// Reconcile managed-backup crons: ensure every backup-enabled database has one.
+/// Runs once at startup so existing databases (enabled before this feature) get a
+/// real, visible backup cron.
+pub async fn reconcile_backup_crons(pool: &PgPool) {
+    if let Ok(rows) = sqlx::query!("SELECT id FROM databases WHERE backup_enabled = true").fetch_all(pool).await {
+        for r in rows {
+            let _ = crate::controllers::cron_controller::ensure_backup_cron(pool, r.id).await;
+        }
+    }
+}
+
 pub fn start_cron_scheduler_engine(pool: PgPool) {
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(10));
-        
+
         loop {
             interval.tick().await;
-            
+
             let now = Utc::now();
             let executable_jobs = sqlx::query!(
-                "SELECT id, workspace_id, project_id, app_id, name, schedule, command, status as \"status: CronStatus\", next_run_at, created_at, updated_at 
-                 FROM cron_jobs 
+                "SELECT id, workspace_id, target_type, target_id, is_backup, name, schedule, command
+                 FROM cron_jobs
                  WHERE status = 'active' AND next_run_at <= $1",
                 now
             )
@@ -83,37 +104,32 @@ pub fn start_cron_scheduler_engine(pool: PgPool) {
 
             if let Ok(jobs) = executable_jobs {
                 for job in jobs {
-                    let schedule_str = job.schedule.clone();
-                    
-                    println!("[Cron Scheduler] Match found! Spawning execution task for job: {} (ID: {})", job.name, job.id);
-                    
-                    // Update next_run_at SYNCHRONOUSLY before spawning execution
-                    // to prevent the same job from being picked up on the next tick
-                    if let Ok(sched) = Schedule::from_str(&schedule_str) {
+                    println!("[Cron Scheduler] Match found! Spawning execution for job: {} (ID: {})", job.name, job.id);
+
+                    // Advance next_run_at synchronously so the job isn't re-picked.
+                    if let Ok(sched) = Schedule::from_str(&job.schedule) {
                         let next_run = sched.upcoming(Utc).next().map(|dt| dt.with_timezone(&Utc));
                         let _ = sqlx::query!("UPDATE cron_jobs SET next_run_at = $1, updated_at = now() WHERE id = $2", next_run, job.id).execute(&pool).await;
-                        
-                        // Fetch the updated job and broadcast the change
+
                         if let Ok(updated_job) = sqlx::query_as::<_, crate::models::cron_model::CronJob>(
-                            "SELECT id, workspace_id, project_id, app_id, name, schedule, command, status, next_run_at, created_at, updated_at 
-                             FROM cron_jobs 
-                             WHERE id = $1"
+                            &format!("SELECT {CRON_COLS} FROM cron_jobs WHERE id = $1")
                         )
                         .bind(job.id)
                         .fetch_one(&pool)
                         .await {
-                            crate::utils::event_broadcaster::broadcast_event(
-                                crate::utils::event_broadcaster::SystemEvent::CronJobUpdated {
-                                    workspace_id: job.workspace_id,
-                                    job: updated_job,
-                                }
-                            );
+                            broadcast_event(SystemEvent::CronJobUpdated { workspace_id: job.workspace_id, job: updated_job });
                         }
                     }
 
                     let pool_execution = pool.clone();
+                    let target_type = job.target_type.clone();
+                    let target_id = job.target_id;
+                    let is_backup = job.is_backup;
+                    let command = job.command.clone();
+                    let job_id = job.id;
+                    let ws = job.workspace_id;
                     tokio::spawn(async move {
-                        let _ = execute_cron_container(pool_execution, job.id, job.app_id, job.command).await;
+                        let _ = execute_cron_job(pool_execution, job_id, ws, target_type, target_id, is_backup, command).await;
                     });
                 }
             }
@@ -121,208 +137,223 @@ pub fn start_cron_scheduler_engine(pool: PgPool) {
     });
 }
 
-async fn execute_cron_container(pool: PgPool, job_id: Uuid, app_id: Uuid, command: String) -> Result<(), ()> {
-    let started_at = Utc::now();
-    println!("[Cron Runner] Starting execute_cron_container for job_id={} app_id={}", job_id, app_id);
+/// Insert a cron log row and broadcast it.
+async fn log_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, exit_code: i32, output: &str, started_at: chrono::DateTime<Utc>) {
+    let log_id = Uuid::new_v4();
+    let finished_at = Utc::now();
+    let _ = sqlx::query!(
+        "INSERT INTO cron_job_logs (id, cron_job_id, exit_code, output, started_at, finished_at) VALUES ($1, $2, $3, $4, $5, $6)",
+        log_id, job_id, exit_code, Some(output.to_string()), started_at, finished_at
+    )
+    .execute(pool)
+    .await;
 
-    let k8s_client = match crate::utils::k8s::K8sManager::get_client().await {
+    broadcast_event(SystemEvent::CronJobLogCreated {
+        workspace_id,
+        job_id,
+        log: CronJobLog {
+            id: log_id,
+            cron_job_id: job_id,
+            exit_code,
+            output: Some(output.to_string()),
+            started_at,
+            finished_at,
+        },
+    });
+}
+
+/// Run a one-shot K8s Job for the cron command and log its output.
+async fn run_k8s_job(
+    pool: &PgPool,
+    job_id: Uuid,
+    workspace_id: Uuid,
+    namespace: String,
+    image: String,
+    env: Vec<(String, String)>,
+    command: String,
+    started_at: chrono::DateTime<Utc>,
+) -> Result<(), ()> {
+    let client = match K8sManager::get_client().await {
         Ok(c) => c,
         Err(e) => {
-            let _ = sqlx::query!(
-                "INSERT INTO cron_job_logs (id, cron_job_id, exit_code, output, started_at, finished_at) VALUES ($1, $2, $3, $4, $5, $6)",
-                Uuid::new_v4(), job_id, 1, Some(format!("Eroare conectare Kubernetes: {}", e)), started_at, Utc::now()
-            )
-            .execute(&pool)
-            .await;
+            log_cron(pool, job_id, workspace_id, 1, &format!("Eroare conectare Kubernetes: {}", e), started_at).await;
             return Err(());
         }
     };
+    let job_name = format!("hermes-cron-{}-{}", &job_id.to_string()[..18], Utc::now().timestamp()).to_lowercase();
 
-    let app_meta = match sqlx::query!(
-        "SELECT workspace_id, project_id FROM apps WHERE id = $1",
-        app_id
-    )
-    .fetch_optional(&pool)
-    .await {
-        Ok(Some(meta)) => meta,
-        Ok(None) => {
-            let _ = sqlx::query!(
-                "INSERT INTO cron_job_logs (id, cron_job_id, exit_code, output, started_at, finished_at) VALUES ($1, $2, $3, $4, $5, $6)",
-                Uuid::new_v4(), job_id, 1, Some("Eroare: Aplicația targetată nu a fost găsită în baza de date.".to_string()), started_at, Utc::now()
-            )
-            .execute(&pool)
-            .await;
-            return Err(());
+    match K8sManager::run_job_and_get_logs(&client, &namespace, &job_name, &image, env, &command).await {
+        Ok((output, exit_code)) => {
+            log_cron(pool, job_id, workspace_id, exit_code, &output, started_at).await;
+            Ok(())
         }
         Err(e) => {
-            let _ = sqlx::query!(
-                "INSERT INTO cron_job_logs (id, cron_job_id, exit_code, output, started_at, finished_at) VALUES ($1, $2, $3, $4, $5, $6)",
-                Uuid::new_v4(), job_id, 1, Some(format!("Eroare bază de date la căutarea aplicației: {}", e)), started_at, Utc::now()
-            )
-            .execute(&pool)
-            .await;
-            return Err(());
+            log_cron(pool, job_id, workspace_id, 1, &format!("Eroare la rularea containerului în Kubernetes: {:?}", e), started_at).await;
+            Err(())
         }
-    };
-    let namespace = format!("hermes-ws-{}", app_meta.workspace_id);
+    }
+}
 
-    // Get the production instance ID to determine the image tag
-    let inst_meta = match sqlx::query!(
+/// Dispatch a cron run based on its target (app / database / storage).
+async fn execute_cron_job(
+    pool: PgPool,
+    job_id: Uuid,
+    workspace_id: Uuid,
+    target_type: String,
+    target_id: Option<Uuid>,
+    is_backup: bool,
+    command: String,
+) -> Result<(), ()> {
+    let started_at = Utc::now();
+
+    let Some(target_id) = target_id else {
+        log_cron(&pool, job_id, workspace_id, 1, "Eroare: cron-ul nu are o resursă țintă.", started_at).await;
+        return Err(());
+    };
+
+    match target_type.as_str() {
+        // Managed database backup: preserves file storage + retention + restore.
+        "database" if is_backup => {
+            match crate::controllers::database_controller::perform_database_backup(&pool, target_id, Some(&command)).await {
+                Ok(res) => {
+                    let kb = (res.file_size_bytes as f64 / 1024.0).max(0.0);
+                    let mut msg = format!("📦 Backup creat: {} · {:.1} KB", res.filename, kb);
+                    if let Some(extra) = res.log.as_ref().filter(|s| !s.is_empty()) {
+                        msg.push('\n');
+                        msg.push_str(extra);
+                    }
+                    log_cron(&pool, job_id, workspace_id, 0, &msg, started_at).await;
+                    Ok(())
+                }
+                Err(e) => {
+                    log_cron(&pool, job_id, workspace_id, 1, &format!("Backup eșuat: {:?}", e), started_at).await;
+                    Err(())
+                }
+            }
+        }
+        "app" => run_app_cron(&pool, job_id, workspace_id, target_id, command, started_at).await,
+        "database" => run_database_cron(&pool, job_id, workspace_id, target_id, command, started_at).await,
+        "storage" => run_storage_cron(&pool, job_id, workspace_id, target_id, command, started_at).await,
+        other => {
+            log_cron(&pool, job_id, workspace_id, 1, &format!("Tip de țintă necunoscut: {}", other), started_at).await;
+            Err(())
+        }
+    }
+}
+
+/// App cron: runs the command in the app's production image with its effective env.
+async fn run_app_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, app_id: Uuid, command: String, started_at: chrono::DateTime<Utc>) -> Result<(), ()> {
+    let inst = sqlx::query!(
         "SELECT id FROM app_instances WHERE app_id = $1 AND instance_type = 'production'",
         app_id
     )
-    .fetch_optional(&pool)
-    .await {
-        Ok(Some(meta)) => meta,
-        Ok(None) => {
-            let _ = sqlx::query!(
-                "INSERT INTO cron_job_logs (id, cron_job_id, exit_code, output, started_at, finished_at) VALUES ($1, $2, $3, $4, $5, $6)",
-                Uuid::new_v4(), job_id, 1, Some("Eroare: Aplicația nu are nicio instanță de producție activă. Sarcina cron are nevoie de o imagine de container creată la deploy-ul de producție pentru a rula comanda.".to_string()), started_at, Utc::now()
-            )
-            .execute(&pool)
-            .await;
-            return Err(());
-        }
-        Err(e) => {
-            let _ = sqlx::query!(
-                "INSERT INTO cron_job_logs (id, cron_job_id, exit_code, output, started_at, finished_at) VALUES ($1, $2, $3, $4, $5, $6)",
-                Uuid::new_v4(), job_id, 1, Some(format!("Eroare bază de date la căutarea instanței: {}", e)), started_at, Utc::now()
-            )
-            .execute(&pool)
-            .await;
-            return Err(());
-        }
-    };
-    
-    let image_tag = crate::utils::builder::resolve_instance_image_tag(&pool, inst_meta.id).await;
-    let job_name = format!(
-        "hermes-cron-{}-{}",
-        &job_id.to_string()[..18],
-        Utc::now().timestamp()
-    ).to_lowercase();
-
-    let mut env_variables = Vec::new();
-    let env_records = sqlx::query!(
-        "SELECT key, encrypted_value, nonce FROM environment_variables
-         WHERE app_instance_id = $1",
-        inst_meta.id
-    )
-    .fetch_all(&pool)
+    .fetch_optional(pool)
     .await;
 
-    if let Ok(records) = env_records {
-        for rec in records {
-            if let Ok(dec_val) = crate::utils::crypto::decrypt_env_value(&rec.encrypted_value, &rec.nonce) {
-                env_variables.push((rec.key, dec_val));
-            }
-        }
-    }
-
-    println!("[Cron Runner] Calling run_job_and_get_logs for job_id={} namespace={} job_name={} image_tag={} command={}", job_id, namespace, job_name, image_tag, command);
-    let run_result = crate::utils::k8s::K8sManager::run_job_and_get_logs(
-        &k8s_client,
-        &namespace,
-        &job_name,
-        &image_tag,
-        env_variables,
-        &command,
-    ).await;
-
-    println!("[Cron Runner] run_job_and_get_logs completed for job_id={}. Result: {:?}", job_id, run_result.as_ref().map(|(logs, exit)| (logs.len(), *exit)));
-
-    let (output_accumulator, exit_code) = match run_result {
-        Ok(res) => res,
-        Err(e) => {
-            println!("[Cron Runner] Kubernetes job failed for job_id={}: {:?}", job_id, e);
-            let log_id = Uuid::new_v4();
-            let finished_at = Utc::now();
-            let err_msg = format!("Eroare la rularea containerului în Kubernetes: {:?}", e);
-            let _ = sqlx::query!(
-                "INSERT INTO cron_job_logs (id, cron_job_id, exit_code, output, started_at, finished_at) VALUES ($1, $2, $3, $4, $5, $6)",
-                log_id, job_id, 1, Some(&err_msg), started_at, finished_at
-            )
-            .execute(&pool)
-            .await;
-            
-            crate::utils::event_broadcaster::broadcast_event(
-                crate::utils::event_broadcaster::SystemEvent::CronJobLogCreated {
-                    workspace_id: app_meta.workspace_id,
-                    job_id,
-                    log: crate::models::cron_model::CronJobLog {
-                        id: log_id,
-                        cron_job_id: job_id,
-                        exit_code: 1,
-                        output: Some(err_msg),
-                        started_at,
-                        finished_at,
-                    }
-                }
-            );
+    let inst_id = match inst {
+        Ok(Some(r)) => r.id,
+        _ => {
+            log_cron(pool, job_id, workspace_id, 1, "Aplicația nu are o instanță de producție. Cron-ul are nevoie de o imagine creată la deploy-ul de producție.", started_at).await;
             return Err(());
         }
     };
 
-    println!("[Cron Runner] Inserting log row into database for job_id={}", job_id);
-    let log_id = Uuid::new_v4();
-    let finished_at = Utc::now();
-    let db_res = sqlx::query!(
-        "INSERT INTO cron_job_logs (id, cron_job_id, exit_code, output, started_at, finished_at) VALUES ($1, $2, $3, $4, $5, $6)",
-        log_id, job_id, exit_code, Some(&output_accumulator), started_at, finished_at
-    )
-    .execute(&pool)
-    .await;
-    println!("[Cron Runner] Database log row insertion completed for job_id={}. Result: {:?}", job_id, db_res);
-
-    crate::utils::event_broadcaster::broadcast_event(
-        crate::utils::event_broadcaster::SystemEvent::CronJobLogCreated {
-            workspace_id: app_meta.workspace_id,
-            job_id,
-            log: crate::models::cron_model::CronJobLog {
-                id: log_id,
-                cron_job_id: job_id,
-                exit_code,
-                output: Some(output_accumulator),
-                started_at,
-                finished_at,
-            }
-        }
-    );
-
-    Ok(())
+    let image = crate::utils::builder::resolve_instance_image_tag(pool, inst_id).await;
+    let env = crate::utils::app_env::resolve_instance_env(pool, inst_id).await;
+    let namespace = format!("hermes-ws-{}", workspace_id);
+    run_k8s_job(pool, job_id, workspace_id, namespace, image, env, command, started_at).await
 }
 
-pub fn start_auto_backup_worker(pool: PgPool) {
-    tokio::spawn(async move {
-        let mut interval = tokio::time::interval(Duration::from_secs(60));
-        
-        loop {
-            interval.tick().await;
-            
-            let query_res = sqlx::query!(
-                "SELECT id FROM databases 
-                 WHERE backup_enabled = true 
-                   AND (last_backup_at IS NULL OR last_backup_at < now() - interval '24 hours')"
-            )
-            .fetch_all(&pool)
-            .await;
-
-            if let Ok(dbs) = query_res {
-                for db in dbs {
-                    let pool_clone = pool.clone();
-                    let db_id = db.id;
-                    tokio::spawn(async move {
-                        println!("[Auto Backup Worker] Triggering automatic backup for database: {}", db_id);
-                        match crate::controllers::database_controller::perform_database_backup(&pool_clone, db_id).await {
-                            Ok(res) => {
-                                println!("[Auto Backup Worker] Backup completed successfully for db={}: filename={}", db_id, res.filename);
-                            }
-                            Err(e) => {
-                                eprintln!("[Auto Backup Worker] Backup failed for db={}: {:?}", db_id, e);
-                            }
-                        }
-                    });
-                }
-            }
+/// Database cron (non-backup): runs on the DB image with connection vars injected.
+async fn run_database_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, db_id: Uuid, command: String, started_at: chrono::DateTime<Utc>) -> Result<(), ()> {
+    let db = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1")
+        .bind(db_id)
+        .fetch_optional(pool)
+        .await;
+    let db = match db {
+        Ok(Some(d)) => d,
+        _ => {
+            log_cron(pool, job_id, workspace_id, 1, "Baza de date țintă nu a fost găsită.", started_at).await;
+            return Err(());
         }
-    });
+    };
+
+    let password = match &db.db_password_nonce {
+        Some(nonce) => crypto::decrypt_env_value(&db.db_password, nonce).unwrap_or_default(),
+        None => crypto::decrypt_env_value(&db.db_password, "AAAAAAAAAAAAAAAA").unwrap_or_default(),
+    };
+
+    let type_str = match db.r#type {
+        DbType::Postgres => "postgres",
+        DbType::Mysql => "mysql",
+        DbType::Redis => "redis",
+        DbType::Mongodb => "mongodb",
+    };
+    let image = format!("{}:{}", type_str, db.version);
+
+    let url = match db.r#type {
+        DbType::Postgres => format!("postgresql://{}:{}@{}:{}/{}", db.db_user, password, db.container_name, db.internal_port, db.db_name),
+        DbType::Mysql => format!("mysql://{}:{}@{}:{}/{}", db.db_user, password, db.container_name, db.internal_port, db.db_name),
+        DbType::Redis => format!("redis://{}:{}", db.container_name, db.internal_port),
+        DbType::Mongodb => format!("mongodb://{}:{}@{}:{}", db.db_user, password, db.container_name, db.internal_port),
+    };
+
+    let env = vec![
+        ("DATABASE_URL".to_string(), url),
+        ("DB_HOST".to_string(), db.container_name.clone()),
+        ("DB_PORT".to_string(), db.internal_port.to_string()),
+        ("DB_USER".to_string(), db.db_user.clone()),
+        ("DB_PASSWORD".to_string(), password),
+        ("DB_NAME".to_string(), db.db_name.clone()),
+    ];
+    let namespace = format!("hermes-ws-{}", db.workspace_id);
+    run_k8s_job(pool, job_id, workspace_id, namespace, image, env, command, started_at).await
+}
+
+/// Storage cron: runs on a small base image (curl) with the bucket URL + a freshly
+/// minted access token injected, so the command can hit the bucket's API.
+async fn run_storage_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, bucket_id: Uuid, command: String, started_at: chrono::DateTime<Utc>) -> Result<(), ()> {
+    let bucket = sqlx::query!(
+        "SELECT workspace_id, slug, created_by FROM storage_buckets WHERE id = $1",
+        bucket_id
+    )
+    .fetch_optional(pool)
+    .await;
+    let bucket = match bucket {
+        Ok(Some(b)) => b,
+        _ => {
+            log_cron(pool, job_id, workspace_id, 1, "Bucket-ul de storage țintă nu a fost găsit.", started_at).await;
+            return Err(());
+        }
+    };
+
+    let base_domain = std::env::var("HERMES_BASE_DOMAIN").unwrap_or_else(|_| "hermes-host.vip".to_string());
+    let bucket_url = format!("https://{}.{}", bucket.slug, base_domain);
+
+    // Mint a long-ish-lived access token scoped to the bucket's workspace.
+    let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "super_secret_key".to_string());
+    let exp = Utc::now() + chrono::Duration::days(1);
+    let claims = Claims {
+        sub: bucket.created_by,
+        username: "hermes-cron".to_string(),
+        email: "cron@hermes.local".to_string(),
+        status: UserStatus::Active,
+        is_super_admin: true,
+        current_workspace_id: Some(bucket.workspace_id),
+        exp: exp.timestamp(),
+    };
+    let token = jsonwebtoken::encode(
+        &jsonwebtoken::Header::default(),
+        &claims,
+        &jsonwebtoken::EncodingKey::from_secret(jwt_secret.as_bytes()),
+    )
+    .unwrap_or_default();
+
+    let env = vec![
+        ("BUCKET_URL".to_string(), bucket_url),
+        ("BUCKET_SLUG".to_string(), bucket.slug.clone()),
+        ("BUCKET_TOKEN".to_string(), token),
+    ];
+    let namespace = format!("hermes-ws-{}", bucket.workspace_id);
+    run_k8s_job(pool, job_id, workspace_id, namespace, "curlimages/curl:latest".to_string(), env, command, started_at).await
 }

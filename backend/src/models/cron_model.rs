@@ -17,7 +17,14 @@ pub struct CronJob {
     pub id: Uuid,
     pub workspace_id: Uuid,
     pub project_id: Uuid,
-    pub app_id: Uuid,
+    /// Set only for app-targeted crons (kept for backward compatibility).
+    pub app_id: Option<Uuid>,
+    /// 'app' | 'database' | 'storage'.
+    pub target_type: String,
+    /// The targeted resource id (app / database / storage bucket).
+    pub target_id: Option<Uuid>,
+    /// True for the managed database-backup cron.
+    pub is_backup: bool,
     pub name: String,
     pub schedule: String,
     pub command: String,

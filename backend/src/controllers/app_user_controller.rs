@@ -1,6 +1,6 @@
 use axum::{
     extract::{State, Path, Query},
-    http::StatusCode,
+    http::{StatusCode, HeaderMap},
     Json,
 };
 use uuid::Uuid;
@@ -9,7 +9,9 @@ use crate::app_state::AppState;
 use crate::models::app_user_model::AppUser;
 use crate::dtos::app_user_dto::{
     AssignRoleRequest, RemoveRoleRequest, AppUserWithRolesResponse,
-    AppUserRegisterRequest, AppUserLoginRequest, AppUserAuthResponse
+    AppUserRegisterRequest, AppUserLoginRequest, AppUserAuthResponse,
+    VerifyTokenRequest, VerifyTokenResponse, VerifyKeyRequest, VerifyKeyResponse,
+    AuthIntegrationResponse,
 };
 use crate::middlewares::auth_middleware::AuthenticatedUser;
 use crate::utils::error::AppError;
@@ -38,6 +40,8 @@ pub struct AppUserClaims {
     pub app_id: Uuid,
     pub email: String,
     pub roles: Vec<String>,
+    #[serde(default)]
+    pub permissions: Vec<String>,
     pub exp: i64,
 }
 
@@ -193,6 +197,14 @@ pub async fn register_public_user(
     Path(app_id): Path<Uuid>,
     Json(payload): Json<AppUserRegisterRequest>,
 ) -> Result<(StatusCode, Json<AppUserAuthResponse>), AppError> {
+    let app = sqlx::query!(
+        "SELECT workspace_id, project_id, auth_roles_config FROM apps WHERE id = $1",
+        app_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Application not found.".to_string()))?;
+
     let email_clean = payload.email.trim().to_lowercase();
 
     let user_exists = sqlx::query!("SELECT id FROM app_users WHERE email = $1", email_clean)
@@ -214,7 +226,7 @@ pub async fn register_public_user(
             user.id
         }
         None => {
-            let hashed_password = crate::utils::crypto::hash_password(&payload.password_hash)?;
+            let hashed_password = crate::utils::crypto::hash_password(&payload.password)?;
             let new_id = Uuid::new_v4();
             sqlx::query!(
                 "INSERT INTO app_users (id, email, password_hash, full_name) VALUES ($1, $2, $3, $4)",
@@ -235,7 +247,10 @@ pub async fn register_public_user(
     .await?;
 
     let roles = vec![default_role];
-    let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "secret".to_string());
+    let permissions = crate::utils::app_auth::permissions_for_roles(&app.auth_roles_config, &roles);
+    let secret = crate::utils::app_auth::get_or_create_app_auth_secret(
+        &state.pool, app_id, app.workspace_id, app.project_id,
+    ).await?;
     let expiration = chrono::Utc::now() + chrono::Duration::days(7);
 
     let claims = AppUserClaims {
@@ -243,13 +258,14 @@ pub async fn register_public_user(
         app_id,
         email: email_clean,
         roles: roles.clone(),
+        permissions: permissions.clone(),
         exp: expiration.timestamp(),
     };
 
     let token = jsonwebtoken::encode(
         &jsonwebtoken::Header::default(),
         &claims,
-        &jsonwebtoken::EncodingKey::from_secret(jwt_secret.as_bytes())
+        &jsonwebtoken::EncodingKey::from_secret(secret.as_bytes())
     ).map_err(|e| AppError::Fatal(anyhow::anyhow!(e.to_string())))?;
 
     Ok((
@@ -260,6 +276,7 @@ pub async fn register_public_user(
             email: payload.email,
             full_name: payload.full_name,
             roles,
+            permissions,
         }),
     ))
 }
@@ -269,6 +286,14 @@ pub async fn login_public_user(
     Path(app_id): Path<Uuid>,
     Json(payload): Json<AppUserLoginRequest>,
 ) -> Result<Json<AppUserAuthResponse>, AppError> {
+    let app = sqlx::query!(
+        "SELECT workspace_id, project_id, auth_roles_config FROM apps WHERE id = $1",
+        app_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Application not found.".to_string()))?;
+
     let email_clean = payload.email.trim().to_lowercase();
 
     let user = sqlx::query_as::<_, AppUser>("SELECT * FROM app_users WHERE email = $1")
@@ -277,7 +302,7 @@ pub async fn login_public_user(
         .await?
         .ok_or_else(|| AppError::Auth("Invalid credentials.".to_string()))?;
 
-    let verified = crate::utils::crypto::verify_password(&payload.password_hash, &user.password_hash)?;
+    let verified = crate::utils::crypto::verify_password(&payload.password, &user.password_hash)?;
     if !verified {
         return Err(AppError::Auth("Invalid credentials.".to_string()));
     }
@@ -307,7 +332,10 @@ pub async fn login_public_user(
     }
 
     let roles: Vec<String> = role_records.into_iter().map(|r| r.role).collect();
-    let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "secret".to_string());
+    let permissions = crate::utils::app_auth::permissions_for_roles(&app.auth_roles_config, &roles);
+    let secret = crate::utils::app_auth::get_or_create_app_auth_secret(
+        &state.pool, app_id, app.workspace_id, app.project_id,
+    ).await?;
     let expiration = chrono::Utc::now() + chrono::Duration::days(7);
 
     let claims = AppUserClaims {
@@ -315,13 +343,14 @@ pub async fn login_public_user(
         app_id,
         email: user.email.clone(),
         roles: roles.clone(),
+        permissions: permissions.clone(),
         exp: expiration.timestamp(),
     };
 
     let token = jsonwebtoken::encode(
         &jsonwebtoken::Header::default(),
         &claims,
-        &jsonwebtoken::EncodingKey::from_secret(jwt_secret.as_bytes())
+        &jsonwebtoken::EncodingKey::from_secret(secret.as_bytes())
     ).map_err(|e| AppError::Fatal(anyhow::anyhow!(e.to_string())))?;
 
     Ok(Json(AppUserAuthResponse {
@@ -330,6 +359,7 @@ pub async fn login_public_user(
         email: user.email,
         full_name: user.full_name,
         roles,
+        permissions,
     }))
 }
 
@@ -386,7 +416,7 @@ pub async fn reset_app_user_password(
         return Err(AppError::NotFound("Application not found in this workspace.".to_string()));
     }
 
-    let hashed_password = crate::utils::crypto::hash_password(&payload.new_password_hash)?;
+    let hashed_password = crate::utils::crypto::hash_password(&payload.new_password)?;
 
     sqlx::query!(
         "UPDATE app_users SET password_hash = $1 WHERE id = $2",
@@ -602,4 +632,155 @@ pub async fn delete_app_api_key(
     }
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+// PUBLIC: verify an end-user JWT minted by Hermes for this app. Convenience/
+// fallback for stacks without a JWT library — normal verification is done locally
+// in the app with HERMES_AUTH_SECRET. Permissions are recomputed from the app's
+// current auth_roles_config so config changes take effect on existing tokens.
+pub async fn verify_app_token(
+    State(state): State<AppState>,
+    Path(app_id): Path<Uuid>,
+    Json(payload): Json<VerifyTokenRequest>,
+) -> Result<Json<VerifyTokenResponse>, AppError> {
+    let app = sqlx::query!(
+        "SELECT workspace_id, project_id, auth_roles_config FROM apps WHERE id = $1",
+        app_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Application not found.".to_string()))?;
+
+    let secret = crate::utils::app_auth::get_or_create_app_auth_secret(
+        &state.pool, app_id, app.workspace_id, app.project_id,
+    ).await?;
+
+    let invalid = || VerifyTokenResponse {
+        valid: false,
+        app_user_id: None,
+        email: None,
+        roles: vec![],
+        permissions: vec![],
+        expires_at: None,
+    };
+
+    let decoded = jsonwebtoken::decode::<AppUserClaims>(
+        &payload.token,
+        &jsonwebtoken::DecodingKey::from_secret(secret.as_bytes()),
+        &jsonwebtoken::Validation::default(),
+    );
+
+    let data = match decoded {
+        Ok(d) => d,
+        Err(_) => return Ok(Json(invalid())),
+    };
+
+    // Reject tokens that were signed for a different app.
+    if data.claims.app_id != app_id {
+        return Ok(Json(invalid()));
+    }
+
+    let permissions =
+        crate::utils::app_auth::permissions_for_roles(&app.auth_roles_config, &data.claims.roles);
+
+    Ok(Json(VerifyTokenResponse {
+        valid: true,
+        app_user_id: Some(data.claims.sub),
+        email: Some(data.claims.email),
+        roles: data.claims.roles,
+        permissions,
+        expires_at: Some(data.claims.exp),
+    }))
+}
+
+// PUBLIC: introspect an API key (model 3). Looks the key up by its prefix, verifies
+// the secret against the stored hash, checks expiry, and stamps last_used_at.
+pub async fn verify_app_key(
+    State(state): State<AppState>,
+    Path(app_id): Path<Uuid>,
+    Json(payload): Json<VerifyKeyRequest>,
+) -> Result<Json<VerifyKeyResponse>, AppError> {
+    let invalid = Json(VerifyKeyResponse { valid: false, expired: false, name: None });
+
+    let Some((prefix, secret)) = payload.key.split_once('.') else {
+        return Ok(invalid);
+    };
+
+    let key = sqlx::query!(
+        "SELECT id, name, key_hash, expires_at FROM app_api_keys WHERE app_id = $1 AND key_prefix = $2",
+        app_id, prefix
+    )
+    .fetch_optional(&state.pool)
+    .await?;
+
+    let Some(key) = key else {
+        return Ok(invalid);
+    };
+
+    if !crate::utils::crypto::verify_password(secret, &key.key_hash)? {
+        return Ok(invalid);
+    }
+
+    if let Some(exp) = key.expires_at {
+        if exp < chrono::Utc::now() {
+            return Ok(Json(VerifyKeyResponse { valid: false, expired: true, name: Some(key.name) }));
+        }
+    }
+
+    let _ = sqlx::query!(
+        "UPDATE app_api_keys SET last_used_at = now() WHERE id = $1",
+        key.id
+    )
+    .execute(&state.pool)
+    .await;
+
+    Ok(Json(VerifyKeyResponse { valid: true, expired: false, name: Some(key.name) }))
+}
+
+// Integration info for the dashboard: the app id, its (generated) signing secret,
+// and the absolute auth endpoint URLs — everything a developer needs to wire up
+// local verification.
+pub async fn get_auth_integration(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    headers: HeaderMap,
+    Path(app_id): Path<Uuid>,
+) -> Result<Json<AuthIntegrationResponse>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let app = sqlx::query!(
+        "SELECT project_id FROM apps WHERE id = $1 AND workspace_id = $2",
+        app_id, ws_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Application not found in this workspace.".to_string()))?;
+
+    let secret = crate::utils::app_auth::get_or_create_app_auth_secret(
+        &state.pool, app_id, ws_id, app.project_id,
+    ).await?;
+
+    let host = headers
+        .get(axum::http::header::HOST)
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("localhost:8000");
+    let proto = if host.contains("localhost") || host.contains("127.0.0.1") || host.contains("192.168.") {
+        "http"
+    } else {
+        "https"
+    };
+    let api_base_url = format!("{}://{}/api/v1", proto, host);
+
+    Ok(Json(AuthIntegrationResponse {
+        app_id,
+        api_base_url: api_base_url.clone(),
+        auth_secret_env_key: crate::utils::app_auth::AUTH_SECRET_ENV_KEY.to_string(),
+        auth_secret: secret,
+        register_endpoint: format!("{}/apps/{}/auth/register", api_base_url, app_id),
+        login_endpoint: format!("{}/apps/{}/auth/login", api_base_url, app_id),
+        verify_token_endpoint: format!("{}/apps/{}/auth/verify-token", api_base_url, app_id),
+        verify_key_endpoint: format!("{}/apps/{}/auth/verify-key", api_base_url, app_id),
+    }))
 }

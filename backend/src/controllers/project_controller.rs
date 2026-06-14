@@ -2,7 +2,7 @@ use axum::{extract::{State, Path}, http::StatusCode, Json};
 use uuid::Uuid;
 
 use crate::app_state::AppState;
-use crate::dtos::project_dto::{CreateProjectRequest, ProjectResponse};
+use crate::dtos::project_dto::{CreateProjectRequest, ProjectResponse, UpdateProjectSettingsRequest, ProjectSettingsResponse};
 use crate::middlewares::auth_middleware::AuthenticatedUser;
 use crate::models::project_model::Project;
 use crate::utils::error::AppError;
@@ -510,4 +510,77 @@ pub async fn delete_project_ssh_key(
     }
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Build the (token-masked) settings response for a project the caller owns.
+async fn fetch_project_settings(
+    pool: &sqlx::PgPool,
+    project_id: Uuid,
+    ws_id: Uuid,
+) -> Result<ProjectSettingsResponse, AppError> {
+    let p = sqlx::query!(
+        "SELECT cloudflare_api_token, cloudflare_zone_id, ingress_ip, base_domain
+         FROM projects WHERE id = $1 AND workspace_id = $2",
+        project_id, ws_id
+    )
+    .fetch_optional(pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Project not found in this workspace.".to_string()))?;
+
+    Ok(ProjectSettingsResponse {
+        cloudflare_zone_id: p.cloudflare_zone_id,
+        ingress_ip: p.ingress_ip,
+        base_domain: p.base_domain,
+        has_cloudflare_token: p.cloudflare_api_token.map(|t| !t.trim().is_empty()).unwrap_or(false),
+    })
+}
+
+pub async fn get_project_settings(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(project_id): Path<Uuid>,
+) -> Result<Json<ProjectSettingsResponse>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    Ok(Json(fetch_project_settings(&state.pool, project_id, ws_id).await?))
+}
+
+pub async fn update_project_settings(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(project_id): Path<Uuid>,
+    Json(payload): Json<UpdateProjectSettingsRequest>,
+) -> Result<Json<ProjectSettingsResponse>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    // The Cloudflare API token is a secret: only overwrite when a non-empty value
+    // is supplied (COALESCE keeps the stored value otherwise). The other fields are
+    // visible in the form, so an empty value clears them (stored as NULL).
+    let new_token = payload.cloudflare_api_token.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    let zone_id = payload.cloudflare_zone_id.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    let ingress_ip = payload.ingress_ip.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    let base_domain = payload.base_domain.as_deref().map(str::trim).filter(|s| !s.is_empty());
+
+    let rows = sqlx::query!(
+        "UPDATE projects SET
+            cloudflare_api_token = COALESCE($1, cloudflare_api_token),
+            cloudflare_zone_id = $2,
+            ingress_ip = $3,
+            base_domain = $4
+         WHERE id = $5 AND workspace_id = $6",
+        new_token, zone_id, ingress_ip, base_domain, project_id, ws_id
+    )
+    .execute(&state.pool)
+    .await?
+    .rows_affected();
+
+    if rows == 0 {
+        return Err(AppError::NotFound("Project not found in this workspace.".to_string()));
+    }
+
+    Ok(Json(fetch_project_settings(&state.pool, project_id, ws_id).await?))
 }

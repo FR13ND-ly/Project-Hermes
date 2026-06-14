@@ -18,6 +18,9 @@ pub struct CreateAppRequest {
     pub git_subpath: Option<String>,
     #[serde(default)]
     pub env_variables: Option<Vec<EnvVarInput>>,
+    /// Project-pool env vars to link the new instance to at creation time.
+    #[serde(default)]
+    pub linked_project_env_ids: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Deserialize)]

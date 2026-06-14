@@ -111,6 +111,44 @@ pub async fn run_ephemeral_build(
     let builder_mem_limit = free_mem;
     let builder_mem_request = std::cmp::min(512, builder_mem_limit);
 
+    let build_id = Uuid::new_v4();
+
+    // Immutable image tag: every build pushes its own image so previous images
+    // survive (enables rollback) and the layer cache stays coherent.
+    let registry_url = std::env::var("HERMES_REGISTRY_URL").unwrap_or_else(|_| "localhost:5000".to_string());
+    let full_image_tag = format!("{}/hermes-app-image:{}", registry_url, build_id);
+    let builder_pod_name = format!("hermes-builder-{}", instance_id);
+
+    // For Kaniko running inside the cluster, localhost/127.0.0.1 registry must be accessed via the internal registry service
+    let mut kaniko_destination = full_image_tag.clone();
+    let mut kaniko_registry_host = registry_url.clone();
+    if registry_url.contains("localhost") || registry_url.contains("127.0.0.1") {
+        kaniko_registry_host = "registry.kube-system.svc.cluster.local:80".to_string();
+        kaniko_destination = format!("{}/hermes-app-image:{}", kaniko_registry_host, build_id);
+    }
+    // Shared layer-cache repository: makes rebuilds that don't change dependencies dramatically faster.
+    let kaniko_cache_repo = format!("{}/hermes-build-cache", kaniko_registry_host);
+
+    // Enter the global build queue as 'queued'; it flips to 'building' only once a
+    // slot frees up (see the semaphore acquire below).
+    let _ = sqlx::query!(
+        "INSERT INTO app_builds (id, app_id, app_instance_id, status, phase, logs, commit_message, commit_sha, image_tag) VALUES ($1, $2, $3, 'queued', 'queued', '', NULL, NULL, $4)",
+        build_id, meta.app_id, instance_id, full_image_tag
+    )
+    .execute(&pool)
+    .await;
+
+    crate::utils::event_broadcaster::broadcast_event(
+        crate::utils::event_broadcaster::SystemEvent::BuildStatusChanged {
+            workspace_id: meta.workspace_id,
+            build_id,
+            app_id: meta.app_id,
+            status: "queued".to_string(),
+            phase: Some("queued".to_string()),
+        }
+    );
+
+    // Fetch commit details from GitHub asynchronously (if GitHub repo)
     let mut commit_sha = None;
     let mut commit_msg = None;
 
@@ -150,6 +188,14 @@ pub async fn run_ephemeral_build(
                         if let Ok(commit_info) = res.json::<GitHubCommitInfo>().await {
                             commit_sha = Some(commit_info.sha);
                             commit_msg = Some(commit_info.commit.message);
+                            
+                            // Update the record with the fetched commit details
+                            let _ = sqlx::query!(
+                                "UPDATE app_builds SET commit_message = $1, commit_sha = $2 WHERE id = $3",
+                                commit_msg, commit_sha, build_id
+                            )
+                            .execute(&pool)
+                            .await;
                         }
                     }
                 }
@@ -157,46 +203,11 @@ pub async fn run_ephemeral_build(
         }
     }
 
-    let build_id = Uuid::new_v4();
-
-    // Immutable image tag: every build pushes its own image so previous images
-    // survive (enables rollback) and the layer cache stays coherent.
-    let registry_url = std::env::var("HERMES_REGISTRY_URL").unwrap_or_else(|_| "localhost:5000".to_string());
-    let full_image_tag = format!("{}/hermes-app-image:{}", registry_url, build_id);
-    let builder_pod_name = format!("hermes-builder-{}", instance_id);
-
-    // For Kaniko running inside the cluster, localhost/127.0.0.1 registry must be accessed via the internal registry service
-    let mut kaniko_destination = full_image_tag.clone();
-    let mut kaniko_registry_host = registry_url.clone();
-    if registry_url.contains("localhost") || registry_url.contains("127.0.0.1") {
-        kaniko_registry_host = "registry.kube-system.svc.cluster.local:80".to_string();
-        kaniko_destination = format!("{}/hermes-app-image:{}", kaniko_registry_host, build_id);
-    }
-    // Shared layer-cache repository: makes rebuilds that don't change dependencies dramatically faster.
-    let kaniko_cache_repo = format!("{}/hermes-build-cache", kaniko_registry_host);
-
-    let _ = sqlx::query!(
-        "INSERT INTO app_builds (id, app_id, app_instance_id, status, logs, commit_message, commit_sha, image_tag) VALUES ($1, $2, $3, 'building', '', $4, $5, $6)",
-        build_id, meta.app_id, instance_id, commit_msg, commit_sha, full_image_tag
-    )
-    .execute(&pool)
-    .await;
-
-    crate::utils::event_broadcaster::broadcast_event(
-        crate::utils::event_broadcaster::SystemEvent::BuildStatusChanged {
-            workspace_id: meta.workspace_id,
-            build_id,
-            app_id: meta.app_id,
-            status: "building".to_string(),
-            phase: Some("queued".to_string()),
-        }
-    );
-
-    // Supersede any older in-progress build for this same instance: only the
-    // newest build should win. Their build loops detect this via the DB phase.
+    // Supersede any older non-finished build for this same instance (queued or
+    // building): only the newest build should win. Their loops detect this via phase.
     let _ = sqlx::query!(
         "UPDATE app_builds SET status = 'superseded', phase = 'superseded'
-         WHERE app_instance_id = $1 AND id <> $2 AND status = 'building'",
+         WHERE app_instance_id = $1 AND id <> $2 AND status IN ('queued', 'building')",
         instance_id, build_id
     )
     .execute(&pool)
@@ -211,6 +222,23 @@ pub async fn run_ephemeral_build(
     if matches!(build_phase_db(&pool, build_id).await.as_deref(), Some("cancelled") | Some("superseded")) {
         return;
     }
+
+    // Slot acquired — promote from the queue to actively building.
+    let _ = sqlx::query!(
+        "UPDATE app_builds SET status = 'building', phase = 'starting' WHERE id = $1",
+        build_id
+    )
+    .execute(&pool)
+    .await;
+    crate::utils::event_broadcaster::broadcast_event(
+        crate::utils::event_broadcaster::SystemEvent::BuildStatusChanged {
+            workspace_id: meta.workspace_id,
+            build_id,
+            app_id: meta.app_id,
+            status: "building".to_string(),
+            phase: Some("starting".to_string()),
+        }
+    );
 
     // Set up private registry credentials if configured.
     // Secret names are per-build so concurrent builds can't delete each other's credentials.
@@ -834,6 +862,8 @@ fi"#,
     let mut building_phase_set = false;
     let timeout = std::time::Duration::from_secs(900); // 15 minutes timeout
 
+    let mut last_pod_status = None;
+
     loop {
         if start_instant.elapsed() >= timeout {
             timed_out = true;
@@ -848,6 +878,7 @@ fi"#,
         }
 
         if let Ok(pod) = pods.get(&builder_pod_name).await {
+            last_pod_status = pod.status.clone();
             if let Some(ref status) = pod.status {
                 // Once the kaniko container starts, the clone is done and the image build is underway.
                 if !building_phase_set {
@@ -924,33 +955,39 @@ fi"#,
     let mut pod_status_message: Option<String> = None;
     let mut kaniko_terminated_reason: Option<String> = None;
 
+    let mut status_to_use = None;
     if let Ok(pod) = pods.get(&builder_pod_name).await {
-        if let Some(status) = pod.status {
-            pod_status_reason = status.reason.clone();
-            pod_status_message = status.message.clone();
-            if let Some(init_statuses) = status.init_container_statuses {
-                if let Some(cloner_status) = init_statuses.iter().find(|c| c.name == "cloner") {
-                    if let Some(ref state) = cloner_status.state {
-                        if let Some(ref terminated) = state.terminated {
-                            cloner_exit_code = Some(terminated.exit_code);
-                            if let (Some(started), Some(finished)) = (&terminated.started_at, &terminated.finished_at) {
-                                let duration = finished.0.signed_duration_since(started.0);
-                                cloner_duration_str = format!("{}s", duration.num_seconds());
-                            }
+        status_to_use = pod.status.clone();
+    }
+    if status_to_use.is_none() {
+        status_to_use = last_pod_status;
+    }
+
+    if let Some(status) = status_to_use {
+        pod_status_reason = status.reason.clone();
+        pod_status_message = status.message.clone();
+        if let Some(init_statuses) = status.init_container_statuses {
+            if let Some(cloner_status) = init_statuses.iter().find(|c| c.name == "cloner") {
+                if let Some(ref state) = cloner_status.state {
+                    if let Some(ref terminated) = state.terminated {
+                        cloner_exit_code = Some(terminated.exit_code);
+                        if let (Some(started), Some(finished)) = (&terminated.started_at, &terminated.finished_at) {
+                            let duration = finished.0.signed_duration_since(started.0);
+                            cloner_duration_str = format!("{}s", duration.num_seconds());
                         }
                     }
                 }
             }
-            if let Some(cont_statuses) = status.container_statuses {
-                if let Some(kaniko_status) = cont_statuses.iter().find(|c| c.name == "kaniko") {
-                    if let Some(ref state) = kaniko_status.state {
-                        if let Some(ref terminated) = state.terminated {
-                            kaniko_exit_code = Some(terminated.exit_code);
-                            kaniko_terminated_reason = terminated.reason.clone();
-                            if let (Some(started), Some(finished)) = (&terminated.started_at, &terminated.finished_at) {
-                                let duration = finished.0.signed_duration_since(started.0);
-                                kaniko_duration_str = format!("{}s", duration.num_seconds());
-                            }
+        }
+        if let Some(cont_statuses) = status.container_statuses {
+            if let Some(kaniko_status) = cont_statuses.iter().find(|c| c.name == "kaniko") {
+                if let Some(ref state) = kaniko_status.state {
+                    if let Some(ref terminated) = state.terminated {
+                        kaniko_exit_code = Some(terminated.exit_code);
+                        kaniko_terminated_reason = terminated.reason.clone();
+                        if let (Some(started), Some(finished)) = (&terminated.started_at, &terminated.finished_at) {
+                            let duration = finished.0.signed_duration_since(started.0);
+                            kaniko_duration_str = format!("{}s", duration.num_seconds());
                         }
                     }
                 }
@@ -1239,6 +1276,7 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
                 max_scale,
                 target_concurrency,
                 Some(memory_limit_mb as i32),
+                None,
             ).await {
                 Ok(_) => {
                     if let Some(ref domain) = meta.assigned_domain {
@@ -1472,9 +1510,18 @@ fn classify_build_failure(
         return ("BUILD_OOM", "Build-ul a rămas fără memorie (OOMKilled). Mărește limita de memorie a workspace-ului sau redu consumul comenzii de build.".to_string());
     }
 
-    if pod_reason == Some("Evicted") {
+    if pod_reason == Some("Evicted") || pod_message.map(|m| m.to_lowercase().contains("evict")).unwrap_or(false) {
         let msg = pod_message.unwrap_or("Evacuat de Kubernetes din cauza resurselor insuficiente pe nod.");
         return ("BUILD_EVICTED", format!("Pod-ul de build a fost evacuat (Evicted) de Kubernetes. Detaliu: {}", msg));
+    }
+
+    // Detect sudden force-kills (e.g. TaintManagerEviction or kernel OOM-kill of executor)
+    if kaniko_exit_code.is_none() || kaniko_exit_code == Some(137) || kaniko_exit_code == Some(143) {
+        if kaniko_lower.contains("npm run build") || kaniko_lower.contains("ng build") {
+            if !kaniko_lower.contains("succeeded") && !kaniko_lower.contains("complete") && !kaniko_lower.contains("error") {
+                return ("BUILD_OOM", "Build-ul s-a oprit brusc în timpul compilării (posibil depășire de memorie/OOM pe nod). Mărește resursele mașinii virtuale Minikube sau memoria workspace-ului.".to_string());
+            }
+        }
     }
 
     // --- Clone stage failures ---

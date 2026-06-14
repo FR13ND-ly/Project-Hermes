@@ -12,6 +12,47 @@ const SECURE_STORAGE_DIR: &str = "/var/www/hermes/secure_storage";
 pub struct StorageEngine;
 
 impl StorageEngine {
+    pub fn save_image_with_options(
+        img: &image::DynamicImage,
+        path: &Path,
+        quality: u8,
+    ) -> Result<(), AppError> {
+        let ext = path.extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+
+        if ext == "jpg" || ext == "jpeg" {
+            use image::ImageEncoder;
+            let file = File::create(path)
+                .map_err(|e| AppError::Infrastructure(format!("Failed to create JPEG image file: {}", e)))?;
+            let mut writer = BufWriter::new(file);
+            let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut writer, quality);
+            encoder.write_image(
+                img.as_bytes(),
+                img.width(),
+                img.height(),
+                img.color(),
+            )
+            .map_err(|e| AppError::Infrastructure(format!("Failed to encode JPEG image with quality {}: {}", quality, e)))?;
+        } else if ext == "webp" {
+            let config = zenwebp::LossyConfig::new()
+                .with_quality(quality as f32)
+                .with_method(4);
+            let rgba = img.to_rgba8();
+            let webp_data = zenwebp::EncodeRequest::lossy(&config, rgba.as_raw(), zenwebp::PixelLayout::Rgba8, img.width(), img.height())
+                .encode()
+                .map_err(|e| AppError::Infrastructure(format!("Failed to encode WebP image with quality {}: {:?}", quality, e)))?;
+            fs::write(path, &*webp_data)
+                .map_err(|e| AppError::Infrastructure(format!("Failed to write WebP image file: {}", e)))?;
+        } else {
+            img.save(path)
+                .map_err(|e| AppError::Infrastructure(format!("Failed to save image: {}", e)))?;
+        }
+
+        Ok(())
+    }
+
     pub fn get_bucket_path(workspace_id: &str, bucket_slug: &str, access_type: &BucketAccessType) -> PathBuf {
         let base_dir = match access_type {
             BucketAccessType::PrivateStorage => SECURE_STORAGE_DIR,
@@ -88,6 +129,7 @@ impl StorageEngine {
         access_type: &BucketAccessType,
         relative_file_path: &str,
         options: &ImageProcessingOptions,
+        stage_tx: Option<&tokio::sync::mpsc::UnboundedSender<String>>,
     ) -> Result<(String, HashMap<String, ImageVariant>), AppError> {
         let bucket_dir = Self::get_bucket_path(workspace_id, bucket_slug, access_type);
         let full_path = bucket_dir.join(relative_file_path);
@@ -101,51 +143,53 @@ impl StorageEngine {
         let mut variants = HashMap::new();
         let file_stem = full_path.file_stem().unwrap().to_string_lossy();
 
-        let mut targets = HashMap::new();
-        for variant_name in &options.generate_variants {
-            match variant_name.as_str() {
-                "xs" => { targets.insert("xs", 150); },
-                "s" => { targets.insert("s", 400); },
-                "md" => { targets.insert("md", 800); },
-                "lg" => { targets.insert("lg", 1200); },
-                _ => {}
-            }
-        }
-
-        for (name, max_width) in targets {
-            if img.width() <= max_width && name != "xs" {
+        for spec in &options.variants {
+            if spec.name.trim().is_empty() || spec.max_width == 0 {
                 continue;
             }
 
-            let mut scaled = img.resize(max_width, img.height(), image::imageops::FilterType::Lanczos3);
+            // Report the live processing stage (best-effort, drained into the DB by the caller).
+            if let Some(tx) = stage_tx {
+                let _ = tx.send(format!("variant:{}", spec.name));
+            }
+
+            // Never upscale: clamp the target width to the source width.
+            let target_width = std::cmp::min(spec.max_width, img.width());
+            let mut scaled = img.resize(target_width, img.height(), image::imageops::FilterType::Lanczos3);
             if options.force_square {
                 let min_dim = std::cmp::min(scaled.width(), scaled.height());
                 scaled = scaled.crop_imm(0, 0, min_dim, min_dim);
             }
 
-            let ext = match options.convert_to {
+            let ext = match spec.format {
                 ImageFormatTarget::Webp => "webp",
                 ImageFormatTarget::Avif => "avif",
+                ImageFormatTarget::Jpg => "jpg",
                 ImageFormatTarget::Original => full_path.extension().and_then(|e| e.to_str()).unwrap_or("png"),
             };
 
+            // Sanitize the user-supplied name for the on-disk filename; the map key
+            // keeps the original name for display.
+            let safe_name: String = spec.name.chars()
+                .map(|c| if c.is_alphanumeric() { c } else { '_' })
+                .collect();
+
             let variant_relative_path = if let Some(p_rel) = Path::new(relative_file_path).parent() {
                 if p_rel.as_os_str().is_empty() {
-                    format!("{}_{}.{}", file_stem, name, ext)
+                    format!("{}_{}.{}", file_stem, safe_name, ext)
                 } else {
-                    format!("{}/{}_{}.{}", p_rel.to_string_lossy(), file_stem, name, ext)
+                    format!("{}/{}_{}.{}", p_rel.to_string_lossy(), file_stem, safe_name, ext)
                 }
             } else {
-                format!("{}_{}.{}", file_stem, name, ext)
+                format!("{}_{}.{}", file_stem, safe_name, ext)
             };
 
             let variant_full_path = bucket_dir.join(&variant_relative_path);
-            scaled.save(&variant_full_path)
-                .map_err(|e| AppError::Infrastructure(format!("Failed to save variant: {}", e)))?;
+            Self::save_image_with_options(&scaled, &variant_full_path, options.quality)?;
 
             let file_size = fs::metadata(&variant_full_path)?.len() as i64;
             variants.insert(
-                name.to_string(),
+                spec.name.clone(),
                 ImageVariant {
                     file_path: variant_relative_path,
                     size_bytes: file_size,

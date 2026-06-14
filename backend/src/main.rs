@@ -29,13 +29,16 @@ async fn main() -> Result<(), anyhow::Error> {
 
     crate::utils::cron::start_auto_sleep_worker(pool.clone());
     crate::utils::cron::start_cron_scheduler_engine(pool.clone());
-    crate::utils::cron::start_auto_backup_worker(pool.clone());
     crate::utils::health::start_health_check_worker(pool.clone());
 
     info!("Executing schema migrations...");
     sqlx::migrate!("./migrations")
         .run(&pool)
         .await?;
+
+    // Auto-backups are now real, editable cron jobs; ensure existing backup-enabled
+    // databases have one (the dedicated backup worker has been retired).
+    crate::utils::cron::reconcile_backup_crons(&pool).await;
 
     let state = app_state::AppState::new(pool);
 

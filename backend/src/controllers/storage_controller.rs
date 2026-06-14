@@ -14,10 +14,12 @@ use std::path::Path as StdPath;
 use std::convert::Infallible;
 
 use crate::app_state::AppState;
-use crate::models::storage_model::{StorageBucket, StorageObject, StorageStatus, CompressionType, FileMetaData, BucketAccessType, BucketProcessingRules};
+use crate::models::storage_model::{StorageBucket, StorageObject, StorageStatus, CompressionType, FileMetaData, BucketAccessType, BucketProcessingRules, ImageFormatTarget};
 use crate::dtos::storage_dto::{CreateBucketRequest, BucketResponse, InitUploadRequest, InitUploadResponse, ObjectResponse, UpdateBucketRequest};
 use crate::middlewares::auth_middleware::AuthenticatedUser;
 use crate::utils::{storage_engine::StorageEngine, error::AppError};
+use crate::utils::pagination::{PaginationParams, Paginated};
+use image::io::Reader as ImageReader;
 
 pub async fn create_bucket(
     State(state): State<AppState>,
@@ -31,6 +33,8 @@ pub async fn create_bucket(
     let slug = payload.name.trim().to_lowercase().replace(' ', "-");
     let is_public = payload.is_public.unwrap_or(false);
     let max_size = payload.max_bucket_size_bytes.unwrap_or(1073741824);
+    let max_file_size = payload.max_file_size_bytes.unwrap_or(0);
+    let allow_custom_processing = payload.allow_custom_processing.unwrap_or(false);
     let processing_rules = payload.default_processing_rules.unwrap_or_default();
 
     let slug_exists = sqlx::query_scalar!(
@@ -55,9 +59,9 @@ pub async fn create_bucket(
     let bucket_dir = StorageEngine::get_bucket_path(&ws_id.to_string(), &slug, &access_type);
 
     sqlx::query!(
-        "INSERT INTO storage_buckets (id, workspace_id, project_id, name, slug, access_type, is_public, max_bucket_size_bytes, default_processing_rules, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6::bucket_access_type, $7, $8, $9, $10)",
-        bucket_id, ws_id, payload.project_id, payload.name.trim(), slug, access_type as _, is_public, max_size, sqlx::types::Json(processing_rules.clone()) as _, claims.sub
+        "INSERT INTO storage_buckets (id, workspace_id, project_id, name, slug, access_type, is_public, max_bucket_size_bytes, max_file_size_bytes, allow_custom_processing, default_processing_rules, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6::bucket_access_type, $7, $8, $9, $10, $11, $12)",
+        bucket_id, ws_id, payload.project_id, payload.name.trim(), slug, access_type as _, is_public, max_size, max_file_size, allow_custom_processing, sqlx::types::Json(processing_rules.clone()) as _, claims.sub
     )
     .execute(&mut *tx)
     .await?;
@@ -69,7 +73,9 @@ pub async fn create_bucket(
     tx.commit().await?;
 
     // Publish the bucket's URL into the project env pool when scoped to a project.
-    if let Some(pid) = payload.project_id {
+    // Opt-out via publish_to_env=false; the key defaults to BUCKET_<SLUG>_URL but a
+    // custom env_key may be supplied at creation.
+    if let (Some(pid), true) = (payload.project_id, payload.publish_to_env.unwrap_or(true)) {
         let in_workspace = sqlx::query_scalar!(
             "SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1 AND workspace_id = $2)",
             pid, ws_id
@@ -79,7 +85,11 @@ pub async fn create_bucket(
         .unwrap_or(false);
         if in_workspace {
             let bucket_url = format!("https://{}.{}", slug, base_domain);
-            let key = format!("BUCKET_{}_URL", crate::utils::app_env::sanitize_key_fragment(&slug, "STORAGE"));
+            let default_key = format!("BUCKET_{}_URL", crate::utils::app_env::sanitize_key_fragment(&slug, "STORAGE"));
+            let key = match payload.env_key.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+                Some(custom) => crate::utils::app_env::sanitize_key_fragment(custom, &default_key),
+                None => default_key,
+            };
             let _ = crate::utils::app_env::publish_project_env(
                 &state.pool, ws_id, pid, &key, &bucket_url, false, "storage", bucket_id,
             )
@@ -98,6 +108,8 @@ pub async fn create_bucket(
             assigned_domain,
             allowed_file_types: payload.allowed_file_types,
             max_bucket_size_bytes: max_size,
+            max_file_size_bytes: max_file_size,
+            allow_custom_processing,
             default_processing_rules: processing_rules,
             created_at: Utc::now(),
         }),
@@ -133,15 +145,26 @@ pub async fn initialize_upload(
     .await?
     .ok_or_else(|| AppError::NotFound(format!("Target bucket '{}' not found.", bucket_slug)))?;
 
+    // Enforce the per-file size limit (0 = unlimited).
+    if bucket.max_file_size_bytes > 0 && payload.size_bytes > bucket.max_file_size_bytes {
+        return Err(AppError::Validation(format!(
+            "File size {} exceeds the per-file limit of {} for this bucket.",
+            format_bytes(payload.size_bytes),
+            format_bytes(bucket.max_file_size_bytes)
+        )));
+    }
+
     if let Some(allowed) = bucket.allowed_file_types {
         if !allowed.contains(&payload.mime_type) {
             return Err(AppError::Validation(format!("Mime-type '{}' is not allowed.", payload.mime_type)));
         }
     }
 
-    let final_processing_options = match payload.custom_processing_options {
-        Some(custom) => custom,
-        None => bucket.default_processing_rules.0,
+    // Per-upload processing overrides are honored only when the bucket opts in;
+    // otherwise the bucket's default rules always win (client options ignored).
+    let final_processing_options = match (bucket.allow_custom_processing, payload.custom_processing_options) {
+        (true, Some(custom)) => custom,
+        _ => bucket.default_processing_rules.0,
     };
 
     // Check if an object with the same name already exists in this bucket
@@ -265,6 +288,23 @@ pub async fn process_upload_stream(
     let options = object.processing_options.0;
 
     tokio::spawn(async move {
+        // Granular processing stages are reported through an unbounded channel and
+        // drained into `storage_objects.processing_stage` concurrently, so the
+        // dashboard's 2s poll can surface "Variantă: thumb", "Conversie", etc. live.
+        let (stage_tx, mut stage_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+        let drain_pool = pool_clone.clone();
+        let drain_handle = tokio::spawn(async move {
+            while let Some(stage) = stage_rx.recv().await {
+                let _ = sqlx::query!(
+                    "UPDATE storage_objects SET processing_stage = $1 WHERE id = $2",
+                    stage, file_id
+                )
+                .execute(&drain_pool)
+                .await;
+            }
+        });
+        let _ = stage_tx.send("analyzing".to_string());
+
         let mut meta = FileMetaData {
             has_variants: false,
             original_extension: StdPath::new(&relative_path).extension().map(|e| e.to_string_lossy().to_string()),
@@ -277,18 +317,83 @@ pub async fn process_upload_stream(
         let mut is_optimized = false;
         let mut dimensions = None;
 
+        let mut final_relative_path = relative_path.clone();
+        let mut final_mime_type = mime_type.clone();
+        let mut final_size_bytes = fs::metadata(&disk_path_clone).map(|m| m.len() as i64).unwrap_or(0);
+
         let processing_result = (|| -> Result<(), AppError> {
             if mime_type.starts_with("image/") && mime_type != "image/gif" {
                 if let Some(img_rules) = options.image_options {
-                    let (orig_dims, image_variants) = StorageEngine::generate_image_variants_smart(&ws_str, &slug_str, &access_type, &relative_path, &img_rules)?;
+                    let mut current_disk_path = disk_path_clone.clone();
+                    let mut current_relative_path = relative_path.clone();
+                    let mut current_mime_type = mime_type.clone();
+
+                    if img_rules.convert_to != ImageFormatTarget::Original {
+                        let _ = stage_tx.send("converting".to_string());
+                        let target_ext = match img_rules.convert_to {
+                            ImageFormatTarget::Webp => "webp",
+                            ImageFormatTarget::Avif => "avif",
+                            ImageFormatTarget::Jpg => "jpg",
+                            ImageFormatTarget::Original => unreachable!(),
+                        };
+
+                        let target_mime = match img_rules.convert_to {
+                            ImageFormatTarget::Webp => "image/webp",
+                            ImageFormatTarget::Avif => "image/avif",
+                            ImageFormatTarget::Jpg => "image/jpeg",
+                            ImageFormatTarget::Original => unreachable!(),
+                        };
+
+                        let img = ImageReader::open(&disk_path_clone)
+                            .map_err(|e| AppError::Validation(format!("Invalid image file format: {}", e)))?
+                            .decode()
+                            .map_err(|e| AppError::Fatal(anyhow::anyhow!("Image decoding engine crashed: {}", e)))?;
+
+                        let new_relative_path = if let Some(ext) = StdPath::new(&relative_path).extension() {
+                            let ext_str = ext.to_string_lossy();
+                            relative_path.strip_suffix(&*ext_str)
+                                .map(|s| format!("{}{}", s, target_ext))
+                                .unwrap_or_else(|| format!("{}.{}", relative_path, target_ext))
+                        } else {
+                            format!("{}.{}", relative_path, target_ext)
+                        };
+
+                        let bucket_dir = StorageEngine::get_bucket_path(&ws_str, &slug_str, &access_type);
+                        let new_disk_path = bucket_dir.join(&new_relative_path);
+
+                        StorageEngine::save_image_with_options(&img, &new_disk_path, img_rules.quality)?;
+
+                        if new_disk_path != disk_path_clone {
+                            let _ = fs::remove_file(&disk_path_clone);
+                        }
+
+                        current_disk_path = new_disk_path;
+                        current_relative_path = new_relative_path;
+                        current_mime_type = target_mime.to_string();
+                    }
+
+                    let (orig_dims, image_variants) = StorageEngine::generate_image_variants_smart(
+                        &ws_str,
+                        &slug_str,
+                        &access_type,
+                        &current_relative_path,
+                        &img_rules,
+                        Some(&stage_tx),
+                    )?;
+
                     dimensions = Some(orig_dims);
                     meta.has_variants = !image_variants.is_empty();
                     meta.variants = Some(image_variants);
                     is_optimized = true;
+
+                    final_relative_path = current_relative_path;
+                    final_mime_type = current_mime_type;
+                    final_size_bytes = fs::metadata(&current_disk_path).map(|m| m.len() as i64).unwrap_or(0);
                 }
             } else if mime_type == "application/javascript" || mime_type == "text/css" || mime_type == "text/html" {
                 if let Some(text_rules) = options.text_options {
                     if text_rules.pre_compress_brotli {
+                        let _ = stage_tx.send("compressing".to_string());
                         compression_mode = CompressionType::Brotli;
                         let size_on_disk = fs::metadata(&disk_path_clone).map(|m| m.len() as i64).unwrap_or(0);
                         original_size = Some(size_on_disk);
@@ -298,6 +403,11 @@ pub async fn process_upload_stream(
             }
             Ok(())
         })();
+
+        // Close the stage channel and let the drain flush any queued stage updates
+        // before the terminal UPDATE clears processing_stage.
+        drop(stage_tx);
+        let _ = drain_handle.await;
 
         let final_status = match processing_result {
             Ok(_) => StorageStatus::Ready,
@@ -309,16 +419,29 @@ pub async fn process_upload_stream(
 
         let meta_clone = meta.clone();
         let _ = sqlx::query!(
-            "UPDATE storage_objects 
-             SET status = $1::storage_status, 
+            "UPDATE storage_objects
+             SET status = $1::storage_status,
                  compression = $2::compression_type,
                  original_size_bytes = $3,
                  is_optimized = $4,
                  image_dimensions = $5,
                  meta_data = $6,
+                 file_path = $7,
+                 mime_type = $8,
+                 size_bytes = $9,
+                 processing_stage = NULL,
                  updated_at = now()
-             WHERE id = $7",
-            final_status as _, compression_mode as _, original_size, is_optimized, dimensions, sqlx::types::Json(meta) as _, file_id
+             WHERE id = $10",
+            final_status as _,
+            compression_mode as _,
+            original_size,
+            is_optimized,
+            dimensions,
+            sqlx::types::Json(meta) as _,
+            final_relative_path,
+            final_mime_type,
+            final_size_bytes,
+            file_id
         )
         .execute(&pool_clone)
         .await;
@@ -328,7 +451,7 @@ pub async fn process_upload_stream(
                 &ws_str,
                 &slug_str,
                 &access_type,
-                &relative_path,
+                &final_relative_path,
                 compression_mode,
                 &meta_clone.variants,
             ).await;
@@ -345,6 +468,7 @@ pub async fn process_upload_stream(
         mime_type: object.mime_type,
         etag: real_etag,
         status: StorageStatus::Processing,
+        processing_stage: None,
         compression: CompressionType::None,
         original_size_bytes: None,
         is_optimized: false,
@@ -486,6 +610,22 @@ fn calculate_virtual_url(
     format!("/api/v1/storage/private/{}", object_id)
 }
 
+/// Human-readable byte size for validation error messages.
+fn format_bytes(bytes: i64) -> String {
+    const UNITS: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
+    let mut size = bytes as f64;
+    let mut unit = 0;
+    while size >= 1024.0 && unit < UNITS.len() - 1 {
+        size /= 1024.0;
+        unit += 1;
+    }
+    if unit == 0 {
+        format!("{} {}", bytes, UNITS[unit])
+    } else {
+        format!("{:.2} {}", size, UNITS[unit])
+    }
+}
+
 pub async fn list_buckets(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -495,7 +635,7 @@ pub async fn list_buckets(
     })?;
 
     let buckets = sqlx::query_as::<_, StorageBucket>(
-        "SELECT id, workspace_id, name, slug, access_type, is_public, allowed_file_types, max_bucket_size_bytes, default_processing_rules, created_at, updated_at, created_by FROM storage_buckets WHERE workspace_id = $1 ORDER BY created_at DESC"
+        "SELECT id, workspace_id, name, slug, access_type, is_public, allowed_file_types, max_bucket_size_bytes, max_file_size_bytes, allow_custom_processing, default_processing_rules, created_at, updated_at, created_by FROM storage_buckets WHERE workspace_id = $1 ORDER BY created_at DESC"
     )
     .bind(ws_id)
     .fetch_all(&state.pool)
@@ -514,6 +654,8 @@ pub async fn list_buckets(
                 assigned_domain,
                 allowed_file_types: b.allowed_file_types,
                 max_bucket_size_bytes: b.max_bucket_size_bytes,
+                max_file_size_bytes: b.max_file_size_bytes,
+                allow_custom_processing: b.allow_custom_processing,
                 default_processing_rules: b.default_processing_rules.0,
                 created_at: b.created_at,
             }
@@ -561,6 +703,10 @@ pub async fn delete_bucket(
 
     StorageEngine::delete_bucket_physical(&ws_id.to_string(), &bucket.slug, &bucket.access_type).await?;
 
+    // Remove any cron jobs targeting this bucket.
+    let _ = sqlx::query!("DELETE FROM cron_jobs WHERE target_type = 'storage' AND target_id = $1", bucket_id)
+        .execute(&state.pool).await;
+
     sqlx::query!("DELETE FROM storage_buckets WHERE id = $1", bucket_id)
         .execute(&state.pool)
         .await?;
@@ -578,7 +724,8 @@ pub async fn list_objects(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
     Path(bucket_slug): Path<String>,
-) -> Result<Json<Vec<ObjectResponse>>, AppError> {
+    Query(pagination): Query<PaginationParams>,
+) -> Result<Json<Paginated<ObjectResponse>>, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
@@ -592,14 +739,23 @@ pub async fn list_objects(
     .await?
     .ok_or_else(|| AppError::NotFound(format!("Bucket '{}' not found.", bucket_slug)))?;
 
+    let (page, page_size, offset) = pagination.resolve();
+
+    let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM storage_objects WHERE bucket_id = $1")
+        .bind(bucket.id)
+        .fetch_one(&state.pool)
+        .await?;
+
     let objects = sqlx::query_as::<_, StorageObject>(
-        "SELECT * FROM storage_objects WHERE bucket_id = $1 ORDER BY created_at DESC"
+        "SELECT * FROM storage_objects WHERE bucket_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"
     )
     .bind(bucket.id)
+    .bind(page_size)
+    .bind(offset)
     .fetch_all(&state.pool)
     .await?;
 
-    let response = objects
+    let items = objects
         .into_iter()
         .map(|o| {
             let virtual_url = calculate_virtual_url(o.id, &o.file_path, &bucket.slug, ws_id, &bucket.access_type);
@@ -611,6 +767,7 @@ pub async fn list_objects(
                 mime_type: o.mime_type,
                 etag: o.etag,
                 status: o.status,
+                processing_stage: o.processing_stage,
                 compression: o.compression,
                 original_size_bytes: o.original_size_bytes,
                 is_optimized: o.is_optimized,
@@ -623,7 +780,7 @@ pub async fn list_objects(
         })
         .collect();
 
-    Ok(Json(response))
+    Ok(Json(Paginated::new(items, total, page, page_size)))
 }
 
 pub async fn delete_object(
@@ -735,6 +892,7 @@ pub async fn serve_public_file(
                     let mime = match ext {
                         "webp" => "image/webp".to_string(),
                         "avif" => "image/avif".to_string(),
+                        "jpg" | "jpeg" => "image/jpeg".to_string(),
                         _ => object.mime_type.clone(),
                     };
                     found = Some((var.file_path.clone(), mime, var.size_bytes));
@@ -793,13 +951,15 @@ pub async fn update_bucket(
     let is_public = payload.is_public.unwrap_or(bucket.is_public);
     let allowed_file_types = payload.allowed_file_types.or(bucket.allowed_file_types);
     let max_size = payload.max_bucket_size_bytes.unwrap_or(bucket.max_bucket_size_bytes);
+    let max_file_size = payload.max_file_size_bytes.unwrap_or(bucket.max_file_size_bytes);
+    let allow_custom_processing = payload.allow_custom_processing.unwrap_or(bucket.allow_custom_processing);
     let processing_rules = payload.default_processing_rules.unwrap_or(bucket.default_processing_rules.0);
 
     sqlx::query!(
-        "UPDATE storage_buckets 
-         SET name = $1, access_type = $2::bucket_access_type, is_public = $3, allowed_file_types = $4, max_bucket_size_bytes = $5, default_processing_rules = $6, updated_at = now()
-         WHERE id = $7 AND workspace_id = $8",
-        name, access_type as _, is_public, allowed_file_types.as_deref(), max_size, sqlx::types::Json(processing_rules.clone()) as _, bucket_id, ws_id
+        "UPDATE storage_buckets
+         SET name = $1, access_type = $2::bucket_access_type, is_public = $3, allowed_file_types = $4, max_bucket_size_bytes = $5, max_file_size_bytes = $6, allow_custom_processing = $7, default_processing_rules = $8, updated_at = now()
+         WHERE id = $9 AND workspace_id = $10",
+        name, access_type as _, is_public, allowed_file_types.as_deref(), max_size, max_file_size, allow_custom_processing, sqlx::types::Json(processing_rules.clone()) as _, bucket_id, ws_id
     )
     .execute(&state.pool)
     .await?;
@@ -815,6 +975,8 @@ pub async fn update_bucket(
         assigned_domain,
         allowed_file_types,
         max_bucket_size_bytes: max_size,
+        max_file_size_bytes: max_file_size,
+        allow_custom_processing,
         default_processing_rules: processing_rules,
         created_at: bucket.created_at,
     }))

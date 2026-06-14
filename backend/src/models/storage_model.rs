@@ -39,6 +39,15 @@ pub enum ImageFormatTarget {
     Original,
     Webp,
     Avif,
+    Jpg,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageVariantSpec {
+    pub name: String,
+    pub max_width: u32,
+    pub format: ImageFormatTarget,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -46,7 +55,11 @@ pub enum ImageFormatTarget {
 pub struct ImageProcessingOptions {
     pub convert_to: ImageFormatTarget,
     pub quality: u8,
-    pub generate_variants: Vec<String>,
+    /// Custom output variants (name + max width + per-variant format). Replaces
+    /// the old fixed presets; `#[serde(default)]` lets legacy bucket JSON that
+    /// still carries `generateVariants` deserialize without error (empty until re-saved).
+    #[serde(default)]
+    pub variants: Vec<ImageVariantSpec>,
     pub force_square: bool,
 }
 
@@ -91,6 +104,8 @@ pub struct StorageBucket {
     pub is_public: bool,
     pub allowed_file_types: Option<Vec<String>>,
     pub max_bucket_size_bytes: i64,
+    pub max_file_size_bytes: i64,
+    pub allow_custom_processing: bool,
     pub default_processing_rules: sqlx::types::Json<BucketProcessingRules>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -110,6 +125,7 @@ pub struct StorageObject {
     pub original_size_bytes: Option<i64>,
     pub is_optimized: bool,
     pub image_dimensions: Option<String>,
+    pub processing_stage: Option<String>,
     pub meta_data: sqlx::types::Json<FileMetaData>,
     pub processing_options: sqlx::types::Json<BucketProcessingRules>,
     pub created_at: DateTime<Utc>,

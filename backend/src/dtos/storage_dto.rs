@@ -12,7 +12,15 @@ pub struct CreateBucketRequest {
     pub is_public: Option<bool>,
     pub allowed_file_types: Option<Vec<String>>,
     pub max_bucket_size_bytes: Option<i64>,
+    pub max_file_size_bytes: Option<i64>,
+    pub allow_custom_processing: Option<bool>,
     pub default_processing_rules: Option<BucketProcessingRules>,
+    /// Publish the bucket URL into the project env pool (default: true).
+    #[serde(default)]
+    pub publish_to_env: Option<bool>,
+    /// Override the suggested env key for the published bucket URL.
+    #[serde(default)]
+    pub env_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -35,6 +43,8 @@ pub struct BucketResponse {
     pub assigned_domain: Option<String>,
     pub allowed_file_types: Option<Vec<String>>,
     pub max_bucket_size_bytes: i64,
+    pub max_file_size_bytes: i64,
+    pub allow_custom_processing: bool,
     pub default_processing_rules: BucketProcessingRules,
     pub created_at: DateTime<Utc>,
 }
@@ -49,6 +59,7 @@ pub struct ObjectResponse {
     pub mime_type: String,
     pub etag: String,
     pub status: StorageStatus,
+    pub processing_stage: Option<String>,
     pub compression: CompressionType,
     pub original_size_bytes: Option<i64>,
     pub is_optimized: bool,
@@ -75,5 +86,7 @@ pub struct UpdateBucketRequest {
     pub is_public: Option<bool>,
     pub allowed_file_types: Option<Vec<String>>,
     pub max_bucket_size_bytes: Option<i64>,
+    pub max_file_size_bytes: Option<i64>,
+    pub allow_custom_processing: Option<bool>,
     pub default_processing_rules: Option<BucketProcessingRules>,
 }

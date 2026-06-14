@@ -6,7 +6,10 @@ use axum::{
 use uuid::Uuid;
 
 use crate::app_state::AppState;
-use crate::dtos::env_variable_dto::{LinkProjectEnvRequest, ProjectEnvResponse, SetProjectEnvRequest};
+use crate::dtos::env_variable_dto::{
+    LinkProjectEnvRequest, ProjectEnvResponse, RenameProjectEnvRequest, RevealResponse,
+    SetProjectEnvRequest,
+};
 use crate::middlewares::auth_middleware::AuthenticatedUser;
 use crate::controllers::env_variable_controller::hot_reload_if_running;
 use crate::utils::{crypto, error::AppError};
@@ -15,6 +18,16 @@ fn clean_env_key(raw: &str) -> Result<String, AppError> {
     let clean = raw.trim().to_uppercase().replace(' ', "_");
     if clean.is_empty() {
         return Err(AppError::Validation("Variable key cannot be empty.".to_string()));
+    }
+    // Must be a valid C identifier — otherwise Kubernetes silently drops the env
+    // var when injecting via envFrom secretRef (invalid names never reach the pod).
+    let first_ok = clean.chars().next().map(|c| c.is_ascii_alphabetic() || c == '_').unwrap_or(false);
+    let rest_ok = clean.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
+    if !first_ok || !rest_ok {
+        return Err(AppError::Validation(format!(
+            "Cheie de mediu invalidă '{}': folosește doar litere, cifre și underscore, fără a începe cu o cifră.",
+            clean
+        )));
     }
     Ok(clean)
 }
@@ -293,6 +306,93 @@ pub async fn link_project_env(
 
     hot_reload_if_running(&state.pool, instance_id);
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// PATCH /projects/:project_id/env/:id — rename a project env var's key. Works
+/// for any source (manual or resource-published); a renamed resource var keeps its
+/// name across later republishes. Linked instances are hot-reloaded.
+pub async fn rename_project_env(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path((project_id, id)): Path<(Uuid, Uuid)>,
+    Json(payload): Json<RenameProjectEnvRequest>,
+) -> Result<Json<ProjectEnvResponse>, AppError> {
+    let ws = claims
+        .current_workspace_id
+        .ok_or_else(|| AppError::Validation("No active workspace selected.".to_string()))?;
+    authorize_project(&state.pool, project_id, ws).await?;
+
+    let key = clean_env_key(&payload.key)?;
+
+    // Reject a collision with a different var on the same key.
+    let collision = sqlx::query_scalar!(
+        "SELECT EXISTS(SELECT 1 FROM project_env_variables WHERE project_id = $1 AND key = $2 AND id <> $3)",
+        project_id, key, id
+    )
+    .fetch_one(&state.pool)
+    .await?
+    .unwrap_or(false);
+    if collision {
+        return Err(AppError::Validation(format!(
+            "A project variable named {key} already exists."
+        )));
+    }
+
+    let rec = sqlx::query!(
+        "UPDATE project_env_variables SET key = $1, updated_at = now()
+         WHERE id = $2 AND project_id = $3
+         RETURNING id, project_id, key, encrypted_value, nonce, is_secret, source",
+        key,
+        id,
+        project_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Project env var not found.".to_string()))?;
+
+    reload_linked_instances(&state.pool, rec.id).await;
+
+    let value = if !rec.is_secret {
+        crypto::decrypt_env_value(&rec.encrypted_value, &rec.nonce).ok()
+    } else {
+        None
+    };
+    Ok(Json(ProjectEnvResponse {
+        id: rec.id,
+        project_id: rec.project_id,
+        key: rec.key,
+        value,
+        is_secret: rec.is_secret,
+        source: rec.source,
+        linked: None,
+    }))
+}
+
+/// GET /projects/:project_id/env/:id/reveal — decrypt and return a single var's
+/// value on explicit request (so the UI can reveal secrets one at a time).
+pub async fn reveal_project_env(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path((project_id, id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<RevealResponse>, AppError> {
+    let ws = claims
+        .current_workspace_id
+        .ok_or_else(|| AppError::Validation("No active workspace selected.".to_string()))?;
+    authorize_project(&state.pool, project_id, ws).await?;
+
+    let rec = sqlx::query!(
+        "SELECT encrypted_value, nonce FROM project_env_variables WHERE id = $1 AND project_id = $2",
+        id,
+        project_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Project env var not found.".to_string()))?;
+
+    let value = crypto::decrypt_env_value(&rec.encrypted_value, &rec.nonce)
+        .map_err(|_| AppError::Infrastructure("Failed to decrypt value.".to_string()))?;
+
+    Ok(Json(RevealResponse { value }))
 }
 
 /// DELETE /instances/:instance_id/env-links/:project_env_id — opt back out.

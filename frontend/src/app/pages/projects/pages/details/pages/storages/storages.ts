@@ -2,11 +2,14 @@ import { Component, inject, signal, OnInit, OnDestroy, effect, computed } from '
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Details } from '../../details';
-import { StorageService, StorageBucket, StorageObject, ImageVariant, ProjectVolume } from '../../../../../../core/services/storage.service';
+import { StorageService, StorageBucket, StorageObject, ImageVariant, ImageVariantSpec, ImageFormatTarget, ProjectVolume } from '../../../../../../core/services/storage.service';
 import { VolumeService, VolumeFileItem } from '../../../../../../core/services/volume.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 import { HttpEvent, HttpEventType } from '@angular/common/http';
+import { environment } from '../../../../../../../environments/environment';
+import { Pagination } from '../../../../../../shared/components/pagination/pagination';
+import { DEFAULT_PAGE_SIZE } from '../../../../../../core/models/pagination';
 
 export interface VirtualItem {
   id?: string;
@@ -17,6 +20,7 @@ export interface VirtualItem {
   mimeType?: string;
   etag?: string;
   status?: string;
+  processingStage?: string | null;
   compression?: string;
   originalSizeBytes?: number | null;
   isOptimized?: boolean;
@@ -30,7 +34,7 @@ export interface VirtualItem {
 @Component({
   selector: 'app-storages',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [CommonModule, FormsModule, DatePipe, Pagination],
   templateUrl: './storages.html',
   styleUrl: './storages.css',
 })
@@ -51,6 +55,11 @@ export class Storages implements OnInit, OnDestroy {
   readonly buckets = signal<StorageBucket[]>([]);
   readonly selectedBucket = signal<StorageBucket | null>(null);
   readonly allFiles = signal<StorageObject[]>([]);
+
+  // Pagination for the bucket's object list.
+  readonly objectsPage = signal(1);
+  readonly objectsPageSize = signal(DEFAULT_PAGE_SIZE);
+  readonly objectsTotal = signal(0);
   
   readonly loading = signal(false);
   readonly loadingFiles = signal(false);
@@ -72,7 +81,14 @@ export class Storages implements OnInit, OnDestroy {
   readonly creatingBucket = signal(false);
   readonly newBucketName = signal('');
   readonly maxBucketSizeGb = signal<number>(1);
+  // Per-file size limit (MB; 0 = unlimited) for creation.
+  readonly maxFileSizeMb = signal<number>(0);
+  // Allow the uploading client (via API/token) to override processing rules.
+  readonly allowCustomProcessing = signal<boolean>(false);
   readonly isPublicToggle = signal<boolean>(false);
+  // Publish the bucket URL into the project env pool (with optional custom key).
+  readonly publishToEnv = signal(true);
+  readonly envKeyName = signal('');
 
   // Upload states
   readonly uploading = signal(false);
@@ -85,17 +101,18 @@ export class Storages implements OnInit, OnDestroy {
   // Edit Bucket Settings Form States
   readonly editName = signal('');
   readonly editMaxSizeGb = signal<number>(1);
+  readonly editMaxFileSizeMb = signal<number>(0);
+  readonly editAllowCustomProcessing = signal<boolean>(false);
   readonly editIsPublic = signal<boolean>(false);
   readonly savingSettings = signal(false);
 
   // Advanced Image Rules
-  readonly convertImageTo = signal<'original' | 'webp' | 'avif'>('original');
+  readonly convertImageTo = signal<ImageFormatTarget>('original');
   readonly imageQuality = signal<number>(85);
   readonly forceSquare = signal<boolean>(false);
-  readonly genThumbnail = signal<boolean>(false);
-  readonly genSmall = signal<boolean>(false);
-  readonly genMedium = signal<boolean>(false);
-  readonly genLarge = signal<boolean>(false);
+  // Custom output variants (name + max width + per-variant format) — replaces the
+  // old fixed xs/s/md/lg presets.
+  readonly customVariants = signal<ImageVariantSpec[]>([]);
 
   // Text Compression
   readonly compressBrotli = signal<boolean>(false);
@@ -264,6 +281,7 @@ export class Storages implements OnInit, OnDestroy {
   }
 
   selectBucket(bucket: StorageBucket): void {
+    this.objectsPage.set(1);
     this.selectedBucket.set(bucket);
     this.activeTab.set('files');
     this.currentPath.set('/');
@@ -271,6 +289,8 @@ export class Storages implements OnInit, OnDestroy {
     // Populate form states
     this.editName.set(bucket.name);
     this.editMaxSizeGb.set(Math.round(bucket.maxBucketSizeBytes / (1024 * 1024 * 1024)));
+    this.editMaxFileSizeMb.set(Math.round((bucket.maxFileSizeBytes || 0) / (1024 * 1024)));
+    this.editAllowCustomProcessing.set(bucket.allowCustomProcessing || false);
     this.editIsPublic.set(bucket.isPublic);
 
     // Parse allowed file types
@@ -288,19 +308,13 @@ export class Storages implements OnInit, OnDestroy {
       this.convertImageTo.set(imgOpts.convertTo || 'original');
       this.imageQuality.set(imgOpts.quality || 85);
       this.forceSquare.set(imgOpts.forceSquare || false);
-      const vars = imgOpts.generateVariants || [];
-      this.genThumbnail.set(vars.includes('xs'));
-      this.genSmall.set(vars.includes('s'));
-      this.genMedium.set(vars.includes('md'));
-      this.genLarge.set(vars.includes('lg'));
+      // Deep-copy so edits don't mutate the bucket reference held in the list.
+      this.customVariants.set((imgOpts.variants || []).map(v => ({ ...v })));
     } else {
       this.convertImageTo.set('original');
       this.imageQuality.set(85);
       this.forceSquare.set(false);
-      this.genThumbnail.set(false);
-      this.genSmall.set(false);
-      this.genMedium.set(false);
-      this.genLarge.set(false);
+      this.customVariants.set([]);
     }
 
     const textOpts = rules.textOptions || null;
@@ -329,9 +343,10 @@ export class Storages implements OnInit, OnDestroy {
     }
 
     this.loadingFiles.set(true);
-    this.storageService.listObjects(bucket.slug).subscribe({
+    this.storageService.listObjects(bucket.slug, this.objectsPage(), this.objectsPageSize()).subscribe({
       next: (res) => {
-        this.allFiles.set(res || []);
+        this.allFiles.set(res?.items || []);
+        this.objectsTotal.set(res?.total || 0);
         this.loadingFiles.set(false);
         this.checkAndStartPolling();
       },
@@ -341,6 +356,11 @@ export class Storages implements OnInit, OnDestroy {
         this.stopPolling();
       }
     });
+  }
+
+  onObjectsPageChange(page: number): void {
+    this.objectsPage.set(page);
+    this.loadObjects();
   }
 
   ngOnDestroy(): void {
@@ -359,9 +379,10 @@ export class Storages implements OnInit, OnDestroy {
             this.stopPolling();
             return;
           }
-          this.storageService.listObjects(bucket.slug).subscribe({
+          this.storageService.listObjects(bucket.slug, this.objectsPage(), this.objectsPageSize()).subscribe({
             next: (res) => {
-              this.allFiles.set(res || []);
+              this.allFiles.set(res?.items || []);
+              this.objectsTotal.set(res?.total || 0);
               this.checkAndStartPolling();
             },
             error: () => {
@@ -406,24 +427,22 @@ export class Storages implements OnInit, OnDestroy {
       allowed.push('application/octet-stream');
     }
 
-    // Build image variants list
-    const variants: string[] = [];
-    if (this.genThumbnail()) variants.push('xs');
-    if (this.genSmall()) variants.push('s');
-    if (this.genMedium()) variants.push('md');
-    if (this.genLarge()) variants.push('lg');
+    // Build custom image variants (drop incomplete rows)
+    const variants = this.sanitizedVariants();
 
     // Build processing rules payload
     const payload = {
       name: this.editName().trim(),
       isPublic: this.editIsPublic(),
       maxBucketSizeBytes: this.editMaxSizeGb() * 1024 * 1024 * 1024,
+      maxFileSizeBytes: Math.max(0, Math.round(this.editMaxFileSizeMb())) * 1024 * 1024,
+      allowCustomProcessing: this.editAllowCustomProcessing(),
       allowedFileTypes: allowed.length > 0 ? allowed : null,
       defaultProcessingRules: {
         imageOptions: {
           convertTo: this.convertImageTo(),
           quality: this.imageQuality(),
-          generateVariants: variants,
+          variants,
           forceSquare: this.forceSquare()
         },
         textOptions: {
@@ -610,6 +629,7 @@ export class Storages implements OnInit, OnDestroy {
             mimeType: f.mimeType,
             etag: f.etag,
             status: f.status,
+            processingStage: f.processingStage,
             compression: f.compression,
             originalSizeBytes: f.originalSizeBytes,
             isOptimized: f.isOptimized,
@@ -629,6 +649,7 @@ export class Storages implements OnInit, OnDestroy {
           mimeType: f.mimeType,
           etag: f.etag,
           status: f.status,
+          processingStage: f.processingStage,
           compression: f.compression,
           originalSizeBytes: f.originalSizeBytes,
           isOptimized: f.isOptimized,
@@ -686,11 +707,19 @@ export class Storages implements OnInit, OnDestroy {
       name: this.newBucketName().trim(),
       projectId: this.parent.projectId() || undefined,
       isPublic: this.isPublicToggle(),
-      maxBucketSizeBytes: this.maxBucketSizeGb() * 1024 * 1024 * 1024
+      maxBucketSizeBytes: this.maxBucketSizeGb() * 1024 * 1024 * 1024,
+      maxFileSizeBytes: Math.max(0, Math.round(this.maxFileSizeMb())) * 1024 * 1024,
+      allowCustomProcessing: this.allowCustomProcessing(),
+      publishToEnv: this.publishToEnv(),
+      envKey: this.publishToEnv() && this.envKeyName().trim() ? this.envKeyName().trim() : undefined
     }).subscribe({
       next: (newBucket) => {
         this.toast.success(`Bucket-ul "${newBucket.name}" a fost creat cu succes.`);
         this.newBucketName.set('');
+        this.envKeyName.set('');
+        this.publishToEnv.set(true);
+        this.maxFileSizeMb.set(0);
+        this.allowCustomProcessing.set(false);
         this.showCreateForm.set(false);
         this.creatingBucket.set(false);
         this.storageService.listBuckets().subscribe(list => {
@@ -788,6 +817,12 @@ export class Storages implements OnInit, OnDestroy {
     const bucket = this.selectedBucket();
     if (!bucket) return;
 
+    // Enforce the per-file size limit client-side before opening an upload session.
+    if (bucket.maxFileSizeBytes > 0 && file.size > bucket.maxFileSizeBytes) {
+      this.toast.error(`Fișierul "${file.name}" (${this.formatBytes(file.size)}) depășește limita de ${this.formatBytes(bucket.maxFileSizeBytes)} per fișier.`);
+      return;
+    }
+
     const activePath = this.currentPath();
     const cleanActivePath = activePath === '/' ? '' : activePath.trim().replace(/^\//, '').replace(/\/$/, '') + '/';
     const relativePath = `${cleanActivePath}${file.name}`;
@@ -848,11 +883,33 @@ export class Storages implements OnInit, OnDestroy {
     });
   }
 
+  async onCancelUpload(item: VirtualItem): Promise<void> {
+    if (!item.id) return;
+    const confirmed = await this.confirm.ask({
+      title: 'Anulare Încărcare',
+      message: `Sigur doriți să anulați încărcarea/procesarea fișierului "${item.name}"?`,
+      confirmText: 'Anulează',
+      cancelText: 'Păstrează',
+      isDanger: true
+    });
+    if (!confirmed) return;
+
+    this.storageService.deleteObject(item.id).subscribe({
+      next: () => {
+        this.toast.success(`Încărcarea fișierului "${item.name}" a fost anulată.`);
+        this.loadObjects();
+      },
+      error: (err) => {
+        this.toast.error(err.error?.message || 'Eroare la anularea încărcării.');
+      }
+    });
+  }
+
   resolveVirtualUrl(url: string): string {
     if (!url) return '';
     if (url.startsWith('/')) {
       const token = localStorage.getItem('hermes_token') || '';
-      return `http://localhost:8000${url}?token=${encodeURIComponent(token)}`;
+      return `${environment.apiOrigin}${url}?token=${encodeURIComponent(token)}`;
     }
     return url;
   }
@@ -862,7 +919,7 @@ export class Storages implements OnInit, OnDestroy {
     if (!bucket || !variant.filePath) return '';
     // All buckets are private — serve through the API with an auth token.
     const token = localStorage.getItem('hermes_token') || '';
-    return `http://localhost:8000/storage/assets/${this.parent.project()?.workspace_id}/${bucket.slug}/${variant.filePath}?token=${encodeURIComponent(token)}`;
+    return `${environment.apiOrigin}/storage/assets/${this.parent.project()?.workspace_id}/${bucket.slug}/${variant.filePath}?token=${encodeURIComponent(token)}`;
   }
 
   toggleVariants(itemId: string): void {
@@ -882,6 +939,39 @@ export class Storages implements OnInit, OnDestroy {
   getVariantEntries(variants: Record<string, ImageVariant> | null | undefined): { key: string, value: ImageVariant }[] {
     if (!variants) return [];
     return Object.entries(variants).map(([key, value]) => ({ key, value }));
+  }
+
+  // --- Custom image variants editor ---
+  addVariant(): void {
+    this.customVariants.update(list => [...list, { name: '', maxWidth: 400, format: 'webp' as ImageFormatTarget }]);
+  }
+
+  removeVariant(index: number): void {
+    this.customVariants.update(list => list.filter((_, i) => i !== index));
+  }
+
+  updateVariant(index: number, patch: Partial<ImageVariantSpec>): void {
+    this.customVariants.update(list => list.map((v, i) => i === index ? { ...v, ...patch } : v));
+  }
+
+  // Drop incomplete rows (no name / non-positive width) before persisting.
+  private sanitizedVariants(): ImageVariantSpec[] {
+    return this.customVariants()
+      .map(v => ({ name: (v.name || '').trim(), maxWidth: Math.round(Number(v.maxWidth) || 0), format: v.format }))
+      .filter(v => v.name.length > 0 && v.maxWidth > 0);
+  }
+
+  // Human label for the live processing stage surfaced via polling.
+  stageLabel(stage?: string | null): string {
+    if (!stage) return 'Procesare...';
+    if (stage.startsWith('variant:')) return `Variantă: ${stage.slice('variant:'.length)}`;
+    const map: Record<string, string> = {
+      analyzing: 'Analiză fișier',
+      converting: 'Conversie format',
+      compressing: 'Compresie',
+      finalizing: 'Finalizare / sync',
+    };
+    return map[stage] || 'Procesare...';
   }
 
   getVariantLabel(key: string): string {
@@ -942,16 +1032,16 @@ export class Storages implements OnInit, OnDestroy {
 
   getEnvSnippet(): string {
     const token = this.integrationToken() || '';
-    return `# Configurare Hermes Storage\nHERMES_STORAGE_URL=http://localhost:8000/storage\nHERMES_STORAGE_TOKEN=${token}`;
+    return `# Configurare Hermes Storage\nHERMES_STORAGE_URL=${environment.apiOrigin}/storage\nHERMES_STORAGE_TOKEN=${token}`;
   }
 
   getUploadSnippet(): string {
     const slug = this.selectedBucket()?.slug || '';
-    return `# 1. Inițializare upload\ncurl -X POST http://localhost:8000/api/v1/storage/upload/init \\\n  -H "Authorization: Bearer YOUR_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{"bucketSlug": "${slug}", "filePath": "/images/photo.jpg", "mimeType": "image/jpeg"}' \n\n# 2. Upload cu ID-ul primit\ncurl -X PUT http://localhost:8000/api/v1/storage/upload/{file_id} \\\n  -H "Content-Type: application/octet-stream" \\\n  --data-binary @photo.jpg`;
+    return `# 1. Inițializare upload\ncurl -X POST ${environment.apiBaseUrl}/storage/upload/init \\\n  -H "Authorization: Bearer YOUR_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{"bucketSlug": "${slug}", "filePath": "/images/photo.jpg", "mimeType": "image/jpeg"}' \n\n# 2. Upload cu ID-ul primit\ncurl -X PUT ${environment.apiBaseUrl}/storage/upload/{file_id} \\\n  -H "Content-Type: application/octet-stream" \\\n  --data-binary @photo.jpg`;
   }
 
   getNodeSnippet(): string {
-    return `const HERMES_URL = 'http://localhost:8000/api/v1/storage';
+    return `const HERMES_URL = '${environment.apiBaseUrl}/storage';
 const TOKEN = 'YOUR_TOKEN';
 
 async function uploadFile(bucketSlug, filePath, buffer, mimeType) {
@@ -979,10 +1069,10 @@ async function uploadFile(bucketSlug, filePath, buffer, mimeType) {
 
   getListSnippet(): string {
     const slug = this.selectedBucket()?.slug || '';
-    return `curl -X GET http://localhost:8000/api/v1/storage/buckets/${slug}/objects \\\n  -H "Authorization: Bearer YOUR_TOKEN"`;
+    return `curl -X GET ${environment.apiBaseUrl}/storage/buckets/${slug}/objects \\\n  -H "Authorization: Bearer YOUR_TOKEN"`;
   }
 
   getDownloadSnippet(): string {
-    return `curl -X GET http://localhost:8000/api/v1/storage/private/{file_id}?token=YOUR_TOKEN -o output_file`;
+    return `curl -X GET ${environment.apiBaseUrl}/storage/private/{file_id}?token=YOUR_TOKEN -o output_file`;
   }
 }

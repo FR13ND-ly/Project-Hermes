@@ -2,6 +2,7 @@ import { Injectable, inject, effect, DestroyRef } from '@angular/core';
 import { AuthService } from './auth';
 import { Subject, Observable } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 export interface InstanceStatusChangedPayload {
   workspace_id: string;
@@ -83,7 +84,7 @@ export class WebSocketService {
       this.reconnectTimeout = null;
     }
 
-    const wsUrl = `ws://localhost:8000/api/v1/ws?token=${encodeURIComponent(token)}`;
+    const wsUrl = `${environment.wsBaseUrl}/ws?token=${encodeURIComponent(token)}`;
 
     console.log('[WebSocket] Connecting...');
     this.isConnecting = true;

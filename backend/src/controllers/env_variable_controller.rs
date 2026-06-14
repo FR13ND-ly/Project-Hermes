@@ -19,6 +19,8 @@ use crate::utils::{crypto, error::AppError};
 #[serde(rename_all = "camelCase")]
 pub struct ListEnvParams {
     pub app_instance_id: Uuid,
+    pub page: Option<i64>,
+    pub page_size: Option<i64>,
 }
 
 /// Resolve and authorize the workspace that owns a given app instance.
@@ -49,6 +51,16 @@ fn clean_env_key(raw: &str) -> Result<String, AppError> {
     let clean = raw.trim().to_uppercase().replace(' ', "_");
     if clean.is_empty() {
         return Err(AppError::Validation("Variable key cannot be empty.".to_string()));
+    }
+    // Must be a valid C identifier — otherwise Kubernetes silently drops the env
+    // var when injecting via envFrom secretRef (invalid names never reach the pod).
+    let first_ok = clean.chars().next().map(|c| c.is_ascii_alphabetic() || c == '_').unwrap_or(false);
+    let rest_ok = clean.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
+    if !first_ok || !rest_ok {
+        return Err(AppError::Validation(format!(
+            "Cheie de mediu invalidă '{}': folosește doar litere, cifre și underscore, fără a începe cu o cifră.",
+            clean
+        )));
     }
     Ok(clean)
 }
@@ -164,23 +176,40 @@ pub async fn list_env_variables(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
     Query(params): Query<ListEnvParams>,
-) -> Result<Json<Vec<EnvResponse>>, AppError> {
+) -> Result<Json<crate::utils::pagination::Paginated<EnvResponse>>, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
     resolve_instance_workspace(&state.pool, params.app_instance_id, ws_id).await?;
 
+    let (page, page_size, offset) = crate::utils::pagination::PaginationParams {
+        page: params.page,
+        page_size: params.page_size,
+    }.resolve();
+
+    let total: i64 = sqlx::query_scalar!(
+        "SELECT COUNT(*) FROM environment_variables WHERE app_instance_id = $1",
+        params.app_instance_id
+    )
+    .fetch_one(&state.pool)
+    .await?
+    .unwrap_or(0);
+
     let envs = sqlx::query_as::<_, EnvironmentVariable>(
         "SELECT * FROM environment_variables
          WHERE app_instance_id = $1
-         ORDER BY key ASC"
+         ORDER BY key ASC
+         LIMIT $2 OFFSET $3"
     )
     .bind(params.app_instance_id)
+    .bind(page_size)
+    .bind(offset)
     .fetch_all(&state.pool)
     .await?;
 
-    Ok(Json(envs.into_iter().map(to_env_response).collect()))
+    let items = envs.into_iter().map(to_env_response).collect();
+    Ok(Json(crate::utils::pagination::Paginated::new(items, total, page, page_size)))
 }
 
 /// Project-level view: every app in the project, with its instances and their env.

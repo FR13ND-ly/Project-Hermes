@@ -193,69 +193,7 @@
             </div>
           </div>
 
-          <div class="border-b border-zinc-900 pb-2.5 pt-2">
-            <h4 class="text-xs font-bold text-zinc-355 uppercase tracking-wider font-mono">Integrare Cloudflare & Ingress</h4>
-          </div>
-
-          <div class="grid gap-4 sm:grid-cols-2">
-            <!-- Ingress IP -->
-            <div class="space-y-1.5">
-              <label for="ws-ingress-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">IP Ingress LoadBalancer (Root Cluster)</label>
-              <input 
-                id="ws-ingress-input"
-                type="text" 
-                placeholder="ex. 127.0.0.1 sau 64.176.64.16"
-                [ngModel]="ingressIp()"
-                (ngModelChange)="ingressIp.set($event)"
-                [disabled]="saving()"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
-              />
-            </div>
-
-            <!-- Base Domain -->
-            <div class="space-y-1.5">
-              <label for="ws-domain-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Domeniu de Bază (Base Domain)</label>
-              <input 
-                id="ws-domain-input"
-                type="text" 
-                placeholder="ex. compania-mea.ro sau dev.local"
-                [ngModel]="baseDomain()"
-                (ngModelChange)="baseDomain.set($event)"
-                [disabled]="saving()"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
-              />
-            </div>
-          </div>
-
-          <div class="grid gap-4 sm:grid-cols-2">
-            <!-- Cloudflare API Token -->
-            <div class="space-y-1.5">
-              <label for="ws-cf-token" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Cloudflare API Token</label>
-              <input 
-                id="ws-cf-token"
-                type="password" 
-                placeholder="cfut_..."
-                [ngModel]="cfApiToken()"
-                (ngModelChange)="cfApiToken.set($event)"
-                [disabled]="saving()"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
-              />
-            </div>
-
-            <!-- Cloudflare Zone ID -->
-            <div class="space-y-1.5">
-              <label for="ws-cf-zone" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Cloudflare Zone ID</label>
-              <input 
-                id="ws-cf-zone"
-                type="text" 
-                placeholder="ex. ac4011807d97..."
-                [ngModel]="cfZoneId()"
-                (ngModelChange)="cfZoneId.set($event)"
-                [disabled]="saving()"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
-              />
-            </div>
-          </div>
+          <p class="text-[10px] text-zinc-600 pt-1">Setările Cloudflare / Ingress s-au mutat la nivel de proiect — vezi tab-ul „Setări" din fiecare proiect.</p>
 
           <!-- Submit Button -->
           <div class="pt-4 border-t border-zinc-900 flex justify-end">

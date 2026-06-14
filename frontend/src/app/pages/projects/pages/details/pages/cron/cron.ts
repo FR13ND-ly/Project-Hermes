@@ -3,25 +3,36 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Details } from '../../details';
 import { ProjectService, CronJob, CronJobLog } from '../../../../../../core/services/project.service';
+import { DatabaseService } from '../../../../../../core/services/database.service';
+import { StorageService } from '../../../../../../core/services/storage.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 import { WebSocketService } from '../../../../../../core/services/websocket.service';
 import { Subscription } from 'rxjs';
+import { Pagination } from '../../../../../../shared/components/pagination/pagination';
+import { DEFAULT_PAGE_SIZE } from '../../../../../../core/models/pagination';
+
+type CronTargetType = 'app' | 'database' | 'storage';
 
 @Component({
   selector: 'app-project-cron',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [CommonModule, FormsModule, DatePipe, Pagination],
   templateUrl: './cron.html',
 })
 export class CronComponent implements OnInit, OnDestroy {
   readonly parent = inject(Details);
   private readonly projectService = inject(ProjectService);
+  private readonly dbService = inject(DatabaseService);
+  private readonly storageService = inject(StorageService);
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
   private readonly wsService = inject(WebSocketService);
 
   readonly cronJobs = signal<CronJob[]>([]);
+  readonly cronPage = signal(1);
+  readonly cronListPageSize = signal(DEFAULT_PAGE_SIZE);
+  readonly cronTotal = signal(0);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
@@ -59,6 +70,45 @@ export class CronComponent implements OnInit, OnDestroy {
   readonly newCronCommand = signal('echo "Hello World"');
   readonly selectedAppId = signal('');
 
+  // Target selection (app / database / storage)
+  readonly newCronTargetType = signal<CronTargetType>('app');
+  readonly selectedTargetId = signal('');
+  readonly databases = signal<{ id: string; name: string }[]>([]);
+  readonly storages = signal<{ id: string; name: string }[]>([]);
+
+  // Options for the resource dropdown, derived from the chosen target type.
+  readonly targetOptions = computed<{ id: string; name: string }[]>(() => {
+    switch (this.newCronTargetType()) {
+      case 'database': return this.databases();
+      case 'storage': return this.storages();
+      default: return this.parent.apps().map(a => ({ id: a.id, name: a.name }));
+    }
+  });
+
+  private defaultCommandFor(type: CronTargetType): string {
+    switch (type) {
+      case 'database': return 'psql "$DATABASE_URL" -c "SELECT now();"';
+      case 'storage': return 'curl -s -H "Authorization: Bearer $BUCKET_TOKEN" "$BUCKET_URL"';
+      default: return 'echo "Hello World"';
+    }
+  }
+
+  onChangeTargetType(type: string): void {
+    const t = type as CronTargetType;
+    this.newCronTargetType.set(t);
+    const first = this.targetOptions()[0];
+    this.selectedTargetId.set(first ? first.id : '');
+    this.newCronCommand.set(this.defaultCommandFor(t));
+  }
+
+  targetTypeLabel(type: string | undefined): string {
+    switch (type) {
+      case 'database': return 'Bază de date';
+      case 'storage': return 'Storage';
+      default: return 'Aplicație';
+    }
+  }
+
   constructor() {
     effect(() => {
       const projId = this.parent.projectId();
@@ -84,9 +134,10 @@ export class CronComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.error.set(null);
 
-    this.projectService.listProjectCronJobs(projId).subscribe({
+    this.projectService.listProjectCronJobs(projId, this.cronPage(), this.cronListPageSize()).subscribe({
       next: (res) => {
-        this.cronJobs.set(res || []);
+        this.cronJobs.set(res?.items || []);
+        this.cronTotal.set(res?.total || 0);
         this.loading.set(false);
       },
       error: (err) => {
@@ -94,6 +145,11 @@ export class CronComponent implements OnInit, OnDestroy {
         this.loading.set(false);
       }
     });
+  }
+
+  onCronPageChange(page: number): void {
+    this.cronPage.set(page);
+    this.loadCronJobs();
   }
 
   // Helper to find the app name by app_id
@@ -104,12 +160,21 @@ export class CronComponent implements OnInit, OnDestroy {
   }
 
   onOpenCreateModal(): void {
-    const apps = this.parent.apps();
-    if (apps.length === 0) {
-      this.toast.error('Creați mai întâi o aplicație în acest proiect pentru a putea asocia un job cron.');
-      return;
+    const projId = this.parent.projectId();
+    // Load database + storage targets for the resource dropdown.
+    if (projId) {
+      this.dbService.listDatabases(projId, 1, 1000).subscribe({
+        next: (res) => this.databases.set((res?.items || []).map(d => ({ id: d.id, name: d.name }))),
+        error: () => this.databases.set([])
+      });
+      this.storageService.listBuckets().subscribe({
+        next: (res) => this.storages.set((res || []).map(b => ({ id: b.id, name: b.name }))),
+        error: () => this.storages.set([])
+      });
     }
-    this.selectedAppId.set(apps[0].id);
+    this.newCronTargetType.set('app');
+    const apps = this.parent.apps();
+    this.selectedTargetId.set(apps[0]?.id || '');
     this.newCronName.set('');
     this.newCronSchedule.set('*/5 * * * *');
     this.newCronCommand.set('echo "Hello World"');
@@ -118,8 +183,13 @@ export class CronComponent implements OnInit, OnDestroy {
 
   onCreateCronJob(): void {
     const projId = this.parent.projectId();
-    const appId = this.selectedAppId();
-    if (!projId || !appId) return;
+    const targetType = this.newCronTargetType();
+    const targetId = this.selectedTargetId();
+    if (!projId) return;
+    if (!targetId) {
+      this.toast.error('Selectați o resursă țintă.');
+      return;
+    }
 
     const name = this.newCronName().trim();
     const schedule = this.newCronSchedule().trim();
@@ -133,7 +203,8 @@ export class CronComponent implements OnInit, OnDestroy {
     this.creatingCron.set(true);
     this.projectService.createCronJob({
       projectId: projId,
-      appId,
+      targetType,
+      targetId,
       name,
       schedule,
       command
@@ -176,9 +247,6 @@ export class CronComponent implements OnInit, OnDestroy {
   }
 
   selectCronJob(job: CronJob): void {
-    // Synthetic auto-backup entries are read-only and managed from DB settings.
-    if (job.source === 'backup') return;
-
     this.selectedCronJob.set(job);
     this.activeTab.set('details');
 
@@ -257,10 +325,11 @@ export class CronComponent implements OnInit, OnDestroy {
     const name = this.editName().trim();
     const schedule = this.editSchedule().trim();
     const command = this.editCommand().trim();
-    const appId = this.editAppId();
     const status = this.editStatus();
+    const isAppTarget = (job.targetType || job.target_type || 'app') === 'app';
+    const appId = this.editAppId();
 
-    if (!name || !schedule || !command || !appId) {
+    if (!name || !schedule || !command || (isAppTarget && !appId)) {
       this.toast.error('Toate câmpurile sunt obligatorii.');
       return;
     }
@@ -270,7 +339,7 @@ export class CronComponent implements OnInit, OnDestroy {
       name,
       schedule,
       command,
-      appId,
+      appId: isAppTarget ? appId : undefined,
       status
     }).subscribe({
       next: (updated) => {

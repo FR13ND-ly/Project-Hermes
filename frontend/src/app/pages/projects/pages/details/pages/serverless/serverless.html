@@ -5,7 +5,7 @@
     <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
       <div>
         <h2 class="text-sm font-bold text-white uppercase tracking-wider font-mono">Funcții Serverless (Knative Serving)</h2>
-        <p class="text-[11px] text-zinc-550 mt-1">Creează și lansează funcții serverless cu scalare automată la zero. Rulați cod JavaScript personalizat la fiecare request HTTP.</p>
+        <p class="text-[11px] text-zinc-550 mt-1">Creează și lansează funcții serverless cu scalare automată la zero. Rulați cod personalizat JavaScript sau Python la fiecare request HTTP.</p>
       </div>
       <button 
         (click)="onOpenCreateModal()"
@@ -16,6 +16,34 @@
         </svg>
         Creează Funcție
       </button>
+    </div>
+
+    <!-- Project Serverless Explanation Info Banner -->
+    <div class="p-4 rounded-lg border border-zinc-850 bg-zinc-950/20 space-y-3 font-sans relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="flex items-start gap-3">
+        <div class="p-2.5 bg-indigo-950/45 border border-indigo-900/30 rounded text-indigo-400 shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <div class="space-y-1">
+          <h4 class="text-xs font-bold text-zinc-200 font-mono uppercase tracking-wider">Despre Funcțiile Serverless în Proiect</h4>
+          <p class="text-[11px] text-zinc-400 leading-relaxed">
+            Hermes folosește tehnologia <strong>Knative Serving</strong> pentru rularea serverless. Funcțiile sunt complet izolate în Kubernetes, consumă zero resurse când sunt inactive (autoscaling to 0) și pornesc instantaneu la primul request HTTP.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-2 pt-2 text-[10px] text-zinc-500 font-mono">
+            <div class="space-y-1">
+              <span class="text-zinc-400 font-semibold uppercase tracking-wider text-[9px] block">Rutare & Porturi</span>
+              <span class="block">Fiecare funcție are o rutare privată în cluster. Extern, sunt expuse pe un port dedicat LoadBalancer sau pot fi mapate la un domeniu custom cu SSL certificat gratuit prin Ingress.</span>
+            </div>
+            <div class="space-y-1">
+              <span class="text-zinc-400 font-semibold uppercase tracking-wider text-[9px] block">Mediul de Rulare</span>
+              <span class="block">Suportă JavaScript/TypeScript (Node.js CommonJS/ESM) sau Python 3.11. Puteți defini variabile de mediu la nivel de funcție sau puteți alege să moșteniți variabilele din proiect.</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     @if (loading()) {
@@ -109,6 +137,13 @@
             </tbody>
           </table>
         </div>
+
+        <app-pagination
+          [page]="page()"
+          [pageSize]="pageSize()"
+          [total]="total()"
+          (pageChange)="onPageChange($event)"
+        />
       </div>
     }
 
@@ -157,6 +192,21 @@
                 <option value="PUT">PUT (Actualizare date)</option>
                 <option value="DELETE">DELETE (Ștergere date)</option>
                 <option value="ANY">ANY (Orice metodă)</option>
+              </select>
+            </div>
+
+            <!-- Runtime selection -->
+            <div class="space-y-1.5">
+              <label for="new-fn-runtime" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Runtime / Mediul de Rulare</label>
+              <select 
+                id="new-fn-runtime"
+                [ngModel]="newFnRuntime()"
+                (ngModelChange)="newFnRuntime.set($event)"
+                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+              >
+                <option value="nodejs-cjs">Node.js (CommonJS - module.exports)</option>
+                <option value="nodejs-esm">Node.js (ES Modules - import/export)</option>
+                <option value="python">Python 3.11 (Flask handler)</option>
               </select>
             </div>
 
@@ -273,14 +323,35 @@
         >
           Detalii & Diagnostic
         </button>
-        <button 
+        <button
           (click)="onTabChange('code')"
           [class]="activeTab() === 'code' ? 'border-b-2 border-white text-white pb-3 px-3 font-semibold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-3 border-b-2 border-transparent transition-all'"
           class="focus:outline-none cursor-pointer"
         >
-          Cod & Setări
+          Cod
         </button>
-        <button 
+        <button
+          (click)="onTabChange('settings')"
+          [class]="activeTab() === 'settings' ? 'border-b-2 border-white text-white pb-3 px-3 font-semibold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-3 border-b-2 border-transparent transition-all'"
+          class="focus:outline-none cursor-pointer"
+        >
+          Setări
+        </button>
+        <button
+          (click)="onTabChange('env')"
+          [class]="activeTab() === 'env' ? 'border-b-2 border-white text-white pb-3 px-3 font-semibold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-3 border-b-2 border-transparent transition-all'"
+          class="focus:outline-none cursor-pointer"
+        >
+          Variabile
+        </button>
+        <button
+          (click)="onTabChange('builds')"
+          [class]="activeTab() === 'builds' ? 'border-b-2 border-white text-white pb-3 px-3 font-semibold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-3 border-b-2 border-transparent transition-all'"
+          class="focus:outline-none cursor-pointer"
+        >
+          Build-uri
+        </button>
+        <button
           (click)="onTabChange('logs')"
           [class]="activeTab() === 'logs' ? 'border-b-2 border-white text-white pb-3 px-3 font-semibold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-3 border-b-2 border-transparent transition-all'"
           class="focus:outline-none cursor-pointer"
@@ -337,68 +408,97 @@
 
           </div>
 
-          <!-- Compilation & Build logs -->
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Diagnostic Compilare (Kaniko logs)</span>
-              @if (selectedFunction()?.buildLogs) {
-                <button 
-                  (click)="copyBuildLogs()"
-                  class="text-[9px] text-zinc-500 hover:text-white font-mono cursor-pointer"
-                >
-                  Copiază Loguri
-                </button>
-              }
+          <!-- Build logs pointer -->
+          <div class="bg-zinc-950/20 border border-zinc-900 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="space-y-0.5">
+              <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono block">Loguri de Compilare</span>
+              <span class="text-[10px] text-zinc-550 font-sans">Istoricul build-urilor și logurile Kaniko live se văd în tab-ul <strong class="text-zinc-300">Build-uri</strong>.</span>
             </div>
-            
-            <div class="bg-black/90 border border-zinc-900 rounded-lg p-4 font-mono text-[11px] text-zinc-450 overflow-y-auto max-h-[350px] leading-relaxed select-text whitespace-pre-wrap">
-              @if (selectedFunction()?.buildLogs) {
-                {{ selectedFunction()?.buildLogs }}
-              } @else {
-                <span class="text-zinc-650 italic">Nu există loguri de compilare. Lansați (Deploy) funcția pentru a porni procesul de build.</span>
-              }
-            </div>
+            <button
+              (click)="onTabChange('builds')"
+              class="px-3 py-1.5 rounded border border-zinc-800 hover:bg-zinc-900 text-zinc-300 hover:text-white text-xs font-semibold transition-all cursor-pointer shrink-0"
+            >
+              Deschide Build-uri
+            </button>
           </div>
 
         </div>
       }
 
-      <!-- TAB 2: CODE & SETTINGS -->
+      <!-- TAB 2: CODE -->
       @if (activeTab() === 'code') {
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          
+        <div class="space-y-3">
+
           <!-- Code Editor Area -->
-          <div class="lg:col-span-2 space-y-2">
-            <label for="fn-editor" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Cod Sursă Funcție (JavaScript / Node.js)</label>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+              <label for="monaco-editor-container" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Cod Sursă Funcție</label>
+              <div class="flex items-center gap-2">
+                <label for="code-runtime" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider font-mono">Runtime</label>
+                <select
+                  id="code-runtime"
+                  [ngModel]="editRuntime()"
+                  (ngModelChange)="onRuntimeChange($event)"
+                  class="px-3 py-1.5 bg-zinc-950 border border-zinc-850 rounded text-white text-xs focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+                >
+                  <option value="nodejs-cjs">Node.js CommonJS</option>
+                  <option value="nodejs-esm">Node.js ES Modules</option>
+                  <option value="python">Python 3.11</option>
+                </select>
+              </div>
+            </div>
             <div class="border border-zinc-850 rounded-lg overflow-hidden bg-zinc-950 shadow-inner">
               <div class="bg-zinc-950 border-b border-zinc-900/60 px-4 py-2 flex items-center justify-between text-[10px] font-mono text-zinc-500">
-                <span>function.js</span>
-                <span>NodeJS 20 / CommonJS wrapper</span>
+                <span>@if (editRuntime() === 'python') { function.py } @else { function.js }</span>
+                <span>{{ editRuntime() === 'python' ? 'Python 3.11' : (editRuntime() === 'nodejs-esm' ? 'NodeJS ES Modules' : 'NodeJS CommonJS') }}</span>
               </div>
-              <textarea 
-                id="fn-editor"
-                rows="24"
-                placeholder="module.exports = async (req, res) => { ... }"
-                [ngModel]="editCode()"
-                (ngModelChange)="editCode.set($event)"
-                class="block w-full px-4 py-3 bg-black/95 text-zinc-300 focus:text-white font-mono text-xs focus:outline-none resize-none leading-relaxed select-text"
-              ></textarea>
+              <div id="monaco-editor-container" class="w-full h-[500px] bg-black/95 rounded-b overflow-hidden font-mono text-xs select-text"></div>
             </div>
-            <p class="text-[9px] text-zinc-650 leading-normal font-sans">
-              Funcția trebuie exportată prin <code class="text-zinc-550 font-bold select-all">module.exports = async (req, res) => ...</code>. Puteți returna răspunsuri JSON, fișiere sau HTML utilizând API-ul Express standard (<code class="text-zinc-550 font-bold">req.body, res.status().json()</code>).
-            </p>
+            
+            @if (editRuntime() === 'nodejs-cjs') {
+              <p class="text-[9px] text-zinc-650 leading-normal font-sans">
+                Funcția trebuie exportată prin <code class="text-zinc-550 font-bold select-all">module.exports = async (req, res) => ...</code>. Puteți returna răspunsuri JSON sau HTML utilizând Express (<code class="text-zinc-550 font-bold">req.body, res.status().json()</code>).
+              </p>
+            } @else if (editRuntime() === 'nodejs-esm') {
+              <p class="text-[9px] text-zinc-650 leading-normal font-sans">
+                Funcția trebuie exportată ca implicit: <code class="text-zinc-550 font-bold select-all">export default async function(req, res) ...</code>. Utilizați Express standard.
+              </p>
+            } @else if (editRuntime() === 'python') {
+              <p class="text-[9px] text-zinc-650 leading-normal font-sans">
+                Funcția trebuie să se numească <code class="text-zinc-550 font-bold">handler</code> (ex. <code class="text-zinc-550 font-bold select-all">def handler(request):</code>) și să returneze un dicționar, un șir de caractere sau un obiect Flask Response.
+              </p>
+            }
           </div>
 
-          <!-- Settings panel -->
-          <div class="space-y-5 bg-zinc-950/10 p-5 rounded-lg border border-zinc-900">
-            <h3 class="text-xs font-bold text-white uppercase tracking-wider font-mono">Configurații Funcție</h3>
+          <div class="flex justify-end">
+            <button
+              (click)="onSaveFunction()"
+              [disabled]="savingSettings()"
+              class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold cursor-pointer disabled:opacity-50 transition-all"
+            >
+              {{ savingSettings() ? 'Se salvează...' : 'Salvează Codul' }}
+            </button>
+          </div>
 
-            <div class="space-y-4 text-xs">
+        </div>
+      }
+
+      <!-- TAB: SETTINGS -->
+      @if (activeTab() === 'settings') {
+        <div class="space-y-6 max-w-2xl font-mono">
+
+          <!-- Function config -->
+          <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+            <div class="border-b border-zinc-900 pb-2.5">
+              <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Configurații Funcție</h3>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2 text-xs">
               <!-- Name -->
               <div class="space-y-1.5">
-                <label for="edit-name" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider font-mono">Nume Funcție</label>
-                <input 
-                  id="edit-name"
+                <label for="set-name" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider">Nume Funcție</label>
+                <input
+                  id="set-name"
                   type="text"
                   [ngModel]="editName()"
                   (ngModelChange)="editName.set($event)"
@@ -408,9 +508,9 @@
 
               <!-- HTTP Method -->
               <div class="space-y-1.5">
-                <label for="edit-method" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider font-mono">Metodă HTTP</label>
-                <select 
-                  id="edit-method"
+                <label for="set-method" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider">Metodă HTTP</label>
+                <select
+                  id="set-method"
                   [ngModel]="editMethod()"
                   (ngModelChange)="editMethod.set($event)"
                   class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
@@ -425,21 +525,22 @@
 
               <!-- Route Path -->
               <div class="space-y-1.5">
-                <label for="edit-route" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider font-mono">Cale Rutare</label>
-                <input 
-                  id="edit-route"
+                <label for="set-route" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider">Cale Rutare</label>
+                <input
+                  id="set-route"
                   type="text"
                   [ngModel]="editRoutePath()"
                   (ngModelChange)="editRoutePath.set($event)"
                   class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
                 />
+                <p class="text-[9px] text-zinc-600 font-sans">Unică la nivel de proiect.</p>
               </div>
 
               <!-- Memory limit -->
               <div class="space-y-1.5">
-                <label for="edit-memory" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider font-mono">Limită Memorie (RAM)</label>
-                <select 
-                  id="edit-memory"
+                <label for="set-memory" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider">Limită Memorie (RAM)</label>
+                <select
+                  id="set-memory"
                   [ngModel]="editMemory()"
                   (ngModelChange)="editMemory.set($event)"
                   class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
@@ -451,90 +552,247 @@
                   <option [ngValue]="1024">1024 MB RAM</option>
                 </select>
               </div>
+            </div>
+          </div>
 
-              <!-- Domain Association -->
-              <div class="space-y-1.5">
-                <label for="edit-domain" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider font-mono">Asociere Domeniu Custom</label>
-                <select 
-                  id="edit-domain"
-                  [ngModel]="editAssignedDomain()"
-                  (ngModelChange)="editAssignedDomain.set($event || null)"
-                  class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+          <!-- Domains & Routing (per-function) -->
+          <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+            <div class="border-b border-zinc-900 pb-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Domenii & Rutare</h3>
+                <p class="text-[10px] text-zinc-550 mt-0.5">Asociază un domeniu personalizat acestei funcții (Ingress + SSL)</p>
+              </div>
+              <button
+                (click)="onOpenAddDomainModal()"
+                class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Asociază Domeniu
+              </button>
+            </div>
+            <div class="space-y-1.5">
+              <label for="set-domain" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider">Domeniu Asociat</label>
+              <select
+                id="set-domain"
+                [ngModel]="editAssignedDomain()"
+                (ngModelChange)="editAssignedDomain.set($event || null)"
+                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+              >
+                <option [ngValue]="null">Fără domeniu (fallback pe port LoadBalancer)</option>
+                @for (dom of domains(); track dom.id) {
+                  <option [value]="dom.fqdn">{{ dom.fqdn }}</option>
+                }
+              </select>
+              <p class="text-[9px] text-zinc-650 leading-normal font-sans">
+                Alege un domeniu înregistrat sau apasă „Asociază Domeniu" pentru a crea unul nou. Ingress-ul se activează la următorul deploy.
+              </p>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-between pt-1">
+            <button
+              (click)="onDeleteFunction()"
+              class="px-2.5 py-1.5 rounded border border-red-955/35 hover:bg-red-955/10 text-red-500 text-xs font-semibold cursor-pointer transition-all"
+            >
+              Șterge Funcție
+            </button>
+            <button
+              (click)="onSaveFunction()"
+              [disabled]="savingSettings()"
+              class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold cursor-pointer disabled:opacity-50 transition-all"
+            >
+              {{ savingSettings() ? 'Se salvează...' : 'Salvează Setări' }}
+            </button>
+          </div>
+
+        </div>
+      }
+
+      <!-- TAB: ENVIRONMENT VARIABLES -->
+      @if (activeTab() === 'env') {
+        <div class="space-y-6 animate-fade-in font-mono max-w-3xl">
+          <div class="flex items-center justify-between border-b border-zinc-900 pb-3">
+            <div>
+              <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Variabile de Mediu</h3>
+              <p class="text-[10px] text-zinc-550 mt-0.5">Injectate în containerul funcției la rulare</p>
+            </div>
+            <div class="flex items-center gap-2">
+              @if (selectedFunction()?.status === 'active') {
+                <button
+                  (click)="onReloadFunctionEnv()"
+                  [disabled]="reloadingEnv()"
+                  title="Reaplică variabilele pe funcția care rulează, fără recompilare"
+                  class="px-2.5 py-1.5 rounded border border-zinc-800 hover:bg-zinc-900 text-zinc-300 hover:text-white text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
                 >
-                  <option [ngValue]="null">Fără domeniu (Localhost fallback)</option>
-                  @for (dom of domains(); track dom.id) {
-                    <option [value]="dom.fqdn">{{ dom.fqdn }}</option>
-                  }
-                </select>
-                <p class="text-[9px] text-zinc-650 leading-normal font-sans">
-                  Puteți selecta orice domeniu înregistrat și verificat în workspace. Ingress-ul se va activa automat la deploy.
-                </p>
+                  {{ reloadingEnv() ? 'Se reaplică...' : '↻ Reload variabile' }}
+                </button>
+              }
+              <button
+                (click)="openAddEnvPanel('new')"
+                class="px-2.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer"
+              >
+                + Adaugă Variabilă
+              </button>
+            </div>
+          </div>
+
+          <!-- Add Variable panel: a brand-new var, or one from the project pool -->
+          @if (showAddEnvPanel()) {
+            <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+              <div class="flex items-center gap-1 bg-black border border-zinc-850 rounded p-0.5 w-fit text-[11px] font-semibold">
+                <button (click)="addEnvMode.set('new')" [class]="addEnvMode() === 'new' ? 'px-3 py-1 rounded bg-white text-black cursor-pointer' : 'px-3 py-1 rounded text-zinc-400 hover:text-white cursor-pointer'">Variabilă nouă</button>
+                <button (click)="addEnvMode.set('project')" [class]="addEnvMode() === 'project' ? 'px-3 py-1 rounded bg-white text-black cursor-pointer' : 'px-3 py-1 rounded text-zinc-400 hover:text-white cursor-pointer'">Din proiect</button>
               </div>
 
-              <!-- Environment Variables -->
-              <div class="space-y-2 border-t border-zinc-900 pt-3">
-                <div class="flex items-center justify-between">
-                  <span class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider font-mono">Variabile de Mediu (Env Vars)</span>
-                  <button 
-                    (click)="addEnvVar()"
-                    class="text-[9px] text-zinc-400 hover:text-white font-mono flex items-center gap-1 cursor-pointer focus:outline-none"
-                  >
-                    + Adaugă
-                  </button>
+              @if (addEnvMode() === 'new') {
+                <div class="grid gap-2 sm:grid-cols-2">
+                  <input type="text" placeholder="CHEIE" [ngModel]="newEnvKey()" (ngModelChange)="newEnvKey.set($event)" class="px-3 py-2 bg-black border border-zinc-850 rounded text-white text-xs focus:outline-none focus:border-zinc-500 font-mono uppercase" />
+                  <input type="text" placeholder="valoare" [ngModel]="newEnvValue()" (ngModelChange)="newEnvValue.set($event)" class="px-3 py-2 bg-black border border-zinc-850 rounded text-white text-xs focus:outline-none focus:border-zinc-500 font-mono" />
                 </div>
-                
-                @if (editEnvVariables().length === 0) {
-                  <span class="text-[10px] text-zinc-650 italic block">Fără variabile configurate.</span>
+                <div class="flex justify-end gap-2">
+                  <button (click)="showAddEnvPanel.set(false)" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-900 text-xs font-semibold cursor-pointer">Anulează</button>
+                  <button (click)="onAddManualEnv()" class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold cursor-pointer">Adaugă</button>
+                </div>
+              } @else {
+                <p class="text-[9px] text-zinc-550 leading-relaxed font-sans">Conectează variabile din pool-ul proiectului (referință vie). Aplică-le cu „Reload variabile" sau la următorul Deploy.</p>
+                @if (availableProjectEnv().length === 0) {
+                  <p class="text-[10px] text-zinc-600 py-2">Niciun env la nivel de proiect. Adaugă-le din tab-ul „Environments" al proiectului.</p>
                 } @else {
-                  <div class="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                    @for (v of editEnvVariables(); track $index; let idx = $index) {
-                      <div class="flex items-center gap-1.5">
-                        <input 
-                          type="text" 
-                          placeholder="CHEIE"
-                          [(ngModel)]="v.key"
-                          class="w-1/2 px-2 py-1 bg-zinc-950 border border-zinc-850 rounded text-white text-[10px] focus:outline-none focus:border-zinc-600 font-mono"
-                        />
-                        <input 
-                          type="text" 
-                          placeholder="Valoare"
-                          [(ngModel)]="v.value"
-                          class="w-1/2 px-2 py-1 bg-zinc-950 border border-zinc-850 rounded text-white text-[10px] focus:outline-none focus:border-zinc-600 font-mono"
-                        />
-                        <button 
-                          (click)="removeEnvVar(idx)"
-                          class="p-1 rounded hover:bg-zinc-900 text-zinc-550 hover:text-red-400 cursor-pointer"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
+                  <div class="divide-y divide-zinc-900 max-h-72 overflow-y-auto">
+                    @for (penv of availableProjectEnv(); track penv.id) {
+                      <div class="flex items-center justify-between gap-3 py-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                          <span class="font-mono text-xs text-white truncate">{{ penv.key }}</span>
+                          @if (penv.source !== 'manual') { <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 shrink-0">{{ penv.source }}</span> }
+                          @if (penv.isSecret) { <span class="text-[8px] uppercase text-zinc-600 shrink-0">secret</span> }
+                        </div>
+                        <button (click)="onToggleProjectEnvLink(penv)" [disabled]="togglingLinkId() === penv.id" [class]="penv.linked ? 'px-2.5 py-1 rounded text-[10px] font-semibold border border-emerald-900/50 bg-emerald-950/30 text-emerald-400 hover:bg-emerald-950/50 cursor-pointer disabled:opacity-50 shrink-0' : 'px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 cursor-pointer disabled:opacity-50 shrink-0'">{{ penv.linked ? 'Conectată ✓' : 'Conectează' }}</button>
                       </div>
                     }
                   </div>
                 }
+              }
+            </div>
+          }
+
+          <!-- Variables list -->
+          <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-3 shadow-sm">
+            @if (editEnvVariables().length === 0) {
+              <p class="text-[11px] text-zinc-650 italic py-2">Nicio variabilă definită. Apasă „Adaugă Variabilă" pentru a crea una.</p>
+            } @else {
+              @for (v of editEnvVariables(); track $index; let idx = $index) {
+                <div class="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="CHEIE"
+                    [(ngModel)]="v.key"
+                    class="flex-1 min-w-0 px-3 py-2 bg-black border border-zinc-850 rounded text-white text-xs focus:outline-none focus:border-zinc-500 transition-colors font-mono uppercase"
+                  />
+                  <span class="text-zinc-700 shrink-0">=</span>
+                  <input
+                    type="text"
+                    placeholder="valoare"
+                    [(ngModel)]="v.value"
+                    class="flex-1 min-w-0 px-3 py-2 bg-black border border-zinc-850 rounded text-white text-xs focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  />
+                  <button
+                    (click)="removeEnvVar(idx)"
+                    title="Șterge variabila"
+                    class="shrink-0 w-7 h-7 flex items-center justify-center rounded text-zinc-500 hover:text-red-400 hover:bg-red-950/30 transition-colors cursor-pointer"
+                  >✕</button>
+                </div>
+              }
+            }
+          </div>
+
+          <!-- Linked from project pool (read-only; manage via „Adaugă Variabilă → Din proiect") -->
+          @if (linkedProjectEnv().length > 0) {
+            <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm">
+              <h4 class="text-[11px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Conectate din pool</h4>
+              <div class="divide-y divide-zinc-900">
+                @for (penv of linkedProjectEnv(); track penv.id) {
+                  <div class="flex items-center justify-between gap-3 py-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span class="font-mono text-xs text-white truncate">{{ penv.key }}</span>
+                      @if (penv.source !== 'manual') { <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 shrink-0">{{ penv.source }}</span> }
+                      @if (penv.isSecret) { <span class="text-[8px] uppercase text-zinc-600 shrink-0">secret</span> }
+                    </div>
+                    <button
+                      (click)="onToggleProjectEnvLink(penv)"
+                      [disabled]="togglingLinkId() === penv.id"
+                      class="px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 bg-zinc-900 text-zinc-300 hover:text-red-400 hover:bg-red-950/20 cursor-pointer disabled:opacity-50 shrink-0"
+                    >
+                      Deconectează
+                    </button>
+                  </div>
+                }
               </div>
-
             </div>
+          }
 
-            <!-- Actions buttons -->
-            <div class="border-t border-zinc-900 pt-4 flex items-center justify-between">
-              <button 
-                (click)="onDeleteFunction()"
-                class="px-2.5 py-1.5 rounded border border-red-955/35 hover:bg-red-955/10 text-red-500 text-xs font-semibold cursor-pointer transition-all"
-              >
-                Șterge Funcție
-              </button>
-              
-              <button 
-                (click)="onSaveFunction()"
-                [disabled]="savingSettings()"
-                class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold cursor-pointer disabled:opacity-50 transition-all"
-              >
-                {{ savingSettings() ? 'Se salvează...' : 'Salvează Setări' }}
-              </button>
+          <div class="flex justify-end">
+            <button
+              (click)="onSaveFunction()"
+              [disabled]="savingSettings()"
+              class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold cursor-pointer disabled:opacity-50 transition-all"
+            >
+              {{ savingSettings() ? 'Se salvează...' : 'Salvează Variabilele' }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- TAB: BUILD HISTORY + LIVE BUILD LOGS -->
+      @if (activeTab() === 'builds') {
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start animate-fade-in">
+
+          <!-- Build list -->
+          <div class="lg:col-span-1 space-y-2">
+            <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
+              <h3 class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Istoric Build-uri</h3>
+              <button (click)="loadBuilds()" class="text-[9px] text-zinc-500 hover:text-white font-mono cursor-pointer">↻ Reîmprospătează</button>
             </div>
+            @if (builds().length === 0) {
+              <p class="text-[10px] text-zinc-650 italic py-3">Niciun build încă. Apasă „Lansează (Deploy)".</p>
+            } @else {
+              <div class="space-y-1.5 max-h-[520px] overflow-y-auto pr-1">
+                @for (b of builds(); track b.id) {
+                  <button
+                    (click)="selectBuild(b)"
+                    [class]="selectedBuildId() === b.id ? 'w-full text-left p-2.5 rounded border bg-zinc-900/60 border-zinc-700 cursor-pointer transition-all' : 'w-full text-left p-2.5 rounded border bg-black border-zinc-900 hover:border-zinc-700 hover:bg-zinc-950 cursor-pointer transition-all'"
+                  >
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider" [class]="buildStatusClass(b.status)">{{ buildStatusLabel(b.status) }}</span>
+                      @if (b.durationSec != null) {
+                        <span class="text-[9px] text-zinc-550 font-mono">{{ b.durationSec }}s</span>
+                      }
+                    </div>
+                    <div class="text-[9px] text-zinc-550 font-mono mt-1.5">{{ b.createdAt | date:'dd.MM.yyyy HH:mm:ss' }}</div>
+                  </button>
+                }
+              </div>
+            }
+          </div>
 
+          <!-- Live build console -->
+          <div class="lg:col-span-2 space-y-2">
+            <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
+              <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Loguri Compilare (Kaniko) — Live</span>
+            </div>
+            <div class="bg-black/95 border border-zinc-900 rounded-lg p-4 font-mono text-[11px] text-zinc-350 min-h-[300px] max-h-[520px] overflow-y-auto leading-relaxed select-text space-y-1 scrollbar-thin whitespace-pre-wrap">
+              @if (!selectedBuildId()) {
+                <div class="text-zinc-650 italic">Selectează un build din stânga pentru a vedea logurile de compilare.</div>
+              } @else {
+                @for (line of buildLogs(); track $index) {
+                  <div class="whitespace-pre-wrap select-text leading-normal">{{ line }}</div>
+                } @empty {
+                  <div class="text-zinc-650 italic">Se așteaptă logurile de compilare...</div>
+                }
+              }
+            </div>
           </div>
 
         </div>
@@ -561,6 +819,66 @@
         </div>
       }
 
+    </div>
+  }
+
+  <!-- Modal: Register Domain -->
+  @if (showAddDomainModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in font-sans">
+      <div class="w-full max-w-md bg-[#0a0a0a] border border-zinc-850 rounded-lg p-5 shadow-2xl space-y-4">
+        
+        <div class="flex items-center justify-between border-b border-zinc-900 pb-3">
+          <h3 class="text-xs font-bold text-white uppercase tracking-wider font-mono">Înregistrare Domeniu Custom Nou</h3>
+          <button 
+            (click)="onCloseAddDomainModal()"
+            class="text-zinc-550 hover:text-white cursor-pointer transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="space-y-4 py-2 text-xs">
+          <div class="space-y-1.5">
+            <label for="new-domain-fqdn" class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider font-mono">Nume Domeniu (FQDN)</label>
+            <input 
+              id="new-domain-fqdn"
+              type="text" 
+              placeholder="ex. fn.domeniu.ro sau api.site.com"
+              [ngModel]="newDomainFqdn()"
+              (ngModelChange)="newDomainFqdn.set($event)"
+              class="block w-full px-3 py-2 bg-zinc-955 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+            />
+            <p class="text-[9px] text-zinc-550 font-sans">
+              Acest domeniu va fi direcționat automat către funcția curentă <strong>{{ selectedFunction()?.name }}</strong> prin Ingress.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
+          <button 
+            (click)="onCloseAddDomainModal()"
+            class="px-3 py-1.5 rounded border border-zinc-850 hover:bg-zinc-955 text-zinc-400 hover:text-white transition-colors cursor-pointer text-xs"
+          >
+            Anulează
+          </button>
+          <button 
+            (click)="onRegisterDomain()"
+            [disabled]="addingDomain() || !newDomainFqdn().trim()"
+            class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black font-semibold transition-colors cursor-pointer text-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+          >
+            @if (addingDomain()) {
+              <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+            }
+            Înregistrează
+          </button>
+        </div>
+
+      </div>
     </div>
   }
 

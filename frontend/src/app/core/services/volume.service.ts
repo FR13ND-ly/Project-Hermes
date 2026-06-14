@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ApiService } from './api.service';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface VolumeFileItem {
   name: string;
@@ -16,7 +17,7 @@ export interface VolumeFileItem {
 export class VolumeService {
   private readonly api = inject(ApiService);
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = 'http://localhost:8000/api/v1';
+  private readonly baseUrl = environment.apiBaseUrl;
 
   private authHeaders(): HttpHeaders {
     const token = localStorage.getItem('hermes_token');

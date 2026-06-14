@@ -69,6 +69,20 @@ pub struct LinkProjectEnvRequest {
     pub project_env_id: Uuid,
 }
 
+/// Rename the key of a project-pool env var (works for any source).
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RenameProjectEnvRequest {
+    pub key: String,
+}
+
+/// The decrypted value of a single env var, returned on explicit reveal.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RevealResponse {
+    pub value: String,
+}
+
 /// Env vars for a single instance, used by the project-level grouped view.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]

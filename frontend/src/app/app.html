@@ -175,6 +175,9 @@
       <router-outlet></router-outlet>
     </main>
 
+    <!-- Persistent active-build indicator (only shows while builds are queued/running) -->
+    <app-build-indicator />
+
     <!-- Workspace Creation Modal Overlay -->
     @if (showCreateWorkspaceModal()) {
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xs animate-fade-in">
@@ -223,7 +226,7 @@
     }
 
     <!-- Global Toast Container -->
-    <div class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+    <div class="fixed top-5 right-5 z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none">
       @for (t of toast.toasts(); track t.id) {
         <div 
           class="p-4 rounded border shadow-lg flex items-center justify-between gap-3 pointer-events-auto animate-fade-in font-sans"

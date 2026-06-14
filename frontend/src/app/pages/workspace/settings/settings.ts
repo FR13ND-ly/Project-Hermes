@@ -32,10 +32,6 @@ export class WorkspaceSettings implements OnInit {
   readonly wsName = signal('');
   readonly maxMemory = signal<number>(2048);
   readonly maxStorage = signal<number>(10);
-  readonly cfApiToken = signal('');
-  readonly cfZoneId = signal('');
-  readonly ingressIp = signal('');
-  readonly baseDomain = signal('');
 
   // Members list & forms signals
   readonly members = signal<WorkspaceMember[]>([]);
@@ -69,10 +65,6 @@ export class WorkspaceSettings implements OnInit {
         this.wsName.set(res.name);
         this.maxMemory.set(res.maxMemoryMb);
         this.maxStorage.set(res.maxStorageGb);
-        this.cfApiToken.set(res.cloudflareApiToken || '');
-        this.cfZoneId.set(res.cloudflareZoneId || '');
-        this.ingressIp.set(res.ingressIp || '');
-        this.baseDomain.set(res.baseDomain || '');
         this.loading.set(false);
       },
       error: (err) => {
@@ -96,10 +88,6 @@ export class WorkspaceSettings implements OnInit {
       name: this.wsName().trim(),
       maxMemoryMb: this.maxMemory(),
       maxStorageGb: this.maxStorage(),
-      cloudflareApiToken: this.cfApiToken().trim() || null,
-      cloudflareZoneId: this.cfZoneId().trim() || null,
-      ingressIp: this.ingressIp().trim() || null,
-      baseDomain: this.baseDomain().trim() || null,
     }).subscribe({
       next: (res) => {
         this.saving.set(false);

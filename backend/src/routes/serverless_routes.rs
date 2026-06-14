@@ -11,8 +11,17 @@ use crate::middlewares::permission_middleware::{check_permission, RequiredPermis
 pub fn routes(state: AppState) -> Router {
     let list_router = Router::new()
         .route("/projects/:project_id/functions", get(serverless_controller::list_functions))
+        .route("/projects/:project_id/functions/:id/project-env", get(serverless_controller::list_function_project_env))
+        .route("/projects/:project_id/functions/:id/builds", get(serverless_controller::list_function_builds))
+        .route("/projects/:project_id/functions/:id/builds/:build_id/logs/stream", get(serverless_controller::stream_build_logs))
         .layer(from_fn_with_state(state.clone(), check_permission))
         .layer(Extension(RequiredPermission("app:read")));
+
+    let env_links_router = Router::new()
+        .route("/projects/:project_id/functions/:id/env-links", post(serverless_controller::link_function_project_env))
+        .route("/projects/:project_id/functions/:id/env-links/:project_env_id", delete(serverless_controller::unlink_function_project_env))
+        .layer(from_fn_with_state(state.clone(), check_permission))
+        .layer(Extension(RequiredPermission("app:deploy")));
 
     let create_router = Router::new()
         .route("/projects/:project_id/functions", post(serverless_controller::create_function))
@@ -36,6 +45,7 @@ pub fn routes(state: AppState) -> Router {
 
     let deploy_router = Router::new()
         .route("/projects/:project_id/functions/:id/deploy", post(serverless_controller::deploy_function))
+        .route("/projects/:project_id/functions/:id/reload-env", post(serverless_controller::reload_function_env))
         .layer(from_fn_with_state(state.clone(), check_permission))
         .layer(Extension(RequiredPermission("app:deploy")));
 
@@ -46,6 +56,7 @@ pub fn routes(state: AppState) -> Router {
 
     Router::new()
         .merge(list_router)
+        .merge(env_links_router)
         .merge(create_router)
         .merge(get_router)
         .merge(update_router)

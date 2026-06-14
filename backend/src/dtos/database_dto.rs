@@ -14,6 +14,12 @@ pub struct CreateDatabaseRequest {
     pub memory_limit_mb: Option<i64>,
     pub is_external: Option<bool>,
     pub external_port: Option<i32>,
+    /// Publish the connection string into the project env pool (default: true).
+    #[serde(default)]
+    pub publish_to_env: Option<bool>,
+    /// Override the suggested env key for the published connection string.
+    #[serde(default)]
+    pub env_key: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

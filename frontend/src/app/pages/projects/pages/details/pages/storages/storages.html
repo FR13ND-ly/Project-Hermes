@@ -66,9 +66,68 @@
 
         <p class="text-[10px] text-zinc-600 pt-1">Bucket-urile sunt private — accesul la fișiere se face securizat, cu token.</p>
 
+        <!-- Publish to project env pool -->
+        <div class="pt-4 border-t border-zinc-900 space-y-3">
+          <label class="flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              [checked]="publishToEnv()"
+              (change)="publishToEnv.set(!publishToEnv())"
+              [disabled]="creatingBucket()"
+              class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
+            />
+            <span class="text-[11px] font-semibold text-zinc-300">Adaugă în .env proiect</span>
+            <span class="text-[10px] text-zinc-600">— URL-ul bucket-ului devine disponibil aplicațiilor din proiect.</span>
+          </label>
+          @if (publishToEnv()) {
+            <div class="flex items-center gap-2 pl-6 animate-fade-in">
+              <label for="bucket-env-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Nume cheie:</label>
+              <input
+                id="bucket-env-key"
+                type="text"
+                placeholder="BUCKET_<NUME>_URL (implicit)"
+                [ngModel]="envKeyName()"
+                (ngModelChange)="envKeyName.set($event)"
+                [disabled]="creatingBucket()"
+                class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono uppercase font-bold"
+              />
+            </div>
+          }
+        </div>
+
+        <!-- Per-file size limit + custom processing override -->
+        <div class="pt-4 border-t border-zinc-900 space-y-3">
+          <div class="flex items-center gap-2">
+            <label for="bucket-max-file" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Mărime max. / fișier (MB):</label>
+            <input
+              id="bucket-max-file"
+              type="number"
+              min="0"
+              step="1"
+              placeholder="0 = nelimitat"
+              [ngModel]="maxFileSizeMb()"
+              (ngModelChange)="maxFileSizeMb.set($event)"
+              [disabled]="creatingBucket()"
+              class="block w-32 px-2.5 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+            />
+            <span class="text-[10px] text-zinc-600">0 = nelimitat</span>
+          </div>
+          <label class="flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              [checked]="allowCustomProcessing()"
+              (change)="allowCustomProcessing.set(!allowCustomProcessing())"
+              [disabled]="creatingBucket()"
+              class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
+            />
+            <span class="text-[11px] font-semibold text-zinc-300">Permite opțiuni custom la upload</span>
+            <span class="text-[10px] text-zinc-600">— aplicația care încarcă (prin API) poate suprascrie regulile de procesare.</span>
+          </label>
+        </div>
+
         <!-- Form Actions -->
         <div class="pt-4 border-t border-zinc-900 flex justify-end gap-3">
-          <button 
+          <button
             (click)="showCreateForm.set(false)"
             [disabled]="creatingBucket()"
             class="px-3.5 py-1.5 rounded text-zinc-450 hover:text-white text-xs font-semibold border border-zinc-900 hover:bg-zinc-900 transition-colors cursor-pointer"
@@ -233,7 +292,8 @@
         </table>
       }
     </div>
-  } @else if (selectedPvc(); as pvc) {
+  } @else if (selectedPvc()) {
+    @let pvc = selectedPvc()!;
 
     <!-- CASE 2b: Selected PVC — browsed in the SAME detail layout as buckets -->
     <div class="flex items-center gap-3 border-b border-zinc-900 pb-4">
@@ -379,7 +439,7 @@
             <h3 class="text-xs font-bold text-white uppercase tracking-wider">{{ bucket.name }}</h3>
             <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border border-purple-900 bg-purple-950/20 text-purple-400 uppercase">Private</span>
           </div>
-          <p class="text-[10px] text-zinc-555 font-mono mt-0.5">slug: {{ bucket.slug }} | limită: {{ formatBytes(bucket.maxBucketSizeBytes) }}</p>
+          <p class="text-[10px] text-zinc-555 font-mono mt-0.5">slug: {{ bucket.slug }} | limită: {{ formatBytes(bucket.maxBucketSizeBytes) }}@if (bucket.maxFileSizeBytes > 0) { <span> | max/fișier: {{ formatBytes(bucket.maxFileSizeBytes) }}</span> }@if (bucket.allowCustomProcessing) { <span class="text-emerald-500"> · opțiuni custom</span> }</p>
         </div>
       </div>
     </div>
@@ -615,7 +675,7 @@
                           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                         <span class="text-[8px] font-bold text-zinc-300 tracking-wider">
-                          {{ item.status === 'processing' ? 'SE PROCESEAZĂ...' : 'SE ÎNCARCĂ...' }}
+                          {{ item.status === 'processing' ? stageLabel(item.processingStage) : 'SE ÎNCARCĂ...' }}
                         </span>
                       </div>
                     }
@@ -678,8 +738,18 @@
 
                   <div class="border-t border-zinc-955 p-2 bg-black/40 flex items-center justify-between gap-1">
                     @if (item.status === 'processing' || item.status === 'pending_upload') {
-                      <div class="w-full text-center py-1 text-[9px] font-bold text-zinc-500 uppercase tracking-wider">
-                        {{ item.status === 'processing' ? 'Se procesează...' : 'Se încarcă...' }}
+                      <div class="flex items-center gap-1.5 w-full justify-between">
+                        <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider pl-1.5 animate-pulse">
+                          {{ item.status === 'processing' ? stageLabel(item.processingStage) : 'Încărcare...' }}
+                        </span>
+                        @if (item.id) {
+                          <button 
+                            (click)="onCancelUpload(item)" 
+                            class="px-2 py-0.5 rounded bg-red-955/20 text-red-400 hover:bg-red-900/40 hover:text-red-200 text-[9px] font-bold uppercase text-center cursor-pointer border border-red-900/60"
+                          >
+                            Anulează
+                          </button>
+                        }
                       </div>
                     } @else if (item.isFolder) {
                       <div class="flex items-center gap-1.5 w-full justify-between">
@@ -807,7 +877,19 @@
                       <td class="p-3 text-right">
                         <div class="flex items-center justify-end gap-2">
                           @if (item.status === 'processing' || item.status === 'pending_upload') {
-                            <span class="text-[9px] font-bold text-zinc-650 uppercase tracking-widest mr-2">Se procesează...</span>
+                            <div class="flex items-center justify-end gap-2">
+                              <span class="text-[9px] font-bold text-zinc-650 uppercase tracking-widest mr-1.5 animate-pulse">
+                                {{ item.status === 'processing' ? stageLabel(item.processingStage) : 'Încărcare...' }}
+                              </span>
+                              @if (item.id) {
+                                <button 
+                                  (click)="onCancelUpload(item)" 
+                                  class="px-2 py-0.5 rounded bg-red-955/20 text-red-400 hover:bg-red-900/40 hover:text-red-200 text-[10px] font-bold uppercase cursor-pointer border border-red-900/50"
+                                >
+                                  Anulează
+                                </button>
+                              }
+                            </div>
                           } @else if (item.isFolder) {
                             <button (click)="onNavigate(item.filePath)" class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-zinc-350 hover:text-white cursor-pointer">Deschide</button>
                             @if (item.id) {
@@ -829,6 +911,15 @@
                 </tbody>
               </table>
             </div>
+          }
+
+          @if (selectedBucket() && !selectedPvc()) {
+            <app-pagination
+              [page]="objectsPage()"
+              [pageSize]="objectsPageSize()"
+              [total]="objectsTotal()"
+              (pageChange)="onObjectsPageChange($event)"
+            />
           }
         }
       </div>
@@ -893,16 +984,46 @@
                 <label class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Limită Maximă Bucket</label>
                 <span class="text-white text-xs font-bold font-mono">{{ editMaxSizeGb() }} GB</span>
               </div>
-              <input 
-                type="range" 
-                min="1" 
-                max="100" 
+              <input
+                type="range"
+                min="1"
+                max="100"
                 step="1"
                 [ngModel]="editMaxSizeGb()"
                 (ngModelChange)="editMaxSizeGb.set($event)"
                 class="w-full h-1 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-white mt-3"
               />
             </div>
+
+            <!-- Per-file size limit -->
+            <div class="space-y-1.5 pt-1.5">
+              <label class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block">Mărime max. / fișier (MB)</label>
+              <div class="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="0 = nelimitat"
+                  [ngModel]="editMaxFileSizeMb()"
+                  (ngModelChange)="editMaxFileSizeMb.set($event)"
+                  class="block w-32 px-2.5 py-1.5 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                />
+                <span class="text-[10px] text-zinc-600">0 = nelimitat</span>
+              </div>
+            </div>
+
+            <!-- Allow per-upload processing override -->
+            <label class="flex items-start gap-2.5 cursor-pointer select-none pt-1.5">
+              <input
+                type="checkbox"
+                [checked]="editAllowCustomProcessing()"
+                (change)="editAllowCustomProcessing.set(!editAllowCustomProcessing())"
+                class="h-3.5 w-3.5 mt-0.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
+              />
+              <span class="text-[11px] font-semibold text-zinc-300">Permite opțiuni custom la upload
+                <span class="block text-[10px] font-normal text-zinc-600">Aplicația care încarcă (prin API/token) poate suprascrie regulile de procesare per fișier.</span>
+              </span>
+            </label>
 
           </div>
 
@@ -953,6 +1074,7 @@
                     <option value="original">Păstrează Original</option>
                     <option value="webp">Optimizează la WebP</option>
                     <option value="avif">Optimizează la Avif</option>
+                    <option value="jpg">Optimizează la JPG</option>
                   </select>
                 </div>
                 
@@ -973,27 +1095,51 @@
                 </div>
               </div>
 
-              <!-- Resize Variations checkboxes -->
+              <!-- Custom output variants (name + max width + format) -->
               <div class="space-y-2 border-t border-zinc-900/60 pt-3">
-                <label class="text-[9px] font-semibold text-zinc-555 uppercase tracking-wider block">Generează variante de rezoluție (Resize)</label>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  <div class="flex items-center gap-1.5">
-                    <input type="checkbox" id="var-thumb" [ngModel]="genThumbnail()" (ngModelChange)="genThumbnail.set($event)" class="w-3.5 h-3.5 bg-black rounded border-zinc-800 accent-white cursor-pointer" />
-                    <label for="var-thumb" class="text-[10px] text-zinc-400 cursor-pointer select-none font-sans">Thumbnail (150px)</label>
-                  </div>
-                  <div class="flex items-center gap-1.5">
-                    <input type="checkbox" id="var-small" [ngModel]="genSmall()" (ngModelChange)="genSmall.set($event)" class="w-3.5 h-3.5 bg-black rounded border-zinc-800 accent-white cursor-pointer" />
-                    <label for="var-small" class="text-[10px] text-zinc-400 cursor-pointer select-none font-sans">Mic (400px)</label>
-                  </div>
-                  <div class="flex items-center gap-1.5">
-                    <input type="checkbox" id="var-med" [ngModel]="genMedium()" (ngModelChange)="genMedium.set($event)" class="w-3.5 h-3.5 bg-black rounded border-zinc-800 accent-white cursor-pointer" />
-                    <label for="var-med" class="text-[10px] text-zinc-400 cursor-pointer select-none font-sans">Mediu (800px)</label>
-                  </div>
-                  <div class="flex items-center gap-1.5">
-                    <input type="checkbox" id="var-lrg" [ngModel]="genLarge()" (ngModelChange)="genLarge.set($event)" class="w-3.5 h-3.5 bg-black rounded border-zinc-800 accent-white cursor-pointer" />
-                    <label for="var-lrg" class="text-[10px] text-zinc-400 cursor-pointer select-none font-sans">Mare (1200px)</label>
-                  </div>
+                <div class="flex items-center justify-between">
+                  <label class="text-[9px] font-semibold text-zinc-555 uppercase tracking-wider block">Variante custom (nume · lățime · format)</label>
+                  <button type="button" (click)="addVariant()" class="px-2 py-0.5 rounded text-[10px] font-semibold text-zinc-300 border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer">+ Adaugă variantă</button>
                 </div>
+
+                @if (customVariants().length === 0) {
+                  <p class="text-[10px] text-zinc-600 italic py-1">Nicio variantă definită — se salvează doar originalul. Adaugă variante pentru a genera copii redimensionate.</p>
+                }
+
+                @for (v of customVariants(); track $index) {
+                  <div class="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="nume (ex. thumb)"
+                      [ngModel]="v.name"
+                      (ngModelChange)="updateVariant($index, { name: $event })"
+                      class="flex-1 min-w-0 px-2 py-1.5 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                    />
+                    <div class="flex items-center gap-1 shrink-0">
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        placeholder="px"
+                        [ngModel]="v.maxWidth"
+                        (ngModelChange)="updateVariant($index, { maxWidth: $event })"
+                        class="w-20 px-2 py-1.5 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                      />
+                      <span class="text-[10px] text-zinc-600">px</span>
+                    </div>
+                    <select
+                      [ngModel]="v.format"
+                      (ngModelChange)="updateVariant($index, { format: $event })"
+                      class="w-28 shrink-0 px-2 py-1.5 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                    >
+                      <option value="original">original</option>
+                      <option value="webp">webp</option>
+                      <option value="avif">avif</option>
+                      <option value="jpg">jpg</option>
+                    </select>
+                    <button type="button" (click)="removeVariant($index)" title="Șterge varianta" class="shrink-0 w-6 h-6 flex items-center justify-center rounded text-zinc-500 hover:text-red-400 hover:bg-red-950/30 transition-colors cursor-pointer">✕</button>
+                  </div>
+                }
               </div>
 
               <!-- Force square aspect ratio -->

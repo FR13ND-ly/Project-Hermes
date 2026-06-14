@@ -12,5 +12,6 @@ pub fn routes(state: AppState) -> Router {
         .route("/github/repos", get(github_controller::list_github_repos))
         .route("/github/repos/:owner/:repo/branches", get(github_controller::list_github_branches))
         .route("/github/repos/:owner/:repo/detect", get(github_controller::detect_project_type))
+        .route("/github/repos/:owner/:repo/compose", get(github_controller::get_repo_compose))
         .with_state(state)
 }

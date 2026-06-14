@@ -8,10 +8,6 @@ export interface Workspace {
   slug: string;
   maxMemoryMb: number;
   maxStorageGb: number;
-  cloudflareApiToken?: string | null;
-  cloudflareZoneId?: string | null;
-  ingressIp?: string | null;
-  baseDomain?: string | null;
 }
 
 export interface WorkspaceUsage {
@@ -64,10 +60,6 @@ export class WorkspaceService {
     name?: string;
     maxMemoryMb?: number;
     maxStorageGb?: number;
-    cloudflareApiToken?: string | null;
-    cloudflareZoneId?: string | null;
-    ingressIp?: string | null;
-    baseDomain?: string | null;
   }): Observable<Workspace> {
     return this.api.put<Workspace>('/workspaces', payload);
   }

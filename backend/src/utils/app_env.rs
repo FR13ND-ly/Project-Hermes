@@ -32,9 +32,14 @@ pub fn sanitize_key_fragment(name: &str, fallback: &str) -> String {
     }
 }
 
-/// Upsert a resource-owned variable into a project's env pool. Keyed by
-/// (project_id, key); re-publishing the same key updates the value and keeps any
-/// existing app links intact (live reference). Returns the project_env id.
+/// Publish a resource-owned variable into a project's env pool.
+///
+/// Identity is the owning resource — `(project_id, source, source_id)` — not the
+/// key. If this resource already published a var, its value is refreshed in place
+/// while the key is left untouched, so a key the user renamed in the Environments
+/// UI survives later republishes. Only the first publish uses `key` (the suggested
+/// default). Existing app links are always kept intact (live reference). Returns
+/// the project_env id.
 pub async fn publish_project_env(
     pool: &PgPool,
     workspace_id: Uuid,
@@ -46,6 +51,28 @@ pub async fn publish_project_env(
     source_id: Uuid,
 ) -> Result<Uuid, AppError> {
     let (enc, nonce) = crypto::encrypt_env_value(value)?;
+
+    // Already published by this resource? Refresh value/secrecy, keep the key.
+    if let Some(existing) = sqlx::query_scalar!(
+        "SELECT id FROM project_env_variables WHERE project_id = $1 AND source = $2 AND source_id = $3",
+        project_id, source, source_id
+    )
+    .fetch_optional(pool)
+    .await?
+    {
+        sqlx::query!(
+            "UPDATE project_env_variables
+             SET encrypted_value = $1, nonce = $2, is_secret = $3, updated_at = now()
+             WHERE id = $4",
+            enc, nonce, is_secret, existing
+        )
+        .execute(pool)
+        .await?;
+        return Ok(existing);
+    }
+
+    // First publish: insert under the suggested key. A pre-existing manual var on
+    // the same key is taken over by this resource (matches prior behavior).
     let id = sqlx::query_scalar!(
         "INSERT INTO project_env_variables (id, workspace_id, project_id, key, encrypted_value, nonce, is_secret, source, source_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)

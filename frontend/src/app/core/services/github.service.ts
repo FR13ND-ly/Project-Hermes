@@ -58,4 +58,15 @@ export class GithubService {
     const url = `/github/repos/${owner}/${repo}/detect` + (path ? `?path=${encodeURIComponent(path)}` : '');
     return this.api.get<ProjectDetectionResponse>(url);
   }
+
+  getRepoCompose(owner: string, repo: string, path?: string): Observable<ComposeFileResponse> {
+    const url = `/github/repos/${owner}/${repo}/compose` + (path ? `?path=${encodeURIComponent(path)}` : '');
+    return this.api.get<ComposeFileResponse>(url);
+  }
+}
+
+export interface ComposeFileResponse {
+  found: boolean;
+  filename?: string | null;
+  yaml: string;
 }

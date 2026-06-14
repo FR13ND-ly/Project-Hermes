@@ -9,10 +9,12 @@ import { WebSocketService } from '../../../../../../core/services/websocket.serv
 import { Subscription } from 'rxjs';
 
 import { RouterLink } from '@angular/router';
+import { Pagination } from '../../../../../../shared/components/pagination/pagination';
+import { DEFAULT_PAGE_SIZE } from '../../../../../../core/models/pagination';
 
 @Component({
   selector: 'app-databases',
-  imports: [NgClass, FormsModule, RouterLink],
+  imports: [NgClass, FormsModule, RouterLink, Pagination],
   templateUrl: './databases.html',
   styleUrl: './databases.css',
 })
@@ -27,16 +29,24 @@ export class Databases implements OnInit, OnDestroy {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
+  readonly page = signal(1);
+  readonly pageSize = signal(DEFAULT_PAGE_SIZE);
+  readonly total = signal(0);
+
   // Form states
   readonly showCreateForm = signal(false);
   readonly provisioning = signal(false);
   
   readonly dbName = signal('');
-  readonly dbType = signal<'postgres' | 'redis' | 'mysql' | 'mongodb'>('postgres');
+  readonly dbType = signal<'postgres' | 'redis' | 'mongodb'>('postgres');
   readonly cpuLimit = signal(0); // Millicores
   readonly memLimit = signal(0); // Megabytes
   readonly isExternal = signal(false);
   readonly externalPort = signal(5432);
+
+  // Publish the connection string into the project env pool (with optional custom key).
+  readonly publishToEnv = signal(true);
+  readonly envKeyName = signal('');
 
   // Map of databaseId -> revealed credentials
   readonly revealedCreds = signal<Record<string, { connectionUrl: string; databaseUser?: string; databasePassword?: string }>>({});
@@ -55,6 +65,7 @@ export class Databases implements OnInit, OnDestroy {
 
   readonly timeTicker = signal<number>(Date.now());
   private tickerInterval: any = null;
+  private pollInterval: any = null;
 
   ngOnInit(): void {
     this.loadDatabases();
@@ -79,16 +90,26 @@ export class Databases implements OnInit, OnDestroy {
   }
 
   startTicker(): void {
-    if (this.tickerInterval) return;
-    this.tickerInterval = setInterval(() => {
-      this.timeTicker.set(Date.now());
-    }, 1000);
+    if (!this.tickerInterval) {
+      this.tickerInterval = setInterval(() => {
+        this.timeTicker.set(Date.now());
+      }, 1000);
+    }
+    if (!this.pollInterval) {
+      this.pollInterval = setInterval(() => {
+        this.loadDatabases(true);
+      }, 5000);
+    }
   }
 
   stopTicker(): void {
     if (this.tickerInterval) {
       clearInterval(this.tickerInterval);
       this.tickerInterval = null;
+    }
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = null;
     }
   }
 
@@ -108,11 +129,13 @@ export class Databases implements OnInit, OnDestroy {
     if (!silent) this.loading.set(true);
     this.error.set(null);
 
-    this.dbService.listDatabases(projectId).subscribe({
+    this.dbService.listDatabases(projectId, this.page(), this.pageSize()).subscribe({
       next: (res) => {
-        this.databases.set(res || []);
+        const items = res?.items || [];
+        this.databases.set(items);
+        this.total.set(res?.total || 0);
         this.loading.set(false);
-        const hasProvisioning = (res || []).some(db => db.status === 'provisioning');
+        const hasProvisioning = items.some(db => db.status === 'provisioning');
         if (hasProvisioning) {
           this.startTicker();
         } else {
@@ -127,12 +150,16 @@ export class Databases implements OnInit, OnDestroy {
     });
   }
 
-  onTypeChange(type: 'postgres' | 'redis' | 'mysql' | 'mongodb'): void {
+  onPageChange(page: number): void {
+    this.page.set(page);
+    this.loadDatabases();
+  }
+
+  onTypeChange(type: 'postgres' | 'redis' | 'mongodb'): void {
     this.dbType.set(type);
     const ports = {
       postgres: 5432,
       redis: 6379,
-      mysql: 3306,
       mongodb: 27017
     };
     this.externalPort.set(ports[type]);
@@ -152,10 +179,14 @@ export class Databases implements OnInit, OnDestroy {
       cpuLimit: this.cpuLimit(),
       memoryLimitMb: this.memLimit(),
       isExternal: this.isExternal(),
-      externalPort: this.isExternal() ? this.externalPort() : undefined
+      externalPort: this.isExternal() ? this.externalPort() : undefined,
+      publishToEnv: this.publishToEnv(),
+      envKey: this.publishToEnv() && this.envKeyName().trim() ? this.envKeyName().trim() : undefined
     }).subscribe({
       next: () => {
         this.dbName.set('');
+        this.envKeyName.set('');
+        this.publishToEnv.set(true);
         this.showCreateForm.set(false);
         this.provisioning.set(false);
         this.toast.success('Baza de date a fost adăugată cu succes!');

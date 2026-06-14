@@ -24,6 +24,7 @@ pub fn routes(state: AppState) -> Router {
         .route("/databases/:id/query", post(database_controller::execute_database_query))
         .route("/databases/:id/logs", get(database_controller::stream_database_logs))
         .route("/databases/:id/backups", get(database_controller::list_database_backups))
+        .route("/databases/:id/backup-cron", get(database_controller::get_database_backup_cron))
         .route("/databases/:id/metrics", get(database_controller::get_database_metrics))
         .layer(from_fn_with_state(state.clone(), check_permission))
         .layer(Extension(RequiredPermission("db:read")));

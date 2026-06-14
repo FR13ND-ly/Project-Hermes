@@ -35,7 +35,7 @@
             </span>
           </div>
 
-          <div class="flex items-center gap-4 text-[10px] text-zinc-500 font-mono">
+          <div class="flex items-center gap-4 text-[10px] text-zinc-550 font-mono">
             <div>
               <span class="text-zinc-600">Repository:</span>
               <span class="text-zinc-300 ml-1 select-all">{{ app()?.git_repo_url }}</span>
@@ -44,23 +44,66 @@
               <span class="text-zinc-600">Creat:</span>
               <span class="text-zinc-300 ml-1">{{ app()?.created_at | date:'dd.MM.yyyy HH:mm' }}</span>
             </div>
+            @if (getSelectedInstance(); as inst) {
+              @if (inst.status === 'running' && inst.externalPort) {
+                <div>
+                  <span class="text-zinc-600">Link:</span>
+                  <a
+                    [href]="inst.assignedDomain ? 'http://' + inst.assignedDomain : 'http://localhost:' + inst.externalPort"
+                    target="_blank"
+                    class="text-indigo-400 font-semibold hover:underline ml-1 font-sans"
+                  >
+                    {{ inst.assignedDomain ? 'http://' + inst.assignedDomain : 'http://localhost:' + inst.externalPort }}
+                  </a>
+                </div>
+              }
+            }
           </div>
         </div>
 
         <div class="flex items-center gap-3">
           @if ((app()?.instances || []).length > 0) {
 
-            <!-- Redeploy Button -->
-            <button 
-              (click)="onRedeployInstance()"
-              [disabled]="redeployingInstance() || getSelectedInstance()?.status === 'building'"
+            <!-- Reload Button: re-apply current image with fresh env (no rebuild) -->
+            <button
+              (click)="onReloadInstance()"
+              [disabled]="reloadingInstance() || redeployingInstance() || getSelectedInstance()?.status === 'building'"
               class="px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 font-mono disabled:opacity-55"
-              title="Re-aplica ultima imagine stabila fara rebuild"
+              title="Re-aplică imaginea curentă cu env-ul actualizat (fără rebuild)"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-400">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-              </svg>
-              Redeploy
+              @if (reloadingInstance()) {
+                <svg class="animate-spin h-3.5 w-3.5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Reload...
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-400">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+                Reload
+              }
+            </button>
+
+            <!-- Redeploy Button: full rebuild from Git -->
+            <button
+              (click)="onRedeployInstance()"
+              [disabled]="redeployingInstance() || reloadingInstance() || getSelectedInstance()?.status === 'building'"
+              class="px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 font-mono disabled:opacity-55"
+              title="Rebuild complet: clonează din Git, reconstruiește imaginea și redeployează"
+            >
+              @if (redeployingInstance()) {
+                <svg class="animate-spin h-3.5 w-3.5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Rebuild...
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-400">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
+                </svg>
+                Redeploy
+              }
             </button>
 
             <!-- Stop / Start Button -->
@@ -564,28 +607,37 @@
             @if (!buildsLoading() && builds().length > 0) {
               <div class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                 @for (build of builds(); track build.id) {
-                  <button 
+                  <button
                     (click)="onViewBuildLogs(build)"
                     class="w-full text-left p-3 rounded border bg-black text-xs transition-all hover:border-zinc-500 hover:bg-zinc-950 flex flex-col gap-2 cursor-pointer"
                     [class.border-white]="selectedBuildId() === build.id"
-                    [class.border-zinc-900]="selectedBuildId() !== build.id"
+                    [class.border-emerald-700]="build.isLive && selectedBuildId() !== build.id"
+                    [class.border-zinc-900]="!build.isLive && selectedBuildId() !== build.id"
                   >
                     <div class="w-full space-y-1">
                       <div class="flex items-center justify-between gap-2">
-                        <span class="font-bold text-zinc-200 truncate max-w-[130px] block" [class.text-white]="selectedBuildId() === build.id">
+                        <span class="font-bold text-zinc-200 truncate max-w-[110px] block" [class.text-white]="selectedBuildId() === build.id">
                           {{ build.commitMessage || 'Lansare Manuală' }}
                         </span>
-                        <span 
-                          class="px-1.5 py-0.2 rounded text-[8px] font-bold border shrink-0 uppercase"
-                          [class]="
-                            build.status === 'succeeded' ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-400' :
-                            (build.status === 'failed' || build.status === 'crashed') ? 'bg-red-950/20 border-red-900/30 text-red-400' :
-                            build.status === 'timed_out' ? 'bg-amber-950/20 border-amber-900/30 text-amber-400' :
-                            'bg-zinc-900 border-zinc-800 text-zinc-450'
-                          "
-                        >
-                          {{ build.status }}
-                        </span>
+                        <div class="flex items-center gap-1 shrink-0">
+                          @if (build.isLive) {
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[8px] font-bold border bg-emerald-950/30 border-emerald-800/50 text-emerald-300 uppercase">
+                              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                              Live
+                            </span>
+                          }
+                          <span
+                            class="px-1.5 py-0.2 rounded text-[8px] font-bold border uppercase"
+                            [class]="
+                              build.status === 'succeeded' ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-400' :
+                              (build.status === 'failed' || build.status === 'crashed') ? 'bg-red-950/20 border-red-900/30 text-red-400' :
+                              build.status === 'timed_out' ? 'bg-amber-950/20 border-amber-900/30 text-amber-400' :
+                              'bg-zinc-900 border-zinc-800 text-zinc-450'
+                            "
+                          >
+                            {{ build.status }}
+                          </span>
+                        </div>
                       </div>
                       @if (build.commitSha) {
                         <p class="text-[9px] text-zinc-650">commit: {{ build.commitSha.substring(0, 7) }}</p>
@@ -605,6 +657,13 @@
                   </button>
                 }
               </div>
+
+              <app-pagination
+                [page]="buildsPage()"
+                [pageSize]="buildsPageSize()"
+                [total]="buildsTotal()"
+                (pageChange)="onBuildsPageChange($event)"
+              />
             }
           </div>
         </div>
@@ -615,6 +674,12 @@
             <div>
               <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">
                 {{ selectedBuildId() ? 'Loguri Build (ID: ' + selectedBuildId()?.substring(0, 8) + ')' : 'Consolă Live (Stdout)' }}
+                @if (selectedBuild()?.isLive) {
+                  <span class="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[8px] font-bold border bg-emerald-950/30 border-emerald-800/50 text-emerald-300 uppercase align-middle">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Aplicat acum (Live)
+                  </span>
+                }
                 @if (selectedBuild()?.status === 'building') {
                   <span class="text-amber-400 font-mono ml-2 animate-pulse">[{{ getLiveDuration(selectedBuild()!.createdAt) }}]</span>
                 } @else if (selectedBuild()?.durationSec) {
@@ -725,12 +790,6 @@
 
           <div class="flex items-center gap-2">
             <button
-              (click)="toggleProjectEnvSelector()"
-              class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold transition-all cursor-pointer"
-            >
-              {{ showProjectEnvSelector() ? 'Închide' : 'Din Proiect' }}
-            </button>
-            <button
               (click)="openJsonEditor()"
               class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold transition-all cursor-pointer"
             >
@@ -744,44 +803,6 @@
             </button>
           </div>
         </div>
-
-        <!-- Project-pool selector: opt this instance into shared project vars -->
-        @if (showProjectEnvSelector()) {
-          <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-3 shadow-sm animate-fade-in">
-            <div class="border-b border-zinc-900 pb-2.5">
-              <h4 class="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">Variabile din Pool-ul Proiectului</h4>
-              <p class="text-[9px] text-zinc-550 mt-0.5">Conectează variabile partajate la nivel de proiect (referință vie — schimbările se propagă automat).</p>
-            </div>
-            @if (availableProjectEnv().length === 0) {
-              <p class="text-[10px] text-zinc-600 py-2">Niciun env la nivel de proiect. Adaugă-le din tab-ul „Environments" al proiectului.</p>
-            } @else {
-              <div class="divide-y divide-zinc-900">
-                @for (env of availableProjectEnv(); track env.id) {
-                  <div class="flex items-center justify-between gap-3 py-2">
-                    <div class="flex items-center gap-2 min-w-0">
-                      <span class="font-mono text-xs text-white truncate">{{ env.key }}</span>
-                      @if (env.source !== 'manual') {
-                        <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 shrink-0">{{ env.source }}</span>
-                      }
-                      @if (env.isSecret) {
-                        <span class="text-[8px] uppercase text-zinc-600 shrink-0">secret</span>
-                      }
-                    </div>
-                    <button
-                      (click)="onToggleProjectEnvLink(env)"
-                      [disabled]="togglingLinkId() === env.id"
-                      [class]="env.linked
-                        ? 'px-2.5 py-1 rounded text-[10px] font-semibold border border-emerald-900/50 bg-emerald-950/30 text-emerald-400 hover:bg-emerald-950/50 cursor-pointer disabled:opacity-50 shrink-0'
-                        : 'px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 cursor-pointer disabled:opacity-50 shrink-0'"
-                    >
-                      {{ env.linked ? 'Conectată ✓' : 'Conectează' }}
-                    </button>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        }
 
         <!-- JSON Editor -->
         @if (jsonEditMode()) {
@@ -815,63 +836,109 @@
           </div>
         }
 
-        <!-- Add Variable Form -->
+        <!-- Add Variable Panel: a brand-new var, or one linked from the project pool -->
         @if (showCreateEnvForm()) {
           <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm max-w-lg">
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="space-y-1.5">
-                <label for="env-key-in" class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Cheie</label>
-                <input
-                  id="env-key-in"
-                  type="text"
-                  placeholder="ex. API_KEY"
-                  [ngModel]="envKey()"
-                  (ngModelChange)="envKey.set($event)"
-                  class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors uppercase font-bold"
-                />
-              </div>
-              <div class="space-y-1.5">
-                <label for="env-val-in" class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Valoare</label>
-                <input
-                  id="env-val-in"
-                  type="text"
-                  placeholder="ex. secret_value_123"
-                  [ngModel]="envVal()"
-                  (ngModelChange)="envVal.set($event)"
-                  class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
-                />
-              </div>
-            </div>
-
-            <div class="space-y-1 pt-1">
-              <div class="flex items-center gap-2">
-                <input
-                  id="secret-chk"
-                  type="checkbox"
-                  [checked]="isSecret()"
-                  (change)="isSecret.set(!isSecret())"
-                  class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
-                />
-                <label for="secret-chk" class="text-[10px] font-semibold text-zinc-400 cursor-pointer select-none">Variabilă Secretă (Criptată)</label>
-              </div>
-              <p class="text-[9px] text-zinc-600 pl-6 leading-relaxed">
-                @if (isSecret()) {
-                  Disponibilă doar la <strong>runtime</strong> (injectată ca secret în container).
-                } @else {
-                  Disponibilă la <strong>runtime</strong> și la <strong>build</strong> (ex. VITE_*, NEXT_PUBLIC_* pentru aplicații frontend).
-                }
-              </p>
-            </div>
-
-            <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
+            <!-- Mode toggle -->
+            <div class="flex items-center gap-0.5 bg-black border border-zinc-850 rounded p-0.5 w-fit text-[10px] font-bold uppercase tracking-wider">
               <button
-                (click)="onSaveEnv()"
-                [disabled]="settingEnv() || !envKey().trim() || !envVal().trim()"
-                class="px-3.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
-              >
-                {{ settingEnv() ? 'Se salvează...' : 'Salvează Variabila' }}
-              </button>
+                (click)="addEnvMode.set('new')"
+                class="px-3 py-1.5 rounded transition-all cursor-pointer"
+                [class]="addEnvMode() === 'new' ? 'bg-white text-black' : 'text-zinc-500 hover:text-zinc-300'"
+              >Variabilă nouă</button>
+              <button
+                (click)="addEnvMode.set('project')"
+                class="px-3 py-1.5 rounded transition-all cursor-pointer"
+                [class]="addEnvMode() === 'project' ? 'bg-white text-black' : 'text-zinc-500 hover:text-zinc-300'"
+              >Din proiect</button>
             </div>
+
+            @if (addEnvMode() === 'new') {
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div class="space-y-1.5">
+                  <label for="env-key-in" class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Cheie</label>
+                  <input
+                    id="env-key-in"
+                    type="text"
+                    placeholder="ex. API_KEY"
+                    [ngModel]="envKey()"
+                    (ngModelChange)="envKey.set($event)"
+                    class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors uppercase font-bold"
+                  />
+                </div>
+                <div class="space-y-1.5">
+                  <label for="env-val-in" class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Valoare</label>
+                  <input
+                    id="env-val-in"
+                    type="text"
+                    placeholder="ex. secret_value_123"
+                    [ngModel]="envVal()"
+                    (ngModelChange)="envVal.set($event)"
+                    class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div class="space-y-1 pt-1">
+                <div class="flex items-center gap-2">
+                  <input
+                    id="secret-chk"
+                    type="checkbox"
+                    [checked]="isSecret()"
+                    (change)="isSecret.set(!isSecret())"
+                    class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
+                  />
+                  <label for="secret-chk" class="text-[10px] font-semibold text-zinc-400 cursor-pointer select-none">Variabilă Secretă (Criptată)</label>
+                </div>
+                <p class="text-[9px] text-zinc-600 pl-6 leading-relaxed">
+                  @if (isSecret()) {
+                    Disponibilă doar la <strong>runtime</strong> (injectată ca secret în container).
+                  } @else {
+                    Disponibilă la <strong>runtime</strong> și la <strong>build</strong> (ex. VITE_*, NEXT_PUBLIC_* pentru aplicații frontend).
+                  }
+                </p>
+              </div>
+
+              <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
+                <button
+                  (click)="onSaveEnv()"
+                  [disabled]="settingEnv() || !envKey().trim() || !envVal().trim()"
+                  class="px-3.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {{ settingEnv() ? 'Se salvează...' : 'Salvează Variabila' }}
+                </button>
+              </div>
+            } @else {
+              <p class="text-[9px] text-zinc-550 leading-relaxed">Conectează variabile partajate din pool-ul proiectului (referință vie — schimbările se propagă automat).</p>
+              @if (availableProjectEnv().length === 0) {
+                <p class="text-[10px] text-zinc-600 py-3">Niciun env la nivel de proiect. Adaugă-le din tab-ul „Environments" al proiectului.</p>
+              } @else {
+                <div class="divide-y divide-zinc-900 max-h-72 overflow-y-auto">
+                  @for (penv of availableProjectEnv(); track penv.id) {
+                    <div class="flex items-center justify-between gap-3 py-2">
+                      <div class="flex items-center gap-2 min-w-0">
+                        <span class="font-mono text-xs text-white truncate">{{ penv.key }}</span>
+                        @if (penv.source !== 'manual') {
+                          <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 shrink-0">{{ penv.source }}</span>
+                        }
+                        @if (penv.isSecret) {
+                          <span class="text-[8px] uppercase text-zinc-600 shrink-0">secret</span>
+                        }
+                      </div>
+                      <button
+                        (click)="onToggleProjectEnvLink(penv)"
+                        [disabled]="togglingLinkId() === penv.id"
+                        [class]="penv.linked
+                          ? 'px-2.5 py-1 rounded text-[10px] font-semibold border border-emerald-900/50 bg-emerald-950/30 text-emerald-400 hover:bg-emerald-950/50 cursor-pointer disabled:opacity-50 shrink-0'
+                          : 'px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 cursor-pointer disabled:opacity-50 shrink-0'"
+                      >
+                        {{ penv.linked ? 'Conectată ✓' : 'Conectează' }}
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            }
           </div>
         }
 
@@ -945,7 +1012,59 @@
                       </button>
                     </td>
                   </tr>
-                } @empty {
+                }
+
+                <!-- Linked project-pool vars (live reference) -->
+                @for (penv of linkedProjectEnv(); track penv.id) {
+                  <tr class="hover:bg-zinc-950/20 transition-colors">
+                    <td class="p-3.5 font-mono">
+                      <div class="flex items-center gap-2">
+                        <span class="font-bold text-zinc-300">{{ penv.key }}</span>
+                        <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 shrink-0">din proiect</span>
+                        @if (penv.source !== 'manual') {
+                          <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-450 shrink-0">{{ penv.source }}</span>
+                        }
+                      </div>
+                    </td>
+                    <td class="p-3.5 text-zinc-400 font-mono">
+                      @if (penv.isSecret) {
+                        <span>••••••••••••••••</span>
+                      } @else {
+                        <span class="select-all">{{ penv.value || '••••••••' }}</span>
+                      }
+                    </td>
+                    <td class="p-3.5">
+                      @if (penv.isSecret) {
+                        <span class="px-1.5 py-0.2 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded text-[9px] font-bold uppercase">Secret</span>
+                      } @else {
+                        <span class="px-1.5 py-0.2 bg-zinc-950 border border-zinc-850 text-zinc-600 rounded text-[9px] font-bold uppercase">Plaintext</span>
+                      }
+                    </td>
+                    <td class="p-3.5 text-right flex items-center justify-end gap-2">
+                      @if (!penv.isSecret && penv.value) {
+                        <button
+                          (click)="copyToClipboard(penv.value || '')"
+                          class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                          title="Copiază valoarea"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5A3.375 3.375 0 006.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0015 2.25h-1.5a2.251 2.251 0 00-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125h1.5A1.125 1.125 0 008.625 10.125v-1.5C8.625 8.004 8.121 7.5 7.5 7.5z" />
+                          </svg>
+                        </button>
+                      }
+                      <button
+                        (click)="onToggleProjectEnvLink(penv)"
+                        [disabled]="togglingLinkId() === penv.id"
+                        class="px-2 py-1 rounded border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                        title="Deconectează variabila din proiect"
+                      >
+                        {{ togglingLinkId() === penv.id ? '...' : 'Unlink' }}
+                      </button>
+                    </td>
+                  </tr>
+                }
+
+                @if (envVariables().length === 0 && linkedProjectEnv().length === 0) {
                   <tr>
                     <td colspan="4" class="p-8 text-center text-zinc-550 font-medium">Nu există nicio variabilă definită.</td>
                   </tr>

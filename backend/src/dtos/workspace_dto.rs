@@ -12,10 +12,6 @@ pub struct UpdateWorkspaceRequest {
     pub name: Option<String>,
     pub max_memory_mb: Option<i32>,
     pub max_storage_gb: Option<i32>,
-    pub cloudflare_api_token: Option<String>,
-    pub cloudflare_zone_id: Option<String>,
-    pub ingress_ip: Option<String>,
-    pub base_domain: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -26,10 +22,6 @@ pub struct WorkspaceResponse {
     pub slug: String,
     pub max_memory_mb: i32,
     pub max_storage_gb: i32,
-    pub cloudflare_api_token: Option<String>,
-    pub cloudflare_zone_id: Option<String>,
-    pub ingress_ip: Option<String>,
-    pub base_domain: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, State, Query},
     http::StatusCode,
     Json,
 };
@@ -9,6 +9,7 @@ use chrono::{DateTime, Utc};
 use crate::app_state::AppState;
 use crate::middlewares::auth_middleware::AuthenticatedUser;
 use crate::utils::error::AppError;
+use crate::utils::pagination::{PaginationParams, Paginated};
 
 #[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -27,7 +28,8 @@ pub async fn list_project_incidents(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
     Path(project_id): Path<Uuid>,
-) -> Result<Json<Vec<IncidentResponse>>, AppError> {
+    Query(pagination): Query<PaginationParams>,
+) -> Result<Json<Paginated<IncidentResponse>>, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
@@ -44,19 +46,34 @@ pub async fn list_project_incidents(
         return Err(AppError::NotFound("Project not found in this workspace.".to_string()));
     }
 
+    let (page, page_size, offset) = pagination.resolve();
+
+    let total: i64 = sqlx::query_scalar!(
+        "SELECT COUNT(*)
+         FROM app_incident_logs il
+         JOIN app_instances ai ON il.app_instance_id = ai.id
+         JOIN apps a ON ai.app_id = a.id
+         WHERE a.project_id = $1 AND il.workspace_id = $2",
+        project_id, ws_id
+    )
+    .fetch_one(&state.pool)
+    .await?
+    .unwrap_or(0);
+
     let records = sqlx::query!(
         "SELECT il.id, il.workspace_id, il.app_instance_id, il.incident_type, il.message, il.resolved_at, il.created_at, ai.container_name as instance_name
          FROM app_incident_logs il
          JOIN app_instances ai ON il.app_instance_id = ai.id
          JOIN apps a ON ai.app_id = a.id
          WHERE a.project_id = $1 AND il.workspace_id = $2
-         ORDER BY il.created_at DESC",
-        project_id, ws_id
+         ORDER BY il.created_at DESC
+         LIMIT $3 OFFSET $4",
+        project_id, ws_id, page_size, offset
     )
     .fetch_all(&state.pool)
     .await?;
 
-    let response = records
+    let items = records
         .into_iter()
         .map(|r| IncidentResponse {
             id: r.id,
@@ -70,7 +87,7 @@ pub async fn list_project_incidents(
         })
         .collect();
 
-    Ok(Json(response))
+    Ok(Json(Paginated::new(items, total, page, page_size)))
 }
 
 pub async fn resolve_incident(

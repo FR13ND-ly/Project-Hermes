@@ -9,6 +9,7 @@ pub struct CreateFunctionRequest {
     pub method: String,
     pub route_path: String,
     pub memory_limit_mb: Option<i32>,
+    pub runtime: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -21,6 +22,18 @@ pub struct UpdateFunctionRequest {
     pub memory_limit_mb: Option<i32>,
     pub env_variables: Option<serde_json::Value>,
     pub assigned_domain: Option<Option<String>>,
+    pub runtime: Option<String>,
+    pub inherit_project_envs: Option<bool>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerlessBuildResponse {
+    pub id: uuid::Uuid,
+    pub status: String,
+    pub image_tag: Option<String>,
+    pub duration_sec: Option<i32>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Serialize)]
@@ -39,6 +52,8 @@ pub struct FunctionResponse {
     pub assigned_domain: Option<String>,
     pub build_logs: Option<String>,
     pub external_port: Option<i32>,
+    pub runtime: String,
+    pub inherit_project_envs: bool,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }

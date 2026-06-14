@@ -187,6 +187,70 @@ pub struct DetectQuery {
     pub path: Option<String>,
 }
 
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ComposeFileResponse {
+    pub found: bool,
+    pub filename: Option<String>,
+    pub yaml: String,
+}
+
+/// Fetch a docker-compose file from a repo (root or subpath) via the GitHub API.
+pub async fn get_repo_compose(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path((owner, repo)): Path<(String, String)>,
+    Query(query): Query<DetectQuery>,
+) -> Result<Json<ComposeFileResponse>, AppError> {
+    use base64::engine::general_purpose::STANDARD as BASE64;
+    use base64::Engine;
+
+    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
+        .bind(claims.sub)
+        .fetch_one(&state.pool)
+        .await?;
+    let token = match user.github_token {
+        Some(t) if !t.is_empty() => t,
+        _ => return Err(AppError::Validation("GitHub account not linked".to_string())),
+    };
+
+    let prefix = query.path.as_deref().map(|p| p.trim().trim_matches('/')).filter(|s| !s.is_empty());
+    let client = reqwest::Client::new();
+
+    #[derive(Debug, serde::Deserialize)]
+    struct GithubContentFile { content: String, encoding: String }
+
+    for name in ["docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml"] {
+        let path = match prefix {
+            Some(p) => format!("{}/{}", p, name),
+            None => name.to_string(),
+        };
+        let url = format!("https://api.github.com/repos/{}/{}/contents/{}", owner, repo, path);
+        if let Ok(res) = client.get(&url)
+            .header("Authorization", format!("Bearer {}", token))
+            .header("User-Agent", "hermes-orchestrator")
+            .header("Accept", "application/vnd.github+json")
+            .send()
+            .await
+        {
+            if res.status().is_success() {
+                if let Ok(file) = res.json::<GithubContentFile>().await {
+                    if file.encoding == "base64" {
+                        let cleaned = file.content.replace(['\n', '\r'], "");
+                        if let Ok(bytes) = BASE64.decode(cleaned) {
+                            if let Ok(yaml) = String::from_utf8(bytes) {
+                                return Ok(Json(ComposeFileResponse { found: true, filename: Some(name.to_string()), yaml }));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(Json(ComposeFileResponse { found: false, filename: None, yaml: String::new() }))
+}
+
 pub async fn detect_project_type(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,

@@ -1,4 +1,4 @@
-use axum::{extract::{Path, State}, http::StatusCode, Json};
+use axum::{extract::{Path, Query, State}, http::StatusCode, Json};
 use uuid::Uuid;
 
 use crate::app_state::AppState;
@@ -6,39 +6,277 @@ use crate::dtos::domain_dto::{AddDomainRequest, DomainResponse};
 use crate::middlewares::auth_middleware::AuthenticatedUser;
 use crate::models::domain_model::{Domain, DomainRoutingType, DomainStatus};
 use crate::utils::{cloudflare, nginx::NginxManager, error::AppError};
+use crate::utils::pagination::{PaginationParams, Paginated};
+
+fn routing_type_str(rt: DomainRoutingType) -> &'static str {
+    match rt {
+        DomainRoutingType::ReverseProxy => "reverse_proxy",
+        DomainRoutingType::StaticHost => "static_host",
+        DomainRoutingType::Custom => "custom",
+    }
+}
+
+/// What a domain points at, resolved from its target_type/target_id.
+struct ResolvedTarget {
+    routing_type: DomainRoutingType,
+    nginx_target_host: Option<String>,
+    nginx_root_path: Option<String>,
+    target_port: i32,
+    target_name: Option<String>,
+    /// Databases get only a DNS record (TCP) — no nginx site / ingress.
+    dns_only: bool,
+}
+
+/// Resolve + validate a domain's target within the workspace.
+async fn resolve_target(
+    pool: &sqlx::PgPool,
+    ws_id: Uuid,
+    payload: &AddDomainRequest,
+) -> Result<ResolvedTarget, AppError> {
+    match payload.target_type.as_str() {
+        "app" => {
+            let id = payload.target_id.ok_or_else(|| AppError::Validation("target_id is required for an app domain.".to_string()))?;
+            let row = sqlx::query!(
+                "SELECT ai.container_name, ai.internal_port, a.name
+                 FROM app_instances ai JOIN apps a ON ai.app_id = a.id
+                 WHERE ai.id = $1 AND a.workspace_id = $2",
+                id, ws_id
+            )
+            .fetch_optional(pool)
+            .await?
+            .ok_or_else(|| AppError::NotFound("App instance not found in this workspace.".to_string()))?;
+            Ok(ResolvedTarget {
+                routing_type: DomainRoutingType::ReverseProxy,
+                nginx_target_host: Some(row.container_name),
+                nginx_root_path: None,
+                target_port: row.internal_port,
+                target_name: Some(row.name),
+                dns_only: false,
+            })
+        }
+        "serverless" => {
+            let id = payload.target_id.ok_or_else(|| AppError::Validation("target_id is required for a serverless domain.".to_string()))?;
+            let row = sqlx::query!(
+                "SELECT name FROM serverless_functions WHERE id = $1 AND workspace_id = $2",
+                id, ws_id
+            )
+            .fetch_optional(pool)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Serverless function not found in this workspace.".to_string()))?;
+            let svc = format!("fn-{}-proxy-svc", crate::controllers::serverless_controller::slugify(&row.name));
+            Ok(ResolvedTarget {
+                routing_type: DomainRoutingType::ReverseProxy,
+                nginx_target_host: Some(svc),
+                nginx_root_path: None,
+                target_port: 80,
+                target_name: Some(row.name),
+                dns_only: false,
+            })
+        }
+        "database" => {
+            let id = payload.target_id.ok_or_else(|| AppError::Validation("target_id is required for a database domain.".to_string()))?;
+            let row = sqlx::query!(
+                "SELECT name, is_external, external_port FROM databases WHERE id = $1 AND workspace_id = $2",
+                id, ws_id
+            )
+            .fetch_optional(pool)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Database not found in this workspace.".to_string()))?;
+            if !row.is_external {
+                return Err(AppError::Validation("Baza de date trebuie expusă extern (TCP) înainte de a-i atribui un domeniu.".to_string()));
+            }
+            Ok(ResolvedTarget {
+                routing_type: DomainRoutingType::Custom,
+                nginx_target_host: None,
+                nginx_root_path: None,
+                target_port: row.external_port.unwrap_or(0),
+                target_name: Some(row.name),
+                dns_only: true,
+            })
+        }
+        _ => Ok(ResolvedTarget {
+            routing_type: payload.routing_type.unwrap_or(DomainRoutingType::ReverseProxy),
+            nginx_target_host: payload.nginx_target_host.clone(),
+            nginx_root_path: payload.nginx_root_path.clone(),
+            target_port: 80,
+            target_name: None,
+            dns_only: false,
+        }),
+    }
+}
+
+/// Resolve a display name for a domain's target (for list/detail responses).
+async fn target_name_for(pool: &sqlx::PgPool, target_type: &str, target_id: Option<Uuid>) -> Option<String> {
+    let id = target_id?;
+    match target_type {
+        "app" => sqlx::query_scalar!(
+            "SELECT a.name FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE ai.id = $1", id
+        ).fetch_optional(pool).await.ok().flatten(),
+        "serverless" => sqlx::query_scalar!(
+            "SELECT name FROM serverless_functions WHERE id = $1", id
+        ).fetch_optional(pool).await.ok().flatten(),
+        "database" => sqlx::query_scalar!(
+            "SELECT name FROM databases WHERE id = $1", id
+        ).fetch_optional(pool).await.ok().flatten(),
+        _ => None,
+    }
+}
+
+/// Cloudflare/Ingress config resolved from the PROJECT that owns a domain's target.
+/// (CF settings moved from workspace to project level — see migration 20260614130000.)
+struct ProjectCf {
+    api_token: Option<String>,
+    zone_id: Option<String>,
+    ingress_ip: Option<String>,
+}
+
+async fn resolve_project_cf(
+    pool: &sqlx::PgPool,
+    ws_id: Uuid,
+    target_type: &str,
+    target_id: Option<Uuid>,
+) -> ProjectCf {
+    let empty = ProjectCf { api_token: None, zone_id: None, ingress_ip: None };
+    let Some(id) = target_id else { return empty; };
+
+    let project_id: Option<Uuid> = match target_type {
+        "app" => sqlx::query_scalar!(
+            "SELECT a.project_id FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE ai.id = $1 AND a.workspace_id = $2",
+            id, ws_id
+        ).fetch_optional(pool).await.ok().flatten(),
+        "serverless" => sqlx::query_scalar!(
+            "SELECT project_id FROM serverless_functions WHERE id = $1 AND workspace_id = $2",
+            id, ws_id
+        ).fetch_optional(pool).await.ok().flatten(),
+        "database" => sqlx::query_scalar!(
+            "SELECT project_id FROM databases WHERE id = $1 AND workspace_id = $2",
+            id, ws_id
+        ).fetch_optional(pool).await.ok().flatten(),
+        _ => None,
+    };
+
+    let Some(pid) = project_id else { return empty; };
+
+    match sqlx::query!(
+        "SELECT cloudflare_api_token, cloudflare_zone_id, ingress_ip FROM projects WHERE id = $1",
+        pid
+    )
+    .fetch_optional(pool)
+    .await
+    .ok()
+    .flatten()
+    {
+        Some(p) => ProjectCf {
+            api_token: p.cloudflare_api_token,
+            zone_id: p.cloudflare_zone_id,
+            ingress_ip: p.ingress_ip,
+        },
+        None => empty,
+    }
+}
+
+fn to_response(d: Domain, target_name: Option<String>) -> DomainResponse {
+    DomainResponse {
+        id: d.id,
+        fqdn: d.fqdn,
+        target_type: d.target_type,
+        target_id: d.target_id,
+        target_name,
+        routing_type: d.routing_type,
+        status: d.status,
+        client_max_body_size: d.client_max_body_size,
+        is_ssl: d.is_ssl,
+        nginx_config_content: d.nginx_config_content,
+        cf_proxy_active: d.cf_proxy_active,
+        nginx_target_host: d.nginx_target_host,
+        nginx_root_path: d.nginx_root_path,
+    }
+}
 
 pub async fn list_domains(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
-) -> Result<Json<Vec<DomainResponse>>, AppError> {
+    Query(pagination): Query<PaginationParams>,
+) -> Result<Json<Paginated<DomainResponse>>, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
+    let (page, page_size, offset) = pagination.resolve();
+
+    let total: i64 = sqlx::query_scalar!("SELECT COUNT(*) FROM domains WHERE workspace_id = $1", ws_id)
+        .fetch_one(&state.pool)
+        .await?
+        .unwrap_or(0);
+
     let domains = sqlx::query_as::<_, Domain>(
-        "SELECT * FROM domains WHERE workspace_id = $1 ORDER BY created_at DESC"
+        "SELECT * FROM domains WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"
     )
     .bind(ws_id)
+    .bind(page_size)
+    .bind(offset)
     .fetch_all(&state.pool)
     .await?;
 
-    let response = domains
-        .into_iter()
-        .map(|d| DomainResponse {
-            id: d.id,
-            fqdn: d.fqdn,
-            routing_type: d.routing_type,
-            status: d.status,
-            client_max_body_size: d.client_max_body_size,
-            is_ssl: d.is_ssl,
-            nginx_config_content: d.nginx_config_content,
-            cf_proxy_active: d.cf_proxy_active,
-            nginx_target_host: d.nginx_target_host,
-            nginx_root_path: d.nginx_root_path,
-        })
-        .collect();
+    let mut items = Vec::with_capacity(domains.len());
+    for d in domains {
+        let name = target_name_for(&state.pool, &d.target_type, d.target_id).await;
+        items.push(to_response(d, name));
+    }
 
-    Ok(Json(response))
+    Ok(Json(Paginated::new(items, total, page, page_size)))
+}
+
+#[derive(serde::Deserialize)]
+pub struct DomainLogsQuery {
+    pub lines: Option<usize>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DomainLogsResponse {
+    pub lines: Vec<String>,
+    /// True when this route serves traffic through the host nginx (so logs exist).
+    pub supported: bool,
+}
+
+/// Real nginx access logs for a custom/attached domain, tailed from the per-site
+/// access log the nginx template writes to /var/log/nginx/<fqdn>.access.log.
+pub async fn get_domain_logs(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(domain_id): Path<Uuid>,
+    Query(q): Query<DomainLogsQuery>,
+) -> Result<Json<DomainLogsResponse>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let domain = sqlx::query!(
+        "SELECT fqdn, target_type FROM domains WHERE id = $1 AND workspace_id = $2",
+        domain_id, ws_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Domain not found in this workspace.".to_string()))?;
+
+    // Databases are TCP (no nginx) → no access logs to tail.
+    if domain.target_type == "database" {
+        return Ok(Json(DomainLogsResponse { lines: vec![], supported: false }));
+    }
+
+    let n = q.lines.unwrap_or(200).min(2000);
+    let path = format!("/var/log/nginx/{}.access.log", domain.fqdn);
+    let lines = match std::fs::read_to_string(&path) {
+        Ok(content) => {
+            let all: Vec<&str> = content.lines().collect();
+            let start = all.len().saturating_sub(n);
+            all[start..].iter().map(|s| s.to_string()).collect()
+        }
+        Err(_) => vec![],
+    };
+
+    Ok(Json(DomainLogsResponse { lines, supported: true }))
 }
 
 pub async fn add_domain(
@@ -66,69 +304,60 @@ pub async fn add_domain(
         return Err(AppError::Conflict("This domain is already registered in this workspace.".to_string()));
     }
 
-    let workspace = sqlx::query!(
-        "SELECT cloudflare_api_token, cloudflare_zone_id, ingress_ip FROM workspaces WHERE id = $1",
-        ws_id
-    )
-    .fetch_one(&state.pool)
-    .await?;
+    let target = resolve_target(&state.pool, ws_id, &payload).await?;
 
-    let target_ip = match &workspace.ingress_ip {
+    // Cloudflare/Ingress config now comes from the target's project, not the workspace.
+    let cf = resolve_project_cf(&state.pool, ws_id, &payload.target_type, payload.target_id).await;
+
+    let target_ip = match &cf.ingress_ip {
         Some(ip) if !ip.trim().is_empty() => ip.clone(),
         _ => std::env::var("HERMES_INGRESS_IP").unwrap_or_else(|_| "127.0.0.1".to_string()),
     };
 
     let mut zone_id = None;
     let mut record_id = None;
-
-    if let (Some(token), Some(z_id)) = (&workspace.cloudflare_api_token, &workspace.cloudflare_zone_id) {
+    if let (Some(token), Some(z_id)) = (&cf.api_token, &cf.zone_id) {
         if !token.trim().is_empty() && !z_id.trim().is_empty() {
-            let (cf_z, cf_r) = cloudflare::create_dns_record(
-                &fqdn, 
-                &target_ip, 
-                true, // cf_proxy_active
-                Some(token),
-                Some(z_id)
-            ).await?;
+            let (cf_z, cf_r) = cloudflare::create_dns_record(&fqdn, &target_ip, true, Some(token), Some(z_id)).await?;
             zone_id = Some(cf_z);
             record_id = Some(cf_r);
         }
     }
 
-    let routing_type_str = match payload.routing_type {
-        DomainRoutingType::ReverseProxy => "reverse_proxy",
-        DomainRoutingType::StaticHost => "static_host",
-        DomainRoutingType::Custom => "custom",
+    // Databases are TCP: just a DNS record, no nginx site / ingress.
+    let final_nginx_content = if target.dns_only {
+        None
+    } else {
+        let cert_path = format!("/etc/ssl/hermes/{}.crt", fqdn);
+        let key_path = format!("/etc/ssl/hermes/{}.key", fqdn);
+        Some(NginxManager::deploy_site(
+            routing_type_str(target.routing_type),
+            &fqdn,
+            target.nginx_target_host.as_deref(),
+            target.nginx_root_path.as_deref(),
+            body_size,
+            ssl_enabled,
+            &cert_path,
+            &key_path,
+            payload.nginx_config_content.as_deref(),
+        )?)
     };
-
-    let cert_path = format!("/etc/ssl/hermes/{}.crt", fqdn);
-    let key_path = format!("/etc/ssl/hermes/{}.key", fqdn);
-
-    let final_nginx_content = NginxManager::deploy_site(
-        routing_type_str,
-        &fqdn,
-        payload.nginx_target_host.as_deref(),
-        payload.nginx_root_path.as_deref(),
-        body_size,
-        ssl_enabled,
-        &cert_path,
-        &key_path,
-        payload.nginx_config_content.as_deref()
-    )?;
 
     let domain_id = Uuid::new_v4();
 
     sqlx::query!(
-        "INSERT INTO domains (id, workspace_id, fqdn, routing_type, client_max_body_size, is_ssl, nginx_target_host, nginx_root_path, nginx_config_content, created_by, status, cloudflare_zone_id, cloudflare_record_id) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'active'::domain_status, $11, $12)",
+        "INSERT INTO domains (id, workspace_id, fqdn, target_type, target_id, routing_type, client_max_body_size, is_ssl, nginx_target_host, nginx_root_path, nginx_config_content, created_by, status, cloudflare_zone_id, cloudflare_record_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'active'::domain_status, $13, $14)",
         domain_id,
         ws_id,
         fqdn,
-        payload.routing_type as _,
+        payload.target_type,
+        payload.target_id,
+        target.routing_type as _,
         body_size,
         ssl_enabled,
-        payload.nginx_target_host,
-        payload.nginx_root_path,
+        target.nginx_target_host,
+        target.nginx_root_path,
         final_nginx_content,
         claims.sub,
         zone_id,
@@ -137,17 +366,10 @@ pub async fn add_domain(
     .execute(&state.pool)
     .await?;
 
-    if payload.routing_type == DomainRoutingType::ReverseProxy {
-        if let Some(ref service_name) = payload.nginx_target_host {
+    // Wire the K8s ingress for HTTP reverse-proxy targets.
+    if !target.dns_only && target.routing_type == DomainRoutingType::ReverseProxy {
+        if let Some(ref service_name) = target.nginx_target_host {
             let namespace = format!("hermes-ws-{}", ws_id);
-            let target_port = sqlx::query_scalar!(
-                "SELECT internal_port FROM app_instances WHERE container_name = $1",
-                service_name
-            )
-            .fetch_optional(&state.pool)
-            .await?
-            .unwrap_or(80);
-
             if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
                 let _ = crate::utils::k8s::K8sManager::deploy_ingress(
                     &k8s_client,
@@ -155,9 +377,17 @@ pub async fn add_domain(
                     &format!("domain-{}", domain_id),
                     &fqdn,
                     service_name,
-                    target_port,
+                    target.target_port,
                 ).await;
             }
+        }
+    }
+
+    // Keep the serverless function aware of its public domain.
+    if payload.target_type == "serverless" {
+        if let Some(fn_id) = payload.target_id {
+            let _ = sqlx::query!("UPDATE serverless_functions SET assigned_domain = $1, updated_at = now() WHERE id = $2", fqdn, fn_id)
+                .execute(&state.pool).await;
         }
     }
 
@@ -166,14 +396,17 @@ pub async fn add_domain(
         Json(DomainResponse {
             id: domain_id,
             fqdn,
-            routing_type: payload.routing_type,
+            target_type: payload.target_type,
+            target_id: payload.target_id,
+            target_name: target.target_name,
+            routing_type: target.routing_type,
             status: DomainStatus::Active,
             client_max_body_size: body_size,
             is_ssl: ssl_enabled,
-            nginx_config_content: Some(final_nginx_content),
+            nginx_config_content: final_nginx_content,
             cf_proxy_active: true,
-            nginx_target_host: payload.nginx_target_host,
-            nginx_root_path: payload.nginx_root_path,
+            nginx_target_host: target.nginx_target_host,
+            nginx_root_path: target.nginx_root_path,
         }),
     ))
 }
@@ -193,100 +426,80 @@ pub async fn verify_and_sync_domain(
     .fetch_optional(&state.pool)
     .await?
     .ok_or_else(|| AppError::NotFound("Domain not found in this workspace.".to_string()))?;
-    
-    let workspace = sqlx::query!(
-        "SELECT cloudflare_api_token, cloudflare_zone_id, ingress_ip FROM workspaces WHERE id = $1",
-        ws_id
-    )
-    .fetch_one(&state.pool)
-    .await?;
 
-    let target_ip = match &workspace.ingress_ip {
+    let cf = resolve_project_cf(&state.pool, ws_id, &domain.target_type, domain.target_id).await;
+
+    let target_ip = match &cf.ingress_ip {
         Some(ip) if !ip.trim().is_empty() => ip.clone(),
         _ => std::env::var("HERMES_INGRESS_IP").unwrap_or_else(|_| "127.0.0.1".to_string()),
     };
     let (zone_id, record_id) = cloudflare::create_dns_record(
-        &domain.fqdn, 
-        &target_ip, 
+        &domain.fqdn,
+        &target_ip,
         domain.cf_proxy_active,
-        workspace.cloudflare_api_token.as_deref(),
-        workspace.cloudflare_zone_id.as_deref()
+        cf.api_token.as_deref(),
+        cf.zone_id.as_deref()
     ).await?;
 
-    let routing_type_str = match domain.routing_type {
-        DomainRoutingType::ReverseProxy => "reverse_proxy",
-        DomainRoutingType::StaticHost => "static_host",
-        DomainRoutingType::Custom => "custom",
-    };
+    let dns_only = domain.target_type == "database";
 
-    let cert_path = format!("/etc/ssl/hermes/{}.crt", domain.fqdn);
-    let key_path = format!("/etc/ssl/hermes/{}.key", domain.fqdn);
+    let final_nginx_content = if dns_only {
+        domain.nginx_config_content.clone()
+    } else {
+        let cert_path = format!("/etc/ssl/hermes/{}.crt", domain.fqdn);
+        let key_path = format!("/etc/ssl/hermes/{}.key", domain.fqdn);
+        let content = NginxManager::deploy_site(
+            routing_type_str(domain.routing_type),
+            &domain.fqdn,
+            domain.nginx_target_host.as_deref(),
+            domain.nginx_root_path.as_deref(),
+            domain.client_max_body_size,
+            domain.is_ssl,
+            &cert_path,
+            &key_path,
+            domain.nginx_config_content.as_deref()
+        )?;
 
-    let final_nginx_content = NginxManager::deploy_site(
-        routing_type_str,
-        &domain.fqdn,
-        domain.nginx_target_host.as_deref(),
-        domain.nginx_root_path.as_deref(),
-        domain.client_max_body_size,
-        domain.is_ssl,
-        &cert_path,
-        &key_path,
-        domain.nginx_config_content.as_deref()
-    )?;
+        if domain.routing_type == DomainRoutingType::ReverseProxy {
+            if let Some(ref service_name) = domain.nginx_target_host {
+                let namespace = format!("hermes-ws-{}", ws_id);
+                let target_port = sqlx::query_scalar!(
+                    "SELECT internal_port FROM app_instances WHERE container_name = $1",
+                    service_name
+                )
+                .fetch_optional(&state.pool)
+                .await?
+                .unwrap_or(80);
 
-    // Provision Ingress in Kubernetes if it's a reverse proxy mapping
-    if domain.routing_type == DomainRoutingType::ReverseProxy {
-        if let Some(ref service_name) = domain.nginx_target_host {
-            let namespace = format!("hermes-ws-{}", ws_id);
-            let target_port = sqlx::query_scalar!(
-                "SELECT internal_port FROM app_instances WHERE container_name = $1",
-                service_name
-            )
-            .fetch_optional(&state.pool)
-            .await?
-            .unwrap_or(80);
-
-            if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
-                let _ = crate::utils::k8s::K8sManager::deploy_ingress(
-                    &k8s_client,
-                    &namespace,
-                    &format!("domain-{}", domain.id),
-                    &domain.fqdn,
-                    service_name,
-                    target_port,
-                ).await;
+                if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
+                    let _ = crate::utils::k8s::K8sManager::deploy_ingress(
+                        &k8s_client,
+                        &namespace,
+                        &format!("domain-{}", domain.id),
+                        &domain.fqdn,
+                        service_name,
+                        target_port,
+                    ).await;
+                }
             }
         }
-    }
+        Some(content)
+    };
 
     sqlx::query!(
-        "UPDATE domains 
-         SET status = 'active'::domain_status, 
-             cloudflare_zone_id = $1, 
-             cloudflare_record_id = $2, 
-             nginx_config_content = $3,
-             updated_at = now() 
+        "UPDATE domains
+         SET status = 'active'::domain_status, cloudflare_zone_id = $1, cloudflare_record_id = $2, nginx_config_content = $3, updated_at = now()
          WHERE id = $4",
-        zone_id, 
-        record_id, 
-        final_nginx_content, 
-        domain.id
+        zone_id, record_id, final_nginx_content, domain.id
     )
     .execute(&state.pool)
     .await?;
 
-    Ok(Json(DomainResponse {
-        id: domain.id,
-        fqdn: domain.fqdn,
-        routing_type: domain.routing_type,
-        status: DomainStatus::Active,
-        client_max_body_size: domain.client_max_body_size,
-        is_ssl: domain.is_ssl,
-        nginx_config_content: Some(final_nginx_content),
-        cf_proxy_active: domain.cf_proxy_active,
-        nginx_target_host: domain.nginx_target_host,
-        nginx_root_path: domain.nginx_root_path,
-    }))
+    let name = target_name_for(&state.pool, &domain.target_type, domain.target_id).await;
+    let mut d = domain;
+    d.status = DomainStatus::Active;
+    d.nginx_config_content = final_nginx_content;
+    Ok(Json(to_response(d, name)))
 }
 
 pub async fn remove_domain(
@@ -307,31 +520,31 @@ pub async fn remove_domain(
     .await?
     .ok_or_else(|| AppError::NotFound("Domain not found in this workspace.".to_string()))?;
 
-    let workspace = sqlx::query!(
-        "SELECT cloudflare_api_token FROM workspaces WHERE id = $1",
-        ws_id
-    )
-    .fetch_one(&state.pool)
-    .await?;
+    let cf = resolve_project_cf(&state.pool, ws_id, &domain.target_type, domain.target_id).await;
 
     if let (Some(zone_id), Some(record_id)) = (domain.cloudflare_zone_id.clone(), domain.cloudflare_record_id.clone()) {
-        cloudflare::delete_dns_record(&zone_id, &record_id, workspace.cloudflare_api_token.as_deref()).await?;
+        cloudflare::delete_dns_record(&zone_id, &record_id, cf.api_token.as_deref()).await?;
     }
 
-    // Clean up Ingress in Kubernetes
-    let namespace = format!("hermes-ws-{}", ws_id);
-    let domain_res_name = format!("domain-{}", domain.id);
-    tokio::spawn(async move {
-        if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
-            let _ = crate::utils::k8s::K8sManager::delete_ingress(
-                &k8s_client,
-                &namespace,
-                &domain_res_name,
-            ).await;
+    // Clear the serverless function's domain reference.
+    if domain.target_type == "serverless" {
+        if let Some(fn_id) = domain.target_id {
+            let _ = sqlx::query!("UPDATE serverless_functions SET assigned_domain = NULL, updated_at = now() WHERE id = $1", fn_id)
+                .execute(&state.pool).await;
         }
-    });
+    }
 
-    NginxManager::delete_site(&domain.fqdn)?;
+    let dns_only = domain.target_type == "database";
+    if !dns_only {
+        let namespace = format!("hermes-ws-{}", ws_id);
+        let domain_res_name = format!("domain-{}", domain.id);
+        tokio::spawn(async move {
+            if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
+                let _ = crate::utils::k8s::K8sManager::delete_ingress(&k8s_client, &namespace, &domain_res_name).await;
+            }
+        });
+        NginxManager::delete_site(&domain.fqdn)?;
+    }
 
     sqlx::query!("DELETE FROM domains WHERE id = $1", domain.id)
         .execute(&state.pool)
@@ -350,7 +563,7 @@ pub async fn update_domain(
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
-    let mut domain = sqlx::query_as::<_, Domain>(
+    let domain = sqlx::query_as::<_, Domain>(
         "SELECT * FROM domains WHERE id = $1 AND workspace_id = $2"
     )
     .bind(domain_id)
@@ -359,20 +572,30 @@ pub async fn update_domain(
     .await?
     .ok_or_else(|| AppError::NotFound("Domain not found in this workspace.".to_string()))?;
 
+    // DNS-only (database) domains only carry SSL/body-size knobs; nothing to redeploy.
+    if domain.target_type == "database" {
+        let body_size = payload.client_max_body_size.unwrap_or(domain.client_max_body_size);
+        let ssl_enabled = payload.is_ssl.unwrap_or(domain.is_ssl);
+        sqlx::query!(
+            "UPDATE domains SET client_max_body_size = $1, is_ssl = $2, updated_at = now() WHERE id = $3",
+            body_size, ssl_enabled, domain.id
+        ).execute(&state.pool).await?;
+        let name = target_name_for(&state.pool, &domain.target_type, domain.target_id).await;
+        let mut d = domain;
+        d.client_max_body_size = body_size;
+        d.is_ssl = ssl_enabled;
+        return Ok(Json(to_response(d, name)));
+    }
+
     let body_size = payload.client_max_body_size.unwrap_or(domain.client_max_body_size);
     let ssl_enabled = payload.is_ssl.unwrap_or(domain.is_ssl);
-
-    let routing_type_str = match payload.routing_type {
-        DomainRoutingType::ReverseProxy => "reverse_proxy",
-        DomainRoutingType::StaticHost => "static_host",
-        DomainRoutingType::Custom => "custom",
-    };
+    let routing_type = payload.routing_type.unwrap_or(domain.routing_type);
 
     let cert_path = format!("/etc/ssl/hermes/{}.crt", domain.fqdn);
     let key_path = format!("/etc/ssl/hermes/{}.key", domain.fqdn);
 
     let final_nginx_content = NginxManager::deploy_site(
-        routing_type_str,
+        routing_type_str(routing_type),
         &domain.fqdn,
         payload.nginx_target_host.as_deref(),
         payload.nginx_root_path.as_deref(),
@@ -383,8 +606,7 @@ pub async fn update_domain(
         payload.nginx_config_content.as_deref()
     )?;
 
-    // Handle Ingress update in Kubernetes if target host changed
-    if payload.routing_type == DomainRoutingType::ReverseProxy {
+    if routing_type == DomainRoutingType::ReverseProxy {
         if let Some(ref service_name) = payload.nginx_target_host {
             let namespace = format!("hermes-ws-{}", ws_id);
             let target_port = sqlx::query_scalar!(
@@ -396,7 +618,6 @@ pub async fn update_domain(
             .unwrap_or(80);
 
             if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
-                // Redeploy ingress
                 let _ = crate::utils::k8s::K8sManager::deploy_ingress(
                     &k8s_client,
                     &namespace,
@@ -408,25 +629,18 @@ pub async fn update_domain(
             }
         }
     } else {
-        // If changing away from reverse proxy, clean up ingress
         let namespace = format!("hermes-ws-{}", ws_id);
         let domain_res_name = format!("domain-{}", domain.id);
         if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
-            let _ = crate::utils::k8s::K8sManager::delete_ingress(
-                &k8s_client,
-                &namespace,
-                &domain_res_name,
-            ).await;
+            let _ = crate::utils::k8s::K8sManager::delete_ingress(&k8s_client, &namespace, &domain_res_name).await;
         }
     }
 
     sqlx::query!(
-        "UPDATE domains 
-         SET routing_type = $1, client_max_body_size = $2, is_ssl = $3, 
-             nginx_target_host = $4, nginx_root_path = $5, nginx_config_content = $6,
-             updated_at = now() 
+        "UPDATE domains
+         SET routing_type = $1, client_max_body_size = $2, is_ssl = $3, nginx_target_host = $4, nginx_root_path = $5, nginx_config_content = $6, updated_at = now()
          WHERE id = $7",
-        payload.routing_type as _,
+        routing_type as _,
         body_size,
         ssl_enabled,
         payload.nginx_target_host,
@@ -437,16 +651,13 @@ pub async fn update_domain(
     .execute(&state.pool)
     .await?;
 
-    Ok(Json(DomainResponse {
-        id: domain.id,
-        fqdn: domain.fqdn,
-        routing_type: payload.routing_type,
-        status: domain.status,
-        client_max_body_size: body_size,
-        is_ssl: ssl_enabled,
-        nginx_config_content: Some(final_nginx_content),
-        cf_proxy_active: domain.cf_proxy_active,
-        nginx_target_host: payload.nginx_target_host,
-        nginx_root_path: payload.nginx_root_path,
-    }))
+    let name = target_name_for(&state.pool, &domain.target_type, domain.target_id).await;
+    let mut d = domain;
+    d.routing_type = routing_type;
+    d.client_max_body_size = body_size;
+    d.is_ssl = ssl_enabled;
+    d.nginx_target_host = payload.nginx_target_host;
+    d.nginx_root_path = payload.nginx_root_path;
+    d.nginx_config_content = Some(final_nginx_content);
+    Ok(Json(to_response(d, name)))
 }

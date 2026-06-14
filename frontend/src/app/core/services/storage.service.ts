@@ -2,15 +2,25 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ApiService } from './api.service';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { Paginated, DEFAULT_PAGE_SIZE } from '../models/pagination';
 
 export type BucketAccessType = 'static_website' | 'public_assets' | 'private_storage' | 'app_bounded';
 export type StorageStatus = 'pending_upload' | 'ready' | 'processing' | 'failed';
 export type CompressionType = 'none' | 'gzip' | 'brotli';
 
+export type ImageFormatTarget = 'original' | 'webp' | 'avif' | 'jpg';
+
+export interface ImageVariantSpec {
+  name: string;
+  maxWidth: number;
+  format: ImageFormatTarget;
+}
+
 export interface ImageProcessingOptions {
-  convertTo: 'original' | 'webp' | 'avif';
+  convertTo: ImageFormatTarget;
   quality: number;
-  generateVariants: string[];
+  variants: ImageVariantSpec[];
   forceSquare: boolean;
 }
 
@@ -33,6 +43,8 @@ export interface StorageBucket {
   assignedDomain: string | null;
   allowedFileTypes: string[] | null;
   maxBucketSizeBytes: number;
+  maxFileSizeBytes: number;
+  allowCustomProcessing: boolean;
   defaultProcessingRules: BucketProcessingRules;
   createdAt: string;
 }
@@ -51,6 +63,7 @@ export interface StorageObject {
   mimeType: string;
   etag: string;
   status: StorageStatus;
+  processingStage?: string | null;
   compression: CompressionType;
   originalSizeBytes: number | null;
   isOptimized: boolean;
@@ -67,6 +80,10 @@ export interface CreateBucketRequest {
   isPublic?: boolean;
   allowedFileTypes?: string[];
   maxBucketSizeBytes?: number;
+  maxFileSizeBytes?: number;
+  allowCustomProcessing?: boolean;
+  publishToEnv?: boolean;
+  envKey?: string;
 }
 
 // A PVC listed in the central Storage interface (auto-created at app build).
@@ -98,7 +115,7 @@ export interface InitUploadResponse {
 export class StorageService {
   private readonly api = inject(ApiService);
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = 'http://localhost:8000/api/v1';
+  private readonly baseUrl = environment.apiBaseUrl;
 
   listBuckets(): Observable<StorageBucket[]> {
     return this.api.get<StorageBucket[]>('/storage/buckets');
@@ -121,8 +138,8 @@ export class StorageService {
     return this.api.patch<StorageBucket>(`/storage/buckets/${bucketId}`, payload);
   }
 
-  listObjects(bucketSlug: string): Observable<StorageObject[]> {
-    return this.api.get<StorageObject[]>(`/storage/buckets/${bucketSlug}/objects`);
+  listObjects(bucketSlug: string, page = 1, pageSize = DEFAULT_PAGE_SIZE): Observable<Paginated<StorageObject>> {
+    return this.api.get<Paginated<StorageObject>>(`/storage/buckets/${bucketSlug}/objects?page=${page}&pageSize=${pageSize}`);
   }
 
   deleteObject(objectId: string): Observable<void> {

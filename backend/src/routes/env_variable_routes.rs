@@ -1,5 +1,5 @@
 use axum::{
-    routing::{post, get, delete},
+    routing::{post, get, delete, patch},
     Router,
     middleware::from_fn,
 };
@@ -18,6 +18,8 @@ pub fn routes(state: AppState) -> Router {
         .route("/projects/:project_id/env", get(project_env_controller::list_project_env))
         .route("/projects/:project_id/env", post(project_env_controller::set_project_env))
         .route("/projects/:project_id/env/:id", delete(project_env_controller::delete_project_env))
+        .route("/projects/:project_id/env/:id", patch(project_env_controller::rename_project_env))
+        .route("/projects/:project_id/env/:id/reveal", get(project_env_controller::reveal_project_env))
         // Per-instance opt-in links to the project pool
         .route("/instances/:instance_id/project-env", get(project_env_controller::list_instance_project_env))
         .route("/instances/:instance_id/env-links", post(project_env_controller::link_project_env))

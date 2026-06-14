@@ -38,12 +38,19 @@
       >
         Roluri & Permisiuni (JSON)
       </button>
-      <button 
+      <button
         (click)="activeTab.set('api-keys')"
         class="pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer"
         [class]="activeTab() === 'api-keys' ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Chei API Serviciu (S2S)
+      </button>
+      <button
+        (click)="activeTab.set('integration')"
+        class="pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer"
+        [class]="activeTab() === 'integration' ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
+      >
+        Integrare
       </button>
     </div>
 
@@ -469,6 +476,112 @@
             </button>
           </div>
         </div>
+      </div>
+    }
+
+    <!-- TAB 4: INTEGRATION -->
+    @if (activeTab() === 'integration') {
+      <div class="space-y-5 animate-fade-in font-mono">
+        @if (integration(); as i) {
+          <!-- Project Variable Pool Publisher Card -->
+          <div class="p-4 rounded-lg border border-zinc-800 bg-[#070708] space-y-3 font-sans relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="flex items-start gap-3">
+              <div class="p-2.5 bg-indigo-950/45 border border-indigo-900/30 rounded text-indigo-400 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+              </div>
+              <div class="space-y-1 w-full">
+                <h4 class="text-xs font-bold text-zinc-200 uppercase tracking-wider font-mono">Publicare în Pool-ul Proiectului</h4>
+                <p class="text-[11px] text-zinc-400 leading-relaxed font-sans">
+                  Pentru ca aplicația ta să poată valida token-urile de acces local și să se conecteze la serviciul de autentificare, publică aceste variabile în pool-ul proiectului. Le vei putea apoi conecta la orice instanță.
+                </p>
+                <div class="flex flex-wrap gap-2 pt-2">
+                  <button
+                    type="button"
+                    (click)="publishVariableToProject('HERMES_AUTH_APP_ID', i.appId, false)"
+                    [disabled]="publishingVar() === 'HERMES_AUTH_APP_ID'"
+                    class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-semibold cursor-pointer transition-colors font-mono"
+                  >
+                    {{ publishingVar() === 'HERMES_AUTH_APP_ID' ? 'Se publică...' : 'Publică HERMES_AUTH_APP_ID' }}
+                  </button>
+                  <button
+                    type="button"
+                    (click)="publishVariableToProject('HERMES_AUTH_API_URL', i.apiBaseUrl, false)"
+                    [disabled]="publishingVar() === 'HERMES_AUTH_API_URL'"
+                    class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-semibold cursor-pointer transition-colors font-mono"
+                  >
+                    {{ publishingVar() === 'HERMES_AUTH_API_URL' ? 'Se publică...' : 'Publică HERMES_AUTH_API_URL' }}
+                  </button>
+                  <button
+                    type="button"
+                    (click)="publishVariableToProject('HERMES_AUTH_SECRET', i.authSecret, true)"
+                    [disabled]="publishingVar() === 'HERMES_AUTH_SECRET'"
+                    class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-semibold cursor-pointer transition-colors font-mono"
+                  >
+                    {{ publishingVar() === 'HERMES_AUTH_SECRET' ? 'Se publică...' : 'Publică HERMES_AUTH_SECRET' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 space-y-4 shadow-sm">
+            <div class="border-b border-zinc-900 pb-3">
+              <h4 class="text-xs font-bold text-zinc-200 uppercase tracking-wider">Integrare Auth (validare locală)</h4>
+              <p class="text-[10px] text-zinc-550 mt-0.5 font-sans leading-relaxed">Aplicația ta validează token-urile <strong>local</strong>, cu secretul de mai jos — fără apeluri către Hermes. Secretul e deja injectat în env ca <span class="font-mono text-zinc-300">{{ i.authSecretEnvKey }}</span>.</p>
+            </div>
+
+            <!-- App ID -->
+            <div class="space-y-1.5">
+              <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">App ID</span>
+              <div class="flex items-center gap-2">
+                <code class="flex-1 px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ i.appId }}</code>
+                <button (click)="copyText(i.appId, 'App ID')" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copiază</button>
+              </div>
+            </div>
+
+            <!-- Auth secret -->
+            <div class="space-y-1.5">
+              <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">{{ i.authSecretEnvKey }}</span>
+              <div class="flex items-center gap-2">
+                <code class="flex-1 px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ revealSecret() ? i.authSecret : '••••••••••••••••••••••••••••' }}</code>
+                <button (click)="revealSecret.set(!revealSecret())" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">{{ revealSecret() ? 'Ascunde' : 'Arată' }}</button>
+                <button (click)="copyText(i.authSecret, 'Secret')" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copiază</button>
+              </div>
+              <p class="text-[9px] text-amber-500/80 font-sans">Secret de semnare — tratează-l ca pe o parolă. Conectează-l în aplicații din modalul „Din Proiect" (e deja în pool).</p>
+            </div>
+
+            <!-- Endpoints -->
+            <div class="space-y-2 pt-1">
+              <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Endpoint-uri</span>
+              @for (ep of [
+                { label: 'Register', url: i.registerEndpoint },
+                { label: 'Login', url: i.loginEndpoint },
+                { label: 'Verify token', url: i.verifyTokenEndpoint },
+                { label: 'Verify key', url: i.verifyKeyEndpoint }
+              ]; track ep.label) {
+                <div class="flex items-center gap-2">
+                  <span class="w-24 text-[10px] text-zinc-500 shrink-0">{{ ep.label }}</span>
+                  <code class="flex-1 px-2.5 py-1.5 text-[11px] bg-black border border-zinc-850 rounded text-zinc-400 select-all truncate">{{ ep.url }}</code>
+                  <button (click)="copyText(ep.url, ep.label)" class="px-2 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-500 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copiază</button>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Snippet -->
+          <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 space-y-3 shadow-sm">
+            <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+              <h4 class="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">Exemplu de integrare (Express)</h4>
+              <button (click)="copyText(integrationSnippet(), 'Snippet')" class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer">Copiază</button>
+            </div>
+            <pre class="text-[11px] leading-relaxed text-zinc-300 bg-black border border-zinc-900 rounded p-3.5 overflow-x-auto whitespace-pre">{{ integrationSnippet() }}</pre>
+          </div>
+        } @else if (!loading()) {
+          <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-10 text-center text-[11px] text-zinc-600">Selectează o aplicație pentru a vedea datele de integrare.</div>
+        }
       </div>
     }
 

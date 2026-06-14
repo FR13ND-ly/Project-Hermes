@@ -6,11 +6,13 @@ import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 import { WebSocketService } from '../../../../../../core/services/websocket.service';
 import { Subscription } from 'rxjs';
+import { Pagination } from '../../../../../../shared/components/pagination/pagination';
+import { DEFAULT_PAGE_SIZE } from '../../../../../../core/models/pagination';
 
 @Component({
   selector: 'app-project-incidents',
   standalone: true,
-  imports: [CommonModule, DatePipe],
+  imports: [CommonModule, DatePipe, Pagination],
   templateUrl: './incidents.html',
 })
 export class Incidents implements OnInit, OnDestroy {
@@ -25,6 +27,10 @@ export class Incidents implements OnInit, OnDestroy {
   readonly error = signal<string | null>(null);
   readonly resolvingId = signal<string | null>(null);
   readonly filter = signal<'all' | 'active' | 'resolved'>('all');
+
+  readonly page = signal(1);
+  readonly pageSize = signal(DEFAULT_PAGE_SIZE);
+  readonly total = signal(0);
 
   private wsSubscription: Subscription | null = null;
 
@@ -88,9 +94,10 @@ export class Incidents implements OnInit, OnDestroy {
     this.loading.set(true);
     this.error.set(null);
 
-    this.incidentService.listProjectIncidents(projId).subscribe({
+    this.incidentService.listProjectIncidents(projId, this.page(), this.pageSize()).subscribe({
       next: (res) => {
-        this.incidents.set(res || []);
+        this.incidents.set(res?.items || []);
+        this.total.set(res?.total || 0);
         this.loading.set(false);
       },
       error: (err) => {
@@ -98,6 +105,11 @@ export class Incidents implements OnInit, OnDestroy {
         this.loading.set(false);
       }
     });
+  }
+
+  onPageChange(page: number): void {
+    this.page.set(page);
+    this.loadIncidents();
   }
 
   async onResolveIncident(incident: Incident): Promise<void> {

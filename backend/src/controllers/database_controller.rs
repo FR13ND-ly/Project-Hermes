@@ -39,8 +39,14 @@ pub async fn create_database(
     };
     
     let container_name = format!("h-db-{}-{}", type_str, &db_id.to_string()[..8]);
-    let version = payload.version.clone().unwrap_or_else(|| "alpine".to_string());
-    let full_image = format!("{}:{}", type_str, version);
+    
+    let (image_name, version) = match payload.r#type {
+        DbType::Postgres => ("postgres", payload.version.clone().unwrap_or_else(|| "alpine".to_string())),
+        DbType::Redis => ("redis", payload.version.clone().unwrap_or_else(|| "alpine".to_string())),
+        DbType::Mongodb => ("mongo", payload.version.clone().unwrap_or_else(|| "6.0".to_string())),
+        DbType::Mysql => ("mysql", payload.version.clone().unwrap_or_else(|| "8.0".to_string())),
+    };
+    let full_image = format!("{}:{}", image_name, version);
     
     let internal_port = match payload.r#type {
         DbType::Postgres => 5432,
@@ -53,7 +59,7 @@ pub async fn create_database(
         DbType::Postgres => format!("postgresql://{}:{}@{}:{}/{}", db_user, raw_password, container_name, internal_port, db_name),
         DbType::Mysql => format!("mysql://{}:{}@{}:{}/{}", db_user, raw_password, container_name, internal_port, db_name),
         DbType::Redis => format!("redis://{}:{}", container_name, internal_port),
-        DbType::Mongodb => format!("mongodb://{}:{}@{}:{}", db_user, raw_password, container_name, internal_port),
+        DbType::Mongodb => format!("mongodb://{}:{}@{}:{}/?authSource=admin", db_user, raw_password, container_name, internal_port),
     };
 
     let is_external = payload.is_external.unwrap_or(false);
@@ -81,57 +87,60 @@ pub async fn create_database(
     .execute(&state.pool)
     .await?;
 
-    // Publish the connection string into the project's env pool so any app in the
-    // project can opt into it. If another database already published DATABASE_URL
-    // in this project, disambiguate the key with the database name.
-    let (enc_url, nonce_url) = crypto::encrypt_env_value(&connection_url)?;
-    let url_taken = sqlx::query_scalar!(
-        "SELECT EXISTS(SELECT 1 FROM project_env_variables
-         WHERE project_id = $1 AND key = 'DATABASE_URL' AND source_id IS DISTINCT FROM $2)",
-        payload.project_id,
-        db_id
-    )
-    .fetch_one(&state.pool)
-    .await?
-    .unwrap_or(false);
-    let env_key = if url_taken {
-        let mut name_key: String = payload
-            .name
-            .trim()
-            .to_uppercase()
-            .chars()
-            .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
-            .collect();
-        if name_key.is_empty() {
-            name_key = type_str.to_uppercase();
+    // Announce provisioning so the global build indicator picks it up immediately.
+    crate::utils::event_broadcaster::broadcast_event(
+        crate::utils::event_broadcaster::SystemEvent::DatabaseStatusChanged {
+            workspace_id: ws_id,
+            database_id: db_id,
+            container_name: container_name.clone(),
+            status: "provisioning".to_string(),
         }
-        format!("{}_DATABASE_URL", name_key)
-    } else {
-        "DATABASE_URL".to_string()
-    };
-    let project_env_id = sqlx::query_scalar!(
-        "INSERT INTO project_env_variables (id, workspace_id, project_id, key, encrypted_value, nonce, is_secret, source, source_id)
-         VALUES ($1, $2, $3, $4, $5, $6, true, 'database', $7)
-         ON CONFLICT (project_id, key)
-         DO UPDATE SET encrypted_value = $5, nonce = $6, source = 'database', source_id = $7, updated_at = now()
-         RETURNING id",
-        Uuid::new_v4(), ws_id, payload.project_id, env_key, enc_url, nonce_url, db_id
-    )
-    .fetch_one(&state.pool)
-    .await?;
+    );
 
-    // If the database was created bound to a specific app instance, opt that
-    // instance into the new var straight away (existing bind UX preserved).
-    if let Some(instance_id) = payload.app_instance_id {
-        sqlx::query!(
-            "INSERT INTO app_env_links (app_instance_id, project_env_id) VALUES ($1, $2)
-             ON CONFLICT DO NOTHING",
-            instance_id,
-            project_env_id
+    // Publish the connection string into the project's env pool so any app in the
+    // project can opt into it. Opt-out via publish_to_env=false. The key defaults to
+    // DATABASE_URL (disambiguated by name if another database already published it)
+    // but a custom env_key may be supplied at creation.
+    if payload.publish_to_env.unwrap_or(true) {
+        let url_taken = sqlx::query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM project_env_variables
+             WHERE project_id = $1 AND key = 'DATABASE_URL' AND source_id IS DISTINCT FROM $2)",
+            payload.project_id,
+            db_id
         )
-        .execute(&state.pool)
+        .fetch_one(&state.pool)
+        .await?
+        .unwrap_or(false);
+        let default_key = if url_taken {
+            format!(
+                "{}_DATABASE_URL",
+                crate::utils::app_env::sanitize_key_fragment(&payload.name, &type_str.to_uppercase())
+            )
+        } else {
+            "DATABASE_URL".to_string()
+        };
+        let env_key = match payload.env_key.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            Some(custom) => crate::utils::app_env::sanitize_key_fragment(custom, &default_key),
+            None => default_key,
+        };
+        let project_env_id = crate::utils::app_env::publish_project_env(
+            &state.pool, ws_id, payload.project_id, &env_key, &connection_url, true, "database", db_id,
+        )
         .await?;
-        crate::controllers::env_variable_controller::hot_reload_if_running(&state.pool, instance_id);
+
+        // If the database was created bound to a specific app instance, opt that
+        // instance into the new var straight away (existing bind UX preserved).
+        if let Some(instance_id) = payload.app_instance_id {
+            sqlx::query!(
+                "INSERT INTO app_env_links (app_instance_id, project_env_id) VALUES ($1, $2)
+                 ON CONFLICT DO NOTHING",
+                instance_id,
+                project_env_id
+            )
+            .execute(&state.pool)
+            .await?;
+            crate::controllers::env_variable_controller::hot_reload_if_running(&state.pool, instance_id);
+        }
     }
 
     let pool_clone = state.pool.clone();
@@ -315,11 +324,106 @@ pub async fn delete_database(
         crate::controllers::env_variable_controller::hot_reload_if_running(&state.pool, instance_id);
     }
 
+    // Remove any cron jobs (incl. the managed backup) targeting this database.
+    let _ = sqlx::query!("DELETE FROM cron_jobs WHERE target_type = 'database' AND target_id = $1", db_id)
+        .execute(&state.pool).await;
+
     sqlx::query!("DELETE FROM databases WHERE id = $1 AND workspace_id = $2", db_id, ws_id)
         .execute(&state.pool)
         .await?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Provision a database container in Kubernetes (namespace, deploy, optional
+/// external LoadBalancer) and update its status. Reusable by create_database and
+/// the docker-compose auto-split applier.
+pub(crate) fn spawn_db_provisioning(
+    pool: sqlx::PgPool,
+    ws_id: Uuid,
+    db_id: Uuid,
+    db_type: DbType,
+    container_name: String,
+    image: String,
+    db_user: String,
+    raw_password: String,
+    db_name: String,
+    internal_port: i32,
+    cpu_limit: i32,
+    memory_limit_mb: i64,
+    is_external: bool,
+    ext_port: Option<i32>,
+) {
+    tokio::spawn(async move {
+        let k8s_client = match crate::utils::k8s::K8sManager::get_client().await {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::error!(db_id = %db_id, "Failed to connect to K8s for database provisioning: {}", e);
+                let _ = update_db_status(&pool, db_id, DbStatus::Failed).await;
+                return;
+            }
+        };
+
+        let namespace = format!("hermes-ws-{}", ws_id);
+        let (max_mem, max_storage) = match sqlx::query!("SELECT max_memory_mb, max_storage_gb FROM workspaces WHERE id = $1", ws_id).fetch_one(&pool).await {
+            Ok(r) => (r.max_memory_mb, r.max_storage_gb),
+            Err(_) => (2048, 10),
+        };
+        let _ = crate::utils::k8s::K8sManager::create_namespace(&k8s_client, &namespace, max_mem, max_storage).await;
+
+        let mut envs = Vec::new();
+        match db_type {
+            DbType::Postgres => {
+                envs.push(("POSTGRES_USER".to_string(), db_user));
+                envs.push(("POSTGRES_PASSWORD".to_string(), raw_password));
+                envs.push(("POSTGRES_DB".to_string(), db_name));
+            }
+            DbType::Mysql => {
+                envs.push(("MYSQL_ROOT_PASSWORD".to_string(), raw_password.clone()));
+                envs.push(("MYSQL_USER".to_string(), db_user));
+                envs.push(("MYSQL_PASSWORD".to_string(), raw_password));
+                envs.push(("MYSQL_DATABASE".to_string(), db_name));
+            }
+            DbType::Mongodb => {
+                envs.push(("MONGO_INITDB_ROOT_USERNAME".to_string(), db_user));
+                envs.push(("MONGO_INITDB_ROOT_PASSWORD".to_string(), raw_password));
+            }
+            DbType::Redis => {}
+        }
+
+        match crate::utils::k8s::K8sManager::deploy_database(
+            &k8s_client, &namespace, &container_name, &image, envs, internal_port, cpu_limit, memory_limit_mb,
+        ).await {
+            Ok(_) => {
+                if is_external {
+                    let lb_name = format!("{}-external", container_name);
+                    let _ = crate::utils::k8s::K8sManager::deploy_loadbalancer_service(
+                        &k8s_client, &namespace, &lb_name, &container_name, internal_port, ext_port.unwrap_or(internal_port), "TCP",
+                    ).await;
+                }
+                
+                // Wait until the container is actually running and ready in Kubernetes.
+                let mut ready = false;
+                for _ in 0..150 { // 150 * 2 seconds = 5 minutes timeout
+                    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                    let actual = get_actual_db_status(&k8s_client, &namespace, &container_name, DbStatus::Provisioning).await;
+                    if actual == DbStatus::Running {
+                        ready = true;
+                        break;
+                    } else if actual == DbStatus::Failed {
+                        break;
+                    }
+                }
+                
+                let final_status = if ready { DbStatus::Running } else { DbStatus::Failed };
+                let _ = update_db_status(&pool, db_id, final_status).await;
+            }
+            Err(e) => {
+                tracing::error!(db_id = %db_id, "deploy_database failed: {}", e);
+                let _ = update_db_status(&pool, db_id, DbStatus::Failed).await;
+            }
+        }
+    });
 }
 
 async fn update_db_status(pool: &sqlx::PgPool, id: Uuid, status: DbStatus) -> Result<(), sqlx::Error> {
@@ -384,22 +488,39 @@ pub async fn reveal_database_credentials(
 #[serde(rename_all = "camelCase")]
 pub struct DatabaseListQuery {
     pub project_id: Uuid,
+    pub page: Option<i64>,
+    pub page_size: Option<i64>,
 }
 
 pub async fn list_project_databases(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
     Query(query): Query<DatabaseListQuery>,
-) -> Result<Json<Vec<DatabaseService>>, AppError> {
+) -> Result<Json<crate::utils::pagination::Paginated<DatabaseService>>, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
+    let (page, page_size, offset) = crate::utils::pagination::PaginationParams {
+        page: query.page,
+        page_size: query.page_size,
+    }.resolve();
+
+    let total: i64 = sqlx::query_scalar!(
+        "SELECT COUNT(*) FROM databases WHERE project_id = $1 AND workspace_id = $2",
+        query.project_id, ws_id
+    )
+    .fetch_one(&state.pool)
+    .await?
+    .unwrap_or(0);
+
     let mut databases = sqlx::query_as::<_, DatabaseService>(
-        "SELECT * FROM databases WHERE project_id = $1 AND workspace_id = $2 ORDER BY created_at DESC"
+        "SELECT * FROM databases WHERE project_id = $1 AND workspace_id = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4"
     )
     .bind(query.project_id)
     .bind(ws_id)
+    .bind(page_size)
+    .bind(offset)
     .fetch_all(&state.pool)
     .await?;
 
@@ -415,7 +536,7 @@ pub async fn list_project_databases(
         }
     }
 
-    Ok(Json(databases))
+    Ok(Json(crate::utils::pagination::Paginated::new(databases, total, page, page_size)))
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -668,6 +789,13 @@ pub async fn update_database_settings(
     .execute(&state.pool)
     .await?;
 
+    // Materialize auto-backup as a real, visible, editable cron job (or remove it).
+    if backup_enabled {
+        let _ = crate::controllers::cron_controller::ensure_backup_cron(&state.pool, db_id).await;
+    } else {
+        let _ = crate::controllers::cron_controller::remove_backup_cron(&state.pool, db_id).await;
+    }
+
     // 3. Decrypt the database password
     let decrypted_password = match db_service.db_password_nonce {
         Some(ref nonce) => crypto::decrypt_env_value(&db_service.db_password, nonce)?,
@@ -787,7 +915,7 @@ async fn get_actual_db_status(
     }
 }
 
-pub async fn perform_database_backup(pool: &sqlx::PgPool, db_id: Uuid) -> Result<BackupResponse, AppError> {
+pub async fn perform_database_backup(pool: &sqlx::PgPool, db_id: Uuid, custom_command: Option<&str>) -> Result<BackupResponse, AppError> {
     let db_service = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1")
         .bind(db_id).fetch_optional(pool).await?
         .ok_or_else(|| AppError::NotFound("Database service not found.".to_string()))?;
@@ -820,42 +948,50 @@ pub async fn perform_database_backup(pool: &sqlx::PgPool, db_id: Uuid) -> Result
     cmd.arg(&pod_name);
     cmd.arg("--");
 
-    match db_service.r#type {
-        DbType::Postgres => {
-            cmd.arg("pg_dump");
-            // --clean --if-exists make the dump drop each object before recreating it,
-            // so a restore replaces existing data instead of appending duplicate rows.
-            cmd.arg("--clean");
-            cmd.arg("--if-exists");
-            cmd.arg("-U");
-            cmd.arg(&db_service.db_user);
-            cmd.arg("-d");
-            cmd.arg(&db_service.db_name);
-        }
-        DbType::Mysql => {
-            cmd.arg("mysqldump");
-            // --add-drop-table (default on) emits DROP TABLE before each CREATE,
-            // making restores replace rather than append; set explicitly to be safe.
-            cmd.arg("--add-drop-table");
-            cmd.arg("-u");
-            cmd.arg(&db_service.db_user);
-            cmd.arg(format!("-p{}", decrypted_password));
-            cmd.arg(&db_service.db_name);
-        }
-        DbType::Mongodb => {
-            cmd.arg("mongodump");
-            cmd.arg("--username");
-            cmd.arg(&db_service.db_user);
-            cmd.arg("--password");
-            cmd.arg(&decrypted_password);
-            cmd.arg("--authenticationDatabase");
-            cmd.arg("admin");
-            cmd.arg("--archive");
-        }
-        DbType::Redis => {
-            cmd.arg("redis-cli");
-            cmd.arg("--rdb");
-            cmd.arg("-");
+    // A custom command (from the editable backup cron) runs as a shell snippet inside
+    // the DB pod; otherwise fall back to the per-type default dump.
+    if let Some(custom) = custom_command.map(str::trim).filter(|s| !s.is_empty()) {
+        cmd.arg("/bin/sh");
+        cmd.arg("-c");
+        cmd.arg(custom);
+    } else {
+        match db_service.r#type {
+            DbType::Postgres => {
+                cmd.arg("pg_dump");
+                // --clean --if-exists make the dump drop each object before recreating it,
+                // so a restore replaces existing data instead of appending duplicate rows.
+                cmd.arg("--clean");
+                cmd.arg("--if-exists");
+                cmd.arg("-U");
+                cmd.arg(&db_service.db_user);
+                cmd.arg("-d");
+                cmd.arg(&db_service.db_name);
+            }
+            DbType::Mysql => {
+                cmd.arg("mysqldump");
+                // --add-drop-table (default on) emits DROP TABLE before each CREATE,
+                // making restores replace rather than append; set explicitly to be safe.
+                cmd.arg("--add-drop-table");
+                cmd.arg("-u");
+                cmd.arg(&db_service.db_user);
+                cmd.arg(format!("-p{}", decrypted_password));
+                cmd.arg(&db_service.db_name);
+            }
+            DbType::Mongodb => {
+                cmd.arg("mongodump");
+                cmd.arg("--username");
+                cmd.arg(&db_service.db_user);
+                cmd.arg("--password");
+                cmd.arg(&decrypted_password);
+                cmd.arg("--authenticationDatabase");
+                cmd.arg("admin");
+                cmd.arg("--archive");
+            }
+            DbType::Redis => {
+                cmd.arg("redis-cli");
+                cmd.arg("--rdb");
+                cmd.arg("-");
+            }
         }
     }
 
@@ -911,6 +1047,9 @@ pub async fn perform_database_backup(pool: &sqlx::PgPool, db_id: Uuid) -> Result
         }
     }
 
+    // Surface any stderr (e.g. the command's friendly echo) into the cron history.
+    let stderr_msg = String::from_utf8_lossy(&output.stderr).trim().to_string();
+
     Ok(BackupResponse {
         id: backup_id,
         database_id: db_id,
@@ -918,7 +1057,49 @@ pub async fn perform_database_backup(pool: &sqlx::PgPool, db_id: Uuid) -> Result
         file_size_bytes: file_size,
         status: "completed".to_string(),
         created_at,
+        log: if stderr_msg.is_empty() { None } else { Some(stderr_msg) },
     })
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BackupCronResponse {
+    pub id: Uuid,
+    pub name: String,
+    pub schedule: String,
+    pub command: String,
+    pub status: String,
+    pub next_run_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+/// The managed backup cron for a database (or null if auto-backup is off).
+pub async fn get_database_backup_cron(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(db_id): Path<Uuid>,
+) -> Result<Json<Option<BackupCronResponse>>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let row = sqlx::query!(
+        "SELECT id, name, schedule, command, status::text as status, next_run_at
+         FROM cron_jobs
+         WHERE target_type = 'database' AND target_id = $1 AND is_backup = true AND workspace_id = $2
+         LIMIT 1",
+        db_id, ws_id
+    )
+    .fetch_optional(&state.pool)
+    .await?;
+
+    Ok(Json(row.map(|r| BackupCronResponse {
+        id: r.id,
+        name: r.name,
+        schedule: r.schedule,
+        command: r.command,
+        status: r.status.unwrap_or_default(),
+        next_run_at: r.next_run_at,
+    })))
 }
 
 pub async fn create_database_backup(
@@ -935,7 +1116,7 @@ pub async fn create_database_backup(
         .await?
         .ok_or_else(|| AppError::NotFound("Database service not found.".to_string()))?;
 
-    let backup_res = perform_database_backup(&state.pool, db_id).await?;
+    let backup_res = perform_database_backup(&state.pool, db_id, None).await?;
 
     Ok((
         StatusCode::CREATED,
@@ -984,6 +1165,7 @@ pub async fn list_database_backups(
             file_size_bytes: r.file_size_bytes,
             status: r.status,
             created_at: r.created_at,
+            log: None,
         })
         .collect();
 
@@ -1066,24 +1248,39 @@ pub async fn restore_database_backup(
 
     if db_service.r#type == DbType::Redis {
         // Special Restore logic for Redis
+        // Copy the backup file to a local relative path first to avoid Windows kubectl cp absolute path colon issues.
+        let temp_filename = format!("temp_restore_{}.rdb", db_id);
+        let temp_filepath = std::path::Path::new(&temp_filename);
+        std::fs::copy(&filepath, &temp_filepath).map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to copy backup to temp restore file: {}", e)))?;
+
         let mut cp_cmd = std::process::Command::new("kubectl");
         cp_cmd.arg("cp");
-        cp_cmd.arg(&filepath);
+        cp_cmd.arg(&temp_filename);
         cp_cmd.arg(format!("{}/{}:/data/dump.rdb", namespace, pod_name));
         
-        let cp_status = cp_cmd.status().map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to run kubectl cp: {}", e)))?;
-        if !cp_status.success() {
-            return Err(AppError::Fatal(anyhow::anyhow!("Failed to copy RDB backup file into Redis pod.")));
+        let cp_output = cp_cmd.output().map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to run kubectl cp: {}", e)))?;
+        
+        // Clean up temporary file
+        let _ = std::fs::remove_file(&temp_filepath);
+
+        let stderr_msg = String::from_utf8_lossy(&cp_output.stderr).to_string();
+        let stdout_msg = String::from_utf8_lossy(&cp_output.stdout).to_string();
+        if !cp_output.status.success() || stderr_msg.to_lowercase().contains("error") {
+            return Err(AppError::Fatal(anyhow::anyhow!("Failed to copy RDB backup file into Redis pod: status={:?}, stderr={}, stdout={}", cp_output.status, stderr_msg, stdout_msg)));
         }
 
-        // Restart Pod
-        let mut del_cmd = std::process::Command::new("kubectl");
-        del_cmd.arg("delete");
-        del_cmd.arg("pod");
-        del_cmd.arg("-n");
-        del_cmd.arg(&namespace);
-        del_cmd.arg(&pod_name);
-        let _ = del_cmd.status();
+        // Force shutdown Redis immediately without saving so it doesn't overwrite the copied dump.rdb.
+        // The container will exit and Kubernetes will automatically restart it, loading the restored file.
+        let mut shutdown_cmd = std::process::Command::new("kubectl");
+        shutdown_cmd.arg("exec");
+        shutdown_cmd.arg("-n");
+        shutdown_cmd.arg(&namespace);
+        shutdown_cmd.arg(&pod_name);
+        shutdown_cmd.arg("--");
+        shutdown_cmd.arg("redis-cli");
+        shutdown_cmd.arg("shutdown");
+        shutdown_cmd.arg("nosave");
+        let _ = shutdown_cmd.status();
     } else {
         // SQL and MongoDB stdin restore
         let file = std::fs::File::open(&filepath).map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to open backup file for restore: {}", e)))?;

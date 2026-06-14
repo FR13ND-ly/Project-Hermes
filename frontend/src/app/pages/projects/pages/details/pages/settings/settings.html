@@ -289,6 +289,93 @@
     </div>
   </div>
 
+  <!-- Cloudflare / Ingress Card (project-level) -->
+  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
+    <div class="border-b border-zinc-900 pb-2.5">
+      <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Integrare Cloudflare & Ingress</h3>
+      <p class="text-xs text-zinc-550">Configurația DNS folosită la atașarea domeniilor pentru resursele acestui proiect.</p>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <!-- Ingress IP -->
+      <div class="space-y-1.5">
+        <label for="proj-ingress" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">IP Ingress LoadBalancer</label>
+        <input
+          id="proj-ingress"
+          type="text"
+          placeholder="ex. 127.0.0.1 sau 64.176.64.16"
+          [ngModel]="cfIngressIp()"
+          (ngModelChange)="cfIngressIp.set($event)"
+          [disabled]="savingCloudflare()"
+          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+        />
+      </div>
+
+      <!-- Base Domain -->
+      <div class="space-y-1.5">
+        <label for="proj-domain" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Domeniu de Bază (Base Domain)</label>
+        <input
+          id="proj-domain"
+          type="text"
+          placeholder="ex. compania-mea.ro sau dev.local"
+          [ngModel]="cfBaseDomain()"
+          (ngModelChange)="cfBaseDomain.set($event)"
+          [disabled]="savingCloudflare()"
+          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+        />
+      </div>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <!-- Cloudflare API Token -->
+      <div class="space-y-1.5">
+        <label for="proj-cf-token" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Cloudflare API Token</label>
+        <input
+          id="proj-cf-token"
+          type="password"
+          [placeholder]="cfHasToken() ? '•••••••• (nemodificat)' : 'cfut_...'"
+          [ngModel]="cfApiToken()"
+          (ngModelChange)="cfApiToken.set($event)"
+          [disabled]="savingCloudflare()"
+          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+        />
+        <p class="text-[10px] text-zinc-600">Lasă gol pentru a păstra token-ul existent.</p>
+      </div>
+
+      <!-- Cloudflare Zone ID -->
+      <div class="space-y-1.5">
+        <label for="proj-cf-zone" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Cloudflare Zone ID</label>
+        <input
+          id="proj-cf-zone"
+          type="text"
+          placeholder="ex. ac4011807d97..."
+          [ngModel]="cfZoneId()"
+          (ngModelChange)="cfZoneId.set($event)"
+          [disabled]="savingCloudflare()"
+          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+        />
+      </div>
+    </div>
+
+    <div class="pt-2 flex justify-end">
+      <button
+        (click)="onSaveCloudflareSettings()"
+        [disabled]="savingCloudflare()"
+        class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
+      >
+        @if (!savingCloudflare()) {
+          <span>Salvează Cloudflare</span>
+        } @else {
+          <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>Se salvează...</span>
+        }
+      </button>
+    </div>
+  </div>
+
   <!-- Webhooks Integrations Card -->
   <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">

@@ -77,8 +77,14 @@
                 </div>
                 @if (app.instances.length > 0 && app.instances[0].externalPort) {
                   <div>
-                    <span class="text-zinc-600">Port Extern:</span>
-                    <span class="text-zinc-300 ml-1 text-indigo-400 font-semibold">{{ app.instances[0].externalPort }}</span>
+                    <span class="text-zinc-600">Link:</span>
+                    <a
+                      [href]="app.instances[0].assignedDomain ? 'http://' + app.instances[0].assignedDomain : 'http://localhost:' + app.instances[0].externalPort"
+                      target="_blank"
+                      class="text-indigo-400 font-semibold hover:underline ml-1 font-sans"
+                    >
+                      {{ app.instances[0].assignedDomain ? 'http://' + app.instances[0].assignedDomain : 'http://localhost:' + app.instances[0].externalPort }}
+                    </a>
                   </div>
                 }
                 <div>

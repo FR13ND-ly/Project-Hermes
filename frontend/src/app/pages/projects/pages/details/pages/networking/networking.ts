@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Details } from '../../details';
 import { DatabaseService, DatabaseServiceInfo } from '../../../../../../core/services/database.service';
-import { DomainService, Domain, DomainRoutingType } from '../../../../../../core/services/domain.service';
+import { DomainService, Domain, DomainRoutingType, DomainTargetType } from '../../../../../../core/services/domain.service';
 import { ProjectService, ServerlessFunction } from '../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
@@ -51,6 +51,7 @@ export class Networking implements OnInit, OnDestroy {
   readonly selectedRoute = signal<UnifiedRoute | null>(null);
   readonly activeTab = signal<'details' | 'logs' | 'settings'>('details');
   readonly liveLogs = signal<string[]>([]);
+  readonly logsSupported = signal(true);
   readonly expandedDomainCerts = signal<Record<string, boolean>>({});
 
   // Editing state for custom domains
@@ -72,6 +73,38 @@ export class Networking implements OnInit, OnDestroy {
   readonly nginxTargetHost = signal('');
   readonly nginxRootPath = signal('');
   readonly nginxConfigContent = signal('');
+
+  // Resource-oriented target selection for the add-domain form.
+  readonly newTargetType = signal<DomainTargetType>('app');
+  readonly selectedTargetId = signal('');
+
+  // All app instances across the project, flattened for the target dropdown.
+  readonly appInstanceOptions = computed<{ id: string; name: string }[]>(() =>
+    this.parent.apps().flatMap(app =>
+      (app.instances || []).map(inst => ({ id: inst.id, name: `${app.name} · ${inst.branchName}` }))
+    )
+  );
+  readonly fnOptions = computed<{ id: string; name: string }[]>(() =>
+    this.serverlessFunctions().map(fn => ({ id: fn.id, name: fn.name }))
+  );
+  // Only externally-exposed databases can get a DNS domain.
+  readonly dbOptions = computed<{ id: string; name: string }[]>(() =>
+    this.databases().map(db => ({ id: db.id, name: `${db.name} :${db.externalPort ?? ''}` }))
+  );
+  readonly targetOptions = computed<{ id: string; name: string }[]>(() => {
+    switch (this.newTargetType()) {
+      case 'serverless': return this.fnOptions();
+      case 'database': return this.dbOptions();
+      case 'custom': return [];
+      default: return this.appInstanceOptions();
+    }
+  });
+
+  onChangeTargetType(type: DomainTargetType): void {
+    this.newTargetType.set(type);
+    const first = this.targetOptions()[0];
+    this.selectedTargetId.set(first ? first.id : '');
+  }
 
   // Cert-manager TLS provisioning diagnostics checklist
   readonly dnsVerified = signal(true);
@@ -122,36 +155,20 @@ export class Networking implements OnInit, OnDestroy {
       }
     });
 
-    // 3. Custom domains
+    // 3. Custom/attached domains — use the backend-resolved target (no guessing).
+    const typeLabel: Record<string, string> = {
+      app: 'Aplicație', serverless: 'Funcție Serverless', database: 'Bază de date', custom: 'Custom'
+    };
     domains.forEach(d => {
-      let matchedBranch: string | undefined;
-      let matchedApp: string | undefined;
-      if (d.nginxTargetHost) {
-        // Check if target host matches an app instance container
-        const matched = insts.find(i => i.containerName === d.nginxTargetHost);
-        if (matched) {
-          matchedBranch = matched.branchName;
-          matchedApp = this.parent.project()?.name || 'Hermes App';
-        }
-        // Check if target host matches a serverless function proxy
-        if (!matchedApp) {
-          const matchedFn = functions.find(fn => d.nginxTargetHost?.includes(`fn-${fn.name.toLowerCase().replace(/\s+/g, '-')}`));
-          if (matchedFn) {
-            matchedBranch = 'Funcție Serverless';
-            matchedApp = matchedFn.name;
-          }
-        }
-      }
-
       routes.push({
         id: d.id,
         fqdn: d.fqdn,
         type: 'custom',
         routingType: d.routingType as any,
         status: d.status as any,
-        connectedApp: matchedApp || (d.nginxTargetHost ? (this.parent.project()?.name || 'Hermes App') : undefined),
-        branchName: matchedBranch,
-        port: d.routingType === 'reverse_proxy' ? 80 : undefined,
+        connectedApp: d.targetName || (d.targetType === 'custom' ? 'Nginx custom' : undefined),
+        branchName: typeLabel[d.targetType] || undefined,
+        port: d.targetType === 'database' ? undefined : (d.routingType === 'reverse_proxy' ? 80 : undefined),
         rawObject: d
       });
     });
@@ -174,9 +191,9 @@ export class Networking implements OnInit, OnDestroy {
     if (!projectId) return;
 
     this.loadingDbs.set(true);
-    this.dbService.listDatabases(projectId).subscribe({
+    this.dbService.listDatabases(projectId, 1, 1000).subscribe({
       next: (res) => {
-        this.databases.set((res || []).filter(db => db.isExternal));
+        this.databases.set((res?.items || []).filter(db => db.isExternal));
         this.loadingDbs.set(false);
       },
       error: () => {
@@ -190,9 +207,9 @@ export class Networking implements OnInit, OnDestroy {
     const projectId = this.parent.projectId();
     if (!projectId) return;
 
-    this.projectService.listProjectFunctions(projectId).subscribe({
+    this.projectService.listProjectFunctions(projectId, 1, 1000).subscribe({
       next: (res) => {
-        this.serverlessFunctions.set(res || []);
+        this.serverlessFunctions.set(res?.items || []);
       },
       error: () => {
         this.serverlessFunctions.set([]);
@@ -202,27 +219,28 @@ export class Networking implements OnInit, OnDestroy {
 
   loadDomains(): void {
     this.loadingDomains.set(true);
-    this.domainService.listDomains().subscribe({
+    this.domainService.listDomains(1, 1000).subscribe({
       next: (res) => {
-        this.customDomains.set(res || []);
+        this.customDomains.set(res?.items || []);
         this.loadingDomains.set(false);
 
         // Update selected route if currently viewed custom domain has updated
         const currentSelected = this.selectedRoute();
         if (currentSelected && currentSelected.type === 'custom') {
-          const updated = res.find(d => d.id === currentSelected.id);
+          const updated = (res?.items || []).find(d => d.id === currentSelected.id);
           if (updated) {
-            const insts = this.parent.appDetail()?.instances || [];
-            const matchedBranch = updated.nginxTargetHost ? insts.find(i => i.containerName === updated.nginxTargetHost)?.branchName : undefined;
+            const typeLabel: Record<string, string> = {
+              app: 'Aplicație', serverless: 'Funcție Serverless', database: 'Bază de date', custom: 'Custom'
+            };
             this.selectedRoute.set({
               id: updated.id,
               fqdn: updated.fqdn,
               type: 'custom',
               routingType: updated.routingType as any,
               status: updated.status as any,
-              connectedApp: updated.nginxTargetHost ? (this.parent.project()?.name || 'Hermes App') : undefined,
-              branchName: matchedBranch,
-              port: updated.routingType === 'reverse_proxy' ? 80 : undefined,
+              connectedApp: updated.targetName || (updated.targetType === 'custom' ? 'Nginx custom' : undefined),
+              branchName: typeLabel[updated.targetType] || undefined,
+              port: updated.targetType === 'database' ? undefined : (updated.routingType === 'reverse_proxy' ? 80 : undefined),
               rawObject: updated
             });
           }
@@ -241,19 +259,36 @@ export class Networking implements OnInit, OnDestroy {
       return;
     }
 
+    const targetType = this.newTargetType();
+    if (targetType !== 'custom' && !this.selectedTargetId()) {
+      this.errorMsg.set('Selectați resursa la care conectați domeniul.');
+      return;
+    }
+
     this.submittingDomain.set(true);
     this.errorMsg.set(null);
     this.successMsg.set(null);
 
-    this.domainService.addDomain({
-      fqdn: this.fqdn().trim(),
-      routingType: this.routingType(),
-      clientMaxBodySize: this.clientMaxBodySize(),
-      isSsl: this.isSsl(),
-      nginxTargetHost: this.routingType() === 'reverse_proxy' ? this.nginxTargetHost().trim() || undefined : undefined,
-      nginxRootPath: this.routingType() === 'static_host' ? this.nginxRootPath().trim() || undefined : undefined,
-      nginxConfigContent: this.routingType() === 'custom' ? this.nginxConfigContent().trim() || undefined : undefined,
-    }).subscribe({
+    const payload = targetType === 'custom'
+      ? {
+          fqdn: this.fqdn().trim(),
+          targetType,
+          routingType: this.routingType(),
+          clientMaxBodySize: this.clientMaxBodySize(),
+          isSsl: this.isSsl(),
+          nginxTargetHost: this.routingType() === 'reverse_proxy' ? this.nginxTargetHost().trim() || undefined : undefined,
+          nginxRootPath: this.routingType() === 'static_host' ? this.nginxRootPath().trim() || undefined : undefined,
+          nginxConfigContent: this.routingType() === 'custom' ? this.nginxConfigContent().trim() || undefined : undefined,
+        }
+      : {
+          fqdn: this.fqdn().trim(),
+          targetType,
+          targetId: this.selectedTargetId(),
+          clientMaxBodySize: this.clientMaxBodySize(),
+          isSsl: this.isSsl(),
+        };
+
+    this.domainService.addDomain(payload).subscribe({
       next: () => {
         this.submittingDomain.set(false);
         this.showAddDomainForm.set(false);
@@ -261,7 +296,8 @@ export class Networking implements OnInit, OnDestroy {
         this.nginxTargetHost.set('');
         this.nginxRootPath.set('');
         this.nginxConfigContent.set('');
-        this.toast.success('Domeniul custom a fost adăugat cu succes!');
+        this.selectedTargetId.set('');
+        this.toast.success('Domeniul a fost adăugat cu succes!');
         this.loadDomains();
       },
       error: (err) => {
@@ -319,7 +355,7 @@ export class Networking implements OnInit, OnDestroy {
       this.editNginxConfigContent.set(d.nginxConfigContent || '');
     }
 
-    this.startLogSimulation(route.fqdn);
+    this.startLogStream(route);
   }
 
   deselectRoute(): void {
@@ -334,6 +370,7 @@ export class Networking implements OnInit, OnDestroy {
     this.updatingSettings.set(true);
     this.domainService.updateDomain(route.id, {
       fqdn: route.fqdn,
+      targetType: (route.rawObject as Domain).targetType || 'custom',
       routingType: this.editRoutingType(),
       clientMaxBodySize: this.editClientMaxBodySize(),
       isSsl: this.editIsSsl(),
@@ -361,38 +398,29 @@ export class Networking implements OnInit, OnDestroy {
     });
   }
 
-  startLogSimulation(fqdn: string): void {
+  // Real nginx access logs, polled from the backend. Only custom/attached domains
+  // flow through the host nginx (and thus have a per-domain access log); automatic
+  // ingress routes don't, so we mark them unsupported.
+  startLogStream(route: UnifiedRoute): void {
     this.stopLogSimulation();
-    const initial: string[] = [];
-    const paths = ['/', '/api/v1/health', '/static/css/styles.css', '/static/js/main.js', '/api/v1/auth/session', '/dashboard', '/api/v1/metrics'];
-    const ips = ['192.168.49.1', '10.244.0.1', '127.0.0.1'];
-
-    for (let i = 0; i < 15; i++) {
-      const time = new Date(Date.now() - (15 - i) * 4000);
-      const method = Math.random() > 0.3 ? 'GET' : 'POST';
-      const path = paths[Math.floor(Math.random() * paths.length)];
-      const status = Math.random() > 0.05 ? 200 : 404;
-      const size = Math.floor(Math.random() * 4000) + 80;
-      const ip = ips[Math.floor(Math.random() * ips.length)];
-      initial.push(`[${time.toISOString().replace('T', ' ').substring(0, 19)}] ${ip} - "${method} ${path} HTTP/1.1" ${status} ${size} "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"`);
+    if (route.type !== 'custom') {
+      this.liveLogs.set([]);
+      this.logsSupported.set(false);
+      return;
     }
-    this.liveLogs.set(initial);
+    this.logsSupported.set(true);
+    this.loadDomainLogs(route.id);
+    this.logTimer = setInterval(() => this.loadDomainLogs(route.id), 5000);
+  }
 
-    this.logTimer = setInterval(() => {
-      const time = new Date();
-      const method = Math.random() > 0.3 ? 'GET' : 'POST';
-      const path = paths[Math.floor(Math.random() * paths.length)];
-      const status = Math.random() > 0.05 ? 200 : 404;
-      const size = Math.floor(Math.random() * 4000) + 80;
-      const ip = ips[Math.floor(Math.random() * ips.length)];
-      const logLine = `[${time.toISOString().replace('T', ' ').substring(0, 19)}] ${ip} - "${method} ${path} HTTP/1.1" ${status} ${size} "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"`;
-
-      const current = this.liveLogs();
-      if (current.length > 40) {
-        current.shift();
-      }
-      this.liveLogs.set([...current, logLine]);
-    }, 1500);
+  loadDomainLogs(id: string): void {
+    this.domainService.getDomainLogs(id).subscribe({
+      next: (res) => {
+        this.logsSupported.set(res.supported);
+        this.liveLogs.set(res.lines || []);
+      },
+      error: () => { /* keep last view; transient errors are fine */ }
+    });
   }
 
   stopLogSimulation(): void {

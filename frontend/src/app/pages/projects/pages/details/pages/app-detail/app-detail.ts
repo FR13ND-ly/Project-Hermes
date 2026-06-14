@@ -11,11 +11,13 @@ import { WorkspaceService, Workspace } from '../../../../../../core/services/wor
 import { WebSocketService } from '../../../../../../core/services/websocket.service';
 import { Subscription, interval } from 'rxjs';
 import { HttpEventType } from '@angular/common/http';
+import { Pagination } from '../../../../../../shared/components/pagination/pagination';
+import { DEFAULT_PAGE_SIZE } from '../../../../../../core/models/pagination';
 
 @Component({
   selector: 'app-app-detail',
   standalone: true,
-  imports: [CommonModule, DatePipe, DecimalPipe, FormsModule, RouterLink],
+  imports: [CommonModule, DatePipe, DecimalPipe, FormsModule, RouterLink, Pagination],
   templateUrl: './app-detail.html',
   styleUrl: './app-detail.css',
 })
@@ -74,6 +76,9 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
   // Logs console signals
   readonly builds = signal<AppBuild[]>([]);
+  readonly buildsPage = signal(1);
+  readonly buildsPageSize = signal(DEFAULT_PAGE_SIZE);
+  readonly buildsTotal = signal(0);
   readonly buildsLoading = signal(false);
   readonly selectedBuildId = signal<string | null>(null);
   readonly selectedBuildLogs = signal<string>('');
@@ -150,8 +155,13 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.projectService.rollbackBuild(appId, build.id).subscribe({
       next: () => {
         this.rollingBackId.set(null);
-        this.toast.success('Rollback pornit — se redeployează imaginea acestui build.');
+        this.toast.success('Rollback pornit — acest build devine cel activ (LIVE).');
+        this.pushSystemLog(`⏪ Rollback la build ${build.id.substring(0, 8)} — se re-deployează imaginea acestui build...`);
+        // Select the rolled-back build so it's highlighted; the LIVE badge follows
+        // once the builds list refreshes against the instance's new image.
+        this.onViewBuildLogs(build);
         this.loadAppDetails();
+        this.loadBuilds(true);
       },
       error: (err) => {
         this.rollingBackId.set(null);
@@ -224,9 +234,12 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
   // Project-pool env available to this instance (with linked flag)
   readonly availableProjectEnv = signal<ProjectEnvResponse[]>([]);
-  readonly showProjectEnvSelector = signal(false);
   readonly togglingLinkId = signal<string | null>(null);
   readonly showCreateEnvForm = signal(false);
+  // Add-variable panel mode: a brand-new var, or link one from the project pool.
+  readonly addEnvMode = signal<'new' | 'project'>('new');
+  // The project-pool vars this instance currently links (shown inline in the table).
+  readonly linkedProjectEnv = computed(() => this.availableProjectEnv().filter(v => v.linked));
   readonly settingEnv = signal(false);
   readonly envKey = signal('');
   readonly envVal = signal('');
@@ -258,6 +271,13 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   readonly stoppingInstance = signal(false);
   readonly startingInstance = signal(false);
   readonly redeployingInstance = signal(false);
+  readonly reloadingInstance = signal(false);
+
+  /** Append a Hermes system line into the live stdout view (visual feedback). */
+  private pushSystemLog(msg: string): void {
+    const ts = new Date().toLocaleTimeString();
+    this.logs.update(lines => [...lines, `[Hermes ${ts}] ${msg}`]);
+  }
 
 
 
@@ -591,16 +611,18 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     if (!silent) {
       this.buildsLoading.set(true);
     }
-    this.projectService.listBuilds(appId).subscribe({
+    this.projectService.listBuilds(appId, this.buildsPage(), this.buildsPageSize()).subscribe({
       next: (res) => {
-        this.builds.set(res || []);
+        const items = res?.items || [];
+        this.builds.set(items);
+        this.buildsTotal.set(res?.total || 0);
         if (!silent) {
           this.buildsLoading.set(false);
         }
 
         // Auto-select and show active building log
-        if (res && res.length > 0) {
-          const latestBuild = res[0];
+        if (items.length > 0) {
+          const latestBuild = items[0];
           if (latestBuild.status === 'building' && !this.selectedBuildId()) {
             this.onViewBuildLogs(latestBuild);
             this.activeSubTab.set('logs');
@@ -871,9 +893,12 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     if (!appInstanceId) return;
 
     this.envVariablesLoading.set(true);
-    this.projectService.listEnvVariables(appInstanceId).subscribe({
+    // The env tab has a JSON bulk editor that replaces ALL of an instance's vars,
+    // so we must load the full set here (not a page) to avoid silently dropping the
+    // rest on save. The endpoint is still paginated for external/API consumers.
+    this.projectService.listEnvVariables(appInstanceId, 1, 1000).subscribe({
       next: (res) => {
-        this.envVariables.set(res || []);
+        this.envVariables.set(res?.items || []);
         this.envVariablesLoading.set(false);
       },
       error: () => {
@@ -881,6 +906,11 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       }
     });
     this.loadAvailableProjectEnv();
+  }
+
+  onBuildsPageChange(page: number): void {
+    this.buildsPage.set(page);
+    this.loadBuilds();
   }
 
   // --- Project-pool linking ---
@@ -891,11 +921,6 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       next: (res) => this.availableProjectEnv.set(res || []),
       error: () => this.availableProjectEnv.set([])
     });
-  }
-
-  toggleProjectEnvSelector(): void {
-    this.showProjectEnvSelector.set(!this.showProjectEnvSelector());
-    if (this.showProjectEnvSelector()) this.loadAvailableProjectEnv();
   }
 
   onToggleProjectEnvLink(env: ProjectEnvResponse): void {
@@ -1171,6 +1196,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  // Redeploy = full rebuild from Git.
   onRedeployInstance(): void {
     const appId = this.appId();
     const instanceId = this.activeInstanceId();
@@ -1180,12 +1206,35 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.projectService.redeployAppInstance(appId, instanceId).subscribe({
       next: () => {
         this.redeployingInstance.set(false);
-        this.toast.success('Redeploierea manuală a fost lansată.');
+        this.toast.success('Rebuild pornit — se reconstruiește imaginea din Git.');
+        this.pushSystemLog('🔨 Redeploy (rebuild) declanșat — se reconstruiește imaginea din Git...');
+        this.loadAppDetails();
+        this.loadBuilds(true);
+      },
+      error: (err) => {
+        this.toast.error(err.error?.message || err.error?.error?.message || 'Eroare la pornirea rebuild-ului.');
+        this.redeployingInstance.set(false);
+      }
+    });
+  }
+
+  // Reload = re-apply the current image with fresh config/env (no rebuild).
+  onReloadInstance(): void {
+    const appId = this.appId();
+    const instanceId = this.activeInstanceId();
+    if (!appId || !instanceId || this.reloadingInstance()) return;
+
+    this.reloadingInstance.set(true);
+    this.projectService.reloadAppInstance(appId, instanceId).subscribe({
+      next: () => {
+        this.reloadingInstance.set(false);
+        this.toast.success('Reload lansat — se re-aplică imaginea curentă cu env-ul actualizat.');
+        this.pushSystemLog('🔄 Reload declanșat — se re-aplică imaginea curentă cu configurația și env-ul actualizate...');
         this.loadAppDetails();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la redeploierea instanței.');
-        this.redeployingInstance.set(false);
+        this.toast.error(err.error?.message || err.error?.error?.message || 'Eroare la reload.');
+        this.reloadingInstance.set(false);
       }
     });
   }
@@ -1202,23 +1251,23 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
   onAddDomainSubmit(): void {
     const fqdnVal = this.appDomainFqdn().trim();
-    const containerName = this.getSelectedInstanceContainerName();
+    const instanceId = this.activeInstanceId() || this.app()?.instances?.[0]?.id || null;
     if (!fqdnVal) {
       this.toast.error('Numele domeniului este obligatoriu.');
       return;
     }
-    if (!containerName) {
-      this.toast.error('Nu s-a putut asocia deoarece aplicația nu are container activ.');
+    if (!instanceId) {
+      this.toast.error('Nu s-a putut asocia deoarece aplicația nu are o instanță activă.');
       return;
     }
 
     this.addingDomain.set(true);
     this.domainService.addDomain({
       fqdn: fqdnVal,
-      routingType: 'reverse_proxy',
+      targetType: 'app',
+      targetId: instanceId,
       clientMaxBodySize: 50,
-      isSsl: true,
-      nginxTargetHost: containerName
+      isSsl: true
     }).subscribe({
       next: () => {
         this.addingDomain.set(false);

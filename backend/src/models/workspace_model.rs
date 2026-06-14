@@ -11,10 +11,6 @@ pub struct Workspace {
     pub max_memory_mb: i32,
     pub max_storage_gb: i32,
     pub created_by: Uuid,
-    pub cloudflare_api_token: Option<String>,
-    pub cloudflare_zone_id: Option<String>,
-    pub ingress_ip: Option<String>,
-    pub base_domain: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

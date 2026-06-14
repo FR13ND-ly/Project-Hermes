@@ -68,24 +68,60 @@
         @for (env of projectEnv(); track env.id) {
           <div class="flex items-center justify-between gap-3 px-5 py-2.5">
             <div class="flex items-center gap-2 min-w-0">
-              <span class="font-mono text-xs text-white truncate">{{ env.key }}</span>
-              @if (env.source !== 'manual') {
-                <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 shrink-0">{{ env.source }}</span>
-              }
-            </div>
-            <div class="flex items-center gap-3 shrink-0">
-              @if (env.isSecret) {
-                <span class="font-mono text-[10px] text-zinc-600">••••••••</span>
+              @if (renamingId() === env.id) {
+                <input
+                  type="text"
+                  [ngModel]="renameKey()"
+                  (ngModelChange)="renameKey.set($event)"
+                  (keyup.enter)="saveRename(env)"
+                  (keyup.escape)="cancelRename()"
+                  class="px-2 py-1 text-xs bg-black border border-zinc-700 rounded text-white focus:outline-none focus:border-zinc-500 font-mono uppercase font-bold w-48"
+                />
+                <button (click)="saveRename(env)" [disabled]="savingRename()" class="text-[10px] text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer disabled:opacity-50">Salvează</button>
+                <button (click)="cancelRename()" class="text-[10px] text-zinc-500 hover:text-zinc-300 font-semibold cursor-pointer">Anulează</button>
               } @else {
-                <span class="font-mono text-[10px] text-zinc-400 max-w-[240px] truncate">{{ env.value }}</span>
+                <span class="font-mono text-xs text-white truncate">{{ env.key }}</span>
+                @if (env.source !== 'manual') {
+                  <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 shrink-0">{{ env.source }}</span>
+                }
               }
-              <button
-                (click)="deleteProjectEnv(env.id)"
-                class="text-[10px] text-red-500 hover:text-red-400 font-semibold cursor-pointer"
-              >
-                Șterge
-              </button>
             </div>
+            @if (renamingId() !== env.id) {
+              <div class="flex items-center gap-3 shrink-0">
+                @if (projectRevealed()[env.id] !== undefined) {
+                  <span class="font-mono text-[10px] text-zinc-300 max-w-[240px] truncate select-all">{{ projectRevealed()[env.id] }}</span>
+                } @else if (env.isSecret) {
+                  <span class="font-mono text-[10px] text-zinc-600">••••••••</span>
+                } @else {
+                  <span class="font-mono text-[10px] text-zinc-400 max-w-[240px] truncate">{{ env.value }}</span>
+                }
+                <button
+                  (click)="toggleRevealProjectEnv(env)"
+                  class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                  [title]="projectRevealed()[env.id] !== undefined ? 'Ascunde' : 'Arată valoarea'"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
+                <button
+                  (click)="startRename(env)"
+                  class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                  title="Redenumește cheia"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                  </svg>
+                </button>
+                <button
+                  (click)="deleteProjectEnv(env.id)"
+                  class="text-[10px] text-red-500 hover:text-red-400 font-semibold cursor-pointer"
+                >
+                  Șterge
+                </button>
+              </div>
+            }
           </div>
         }
       </div>

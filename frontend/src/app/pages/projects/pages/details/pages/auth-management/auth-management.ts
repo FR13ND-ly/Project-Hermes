@@ -2,7 +2,8 @@ import { Component, inject, signal, effect, computed } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Details } from '../../details';
-import { AuthManagementService, AppUserWithRoles, ApiKeyInfo, CreateApiKeyResponse } from '../../../../../../core/services/auth-management.service';
+import { AuthManagementService, AppUserWithRoles, ApiKeyInfo, CreateApiKeyResponse, AuthIntegration } from '../../../../../../core/services/auth-management.service';
+import { ProjectService } from '../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 
@@ -16,12 +17,52 @@ import { ConfirmService } from '../../../../../../core/services/confirm.service'
 export class AuthManagement {
   readonly parent = inject(Details);
   private readonly authMgmtService = inject(AuthManagementService);
+  private readonly projectService = inject(ProjectService);
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
 
-  readonly activeTab = signal<'users' | 'roles' | 'api-keys'>('users');
+  readonly publishingVar = signal<string | null>(null);
+
+  readonly activeTab = signal<'users' | 'roles' | 'api-keys' | 'integration'>('users');
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+
+  // Integration tab
+  readonly integration = signal<AuthIntegration | null>(null);
+  readonly revealSecret = signal(false);
+  readonly integrationSnippet = computed(() => {
+    const i = this.integration();
+    if (!i) return '';
+    return `// middleware Express — validează JWT-ul local cu secretul din env
+import jwt from 'jsonwebtoken';
+
+const SECRET = process.env.${i.authSecretEnvKey};   // injectat automat de Hermes
+const APP_ID = '${i.appId}';
+const HERMES = '${i.apiBaseUrl}';
+
+// login: cere token-ul de la Hermes
+async function login(email, password) {
+  const r = await fetch(\`\${HERMES}/apps/\${APP_ID}/auth/login\`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  return r.json(); // { token, roles, permissions }
+}
+
+// protejează rutele: verificare locală, zero apeluri către Hermes
+export function requireUser(req, res, next) {
+  const token = (req.headers.authorization || '').replace('Bearer ', '');
+  try {
+    req.user = jwt.verify(token, SECRET); // { sub, email, roles, permissions }
+    next();
+  } catch {
+    res.status(401).json({ error: 'unauthorized' });
+  }
+}
+
+export const requireRole = (role) => (req, res, next) =>
+  req.user?.roles?.includes(role) ? next() : res.status(403).end();`;
+  });
 
   // Users tab states
   readonly users = signal<AppUserWithRoles[]>([]);
@@ -104,7 +145,33 @@ export class AuthManagement {
       this.loadAuthConfig();
     } else if (tab === 'api-keys') {
       this.loadApiKeys();
+    } else if (tab === 'integration') {
+      this.loadIntegration();
     }
+  }
+
+  // --- Integration ---
+  loadIntegration(): void {
+    const activeApp = this.parent.selectedApp();
+    if (!activeApp) return;
+    this.loading.set(true);
+    this.revealSecret.set(false);
+    this.authMgmtService.getIntegration(activeApp.id).subscribe({
+      next: (res) => {
+        this.integration.set(res);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.toast.error(err.error?.message || 'Eroare la încărcarea datelor de integrare.');
+        this.loading.set(false);
+      }
+    });
+  }
+
+  copyText(text: string, label = 'Valoare'): void {
+    navigator.clipboard.writeText(text).then(() => {
+      this.toast.success(`${label} copiat în clipboard!`);
+    });
   }
 
   // --- Users Management ---
@@ -494,6 +561,27 @@ export class AuthManagement {
 
     navigator.clipboard.writeText(key).then(() => {
       this.toast.success('Cheia API a fost copiată în clipboard!');
+    });
+  }
+
+  publishVariableToProject(key: string, value: string, isSecret: boolean): void {
+    const projId = this.parent.projectId();
+    if (!projId) return;
+
+    this.publishingVar.set(key);
+    this.projectService.setProjectEnv(projId, {
+      key,
+      value,
+      isSecret
+    }).subscribe({
+      next: () => {
+        this.publishingVar.set(null);
+        this.toast.success(`Variabila ${key} a fost publicată în pool-ul proiectului!`);
+      },
+      error: (err) => {
+        this.publishingVar.set(null);
+        this.toast.error(err.error?.message || `Eroare la publicarea variabilei ${key}.`);
+      }
     });
   }
 }

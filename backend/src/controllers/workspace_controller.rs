@@ -73,10 +73,6 @@ pub async fn create_workspace(
             slug,
             max_memory_mb: WORKSPACE_MAX_MEMORY_MB,
             max_storage_gb: WORKSPACE_MAX_STORAGE_GB,
-            cloudflare_api_token: None,
-            cloudflare_zone_id: None,
-            ingress_ip: None,
-            base_domain: None,
         }),
     ))
 }
@@ -101,10 +97,6 @@ pub async fn list_my_workspaces(
             slug: w.slug,
             max_memory_mb: w.max_memory_mb,
             max_storage_gb: w.max_storage_gb,
-            cloudflare_api_token: w.cloudflare_api_token,
-            cloudflare_zone_id: w.cloudflare_zone_id,
-            ingress_ip: w.ingress_ip,
-            base_domain: w.base_domain,
         })
         .collect();
 
@@ -213,10 +205,6 @@ pub async fn get_current_workspace(
         slug: w.slug,
         max_memory_mb: w.max_memory_mb,
         max_storage_gb: w.max_storage_gb,
-        cloudflare_api_token: w.cloudflare_api_token,
-        cloudflare_zone_id: w.cloudflare_zone_id,
-        ingress_ip: w.ingress_ip,
-        base_domain: w.base_domain,
     }))
 }
 
@@ -248,24 +236,15 @@ pub async fn update_workspace_settings(
     if let Some(max_store) = payload.max_storage_gb {
         current.max_storage_gb = max_store;
     }
-    current.cloudflare_api_token = payload.cloudflare_api_token;
-    current.cloudflare_zone_id = payload.cloudflare_zone_id;
-    current.ingress_ip = payload.ingress_ip;
-    current.base_domain = payload.base_domain;
- 
+
     sqlx::query!(
-        "UPDATE workspaces 
-         SET name = $1, slug = $2, max_memory_mb = $3, max_storage_gb = $4, 
-             cloudflare_api_token = $5, cloudflare_zone_id = $6, ingress_ip = $7, base_domain = $8, updated_at = now()
-         WHERE id = $9",
+        "UPDATE workspaces
+         SET name = $1, slug = $2, max_memory_mb = $3, max_storage_gb = $4, updated_at = now()
+         WHERE id = $5",
         current.name,
         current.slug,
         current.max_memory_mb,
         current.max_storage_gb,
-        current.cloudflare_api_token,
-        current.cloudflare_zone_id,
-        current.ingress_ip,
-        current.base_domain,
         ws_id
     )
     .execute(&state.pool)
@@ -289,10 +268,6 @@ pub async fn update_workspace_settings(
         slug: current.slug,
         max_memory_mb: current.max_memory_mb,
         max_storage_gb: current.max_storage_gb,
-        cloudflare_api_token: current.cloudflare_api_token,
-        cloudflare_zone_id: current.cloudflare_zone_id,
-        ingress_ip: current.ingress_ip,
-        base_domain: current.base_domain,
     }))
 }
 

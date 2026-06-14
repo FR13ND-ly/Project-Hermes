@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { ApiService } from './api.service';
 import { Observable, tap, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 export interface User {
   id: string;
@@ -74,7 +75,7 @@ export class AuthService {
     if (!refreshToken) {
       return throwError(() => new Error('No refresh token available'));
     }
-    return this.http.post<AuthResponse>('http://localhost:8000/api/v1/auth/refresh', { refresh_token: refreshToken }).pipe(
+    return this.http.post<AuthResponse>(`${environment.apiBaseUrl}/auth/refresh`, { refresh_token: refreshToken }).pipe(
       tap((res) => {
         localStorage.setItem('hermes_token', res.accessToken);
         localStorage.setItem('hermes_refresh_token', res.refreshToken);

@@ -377,6 +377,25 @@
                 <button type="button" (click)="createStep.set(3)" class="flex-1 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors" [class]="createStep() === 3 ? 'bg-white text-black' : 'bg-zinc-950 border border-zinc-850 text-zinc-500 hover:text-zinc-300'">3 · Env</button>
               </div>
 
+              <!-- docker-compose auto-split banner -->
+              @if (composeDetected()) {
+                <div class="flex items-center justify-between gap-3 p-3 rounded-lg border border-cyan-900/40 bg-cyan-950/15 animate-fade-in">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5 text-cyan-400 shrink-0">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                    </svg>
+                    <div class="min-w-0">
+                      <p class="text-xs font-bold text-cyan-200">{{ composeFilename() }} detectat</p>
+                      <p class="text-[10px] text-zinc-500">Pot face split automat în aplicații, baze de date și volume.</p>
+                    </div>
+                  </div>
+                  <button type="button" (click)="openComposeSplit()" [disabled]="planningCompose()"
+                    class="px-3 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-bold shadow cursor-pointer transition-colors disabled:opacity-50 shrink-0">
+                    {{ planningCompose() ? 'Se analizează...' : 'Split automat' }}
+                  </button>
+                </div>
+              }
+
               <!-- STEP 1: REPO -->
               @if (createStep() === 1) {
               <!-- Fields Grid -->
@@ -566,19 +585,61 @@
               @if (createStep() === 3) {
               <!-- Environment Variables (optional, at creation time) -->
               <div class="pt-4 border-t border-zinc-900 space-y-3">
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
                   <div>
                     <h4 class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Variabile de Mediu</h4>
                     <p class="text-[10px] text-zinc-600">Opțional · injectate în container la primul deploy</p>
                   </div>
-                  <button
-                    type="button"
-                    (click)="addEnvRow()"
-                    [disabled]="deployingApp()"
-                    class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-semibold transition-colors cursor-pointer"
-                  >+ Adaugă Variabilă</button>
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      (click)="openCreateEnvModal()"
+                      [disabled]="deployingApp()"
+                      class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-semibold transition-colors cursor-pointer"
+                    >Din Proiect@if (selectedProjectEnvIds().length > 0) {<span class="ml-1 text-emerald-400">· {{ selectedProjectEnvIds().length }}</span>}</button>
+                    <button
+                      type="button"
+                      (click)="newAppEnvJsonMode() ? newAppEnvJsonMode.set(false) : openNewAppEnvJson()"
+                      [disabled]="deployingApp()"
+                      class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-semibold transition-colors cursor-pointer"
+                    >{{ newAppEnvJsonMode() ? 'Înapoi la formular' : 'Editează ca JSON' }}</button>
+                    @if (!newAppEnvJsonMode()) {
+                      <button
+                        type="button"
+                        (click)="addEnvRow()"
+                        [disabled]="deployingApp()"
+                        class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-semibold transition-colors cursor-pointer"
+                      >+ Adaugă Variabilă</button>
+                    }
+                  </div>
                 </div>
 
+                @if (selectedProjectEnvIds().length > 0) {
+                  <p class="text-[10px] text-zinc-500">
+                    <span class="text-emerald-400 font-semibold">{{ selectedProjectEnvIds().length }}</span> variabile conectate din pool-ul proiectului (referință vie).
+                  </p>
+                }
+
+                @if (newAppEnvJsonMode()) {
+                  <div class="space-y-2">
+                    <textarea
+                      rows="10"
+                      [ngModel]="newAppEnvJsonText()"
+                      (ngModelChange)="newAppEnvJsonText.set($event)"
+                      spellcheck="false"
+                      placeholder='{ "API_KEY": "valoare" }'
+                      class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-zinc-200 focus:outline-none focus:border-zinc-500 transition-colors font-mono resize-y"
+                    ></textarea>
+                    <div class="flex items-center justify-end">
+                      <button
+                        type="button"
+                        (click)="applyNewAppEnvJson()"
+                        [disabled]="deployingApp()"
+                        class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
+                      >Aplică JSON</button>
+                    </div>
+                  </div>
+                } @else {
                 @for (row of newAppEnvRows(); track $index) {
                   <div class="flex items-center gap-2">
                     <input
@@ -618,7 +679,91 @@
                     </button>
                   </div>
                 }
+                }
               </div>
+
+              <app-env-link-modal
+                [(open)]="showCreateEnvModal"
+                title="Conectează variabile la aplicație"
+                [vars]="projectEnvForModal()"
+                (toggle)="toggleCreateEnvSelection($event)"
+              />
+              }
+
+              <!-- docker-compose split preview modal -->
+              @if (showComposePreview() && composePlan(); as plan) {
+                <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" (click)="showComposePreview.set(false)">
+                  <div class="w-full max-w-2xl bg-[#0a0a0a] border border-zinc-800 rounded-lg shadow-2xl flex flex-col max-h-[85vh]" (click)="$event.stopPropagation()">
+                    <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-900">
+                      <div>
+                        <h3 class="text-xs font-bold text-white uppercase tracking-wider font-mono">Split din docker-compose</h3>
+                        <p class="text-[10px] text-zinc-500 mt-0.5">Bifează ce vrei să creezi. Bazele de date devin resurse reale; serviciile fără context de build nu pot fi construite.</p>
+                      </div>
+                      <button (click)="showComposePreview.set(false)" class="p-1.5 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+
+                    <div class="overflow-y-auto px-5 py-4 space-y-5 font-mono">
+                      @if (plan.databases.length > 0) {
+                        <div class="space-y-2">
+                          <p class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Baze de date</p>
+                          @for (db of plan.databases; track db.service; let i = $index) {
+                            <label class="flex items-center justify-between gap-3 p-2.5 rounded border border-zinc-850 bg-black cursor-pointer hover:border-zinc-700">
+                              <div class="flex items-center gap-2.5 min-w-0">
+                                <input type="checkbox" [checked]="db.include" (change)="toggleComposeDb(i)" class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer" />
+                                <span class="text-xs text-white font-semibold truncate">{{ db.name }}</span>
+                                <span class="px-1.5 py-0.5 rounded text-[8px] uppercase font-bold bg-amber-950/40 text-amber-400 border border-amber-900/40">{{ db.dbType }}:{{ db.version }}</span>
+                              </div>
+                              <span class="text-[9px] text-zinc-600 shrink-0">:{{ db.internalPort }}</span>
+                            </label>
+                          }
+                        </div>
+                      }
+
+                      @if (plan.apps.length > 0) {
+                        <div class="space-y-2">
+                          <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Aplicații</p>
+                          @for (app of plan.apps; track app.service; let i = $index) {
+                            <label class="flex items-center justify-between gap-3 p-2.5 rounded border border-zinc-850 bg-black"
+                                   [class.opacity-50]="!app.buildable"
+                                   [class.cursor-pointer]="app.buildable"
+                                   [class.hover:border-zinc-700]="app.buildable">
+                              <div class="flex items-center gap-2.5 min-w-0">
+                                <input type="checkbox" [checked]="app.include" [disabled]="!app.buildable" (change)="toggleComposeApp(i)" class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer disabled:opacity-40" />
+                                <span class="text-xs text-white font-semibold truncate">{{ app.name }}</span>
+                                @if (app.buildPath) {
+                                  <span class="px-1.5 py-0.5 rounded text-[8px] bg-zinc-900 border border-zinc-800 text-zinc-400">build: {{ app.buildPath }}</span>
+                                } @else {
+                                  <span class="px-1.5 py-0.5 rounded text-[8px] bg-zinc-900 border border-zinc-800 text-zinc-500" [title]="'fără build context — nu poate fi construit din repo'">imagine</span>
+                                }
+                                @if (app.dependsOn.length > 0) {
+                                  <span class="text-[9px] text-zinc-600">→ {{ app.dependsOn.join(', ') }}</span>
+                                }
+                              </div>
+                              <span class="text-[9px] text-zinc-600 shrink-0">:{{ app.internalPort }}</span>
+                            </label>
+                          }
+                        </div>
+                      }
+
+                      @if (plan.apps.length === 0 && plan.databases.length === 0) {
+                        <p class="text-[11px] text-zinc-600 text-center py-6">Nu am găsit servicii în docker-compose.</p>
+                      }
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 px-5 py-3 border-t border-zinc-900">
+                      <span class="text-[10px] text-zinc-500 font-sans">{{ composeSelectedCount() }} resurse selectate</span>
+                      <div class="flex items-center gap-2">
+                        <button (click)="showComposePreview.set(false)" class="px-3 py-1.5 rounded text-zinc-400 hover:text-white text-xs font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer font-sans">Anulează</button>
+                        <button (click)="onApplyComposeSplit()" [disabled]="applyingCompose() || composeSelectedCount() === 0"
+                          class="px-4 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold shadow disabled:opacity-50 cursor-pointer font-sans">
+                          {{ applyingCompose() ? 'Se creează...' : 'Creează tot' }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               }
 
               <!-- Wizard footer -->

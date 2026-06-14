@@ -16,6 +16,7 @@ pub fn routes(state: AppState) -> Router {
 
     let get_router = Router::new()
         .route("/apps/:id", get(app_controller::get_app_details))
+        .route("/build-queue", get(app_controller::list_build_queue))
         .route("/projects/:project_id/apps", get(app_controller::list_project_apps))
         .route("/apps/:id/instances/:instance_id/logs/ws", get(app_controller::stream_instance_logs_ws))
         .route("/apps/:id/instances/:instance_id/stats", get(app_controller::stream_instance_stats))
@@ -32,6 +33,7 @@ pub fn routes(state: AppState) -> Router {
         .route("/apps/:id/instances/:instance_id/stop", post(app_controller::stop_app_instance))
         .route("/apps/:id/instances/:instance_id/start", post(app_controller::start_app_instance))
         .route("/apps/:id/instances/:instance_id/redeploy", post(app_controller::redeploy_app_instance))
+        .route("/apps/:id/instances/:instance_id/reload", post(app_controller::reload_app_instance))
         .route("/apps/:id/instances/:instance_id/serverless", post(app_controller::configure_serverless))
         .route("/apps/:id/builds/:build_id/retry", post(app_controller::retry_build))
         .route("/apps/:id/builds/:build_id/cancel", post(app_controller::cancel_build))

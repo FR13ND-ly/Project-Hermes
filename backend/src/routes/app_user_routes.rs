@@ -11,12 +11,15 @@ use crate::middlewares::permission_middleware::{check_permission, RequiredPermis
 pub fn routes(state: AppState) -> Router {
     let public_routes = Router::new()
         .route("/apps/:id/auth/register", post(app_user_controller::register_public_user))
-        .route("/apps/:id/auth/login", post(app_user_controller::login_public_user));
+        .route("/apps/:id/auth/login", post(app_user_controller::login_public_user))
+        .route("/apps/:id/auth/verify-token", post(app_user_controller::verify_app_token))
+        .route("/apps/:id/auth/verify-key", post(app_user_controller::verify_app_key));
 
     let list_router = Router::new()
         .route("/apps/:id/users", get(app_user_controller::list_app_users_with_roles))
         .route("/apps/:id/auth-config", get(app_user_controller::get_app_auth_config))
         .route("/apps/:id/api-keys", get(app_user_controller::list_app_api_keys))
+        .route("/apps/:id/auth/integration", get(app_user_controller::get_auth_integration))
         .layer(from_fn_with_state(state.clone(), check_permission))
         .layer(Extension(RequiredPermission("app:read")));
 

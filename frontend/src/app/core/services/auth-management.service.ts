@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ApiService } from './api.service';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface AppUserWithRoles {
   appUserId: string;
@@ -38,13 +39,24 @@ export interface PaginatedUsersResponse {
   pages: number;
 }
 
+export interface AuthIntegration {
+  appId: string;
+  apiBaseUrl: string;
+  authSecretEnvKey: string;
+  authSecret: string;
+  registerEndpoint: string;
+  loginEndpoint: string;
+  verifyTokenEndpoint: string;
+  verifyKeyEndpoint: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class AuthManagementService {
   private readonly api = inject(ApiService);
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = 'http://localhost:8000/api/v1';
+  private readonly baseUrl = environment.apiBaseUrl;
 
   listUsers(appId: string, page = 1, limit = 10, search = ''): Observable<PaginatedUsersResponse> {
     let url = `/apps/${appId}/users?page=${page}&limit=${limit}`;
@@ -58,8 +70,8 @@ export class AuthManagementService {
     return this.api.post<void>(`/apps/${appId}/users/${userId}/status`, { status });
   }
 
-  resetUserPassword(appId: string, userId: string, newPasswordHash: string): Observable<void> {
-    return this.api.post<void>(`/apps/${appId}/users/${userId}/reset-password`, { newPasswordHash });
+  resetUserPassword(appId: string, userId: string, newPassword: string): Observable<void> {
+    return this.api.post<void>(`/apps/${appId}/users/${userId}/reset-password`, { newPassword });
   }
 
   assignUserRole(appId: string, email: string, role: string): Observable<void> {
@@ -96,5 +108,9 @@ export class AuthManagementService {
 
   deleteApiKey(appId: string, keyId: string): Observable<void> {
     return this.api.delete<void>(`/apps/${appId}/api-keys/${keyId}`);
+  }
+
+  getIntegration(appId: string): Observable<AuthIntegration> {
+    return this.api.get<AuthIntegration>(`/apps/${appId}/auth/integration`);
   }
 }

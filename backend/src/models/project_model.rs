@@ -11,6 +11,10 @@ pub struct Project {
     pub slug: String,
     pub created_by: Uuid,
     pub created_at: DateTime<Utc>,
+    pub cloudflare_api_token: Option<String>,
+    pub cloudflare_zone_id: Option<String>,
+    pub ingress_ip: Option<String>,
+    pub base_domain: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, sqlx::Type, PartialEq, Eq)]

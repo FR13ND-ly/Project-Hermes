@@ -118,6 +118,13 @@
               </button>
             }
           </div>
+
+          <app-pagination
+            [page]="page()"
+            [pageSize]="pageSize()"
+            [total]="total()"
+            (pageChange)="onPageChange($event)"
+          />
         }
       </div>
     </div>

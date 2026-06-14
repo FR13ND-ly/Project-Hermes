@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiService } from './api.service';
 import { Observable } from 'rxjs';
+import { Paginated, DEFAULT_PAGE_SIZE } from '../models/pagination';
 
 export interface Project {
   id: string;
@@ -8,6 +9,21 @@ export interface Project {
   description: string | null;
   workspace_id: string;
   created_at: string;
+}
+
+// Cloudflare / Ingress settings (project-level). The API token is never returned.
+export interface ProjectSettings {
+  cloudflareZoneId: string | null;
+  ingressIp: string | null;
+  baseDomain: string | null;
+  hasCloudflareToken: boolean;
+}
+
+export interface UpdateProjectSettingsRequest {
+  cloudflareApiToken?: string | null;
+  cloudflareZoneId?: string | null;
+  ingressIp?: string | null;
+  baseDomain?: string | null;
 }
 
 export interface AppInstance {
@@ -52,6 +68,49 @@ export interface AppBuild {
   commitMessage?: string;
   commitSha?: string;
   durationSec?: number;
+  imageTag?: string | null;
+  isLive?: boolean;
+}
+
+export interface BuildQueueItem {
+  id: string;
+  kind: 'app' | 'database' | 'serverless';
+  resourceId: string;
+  name: string;
+  detail?: string | null;
+  projectId: string;
+  projectName: string;
+  workspaceId: string;
+  workspaceName: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface PlanEnv { key: string; value: string; }
+export interface PlanVolume { service: string; name: string; containerPath: string; }
+export interface PlanApp {
+  service: string;
+  name: string;
+  image?: string | null;
+  buildPath?: string | null;
+  internalPort: number;
+  buildable: boolean;
+  env: PlanEnv[];
+  volumes: PlanVolume[];
+  dependsOn: string[];
+  include: boolean;
+}
+export interface PlanDatabase {
+  service: string;
+  name: string;
+  dbType: string;
+  version: string;
+  internalPort: number;
+  include: boolean;
+}
+export interface ComposePlan {
+  apps: PlanApp[];
+  databases: PlanDatabase[];
 }
 
 export interface MetricsHistory {
@@ -74,8 +133,16 @@ export class ProjectService {
     return this.api.get<Project>(`/projects/${id}`);
   }
 
-  listProjectApps(projectId: string): Observable<AppDetail[]> {
-    return this.api.get<AppDetail[]>(`/projects/${projectId}/apps`);
+  getProjectSettings(projectId: string): Observable<ProjectSettings> {
+    return this.api.get<ProjectSettings>(`/projects/${projectId}/settings`);
+  }
+
+  updateProjectSettings(projectId: string, payload: UpdateProjectSettingsRequest): Observable<ProjectSettings> {
+    return this.api.patch<ProjectSettings>(`/projects/${projectId}/settings`, payload);
+  }
+
+  listProjectApps(projectId: string, page = 1, pageSize = DEFAULT_PAGE_SIZE): Observable<Paginated<AppDetail>> {
+    return this.api.get<Paginated<AppDetail>>(`/projects/${projectId}/apps?page=${page}&pageSize=${pageSize}`);
   }
 
   createProject(name: string, description: string | null): Observable<Project> {
@@ -93,6 +160,7 @@ export class ProjectService {
     externalPort?: number;
     gitSubpath?: string;
     envVariables?: EnvVarInput[];
+    linkedProjectEnvIds?: string[];
   }): Observable<any> {
     return this.api.post<any>('/apps', payload);
   }
@@ -113,8 +181,22 @@ export class ProjectService {
     return this.api.delete<any>(`/projects/${projectId}`);
   }
 
-  listBuilds(appId: string): Observable<AppBuild[]> {
-    return this.api.get<AppBuild[]>(`/apps/${appId}/builds`);
+  listBuilds(appId: string, page = 1, pageSize = DEFAULT_PAGE_SIZE): Observable<Paginated<AppBuild>> {
+    return this.api.get<Paginated<AppBuild>>(`/apps/${appId}/builds?page=${page}&pageSize=${pageSize}`);
+  }
+
+  // Global build queue (queued + building), oldest first.
+  listBuildQueue(): Observable<BuildQueueItem[]> {
+    return this.api.get<BuildQueueItem[]>('/build-queue');
+  }
+
+  // Docker-compose auto-split: preview a plan, then apply it.
+  planComposeSplit(composeYaml: string): Observable<ComposePlan> {
+    return this.api.post<ComposePlan>('/stacks/plan', { composeYaml });
+  }
+
+  applyComposeSplit(payload: { projectId: string; gitRepository?: string; branchName?: string; plan: ComposePlan }): Observable<any> {
+    return this.api.post<any>('/stacks/apply', payload);
   }
 
   getBuildDetails(appId: string, buildId: string): Observable<AppBuild> {
@@ -156,8 +238,8 @@ export class ProjectService {
     return this.api.getStreamUrl(`/apps/${appId}/builds/${buildId}/logs/stream`);
   }
 
-  listEnvVariables(appInstanceId: string): Observable<EnvResponse[]> {
-    return this.api.get<EnvResponse[]>(`/envs?appInstanceId=${appInstanceId}`);
+  listEnvVariables(appInstanceId: string, page = 1, pageSize = DEFAULT_PAGE_SIZE): Observable<Paginated<EnvResponse>> {
+    return this.api.get<Paginated<EnvResponse>>(`/envs?appInstanceId=${appInstanceId}&page=${page}&pageSize=${pageSize}`);
   }
 
   listProjectEnvsGrouped(projectId: string): Observable<GroupedAppEnv[]> {
@@ -204,6 +286,16 @@ export class ProjectService {
     return this.api.delete<any>(`/projects/${projectId}/env/${id}`);
   }
 
+  // Rename a project-pool var's key (works for manual and resource-published vars).
+  renameProjectEnv(projectId: string, id: string, key: string): Observable<ProjectEnvResponse> {
+    return this.api.patch<ProjectEnvResponse>(`/projects/${projectId}/env/${id}`, { key });
+  }
+
+  // Decrypt and fetch a single project-pool var's value on explicit reveal.
+  revealProjectEnv(projectId: string, id: string): Observable<{ value: string }> {
+    return this.api.get<{ value: string }>(`/projects/${projectId}/env/${id}/reveal`);
+  }
+
   // Project-pool vars available to an instance, each flagged as linked or not.
   listInstanceProjectEnv(instanceId: string): Observable<ProjectEnvResponse[]> {
     return this.api.get<ProjectEnvResponse[]>(`/instances/${instanceId}/project-env`);
@@ -215,6 +307,24 @@ export class ProjectService {
 
   unlinkProjectEnv(instanceId: string, projectEnvId: string): Observable<any> {
     return this.api.delete<any>(`/instances/${instanceId}/env-links/${projectEnvId}`);
+  }
+
+  // --- Serverless function project-pool links (parity with app instances) ---
+  listFunctionProjectEnv(projectId: string, functionId: string): Observable<ProjectEnvResponse[]> {
+    return this.api.get<ProjectEnvResponse[]>(`/projects/${projectId}/functions/${functionId}/project-env`);
+  }
+
+  linkFunctionProjectEnv(projectId: string, functionId: string, projectEnvId: string): Observable<any> {
+    return this.api.post<any>(`/projects/${projectId}/functions/${functionId}/env-links`, { projectEnvId });
+  }
+
+  unlinkFunctionProjectEnv(projectId: string, functionId: string, projectEnvId: string): Observable<any> {
+    return this.api.delete<any>(`/projects/${projectId}/functions/${functionId}/env-links/${projectEnvId}`);
+  }
+
+  // Re-apply env on the running Knative service without a rebuild.
+  reloadFunctionEnv(projectId: string, functionId: string): Observable<ServerlessFunction> {
+    return this.api.post<ServerlessFunction>(`/projects/${projectId}/functions/${functionId}/reload-env`, {});
   }
 
   updateInstanceSettings(appId: string, instanceId: string, payload: {
@@ -236,22 +346,29 @@ export class ProjectService {
     return this.api.post<any>(`/apps/${appId}/instances/${instanceId}/start`, {});
   }
 
+  // Redeploy = full rebuild from Git.
   redeployAppInstance(appId: string, instanceId: string): Observable<any> {
     return this.api.post<any>(`/apps/${appId}/instances/${instanceId}/redeploy`, {});
   }
 
-  // --- Cron Jobs API ---
-  listProjectCronJobs(projectId: string): Observable<CronJob[]> {
-    return this.api.get<CronJob[]>(`/projects/${projectId}/cron`);
+  // Reload = re-apply the current image with fresh config/env (no rebuild).
+  reloadAppInstance(appId: string, instanceId: string): Observable<any> {
+    return this.api.post<any>(`/apps/${appId}/instances/${instanceId}/reload`, {});
   }
 
-  listCronJobs(appId: string): Observable<CronJob[]> {
-    return this.api.get<CronJob[]>(`/apps/${appId}/cron`);
+  // --- Cron Jobs API ---
+  listProjectCronJobs(projectId: string, page = 1, pageSize = DEFAULT_PAGE_SIZE): Observable<Paginated<CronJob>> {
+    return this.api.get<Paginated<CronJob>>(`/projects/${projectId}/cron?page=${page}&pageSize=${pageSize}`);
+  }
+
+  listCronJobs(appId: string, page = 1, pageSize = DEFAULT_PAGE_SIZE): Observable<Paginated<CronJob>> {
+    return this.api.get<Paginated<CronJob>>(`/apps/${appId}/cron?page=${page}&pageSize=${pageSize}`);
   }
 
   createCronJob(payload: {
     projectId: string;
-    appId: string;
+    targetType: 'app' | 'database' | 'storage';
+    targetId: string;
     name: string;
     schedule: string;
     command: string;
@@ -318,15 +435,15 @@ export class ProjectService {
     return this.api.delete<any>(`/projects/${projectId}/ssh-keys/${keyId}`);
   }
 
-  listProjectFunctions(projectId: string): Observable<ServerlessFunction[]> {
-    return this.api.get<ServerlessFunction[]>(`/projects/${projectId}/functions`);
+  listProjectFunctions(projectId: string, page = 1, pageSize = DEFAULT_PAGE_SIZE): Observable<Paginated<ServerlessFunction>> {
+    return this.api.get<Paginated<ServerlessFunction>>(`/projects/${projectId}/functions?page=${page}&pageSize=${pageSize}`);
   }
 
-  createFunction(projectId: string, payload: { name: string, code?: string, method: string, routePath: string, memoryLimitMb?: number }): Observable<ServerlessFunction> {
+  createFunction(projectId: string, payload: { name: string, code?: string, method: string, routePath: string, memoryLimitMb?: number, runtime?: string }): Observable<ServerlessFunction> {
     return this.api.post<ServerlessFunction>(`/projects/${projectId}/functions`, payload);
   }
 
-  updateFunction(projectId: string, id: string, payload: { name?: string, code?: string, method?: string, routePath?: string, memoryLimitMb?: number, envVariables?: any, assignedDomain?: string | null }): Observable<ServerlessFunction> {
+  updateFunction(projectId: string, id: string, payload: { name?: string, code?: string, method?: string, routePath?: string, memoryLimitMb?: number, envVariables?: any, assignedDomain?: string | null, runtime?: string, inheritProjectEnvs?: boolean }): Observable<ServerlessFunction> {
     return this.api.put<ServerlessFunction>(`/projects/${projectId}/functions/${id}`, payload);
   }
 
@@ -334,13 +451,30 @@ export class ProjectService {
     return this.api.delete<any>(`/projects/${projectId}/functions/${id}`);
   }
 
-  deployFunction(projectId: string, id: string): Observable<any> {
-    return this.api.post<any>(`/projects/${projectId}/functions/${id}/deploy`, {});
+  deployFunction(projectId: string, id: string): Observable<{ buildId: string }> {
+    return this.api.post<{ buildId: string }>(`/projects/${projectId}/functions/${id}/deploy`, {});
   }
 
   getFunctionDetails(projectId: string, id: string): Observable<ServerlessFunction> {
     return this.api.get<ServerlessFunction>(`/projects/${projectId}/functions/${id}`);
   }
+
+  // --- Serverless build history + live build logs ---
+  listFunctionBuilds(projectId: string, functionId: string): Observable<ServerlessBuild[]> {
+    return this.api.get<ServerlessBuild[]>(`/projects/${projectId}/functions/${functionId}/builds`);
+  }
+
+  getFunctionBuildLogsStreamUrl(projectId: string, functionId: string, buildId: string): string {
+    return this.api.getStreamUrl(`/projects/${projectId}/functions/${functionId}/builds/${buildId}/logs/stream`);
+  }
+}
+
+export interface ServerlessBuild {
+  id: string;
+  status: string;        // building | success | failed
+  imageTag: string | null;
+  durationSec: number | null;
+  createdAt: string;
 }
 
 export interface ProjectSshKey {
@@ -368,6 +502,13 @@ export interface CronJob {
   project_id?: string;
   appId?: string;
   app_id?: string;
+  targetType?: 'app' | 'database' | 'storage';
+  target_type?: 'app' | 'database' | 'storage';
+  targetId?: string | null;
+  target_id?: string | null;
+  targetName?: string | null;
+  isBackup?: boolean;
+  is_backup?: boolean;
   name: string;
   schedule: string;
   command: string;
@@ -441,6 +582,8 @@ export interface ServerlessFunction {
   assignedDomain: string | null;
   buildLogs: string | null;
   externalPort: number | null;
+  runtime: string;
+  inheritProjectEnvs: boolean;
   createdAt: string;
   updatedAt: string;
 }

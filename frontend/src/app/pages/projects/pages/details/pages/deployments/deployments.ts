@@ -2,10 +2,12 @@ import { Component, inject, signal, OnInit, OnDestroy, effect } from '@angular/c
 import { DatePipe } from '@angular/common';
 import { Details } from '../../details';
 import { ProjectService, AppBuild } from '../../../../../../core/services/project.service';
+import { Pagination } from '../../../../../../shared/components/pagination/pagination';
+import { DEFAULT_PAGE_SIZE } from '../../../../../../core/models/pagination';
 
 @Component({
   selector: 'app-deployments',
-  imports: [DatePipe],
+  imports: [DatePipe, Pagination],
   templateUrl: './deployments.html',
   styleUrl: './deployments.css',
 })
@@ -15,6 +17,9 @@ export class Deployments implements OnInit, OnDestroy {
 
   readonly builds = signal<AppBuild[]>([]);
   readonly buildsLoading = signal(false);
+  readonly page = signal(1);
+  readonly pageSize = signal(DEFAULT_PAGE_SIZE);
+  readonly total = signal(0);
   
   readonly selectedBuildId = signal<string | null>(null);
   readonly selectedBuildLogs = signal<string>('');
@@ -56,9 +61,10 @@ export class Deployments implements OnInit, OnDestroy {
     if (!appId) return;
 
     this.buildsLoading.set(true);
-    this.projectService.listBuilds(appId).subscribe({
+    this.projectService.listBuilds(appId, this.page(), this.pageSize()).subscribe({
       next: (res) => {
-        this.builds.set(res || []);
+        this.builds.set(res?.items || []);
+        this.total.set(res?.total || 0);
         this.buildsLoading.set(false);
       },
       error: () => {
@@ -66,6 +72,11 @@ export class Deployments implements OnInit, OnDestroy {
         this.buildsLoading.set(false);
       }
     });
+  }
+
+  onPageChange(page: number): void {
+    this.page.set(page);
+    this.loadBuilds();
   }
 
   connectLogs(instanceId: string): void {

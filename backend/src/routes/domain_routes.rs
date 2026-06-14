@@ -17,6 +17,7 @@ pub fn routes(state: AppState) -> Router {
 
     let list_router = Router::new()
         .route("/domains", get(domain_controller::list_domains))
+        .route("/domains/:id/logs", get(domain_controller::get_domain_logs))
         .layer(from_fn_with_state(state.clone(), check_permission))
         .layer(Extension(RequiredPermission("domain:read")));
 

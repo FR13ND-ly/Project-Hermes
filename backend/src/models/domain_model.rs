@@ -27,6 +27,10 @@ pub struct Domain {
     pub id: Uuid,
     pub workspace_id: Uuid,
     pub fqdn: String,
+    /// 'app' | 'serverless' | 'database' | 'custom'.
+    pub target_type: String,
+    /// The targeted resource id (app instance / function / database); null for custom.
+    pub target_id: Option<Uuid>,
     pub routing_type: DomainRoutingType,
     pub client_max_body_size: i32,
     pub is_ssl: bool,

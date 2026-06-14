@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiService } from './api.service';
 import { Observable } from 'rxjs';
+import { Paginated, DEFAULT_PAGE_SIZE } from '../models/pagination';
 
 export interface DatabaseServiceInfo {
   id: string;
@@ -51,12 +52,14 @@ export class DatabaseService {
     memoryLimitMb?: number;
     isExternal?: boolean;
     externalPort?: number;
+    publishToEnv?: boolean;
+    envKey?: string;
   }): Observable<DatabaseServiceInfo> {
     return this.api.post<DatabaseServiceInfo>('/databases', payload);
   }
 
-  listDatabases(projectId: string): Observable<DatabaseServiceInfo[]> {
-    return this.api.get<DatabaseServiceInfo[]>(`/databases?projectId=${projectId}`);
+  listDatabases(projectId: string, page = 1, pageSize = DEFAULT_PAGE_SIZE): Observable<Paginated<DatabaseServiceInfo>> {
+    return this.api.get<Paginated<DatabaseServiceInfo>>(`/databases?projectId=${projectId}&page=${page}&pageSize=${pageSize}`);
   }
 
   getDatabase(id: string): Observable<DatabaseServiceInfo> {
@@ -107,6 +110,20 @@ export class DatabaseService {
   getMetrics(dbId: string, metric: string, range: string): Observable<DbMetricsHistory> {
     return this.api.get<DbMetricsHistory>(`/databases/${dbId}/metrics?metric=${metric}&range=${range}`);
   }
+
+  // The managed backup cron for this database (null when auto-backup is off).
+  getBackupCron(dbId: string): Observable<BackupCron | null> {
+    return this.api.get<BackupCron | null>(`/databases/${dbId}/backup-cron`);
+  }
+}
+
+export interface BackupCron {
+  id: string;
+  name: string;
+  schedule: string;
+  command: string;
+  status: string;
+  nextRunAt?: string | null;
 }
 
 export interface DbMetricsHistory {

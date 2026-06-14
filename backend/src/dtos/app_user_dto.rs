@@ -31,7 +31,9 @@ pub struct AppUserWithRolesResponse {
 #[serde(rename_all = "camelCase")]
 pub struct AppUserRegisterRequest {
     pub email: String,
-    pub password_hash: String,
+    /// The plaintext password. `passwordHash` accepted as a legacy alias.
+    #[serde(alias = "passwordHash")]
+    pub password: String,
     pub full_name: String,
 }
 
@@ -39,7 +41,9 @@ pub struct AppUserRegisterRequest {
 #[serde(rename_all = "camelCase")]
 pub struct AppUserLoginRequest {
     pub email: String,
-    pub password_hash: String,
+    /// The plaintext password. `passwordHash` accepted as a legacy alias.
+    #[serde(alias = "passwordHash")]
+    pub password: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -50,6 +54,7 @@ pub struct AppUserAuthResponse {
     pub email: String,
     pub full_name: String,
     pub roles: Vec<String>,
+    pub permissions: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -61,7 +66,9 @@ pub struct UpdateUserStatusRequest {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResetPasswordRequest {
-    pub new_password_hash: String,
+    /// The new plaintext password. `newPasswordHash` accepted as a legacy alias.
+    #[serde(alias = "newPasswordHash")]
+    pub new_password: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -97,4 +104,52 @@ pub struct ApiKeyResponse {
     pub created_at: DateTime<Utc>,
     pub expires_at: Option<DateTime<Utc>>,
     pub last_used_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VerifyTokenRequest {
+    pub token: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VerifyTokenResponse {
+    pub valid: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_user_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    pub roles: Vec<String>,
+    pub permissions: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VerifyKeyRequest {
+    pub key: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VerifyKeyResponse {
+    pub valid: bool,
+    pub expired: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthIntegrationResponse {
+    pub app_id: Uuid,
+    pub api_base_url: String,
+    pub auth_secret_env_key: String,
+    pub auth_secret: String,
+    pub register_endpoint: String,
+    pub login_endpoint: String,
+    pub verify_token_endpoint: String,
+    pub verify_key_endpoint: String,
 }

@@ -1,26 +1,32 @@
-import { Component, inject, signal, OnInit, computed } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, computed } from '@angular/core';
 import { ActivatedRoute, RouterLink, RouterOutlet, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
-import { forkJoin } from 'rxjs';
-import { ProjectService, AppDetail, Project, EnvVarInput } from '../../../../core/services/project.service';
+import { forkJoin, Subscription } from 'rxjs';
+import { ProjectService, AppDetail, Project, EnvVarInput, ProjectEnvResponse, ComposePlan } from '../../../../core/services/project.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth';
 import { GithubService, GithubRepo, GithubBranch } from '../../../../core/services/github.service';
+import { EnvLinkModal } from '../../../../shared/components/env-link-modal/env-link-modal';
+import { WebSocketService } from '../../../../core/services/websocket.service';
 
 @Component({
   selector: 'app-details',
-  imports: [RouterLink, RouterOutlet, FormsModule, DatePipe],
+  imports: [RouterLink, RouterOutlet, FormsModule, DatePipe, EnvLinkModal],
   templateUrl: './details.html',
   styleUrl: './details.css',
 })
-export class Details implements OnInit {
+export class Details implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly projectService = inject(ProjectService);
   readonly router = inject(Router);
   readonly toast = inject(ToastService);
   readonly authService = inject(AuthService);
   private readonly githubService = inject(GithubService);
+  private readonly wsService = inject(WebSocketService);
+
+  private refreshInterval: any = null;
+  private sub = new Subscription();
 
   readonly projectId = signal<string | null>(null);
   readonly project = signal<Project | null>(null);
@@ -70,6 +76,70 @@ export class Details implements OnInit {
     this.newAppEnvRows.update(rows =>
       rows.map((row, i) => (i === index ? { ...row, isSecret: !row.isSecret } : row))
     );
+  }
+
+  // --- Create-wizard: project-pool links chosen before the instance exists ---
+  readonly projectEnvPool = signal<ProjectEnvResponse[]>([]);
+  readonly selectedProjectEnvIds = signal<string[]>([]);
+  readonly showCreateEnvModal = signal(false);
+
+  // Pool vars decorated with a `linked` flag reflecting the local selection, so
+  // the shared modal can render them with the same toggle UI as app-detail.
+  readonly projectEnvForModal = computed<ProjectEnvResponse[]>(() => {
+    const selected = this.selectedProjectEnvIds();
+    return this.projectEnvPool().map(v => ({ ...v, linked: selected.includes(v.id) }));
+  });
+
+  openCreateEnvModal(): void {
+    const projectId = this.projectId();
+    if (projectId) {
+      this.projectService.listProjectEnv(projectId).subscribe({
+        next: (res) => this.projectEnvPool.set(res || []),
+        error: () => this.projectEnvPool.set([])
+      });
+    }
+    this.showCreateEnvModal.set(true);
+  }
+
+  toggleCreateEnvSelection(env: ProjectEnvResponse): void {
+    this.selectedProjectEnvIds.update(ids =>
+      ids.includes(env.id) ? ids.filter(id => id !== env.id) : [...ids, env.id]
+    );
+  }
+
+  // --- Create-wizard: JSON editor for the simple key/value rows ---
+  readonly newAppEnvJsonMode = signal(false);
+  readonly newAppEnvJsonText = signal('');
+
+  openNewAppEnvJson(): void {
+    const obj: Record<string, string> = {};
+    for (const row of this.newAppEnvRows()) {
+      const key = row.key.trim();
+      if (key) obj[key] = row.value;
+    }
+    this.newAppEnvJsonText.set(JSON.stringify(obj, null, 2));
+    this.newAppEnvJsonMode.set(true);
+  }
+
+  applyNewAppEnvJson(): void {
+    let parsed: any;
+    try {
+      parsed = JSON.parse(this.newAppEnvJsonText() || '{}');
+    } catch {
+      this.toast.error('JSON invalid. Verifică sintaxa.');
+      return;
+    }
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      this.toast.error('JSON-ul trebuie să fie un obiect { "CHEIE": "valoare" }.');
+      return;
+    }
+    const rows: EnvVarInput[] = Object.entries(parsed).map(([key, value]) => ({
+      key,
+      value: value == null ? '' : String(value),
+      isSecret: true
+    }));
+    this.newAppEnvRows.set(rows);
+    this.newAppEnvJsonMode.set(false);
   }
 
   // GitHub account integration state
@@ -199,9 +269,100 @@ export class Details implements OnInit {
     this.detectedDescription.set('');
     
     this.loadBranches(repo.owner.login, repo.name);
-    
+
     // Auto-detect project type and configs in specified subdirectory
     this.triggerAutoDetection();
+
+    // Look for a docker-compose file to offer an auto-split.
+    this.checkCompose(repo.owner.login, repo.name);
+  }
+
+  // --- docker-compose auto-split ---
+  readonly composeDetected = signal(false);
+  readonly composeYaml = signal('');
+  readonly composeFilename = signal<string | null>(null);
+  readonly composePlan = signal<ComposePlan | null>(null);
+  readonly showComposePreview = signal(false);
+  readonly planningCompose = signal(false);
+  readonly applyingCompose = signal(false);
+
+  checkCompose(owner: string, repo: string): void {
+    this.composeDetected.set(false);
+    this.composePlan.set(null);
+    this.githubService.getRepoCompose(owner, repo, this.gitSubpath() || undefined).subscribe({
+      next: (res) => {
+        if (res.found) {
+          this.composeDetected.set(true);
+          this.composeYaml.set(res.yaml);
+          this.composeFilename.set(res.filename || 'docker-compose.yml');
+        }
+      },
+      error: () => this.composeDetected.set(false)
+    });
+  }
+
+  openComposeSplit(): void {
+    if (!this.composeYaml()) return;
+    this.planningCompose.set(true);
+    this.projectService.planComposeSplit(this.composeYaml()).subscribe({
+      next: (plan) => {
+        this.composePlan.set(plan);
+        this.showComposePreview.set(true);
+        this.planningCompose.set(false);
+      },
+      error: (err) => {
+        this.toast.error(err.error?.message || 'Nu am putut analiza docker-compose.');
+        this.planningCompose.set(false);
+      }
+    });
+  }
+
+  toggleComposeApp(index: number): void {
+    this.composePlan.update(p => {
+      if (!p) return p;
+      const apps = p.apps.map((a, i) => i === index ? { ...a, include: !a.include } : a);
+      return { ...p, apps };
+    });
+  }
+
+  toggleComposeDb(index: number): void {
+    this.composePlan.update(p => {
+      if (!p) return p;
+      const databases = p.databases.map((d, i) => i === index ? { ...d, include: !d.include } : d);
+      return { ...p, databases };
+    });
+  }
+
+  composeSelectedCount(): number {
+    const p = this.composePlan();
+    if (!p) return 0;
+    return p.apps.filter(a => a.include).length + p.databases.filter(d => d.include).length;
+  }
+
+  onApplyComposeSplit(): void {
+    const projectId = this.projectId();
+    const plan = this.composePlan();
+    if (!projectId || !plan) return;
+    this.applyingCompose.set(true);
+    this.projectService.applyComposeSplit({
+      projectId,
+      gitRepository: this.gitRepository() || undefined,
+      branchName: this.branchName() || 'main',
+      plan
+    }).subscribe({
+      next: () => {
+        this.applyingCompose.set(false);
+        this.showComposePreview.set(false);
+        this.showAddAppForm.set(false);
+        this.toast.success('Stack-ul a fost creat din docker-compose (aplicații, baze de date, volume).');
+        this.loadDetails(projectId);
+        this.router.navigate(['/projects', projectId, 'apps']);
+      },
+      error: (err) => {
+        this.toast.error(err.error?.message || 'Eroare la crearea stack-ului.');
+        this.applyingCompose.set(false);
+      }
+    });
   }
 
   onUseCustomGitUrl(): void {
@@ -231,22 +392,57 @@ export class Details implements OnInit {
       if (id) {
         this.projectId.set(id);
         this.loadDetails(id);
+        this.startPolling(id);
       }
     });
     this.loadGithubRepos();
+
+    // Real-time WebSocket subscriptions
+    const events = ['instance_status_changed', 'build_status_changed', 'database_status_changed', 'serverless_function_updated'];
+    for (const evt of events) {
+      this.sub.add(
+        this.wsService.onEvent<any>(evt).subscribe(() => {
+          const pid = this.projectId();
+          if (pid) {
+            this.loadDetails(pid, true);
+          }
+        })
+      );
+    }
   }
 
-  loadDetails(id: string): void {
-    this.loading.set(true);
+  private startPolling(id: string): void {
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+    }
+    this.refreshInterval = setInterval(() => {
+      if (this.projectId() && !this.loading() && !this.deployingApp()) {
+        this.loadDetails(this.projectId()!, true);
+      }
+    }, 4000);
+  }
+
+  ngOnDestroy(): void {
+    this.sub.unsubscribe();
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+    }
+  }
+
+  loadDetails(id: string, silent = false): void {
+    if (!silent) {
+      this.loading.set(true);
+    }
     this.error.set(null);
 
     forkJoin({
       project: this.projectService.getProject(id),
-      apps: this.projectService.listProjectApps(id)
+      // Shared lookup state used across child pages — fetch all apps (large page).
+      apps: this.projectService.listProjectApps(id, 1, 1000)
     }).subscribe({
       next: (res) => {
         this.project.set(res.project);
-        const appsList = res.apps || [];
+        const appsList = res.apps?.items || [];
         this.apps.set(appsList);
 
         const currentSelected = this.selectedApp();
@@ -254,16 +450,22 @@ export class Details implements OnInit {
           const updated = appsList.find(a => a.id === currentSelected.id);
           this.selectedApp.set(updated || null);
         } else if (appsList.length > 0) {
-          this.selectedApp.set(appsList[0]);
+          if (!currentSelected) {
+            this.selectedApp.set(appsList[0]);
+          }
         } else {
           this.selectedApp.set(null);
         }
         
-        this.loading.set(false);
+        if (!silent) {
+          this.loading.set(false);
+        }
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la încărcarea detaliilor proiectului.');
-        this.loading.set(false);
+        if (!silent) {
+          this.error.set(err.error?.message || 'Eroare la încărcarea detaliilor proiectului.');
+          this.loading.set(false);
+        }
       }
     });
   }
@@ -299,7 +501,8 @@ export class Details implements OnInit {
       internalPort: this.internalPort() || undefined,
       externalPort: this.externalPort() || undefined,
       gitSubpath: this.gitSubpath() || undefined,
-      envVariables: envVariables.length > 0 ? envVariables : undefined
+      envVariables: envVariables.length > 0 ? envVariables : undefined,
+      linkedProjectEnvIds: this.selectedProjectEnvIds().length > 0 ? this.selectedProjectEnvIds() : undefined
     }).subscribe({
       next: (res) => {
         this.deployingApp.set(false);
@@ -313,6 +516,8 @@ export class Details implements OnInit {
         this.externalPort.set(null);
         this.gitSubpath.set('');
         this.newAppEnvRows.set([]);
+        this.selectedProjectEnvIds.set([]);
+        this.newAppEnvJsonMode.set(false);
         this.selectedImportRepo.set(null);
         this.isCustomGitUrl.set(false);
         this.toast.success('Aplicația a fost înregistrată pentru deployment cu succes!');
