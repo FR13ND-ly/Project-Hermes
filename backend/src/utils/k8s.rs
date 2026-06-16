@@ -1,6 +1,6 @@
 use kube::{Client, Api, api::{PostParams, DeleteParams, PatchParams, Patch}};
 use serde_json::json;
-use k8s_openapi::api::core::v1::{Namespace, Service};
+use k8s_openapi::api::core::v1::{Namespace, Service, Pod};
 use k8s_openapi::api::apps::v1::Deployment;
 use k8s_openapi::api::networking::v1::Ingress;
 use crate::utils::error::AppError;
@@ -13,7 +13,79 @@ impl K8sManager {
             .map_err(|e| AppError::Infrastructure(format!("Failed to connect to K3s cluster: {}", e)))
     }
 
-    pub async fn create_namespace(client: &Client, name: &str, max_mem: i32, max_storage: i32) -> Result<(), AppError> {
+    /// Resolve the first pod name matching label `app={app_label}` in a namespace.
+    /// Used to target a workload's pod for `exec` (StatefulSet/Deployment-agnostic).
+    pub async fn pod_name_for_app(client: &Client, namespace: &str, app_label: &str) -> Result<String, AppError> {
+        let pods: Api<Pod> = Api::namespaced(client.clone(), namespace);
+        let lp = kube::api::ListParams::default().labels(&format!("app={}", app_label));
+        let list = pods.list(&lp).await
+            .map_err(|e| AppError::Infrastructure(format!("Failed to list pods: {}", e)))?;
+        list.items
+            .into_iter()
+            .find_map(|p| p.metadata.name)
+            .ok_or_else(|| AppError::Infrastructure(format!("No running pod found for '{}'.", app_label)))
+    }
+
+    /// Delete a pod (best-effort). A controller (StatefulSet/Deployment) recreates
+    /// it, so this is used to force a restart that picks up updated Secret values
+    /// (e.g. Redis re-reading its requirepass).
+    pub async fn delete_pod(client: &Client, namespace: &str, pod: &str) -> Result<(), AppError> {
+        let pods: Api<Pod> = Api::namespaced(client.clone(), namespace);
+        let _ = pods.delete(pod, &DeleteParams::default()).await;
+        Ok(())
+    }
+
+    /// Exec a command inside a pod's first container and return its stdout. Fails
+    /// (Err) when the command's exit status is not Success. Requires the kube `ws`
+    /// feature. Used for live credential rotation (ALTER USER, etc.).
+    #[tracing::instrument(skip_all, fields(namespace = %namespace, pod = %pod), err)]
+    pub async fn exec_in_pod(
+        client: &Client,
+        namespace: &str,
+        pod: &str,
+        command: Vec<String>,
+    ) -> Result<String, AppError> {
+        use kube::api::AttachParams;
+        use tokio::io::AsyncReadExt;
+
+        let pods: Api<Pod> = Api::namespaced(client.clone(), namespace);
+        let ap = AttachParams::default().stdout(true).stderr(true).stdin(false);
+
+        let mut attached = pods.exec(pod, command, &ap).await
+            .map_err(|e| AppError::Infrastructure(format!("Pod exec failed to start: {}", e)))?;
+
+        let mut stdout = String::new();
+        if let Some(mut s) = attached.stdout() {
+            let _ = s.read_to_string(&mut stdout).await;
+        }
+        let mut stderr = String::new();
+        if let Some(mut s) = attached.stderr() {
+            let _ = s.read_to_string(&mut stderr).await;
+        }
+
+        // The k8s error channel carries the exit status (status == "Success" on exit 0).
+        let status = match attached.take_status() {
+            Some(fut) => fut.await,
+            None => None,
+        };
+        let _ = attached.join().await;
+
+        let failed = status
+            .as_ref()
+            .and_then(|s| s.status.as_deref())
+            .map(|s| s != "Success")
+            .unwrap_or(false);
+
+        if failed {
+            let detail = if stderr.trim().is_empty() { stdout.trim() } else { stderr.trim() };
+            return Err(AppError::Infrastructure(format!("Command in pod '{}' failed: {}", pod, detail)));
+        }
+
+        Ok(if stdout.trim().is_empty() { stderr } else { stdout })
+    }
+
+    #[tracing::instrument(skip_all, fields(namespace = %name), err)]
+    pub async fn create_namespace(client: &Client, name: &str, max_mem: i32, max_storage: i32, max_cpu: i32) -> Result<(), AppError> {
         let namespaces: Api<Namespace> = Api::all(client.clone());
         let ns_manifest: Namespace = serde_json::from_value(json!({
             "apiVersion": "v1",
@@ -31,7 +103,7 @@ impl K8sManager {
         .map_err(|e| AppError::Infrastructure(format!("Failed to create Namespace {}: {}", name, e)))?;
 
         // Apply resource limits and default quota ranges
-        Self::apply_namespace_limits(client, name, max_mem, max_storage).await?;
+        Self::apply_namespace_limits(client, name, max_mem, max_storage, max_cpu).await?;
 
         // Apply NetworkPolicy for namespace isolation
         Self::apply_network_policy(client, name).await?;
@@ -45,11 +117,11 @@ impl K8sManager {
         Ok(())
     }
 
-    pub async fn apply_namespace_limits(client: &Client, namespace: &str, max_mem: i32, max_storage: i32) -> Result<(), AppError> {
+    pub async fn apply_namespace_limits(client: &Client, namespace: &str, max_mem: i32, max_storage: i32, max_cpu: i32) -> Result<(), AppError> {
         let quotas: Api<k8s_openapi::api::core::v1::ResourceQuota> = Api::namespaced(client.clone(), namespace);
         let limit_ranges: Api<k8s_openapi::api::core::v1::LimitRange> = Api::namespaced(client.clone(), namespace);
 
-        if max_mem <= 0 && max_storage <= 0 {
+        if max_mem <= 0 && max_storage <= 0 && max_cpu <= 0 {
             let _ = quotas.delete("hermes-quota", &DeleteParams::default()).await;
         } else {
             let mut hard = serde_json::Map::new();
@@ -59,6 +131,10 @@ impl K8sManager {
             }
             if max_storage > 0 {
                 hard.insert("requests.storage".to_string(), json!(format!("{}Gi", max_storage)));
+            }
+            if max_cpu > 0 {
+                hard.insert("requests.cpu".to_string(), json!(format!("{}m", max_cpu)));
+                hard.insert("limits.cpu".to_string(), json!(format!("{}m", max_cpu)));
             }
 
             if !hard.is_empty() {
@@ -297,6 +373,7 @@ impl K8sManager {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all, fields(namespace = %namespace, name = %name, image = %image), err)]
     pub async fn deploy_app(
         client: &Client,
         namespace: &str,
@@ -402,6 +479,10 @@ impl K8sManager {
             if memory_limit_mb > 0 {
                 limits["memory"] = json!(format!("{}Mi", memory_limit_mb));
             }
+            // Mirror limits into requests → Guaranteed QoS (predictable scheduling,
+            // not evicted under node pressure). No limit configured = no request, so
+            // unconfigured resources stay unlimited (LimitRange is the safety net).
+            resources["requests"] = limits.clone();
             resources["limits"] = limits;
         }
 
@@ -567,6 +648,7 @@ impl K8sManager {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all, fields(namespace = %namespace, name = %name, host = %host), err)]
     pub async fn deploy_ingress(
         client: &Client,
         namespace: &str,
@@ -692,6 +774,7 @@ impl K8sManager {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all, fields(namespace = %namespace, name = %name, image = %image), err)]
     pub async fn deploy_database(
         client: &Client,
         namespace: &str,
@@ -701,19 +784,83 @@ impl K8sManager {
         port: i32,
         cpu_limit: i32,
         memory_limit_mb: i64,
+        storage_gb: i32,
     ) -> Result<(), AppError> {
         let statefulsets: Api<k8s_openapi::api::apps::v1::StatefulSet> = Api::namespaced(client.clone(), namespace);
 
-        // Apply Secret for database environment variables
-        Self::create_secret(client, namespace, name, envs).await?;
+        let image_lower = image.to_lowercase();
+        let is_postgres = image_lower.contains("postgres");
+        let is_redis = image_lower.contains("redis");
+        let is_mongo = image_lower.contains("mongo");
+
+        // Per-engine metrics exporter (sidecar) so DB-internal metrics
+        // (connections, cache-hit rate) become real in Prometheus. Connection
+        // creds go into the env Secret, never the pod spec.
+        struct Exporter {
+            image: &'static str,
+            port: i32,
+            env: Vec<(String, String)>,
+            args: Option<Vec<String>>,
+        }
+        let enc = |s: &str| {
+            percent_encoding::utf8_percent_encode(s, percent_encoding::NON_ALPHANUMERIC).to_string()
+        };
+        let get = |k: &str| envs.iter().find(|(key, _)| key == k).map(|(_, v)| v.clone());
+
+        let exporter: Option<Exporter> = if is_postgres {
+            let user = get("POSTGRES_USER").unwrap_or_else(|| "postgres".to_string());
+            let pass = get("POSTGRES_PASSWORD").unwrap_or_default();
+            let db = get("POSTGRES_DB").unwrap_or_else(|| user.clone());
+            let dsn = format!(
+                "postgresql://{}:{}@localhost:{}/{}?sslmode=disable",
+                enc(&user), enc(&pass), port, enc(&db)
+            );
+            Some(Exporter {
+                image: "quay.io/prometheuscommunity/postgres-exporter:v0.15.0",
+                port: 9187,
+                env: vec![("DATA_SOURCE_NAME".to_string(), dsn)],
+                args: None,
+            })
+        } else if is_redis {
+            // Hermes redis runs without auth; the exporter only needs the address.
+            Some(Exporter {
+                image: "oliver006/redis_exporter:v1.62.0",
+                port: 9121,
+                env: vec![("REDIS_ADDR".to_string(), format!("redis://localhost:{}", port))],
+                args: None,
+            })
+        } else if is_mongo {
+            let user = get("MONGO_INITDB_ROOT_USERNAME").unwrap_or_default();
+            let pass = get("MONGO_INITDB_ROOT_PASSWORD").unwrap_or_default();
+            let uri = if user.is_empty() {
+                format!("mongodb://localhost:{}", port)
+            } else {
+                format!("mongodb://{}:{}@localhost:{}/?authSource=admin", enc(&user), enc(&pass), port)
+            };
+            Some(Exporter {
+                image: "percona/mongodb_exporter:0.40.0",
+                port: 9216,
+                env: vec![("MONGODB_URI".to_string(), uri)],
+                args: Some(vec!["--collect-all".to_string(), "--compatible-mode".to_string()]),
+            })
+        } else {
+            None
+        };
+
+        let mut secret_envs = envs.clone();
+        if let Some(ref ex) = exporter {
+            secret_envs.extend(ex.env.clone());
+        }
+
+        // Apply Secret for database environment variables (+ exporter creds).
+        Self::create_secret(client, namespace, name, secret_envs).await?;
 
         // Determine mountPath dynamically based on the database image type
-        let image_lower = image.to_lowercase();
-        let mount_path = if image_lower.contains("postgres") {
+        let mount_path = if is_postgres {
             "/var/lib/postgresql"
         } else if image_lower.contains("mysql") {
             "/var/lib/mysql"
-        } else if image_lower.contains("mongo") {
+        } else if is_mongo {
             "/data/db"
         } else {
             "/data" // redis and default
@@ -728,7 +875,54 @@ impl K8sManager {
             if memory_limit_mb > 0 {
                 limits["memory"] = json!(format!("{}Mi", memory_limit_mb));
             }
+            // Mirror limits into requests → Guaranteed QoS (predictable scheduling,
+            // not evicted under node pressure). No limit configured = no request, so
+            // unconfigured resources stay unlimited (LimitRange is the safety net).
+            resources["requests"] = limits.clone();
             resources["limits"] = limits;
+        }
+
+        // Build the container list (DB + optional exporter sidecar) and pod
+        // annotations so Prometheus' pod-scrape job discovers the exporter.
+        let mut main_container = json!({
+            "name": name,
+            "image": image,
+            "ports": [{ "containerPort": port }],
+            "envFrom": [{ "secretRef": { "name": format!("{}-env", name) } }],
+            "volumeMounts": [{ "name": "db-storage", "mountPath": mount_path }],
+            "resources": resources,
+            "readinessProbe": {
+                "tcpSocket": { "port": port },
+                "initialDelaySeconds": 5,
+                "periodSeconds": 2
+            }
+        });
+        if is_redis {
+            // Redis takes its password as a server arg read from the env Secret
+            // (kept out of the pod spec). Empty/unset REDIS_PASSWORD = authless.
+            main_container["command"] = json!([
+                "sh", "-c", "exec redis-server --requirepass \"$REDIS_PASSWORD\""
+            ]);
+        }
+        let mut containers = vec![main_container];
+        let mut pod_annotations = json!({});
+        if let Some(ref ex) = exporter {
+            let mut exporter_container = json!({
+                "name": "metrics-exporter",
+                "image": ex.image,
+                "ports": [{ "containerPort": ex.port, "name": "metrics" }],
+                "envFrom": [{ "secretRef": { "name": format!("{}-env", name) } }],
+                "resources": { "limits": { "cpu": "100m", "memory": "128Mi" } }
+            });
+            if let Some(ref args) = ex.args {
+                exporter_container["args"] = json!(args);
+            }
+            containers.push(exporter_container);
+            pod_annotations = json!({
+                "prometheus.io/scrape": "true",
+                "prometheus.io/port": ex.port.to_string(),
+                "prometheus.io/path": "/metrics"
+            });
         }
 
         let statefulset_manifest: k8s_openapi::api::apps::v1::StatefulSet = serde_json::from_value(json!({
@@ -753,33 +947,11 @@ impl K8sManager {
                     "metadata": {
                         "labels": {
                             "app": name
-                        }
+                        },
+                        "annotations": pod_annotations
                     },
                     "spec": {
-                        "containers": [{
-                            "name": name,
-                            "image": image,
-                            "ports": [{
-                                "containerPort": port
-                            }],
-                            "envFrom": [{
-                                "secretRef": {
-                                    "name": format!("{}-env", name)
-                                }
-                            }],
-                            "volumeMounts": [{
-                                "name": "db-storage",
-                                "mountPath": mount_path
-                            }],
-                            "resources": resources,
-                            "readinessProbe": {
-                                "tcpSocket": {
-                                    "port": port
-                                },
-                                "initialDelaySeconds": 5,
-                                "periodSeconds": 2
-                            }
-                        }]
+                        "containers": containers
                     }
                 },
                 "volumeClaimTemplates": [{
@@ -790,7 +962,9 @@ impl K8sManager {
                         "accessModes": ["ReadWriteOnce"],
                         "resources": {
                             "requests": {
-                                "storage": "1Gi"
+                                // Uses the cluster default StorageClass (local-path on
+                                // k3s) — dynamic provisioning. Immutable after create.
+                                "storage": format!("{}Gi", storage_gb.max(1))
                             }
                         }
                     }
@@ -937,6 +1111,7 @@ impl K8sManager {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all, fields(namespace = %namespace, name = %name, replicas), err)]
     pub async fn scale_deployment(
         client: &Client,
         namespace: &str,
@@ -951,8 +1126,8 @@ impl K8sManager {
         });
         let _ = deployments.patch(
             name,
-            &PatchParams::apply("hermes-orchestrator").force(),
-            &Patch::Apply(&patch)
+            &PatchParams::default(),
+            &Patch::Merge(&patch)
         ).await
         .map_err(|e| AppError::Infrastructure(format!("Failed to scale Deployment {}: {}", name, e)))?;
         Ok(())
@@ -1094,7 +1269,7 @@ impl K8sManager {
         let logs_str = match pods_api.logs(pod_name, &log_params).await {
             Ok(l) => l,
             Err(e) => {
-                println!("[K8sManager] Error getting logs for pod {}: {:?}", pod_name, e);
+                tracing::warn!(pod = %pod_name, "Error getting logs for pod: {:?}", e);
                 format!("Failed to retrieve logs from Kubernetes: {:?}", e)
             }
         };

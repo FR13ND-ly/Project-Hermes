@@ -24,6 +24,12 @@ fn build_semaphore() -> &'static Semaphore {
     })
 }
 
+/// Number of build-concurrency permits currently free (0 = builds saturated).
+/// Sampled by the metrics gauge sampler.
+pub fn available_build_permits() -> usize {
+    build_semaphore().available_permits()
+}
+
 /// Read a build's current phase from the database (used to detect cancellation
 /// and supersession, which are signalled by writing to the `phase` column).
 async fn build_phase_db(pool: &sqlx::PgPool, build_id: Uuid) -> Option<String> {
@@ -34,6 +40,7 @@ async fn build_phase_db(pool: &sqlx::PgPool, build_id: Uuid) -> Option<String> {
         .flatten()
 }
 
+#[tracing::instrument(skip_all, fields(instance_id = %instance_id, branch = %branch_name))]
 pub async fn run_ephemeral_build(
     pool: PgPool,
     instance_id: Uuid,
@@ -51,12 +58,12 @@ pub async fn run_ephemeral_build(
     };
 
     let meta = match sqlx::query!(
-        "SELECT ai.container_name, ai.internal_port, ai.assigned_domain, a.id as app_id, a.project_id, a.workspace_id, ai.cpu_limit, ai.memory_limit_mb, u.github_token, a.start_command, a.git_subpath
+        "SELECT ai.container_name, ai.internal_port, ai.assigned_domain, a.id as app_id, a.project_id, a.workspace_id, ai.cpu_limit, ai.memory_limit_mb, u.github_token, a.start_command, a.git_subpath, a.git_credential_id
          FROM app_instances ai
          JOIN apps a ON ai.app_id = a.id
          JOIN workspaces w ON a.workspace_id = w.id
          JOIN users u ON w.created_by = u.id
-         WHERE ai.id = $1", 
+         WHERE ai.id = $1",
         instance_id
     )
     .fetch_optional(&pool)
@@ -68,15 +75,17 @@ pub async fn run_ephemeral_build(
         }
     };
 
-    let limits = sqlx::query!("SELECT max_memory_mb, max_storage_gb FROM workspaces WHERE id = $1", meta.workspace_id)
+    tracing::info!(repo = %git_repo, "Build started");
+
+    let limits = sqlx::query!("SELECT max_memory_mb, max_storage_gb, max_cpu_millicores FROM workspaces WHERE id = $1", meta.workspace_id)
         .fetch_one(&pool)
         .await;
-    let (max_mem, max_storage) = match limits {
-        Ok(r) => (r.max_memory_mb, r.max_storage_gb),
-        Err(_) => (2048, 10),
+    let (max_mem, max_storage, max_cpu) = match limits {
+        Ok(r) => (r.max_memory_mb, r.max_storage_gb, r.max_cpu_millicores),
+        Err(_) => (2048, 10, 0),
     };
     let namespace = format!("hermes-ws-{}", meta.workspace_id);
-    let _ = crate::utils::k8s::K8sManager::create_namespace(&k8s_client, &namespace, max_mem, max_storage).await;
+    let _ = crate::utils::k8s::K8sManager::create_namespace(&k8s_client, &namespace, max_mem, max_storage, max_cpu).await;
 
     // Calculate currently used memory in Kubernetes to maximize builder headroom
     let mut total_used_mem = 0;
@@ -93,7 +102,7 @@ pub async fn run_ephemeral_build(
                     if let Some(resources) = container.resources {
                         if let Some(limits) = resources.limits {
                             if let Some(mem_qty) = limits.get("memory") {
-                                total_used_mem += parse_memory_quantity(&mem_qty.0);
+                                total_used_mem += crate::utils::quantity::parse_memory_mib(&mem_qty.0) as i32;
                             }
                         }
                     }
@@ -216,6 +225,8 @@ pub async fn run_ephemeral_build(
     // Wait for a build slot (stays 'queued' meanwhile). The permit is held for
     // the rest of the function, releasing automatically when the build ends.
     let _build_permit = build_semaphore().acquire().await;
+    // Track this build in the in-progress gauge until it returns (any path).
+    let _in_progress = crate::utils::metrics::BuildInProgressGuard::new();
 
     // While we waited in the queue this build may itself have been cancelled or
     // superseded by an even newer one — bail out cleanly if so.
@@ -264,7 +275,7 @@ pub async fn run_ephemeral_build(
             let docker_config_str = docker_config.to_string();
 
             let secrets: Api<k8s_openapi::api::core::v1::Secret> = Api::namespaced(k8s_client.clone(), &namespace);
-            let secret_manifest: k8s_openapi::api::core::v1::Secret = serde_json::from_value(json!({
+            match serde_json::from_value::<k8s_openapi::api::core::v1::Secret>(json!({
                 "apiVersion": "v1",
                 "kind": "Secret",
                 "metadata": {
@@ -275,14 +286,18 @@ pub async fn run_ephemeral_build(
                 "stringData": {
                     ".dockerconfigjson": docker_config_str
                 }
-            })).unwrap();
-
-            let _ = secrets.patch(
-                &registry_secret_name,
-                &PatchParams::apply("hermes-orchestrator").force(),
-                &Patch::Apply(&secret_manifest)
-            ).await;
-            has_registry_creds = true;
+            })) {
+                Ok(secret_manifest) => {
+                    let _ = secrets.patch(
+                        &registry_secret_name,
+                        &PatchParams::apply("hermes-orchestrator").force(),
+                        &Patch::Apply(&secret_manifest)
+                    ).await;
+                    has_registry_creds = true;
+                }
+                // Optional creds — don't fail the build, just skip them.
+                Err(e) => tracing::warn!("Skipping registry credentials (invalid secret manifest): {}", e),
+            }
         }
     }
 
@@ -312,7 +327,9 @@ pub async fn run_ephemeral_build(
         }
 
         let secrets: Api<k8s_openapi::api::core::v1::Secret> = Api::namespaced(k8s_client.clone(), &namespace);
-        let secret_manifest: k8s_openapi::api::core::v1::Secret = serde_json::from_value(json!({
+        // SSH keys are mounted into the build pod below, so a bad manifest here must
+        // fail the build cleanly (logged) rather than panic the spawned task.
+        let secret_manifest: k8s_openapi::api::core::v1::Secret = match serde_json::from_value(json!({
             "apiVersion": "v1",
             "kind": "Secret",
             "metadata": {
@@ -321,7 +338,14 @@ pub async fn run_ephemeral_build(
             },
             "type": "Opaque",
             "stringData": string_data
-        })).unwrap();
+        })) {
+            Ok(m) => m,
+            Err(e) => {
+                tracing::error!("Failed to build SSH keys secret manifest: {}", e);
+                let _ = update_status(&pool, instance_id, AppStatus::Failed).await;
+                return;
+            }
+        };
 
         let _ = secrets.patch(
             &ssh_secret_name,
@@ -336,31 +360,54 @@ pub async fn run_ephemeral_build(
     // helper. So the token never appears in the build logs nor in `kubectl get pod`.
     let cloner_repo = git_repo.clone();
     let git_token_secret_name = format!("hermes-git-token-{}", build_id);
-    let mut has_git_token = false;
-    if git_repo.starts_with("https://github.com/") {
-        if let Some(ref token) = meta.github_token {
-            let token = token.trim();
-            if !token.is_empty() {
-                let secrets: Api<k8s_openapi::api::core::v1::Secret> = Api::namespaced(k8s_client.clone(), &namespace);
-                if let Ok(secret_manifest) = serde_json::from_value::<k8s_openapi::api::core::v1::Secret>(json!({
-                    "apiVersion": "v1",
-                    "kind": "Secret",
-                    "metadata": { "name": git_token_secret_name, "namespace": namespace },
-                    "type": "Opaque",
-                    "stringData": { "token": token }
-                })) {
-                    let _ = secrets.patch(
-                        &git_token_secret_name,
-                        &PatchParams::apply("hermes-orchestrator").force(),
-                        &Patch::Apply(&secret_manifest)
-                    ).await;
-                    has_git_token = true;
-                }
+
+    // Resolve the clone token + provider credential format. Prefer the app's
+    // workspace git credential (multi-provider); fall back to the legacy
+    // workspace-creator GitHub token for github.com HTTPS URLs.
+    let mut git_token: Option<String> = None;
+    let mut cred_user: &str = "x-access-token"; // GitHub format
+    let mut cred_host: String = "github.com".to_string();
+    if let Some(cred_id) = meta.git_credential_id {
+        if let Ok(c) = sqlx::query!(
+            "SELECT provider, host, encrypted_token, nonce FROM git_credentials WHERE id = $1",
+            cred_id
+        ).fetch_one(&pool).await {
+            if let Ok(tok) = crate::utils::crypto::decrypt_env_value(&c.encrypted_token, &c.nonce) {
+                cred_user = if c.provider == "gitlab" { "oauth2" } else { "x-access-token" };
+                cred_host = c.host;
+                git_token = Some(tok);
             }
+        }
+    } else if git_repo.starts_with("https://github.com/") {
+        if let Some(ref t) = meta.github_token {
+            let t = t.trim();
+            if !t.is_empty() { git_token = Some(t.to_string()); }
+        }
+    }
+
+    let mut has_git_token = false;
+    if let Some(ref token) = git_token {
+        let secrets: Api<k8s_openapi::api::core::v1::Secret> = Api::namespaced(k8s_client.clone(), &namespace);
+        if let Ok(secret_manifest) = serde_json::from_value::<k8s_openapi::api::core::v1::Secret>(json!({
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "metadata": { "name": git_token_secret_name, "namespace": namespace },
+            "type": "Opaque",
+            "stringData": { "token": token }
+        })) {
+            let _ = secrets.patch(
+                &git_token_secret_name,
+                &PatchParams::apply("hermes-orchestrator").force(),
+                &Patch::Apply(&secret_manifest)
+            ).await;
+            has_git_token = true;
         }
     }
     let git_cred_setup = if has_git_token {
-        "if [ -n \"$GIT_ACCESS_TOKEN\" ]; then\n  git config --global credential.helper store\n  printf '%s\\n' \"https://x-access-token:${GIT_ACCESS_TOKEN}@github.com\" > ~/.git-credentials\n  chmod 600 ~/.git-credentials\nfi\n".to_string()
+        format!(
+            "if [ -n \"$GIT_ACCESS_TOKEN\" ]; then\n  git config --global credential.helper store\n  printf '%s\\n' \"https://{}:${{GIT_ACCESS_TOKEN}}@{}\" > ~/.git-credentials\n  chmod 600 ~/.git-credentials\nfi\n",
+            cred_user, cred_host
+        )
     } else {
         String::new()
     };
@@ -787,6 +834,8 @@ fi"#,
             )
             .execute(&pool)
             .await;
+            crate::utils::metrics::record_build_finished("failed", duration_sec as f64);
+            crate::utils::metrics::record_build_failure_category("MANIFEST");
 
             crate::utils::event_broadcaster::broadcast_event(
                 crate::utils::event_broadcaster::SystemEvent::BuildStatusChanged {
@@ -827,6 +876,8 @@ fi"#,
         )
         .execute(&pool)
         .await;
+        crate::utils::metrics::record_build_finished("failed", duration_sec as f64);
+        crate::utils::metrics::record_build_failure_category("POD_CREATE");
 
         crate::utils::event_broadcaster::broadcast_event(
             crate::utils::event_broadcaster::SystemEvent::BuildStatusChanged {
@@ -1026,19 +1077,6 @@ fi"#,
 
     let total_build_duration_str = format!("{}s", start_instant.elapsed().as_secs());
 
-    if success {
-        build_logs.push_str("\n\n=========================================\n");
-        build_logs.push_str(&format!(" ETAPA 3: CONSTRUIRE REUȘITĂ (SUCCESS) [Timp Total Build: {}]\n", total_build_duration_str));
-        build_logs.push_str("=========================================\n");
-        build_logs.push_str("Imaginea Docker a fost creată cu succes și trimisă în registry.\n");
-        build_logs.push_str("Se pornește faza de lansare în clusterul Kubernetes...\n");
-    } else {
-        build_logs.push_str("\n\n=========================================\n");
-        build_logs.push_str(&format!(" ETAPA 3: CONSTRUIRE EȘUATĂ (FAILED) [Timp Total Build: {}]\n", total_build_duration_str));
-        build_logs.push_str("=========================================\n");
-        build_logs.push_str("Construirea imaginii a eșuat. Consultă logurile de mai sus pentru detalii.\n");
-    }
-
     let status_str = if success { "succeeded" } else if timed_out { "timed_out" } else { "failed" };
     let terminal_phase = if success { "deploying" } else if timed_out { "timed_out" } else { "failed" };
     let (failure_category, failure_reason): (Option<String>, Option<String>) = if success {
@@ -1057,7 +1095,35 @@ fi"#,
         );
         (Some(cat.to_string()), Some(reason))
     };
+
+    if success {
+        build_logs.push_str("\n\n=========================================\n");
+        build_logs.push_str(&format!(" ETAPA 3: CONSTRUIRE REUȘITĂ (SUCCESS) [Timp Total Build: {}]\n", total_build_duration_str));
+        build_logs.push_str("=========================================\n");
+        build_logs.push_str("Imaginea Docker a fost creată cu succes și trimisă în registry.\n");
+        build_logs.push_str("Se pornește faza de lansare în clusterul Kubernetes...\n");
+    } else {
+        build_logs.push_str("\n\n=========================================\n");
+        let label = if timed_out { "TIMEOUT" } else { "FAILED" };
+        build_logs.push_str(&format!(" ETAPA 3: CONSTRUIRE EȘUATĂ ({}) [Timp Total Build: {}]\n", label, total_build_duration_str));
+        build_logs.push_str("=========================================\n");
+        if let Some(ref cat) = failure_category {
+            build_logs.push_str(&format!("Categorie eroare : {}\n", cat));
+        }
+        if let Some(ref reason) = failure_reason {
+            build_logs.push_str(&format!("Diagnostic       : {}\n", reason));
+        }
+        build_logs.push_str("\nPentru detalii suplimentare, consultă logurile etapelor de mai sus.\n");
+    }
     let duration_sec = start_instant.elapsed().as_secs() as i32;
+
+    // Build telemetry as Prometheus metrics (image-build phase outcome only;
+    // runtime crashes are tracked separately by the deploy health gate).
+    crate::utils::metrics::record_build_finished(status_str, duration_sec as f64);
+    if let Some(ref cat) = failure_category {
+        crate::utils::metrics::record_build_failure_category(cat);
+    }
+
     let _ = sqlx::query!(
         "UPDATE app_builds SET status = $1, logs = $2, duration_sec = $3, failure_reason = $4, failure_category = $5, phase = $6 WHERE id = $7",
         status_str, build_logs, duration_sec, failure_reason, failure_category, terminal_phase, build_id
@@ -1172,7 +1238,7 @@ fi"#,
             .execute(&pool)
             .await;
             
-            println!("[Builder Auto-Volume] Created auto-volume record for path: {}", vol_path);
+            tracing::info!(path = %vol_path, "Builder created auto-volume record");
         }
     }
 
@@ -1195,8 +1261,10 @@ fi"#,
     deploy_compiled_app(pool, instance_id, full_image_tag).await;
 }
 
+#[tracing::instrument(skip_all, fields(instance_id = %instance_id))]
 pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: String) {
     let deploy_start_instant = std::time::Instant::now();
+    tracing::info!(image = %image_tag, "App deploy started");
     let mut deploy_error: Option<String> = None;
     let mut deployment_image = image_tag.clone();
     if let Ok(reg_url) = std::env::var("HERMES_REGISTRY_URL") {
@@ -1226,15 +1294,15 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
             }
         };
 
-        let limits = sqlx::query!("SELECT max_memory_mb, max_storage_gb FROM workspaces WHERE id = $1", meta.workspace_id)
+        let limits = sqlx::query!("SELECT max_memory_mb, max_storage_gb, max_cpu_millicores FROM workspaces WHERE id = $1", meta.workspace_id)
             .fetch_one(&pool)
             .await;
-        let (max_mem, max_storage) = match limits {
-            Ok(r) => (r.max_memory_mb, r.max_storage_gb),
-            Err(_) => (2048, 10),
+        let (max_mem, max_storage, max_cpu) = match limits {
+            Ok(r) => (r.max_memory_mb, r.max_storage_gb, r.max_cpu_millicores),
+            Err(_) => (2048, 10, 0),
         };
         let namespace = format!("hermes-ws-{}", meta.workspace_id);
-        let _ = crate::utils::k8s::K8sManager::create_namespace(&k8s_client, &namespace, max_mem, max_storage).await;
+        let _ = crate::utils::k8s::K8sManager::create_namespace(&k8s_client, &namespace, max_mem, max_storage, max_cpu).await;
 
         // Effective env = linked project-pool vars + this instance's own vars.
         let envs = crate::utils::app_env::resolve_instance_env(&pool, instance_id).await;
@@ -1291,6 +1359,8 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
                     }
 
                     let _ = update_status(&pool, instance_id, AppStatus::Running).await;
+                    crate::utils::metrics::record_deploy("app", "success");
+                    tracing::info!(duration = %format!("{}s", deploy_start_instant.elapsed().as_secs()), "App deploy succeeded");
 
                     let deploy_duration_str = format!("{}s", deploy_start_instant.elapsed().as_secs());
 
@@ -1393,8 +1463,8 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
 
                             // Health gate: confirm the pod actually comes up (port
                             // responds) instead of declaring "running" the instant the
-                            // manifest is applied. Flips to Crashed on CrashLoopBackOff etc.
-                            monitor_deploy_health(&pool, &k8s_client, &namespace, app_name, instance_id, meta.workspace_id, meta.project_id).await;
+                            // manifest is applied. Returns Some(reason) if it crashed.
+                            let crash = monitor_deploy_health(&pool, &k8s_client, &namespace, app_name, instance_id, meta.workspace_id, meta.project_id).await;
 
                             let deploy_duration_str = format!("{}s", deploy_start_instant.elapsed().as_secs());
 
@@ -1406,7 +1476,7 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
                             .await {
                                 let mut updated_logs = build_rec.logs;
                                 updated_logs.push_str("\n=========================================\n");
-                                updated_logs.push_str(&format!(" ETAPA 4: DEPLOY REUȘIT (DEPLOYED) [Durată: {}]\n", deploy_duration_str));
+                                updated_logs.push_str(&format!(" ETAPA 4: DEPLOY (DEPLOYED) [Durată: {}]\n", deploy_duration_str));
                                 updated_logs.push_str("=========================================\n");
                                 updated_logs.push_str(&format!("- Namespace: {} -> OK\n", namespace));
                                 updated_logs.push_str(&format!("- Deployment: {} (Port Intern: {}) -> OK\n", app_name, meta.internal_port));
@@ -1418,9 +1488,15 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
                                     updated_logs.push_str(&format!("- Rute Ingress: http://{} -> OK\n", domain));
                                 }
                                 updated_logs.push_str("\n=========================================\n");
-                                updated_logs.push_str(" APLICAȚIA A FOST LANSATĂ ȘI ESTE ACTIVĂ!\n");
+                                if let Some(ref reason) = crash {
+                                    // Image built & deployed fine, but the container crashed at startup.
+                                    updated_logs.push_str(&format!(" ATENȚIE: Build & deploy OK, dar aplicația a crăpat la pornire: {}\n", reason));
+                                    updated_logs.push_str(" Imaginea este validă (poți face rollback). Verifică variabilele de mediu și comanda de start.\n");
+                                } else {
+                                    updated_logs.push_str(" APLICAȚIA A FOST LANSATĂ ȘI ESTE ACTIVĂ!\n");
+                                }
                                 updated_logs.push_str("=========================================\n");
-                                
+
                                 let _ = sqlx::query!(
                                     "UPDATE app_builds SET logs = $1 WHERE id = $2",
                                     updated_logs, build_rec.id
@@ -1428,7 +1504,11 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
                                 .execute(&pool)
                                 .await;
                             }
-                            return; // SUCCESS!
+                            match crash {
+                                Some(ref reason) => tracing::warn!(duration = %deploy_duration_str, "App deployed but crashed at startup: {}", reason),
+                                None => tracing::info!(duration = %deploy_duration_str, "App deploy succeeded"),
+                            }
+                            return; // Image built successfully (running or crashed at runtime).
                         }
                         Err(e) => {
                             deploy_error = Some(format!("Service deployment error: {}", e));
@@ -1460,15 +1540,26 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
             updated_logs.push_str("Eroare la provizionarea resurselor Kubernetes în cluster.\n");
         }
 
+        // Only the deploy PHASE failed — the image was built and pushed
+        // successfully, so we keep status='succeeded' (the build stays
+        // rollback-able and isn't shown as a build failure). The UI surfaces the
+        // deploy failure via phase='failed' + failure_reason. This also avoids
+        // retroactively marking an older successful build as failed when a
+        // reload/rollback deploy fails (deploy_compiled_app is reused for those).
         let _ = sqlx::query!(
-            "UPDATE app_builds SET logs = $1, status = 'failed', phase = 'failed', failure_reason = $3, failure_category = 'DEPLOY' WHERE id = $2",
-            updated_logs, build_rec.id, "Deploy-ul resurselor Kubernetes a eșuat (vezi etapa 4 din log-uri)."
+            "UPDATE app_builds SET logs = $1, phase = 'failed', failure_reason = $3, failure_category = 'DEPLOY' WHERE id = $2",
+            updated_logs, build_rec.id, "Deploy-ul resurselor Kubernetes a eșuat (vezi etapa 4 din log-uri). Imaginea s-a construit corect."
         )
         .execute(&pool)
         .await;
     }
 
+    match deploy_error {
+        Some(ref err) => tracing::warn!(duration = %deploy_duration_str, "App deploy failed: {}", err),
+        None => tracing::warn!(duration = %deploy_duration_str, "App deploy failed"),
+    }
     let _ = update_status(&pool, instance_id, AppStatus::Failed).await;
+    crate::utils::metrics::record_deploy("app", "failed");
 }
 
 /// Resolve the image tag an instance should run: the immutable tag recorded by
@@ -1515,12 +1606,30 @@ fn classify_build_failure(
         return ("BUILD_EVICTED", format!("Pod-ul de build a fost evacuat (Evicted) de Kubernetes. Detaliu: {}", msg));
     }
 
-    // Detect sudden force-kills (e.g. TaintManagerEviction or kernel OOM-kill of executor)
-    if kaniko_exit_code.is_none() || kaniko_exit_code == Some(137) || kaniko_exit_code == Some(143) {
-        if kaniko_lower.contains("npm run build") || kaniko_lower.contains("ng build") {
-            if !kaniko_lower.contains("succeeded") && !kaniko_lower.contains("complete") && !kaniko_lower.contains("error") {
-                return ("BUILD_OOM", "Build-ul s-a oprit brusc în timpul compilării (posibil depășire de memorie/OOM pe nod). Mărește resursele mașinii virtuale Minikube sau memoria workspace-ului.".to_string());
-            }
+    // Kaniko duration N/A = containerul nu a înregistrat un timestamp de terminare,
+    // semn că podul a fost ucis forțat (OOM la nivel de nod, evicție silențioasă etc.)
+    // în timp ce rula o comandă de compilare intensivă.
+    if kaniko_exit_code.is_none() && kaniko_reason.is_none() {
+        let compiling = kaniko_lower.contains("npm run build")
+            || kaniko_lower.contains("ng build")
+            || kaniko_lower.contains("cargo build")
+            || kaniko_lower.contains("go build")
+            || kaniko_lower.contains("webpack")
+            || kaniko_lower.contains("vite build");
+        let not_done = !kaniko_lower.contains("pushed") && !kaniko_lower.contains("complete");
+        if compiling && not_done {
+            return ("BUILD_OOM", concat!(
+                "Build-ul s-a oprit brusc în timpul compilării (posibil depășire de memorie/OOM la nivel de nod). ",
+                "Angular/webpack/bundler-ele necesită de obicei 1-2 GB RAM. ",
+                "Verifică că nodul K8s are suficientă memorie liberă sau mărește limita workspace-ului."
+            ).to_string());
+        }
+        // Pod dispărut fără urmă — probabil evicție sau node pressure
+        if not_done {
+            return ("BUILD_KILLED", concat!(
+                "Pod-ul de build a dispărut fără să termine (probabil evicție din cauza presiunii pe resurse). ",
+                "Verifică memoria disponibilă pe nodul K8s și încearcă din nou."
+            ).to_string());
         }
     }
 
@@ -1682,6 +1791,9 @@ async fn run_trivy_scan(
 /// is Ready (port responds), or Crashed on CrashLoopBackOff / image-pull errors,
 /// capturing container logs and raising an incident. Falls back to Running if the
 /// pod neither becomes ready nor crashes within the window.
+/// Returns `Some(short_reason)` if the instance crashed during the watch window,
+/// or `None` if it became healthy (or the window elapsed without a crash). The
+/// caller uses this to write an accurate ETAPA 4 log section.
 async fn monitor_deploy_health(
     pool: &sqlx::PgPool,
     k8s_client: &kube::Client,
@@ -1690,7 +1802,7 @@ async fn monitor_deploy_health(
     instance_id: Uuid,
     workspace_id: Uuid,
     project_id: Uuid,
-) {
+) -> Option<String> {
     use k8s_openapi::api::core::v1::Pod;
     let pods: Api<Pod> = Api::namespaced(k8s_client.clone(), namespace);
     let lp = kube::api::ListParams::default().labels(&format!("app={}", app_name));
@@ -1739,7 +1851,7 @@ async fn monitor_deploy_health(
 
         if healthy {
             let _ = update_status(pool, instance_id, AppStatus::Running).await;
-            return;
+            return None;
         }
 
         if let Some((reason, pod_name)) = crash {
@@ -1754,12 +1866,16 @@ async fn monitor_deploy_health(
                 _ => "Aplicația a crăpat la pornire (restart în buclă)".to_string(),
             };
 
-            // Reflect the crash on the latest build so the stepper/history show it.
+            // Mark the deploy phase as crashed without touching the build status:
+            // the image was built and pushed successfully — the crash is a runtime
+            // issue (wrong env vars, missing port, bad start command, etc.), not a
+            // build failure. Keeping status='succeeded' lets the UI distinguish
+            // "build OK, app crashed at startup" from "Kaniko/git failed".
             let _ = sqlx::query!(
                 "UPDATE app_builds
-                 SET status = 'crashed', phase = 'crashed', failure_category = 'CRASH', failure_reason = $1
+                 SET phase = 'crashed', failure_category = 'CRASH', failure_reason = $1
                  WHERE id = (SELECT id FROM app_builds WHERE app_instance_id = $2 ORDER BY created_at DESC LIMIT 1)",
-                format!("{} ({}). Verifică log-urile containerului și variabilele de mediu.", short_reason, reason),
+                format!("Build reușit, dar aplicația a crăpat la pornire: {} ({}). Verifică variabilele de mediu și comanda de start.", short_reason, reason),
                 instance_id
             )
             .execute(pool)
@@ -1780,17 +1896,17 @@ async fn monitor_deploy_health(
                     workspace_id,
                     incident_id,
                     project_id,
-                    message: short_reason,
+                    message: short_reason.clone(),
                 }
             );
-            return;
+            return Some(short_reason);
         }
 
         if start.elapsed() >= window {
             // Deployed but never confirmed ready and never crashed within the window:
             // assume a slow start and leave it Running rather than block forever.
             let _ = update_status(pool, instance_id, AppStatus::Running).await;
-            return;
+            return None;
         }
     }
 }
@@ -1821,7 +1937,9 @@ async fn update_status(pool: &sqlx::PgPool, id: Uuid, status: AppStatus) -> Resu
     let terminal_phase = match status {
         AppStatus::Running => Some("running"),
         AppStatus::Failed => Some("failed"),
-        AppStatus::Crashed => Some("crashed"),
+        // Crashed = runtime crash after a successful build; monitor_deploy_health
+        // already updated the build phase directly with a clear message.
+        AppStatus::Crashed => None,
         _ => None,
     };
     if let Some(phase) = terminal_phase {
@@ -1852,17 +1970,4 @@ async fn update_status(pool: &sqlx::PgPool, id: Uuid, status: AppStatus) -> Resu
     }
 
     Ok(())
-}
-
-fn parse_memory_quantity(qty_str: &str) -> i32 {
-    let qty_str = qty_str.trim();
-    if qty_str.ends_with("Gi") {
-        qty_str.replace("Gi", "").parse::<i32>().unwrap_or(0) * 1024
-    } else if qty_str.ends_with("Mi") {
-        qty_str.replace("Mi", "").parse::<i32>().unwrap_or(0)
-    } else if qty_str.ends_with("Ki") {
-        qty_str.replace("Ki", "").parse::<i32>().unwrap_or(0) / 1024
-    } else {
-        qty_str.parse::<i64>().unwrap_or(0) as i32 / 1024 / 1024
-    }
 }

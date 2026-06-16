@@ -65,7 +65,7 @@ pub fn start_auto_sleep_worker(pool: PgPool) {
                                 }
                             );
 
-                            println!("[Hermes Auto-Sleep] Deployment scaled to 0 replicas: {}", container);
+                            tracing::info!(%container, %workspace_id, "Auto-sleep: scaled deployment to 0 replicas");
                         }
                     });
                 }
@@ -104,7 +104,7 @@ pub fn start_cron_scheduler_engine(pool: PgPool) {
 
             if let Ok(jobs) = executable_jobs {
                 for job in jobs {
-                    println!("[Cron Scheduler] Match found! Spawning execution for job: {} (ID: {})", job.name, job.id);
+                    tracing::info!(job = %job.name, job_id = %job.id, "Cron match: spawning execution");
 
                     // Advance next_run_at synchronously so the job isn't re-picked.
                     if let Ok(sched) = Schedule::from_str(&job.schedule) {
@@ -141,6 +141,14 @@ pub fn start_cron_scheduler_engine(pool: PgPool) {
 async fn log_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, exit_code: i32, output: &str, started_at: chrono::DateTime<Utc>) {
     let log_id = Uuid::new_v4();
     let finished_at = Utc::now();
+
+    // Every cron execution path funnels through here, so it's the single point
+    // to record run telemetry (exit_code 0 = success).
+    let duration_secs = (finished_at - started_at).num_milliseconds().max(0) as f64 / 1000.0;
+    crate::utils::metrics::record_cron_run(
+        if exit_code == 0 { "success" } else { "failed" },
+        duration_secs,
+    );
     let _ = sqlx::query!(
         "INSERT INTO cron_job_logs (id, cron_job_id, exit_code, output, started_at, finished_at) VALUES ($1, $2, $3, $4, $5, $6)",
         log_id, job_id, exit_code, Some(output.to_string()), started_at, finished_at

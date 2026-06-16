@@ -28,6 +28,7 @@ pub fn routes(state: AppState) -> Router {
         .route("/apps/:id/users/:user_id/status", post(app_user_controller::update_app_user_status))
         .route("/apps/:id/users/:user_id/reset-password", post(app_user_controller::reset_app_user_password))
         .route("/apps/:id/auth-config", post(app_user_controller::update_app_auth_config))
+        .route("/apps/:id/auth/rotate-secret", post(app_user_controller::rotate_auth_secret))
         .route("/apps/:id/api-keys", post(app_user_controller::create_app_api_key))
         .route("/apps/:id/api-keys/:key_id", delete(app_user_controller::delete_app_api_key))
         .layer(from_fn_with_state(state.clone(), check_permission))

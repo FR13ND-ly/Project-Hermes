@@ -47,7 +47,7 @@ async fn resolve_instance_workspace(
     Ok(row.workspace_id)
 }
 
-fn clean_env_key(raw: &str) -> Result<String, AppError> {
+pub(crate) fn clean_env_key(raw: &str) -> Result<String, AppError> {
     let clean = raw.trim().to_uppercase().replace(' ', "_");
     if clean.is_empty() {
         return Err(AppError::Validation("Variable key cannot be empty.".to_string()));

@@ -132,12 +132,22 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
   buildOutcomeLabel(build: AppBuild | null): string {
     if (!build) return '';
-    const v = build.status === 'building' ? (build.phase || 'building') : build.status;
+    // A successfully-built image can still fail/crash at the deploy or runtime
+    // phase — label by the phase in that case (the build itself is fine).
+    let v: string | undefined | null;
+    if (build.status === 'building') {
+      v = build.phase || 'building';
+    } else if (build.status === 'succeeded' && (build.phase === 'failed' || build.phase === 'crashed')) {
+      v = build.phase;
+    } else {
+      v = build.status;
+    }
     switch (v) {
       case 'cancelled': return 'Build anulat';
       case 'timed_out': return 'Build expirat (timeout)';
       case 'superseded': return 'Înlocuit de un build mai nou';
       case 'crashed': return 'Aplicația a crăpat la pornire';
+      case 'failed': return build.status === 'succeeded' ? 'Deploy eșuat (build OK)' : 'Build eșuat';
       case 'queued': return 'În coadă';
       default: return 'Build eșuat';
     }
@@ -236,6 +246,8 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   readonly availableProjectEnv = signal<ProjectEnvResponse[]>([]);
   readonly togglingLinkId = signal<string | null>(null);
   readonly showCreateEnvForm = signal(false);
+  // Non-null while editing an existing var (locks the key, value blank for secrets).
+  readonly editingEnvId = signal<string | null>(null);
   // Add-variable panel mode: a brand-new var, or link one from the project pool.
   readonly addEnvMode = signal<'new' | 'project'>('new');
   // The project-pool vars this instance currently links (shown inline in the table).
@@ -711,6 +723,16 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       if (event.data) {
         try {
           const data = JSON.parse(event.data);
+
+          // Backend reports honest availability — when metrics can't be read it
+          // sends { available: false } rather than fabricating values. Skip the
+          // sample and reset the CPU delta baseline so resumption doesn't spike.
+          if (data.available === false) {
+            this.lastCpuSystem = null;
+            this.lastCpuContainer = null;
+            return;
+          }
+
           const memoryMb = data.memoryBytes / (1024 * 1024);
 
           let cpuMillicores: number | null = null;
@@ -952,24 +974,48 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     }));
   }
 
+  // Open/close the add panel (resetting any edit state).
+  onToggleCreateEnvForm(): void {
+    const next = !this.showCreateEnvForm();
+    this.showCreateEnvForm.set(next);
+    this.editingEnvId.set(null);
+    this.addEnvMode.set('new');
+    this.envKey.set('');
+    this.envVal.set('');
+    this.isSecret.set(true);
+  }
+
+  // Open the add panel prefilled to edit an existing var (key locked; value blank for secrets).
+  startEditEnv(env: EnvResponse): void {
+    this.showCreateEnvForm.set(true);
+    this.addEnvMode.set('new');
+    this.editingEnvId.set(env.id);
+    this.envKey.set(env.key);
+    this.envVal.set(env.isSecret ? '' : (env.value ?? ''));
+    this.isSecret.set(env.isSecret);
+    setTimeout(() => document.getElementById('env-form-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
+  }
+
   onSaveEnv(): void {
     const appInstanceId = this.activeInstanceId() || this.app()?.instances?.[0]?.id || null;
-    if (!appInstanceId || !this.envKey() || !this.envVal()) return;
+    if (!appInstanceId || !this.envKey().trim()) return;
 
+    const wasEditing = this.editingEnvId() !== null;
     this.settingEnv.set(true);
 
     this.projectService.setEnvVariable({
       appInstanceId,
       key: this.envKey().trim(),
-      value: this.envVal().trim(),
+      value: this.envVal(),
       isSecret: this.isSecret()
     }).subscribe({
       next: () => {
         this.envKey.set('');
         this.envVal.set('');
+        this.editingEnvId.set(null);
         this.showCreateEnvForm.set(false);
         this.settingEnv.set(false);
-        this.toast.success('Variabila de mediu a fost salvată!');
+        this.toast.success(wasEditing ? 'Variabila de mediu a fost actualizată!' : 'Variabila de mediu a fost salvată!');
         this.loadEnvVariables();
       },
       error: (err) => {

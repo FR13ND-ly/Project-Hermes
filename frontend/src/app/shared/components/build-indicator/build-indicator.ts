@@ -47,7 +47,7 @@ import { WebSocketService } from '../../../core/services/websocket.service';
 
             <div class="max-h-72 overflow-y-auto divide-y divide-zinc-900">
               @for (item of items().slice(0, 6); track item.id) {
-                <a [routerLink]="link(item)" (click)="expanded.set(false)"
+                <a [routerLink]="link(item)" [queryParams]="queryParams(item)" (click)="expanded.set(false)"
                    class="px-3.5 py-2.5 flex items-center justify-between gap-2 hover:bg-zinc-900/60 transition-colors cursor-pointer">
                   <div class="min-w-0">
                     <div class="flex items-center gap-1.5">
@@ -118,6 +118,13 @@ export class BuildIndicator implements OnInit, OnDestroy {
       case 'serverless': return ['/projects', item.projectId, 'serverless'];
       default: return ['/projects', item.projectId, 'apps', item.resourceId];
     }
+  }
+
+  queryParams(item: BuildQueueItem): any {
+    if (item.kind === 'serverless') {
+      return { functionId: item.resourceId, tab: 'builds' };
+    }
+    return null;
   }
 
   kindLabel(kind: string): string {

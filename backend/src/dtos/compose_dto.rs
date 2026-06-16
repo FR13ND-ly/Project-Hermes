@@ -112,6 +112,7 @@ pub struct PlanRequest {
 pub struct ApplyPlanRequest {
     pub project_id: uuid::Uuid,
     pub git_repository: Option<String>,
+    pub git_credential_id: Option<uuid::Uuid>,
     pub branch_name: Option<String>,
     pub plan: ComposePlan,
 }

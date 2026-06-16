@@ -10,3 +10,4 @@ pub mod user_model;
 pub mod workspace_model;
 pub mod rbac_model;
 pub mod serverless_model;
+pub mod git_credential_model;

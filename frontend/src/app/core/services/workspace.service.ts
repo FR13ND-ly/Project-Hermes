@@ -8,6 +8,7 @@ export interface Workspace {
   slug: string;
   maxMemoryMb: number;
   maxStorageGb: number;
+  maxCpuMillicores: number;
 }
 
 export interface WorkspaceUsage {
@@ -16,6 +17,8 @@ export interface WorkspaceUsage {
   usedMemoryMb: number;
   maxStorageGb: number;
   usedStorageGb: number;
+  maxCpuMillicores: number;
+  usedCpuMillicores: number;
 }
 
 export interface AdminWorkspaceStats {
@@ -60,6 +63,7 @@ export class WorkspaceService {
     name?: string;
     maxMemoryMb?: number;
     maxStorageGb?: number;
+    maxCpuMillicores?: number;
   }): Observable<Workspace> {
     return this.api.put<Workspace>('/workspaces', payload);
   }

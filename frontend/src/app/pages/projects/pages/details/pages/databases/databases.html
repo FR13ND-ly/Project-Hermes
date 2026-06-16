@@ -126,6 +126,28 @@
                 <span>4096 MB (4 GB)</span>
               </div>
             </div>
+
+            <!-- Storage Slider (PVC size, set at creation — immutable after) -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="uppercase tracking-wider font-semibold text-[10px] text-zinc-500">Mărime Storage (PVC)</span>
+                <span class="text-white font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-[10px]">{{ storageGb() }} GB</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="50"
+                step="1"
+                [ngModel]="storageGb()"
+                (ngModelChange)="storageGb.set($event)"
+                [disabled]="provisioning()"
+                class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-white custom-slider"
+              />
+              <div class="flex justify-between text-[8px] text-zinc-600 font-mono">
+                <span>1 GB</span>
+                <span>50 GB · fix la creare</span>
+              </div>
+            </div>
           </div>
 
           <!-- External exposures loadbalancers -->

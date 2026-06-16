@@ -6,7 +6,7 @@ import { forkJoin, Subscription } from 'rxjs';
 import { ProjectService, AppDetail, Project, EnvVarInput, ProjectEnvResponse, ComposePlan } from '../../../../core/services/project.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth';
-import { GithubService, GithubRepo, GithubBranch } from '../../../../core/services/github.service';
+import { GitService, GitCredential, GitRepo } from '../../../../core/services/git.service';
 import { EnvLinkModal } from '../../../../shared/components/env-link-modal/env-link-modal';
 import { WebSocketService } from '../../../../core/services/websocket.service';
 
@@ -22,7 +22,7 @@ export class Details implements OnInit, OnDestroy {
   readonly router = inject(Router);
   readonly toast = inject(ToastService);
   readonly authService = inject(AuthService);
-  private readonly githubService = inject(GithubService);
+  private readonly gitService = inject(GitService);
   private readonly wsService = inject(WebSocketService);
 
   private refreshInterval: any = null;
@@ -142,12 +142,12 @@ export class Details implements OnInit, OnDestroy {
     this.newAppEnvJsonMode.set(false);
   }
 
-  // GitHub account integration state
-  readonly githubTokenInput = signal('');
-  readonly linkingGithub = signal(false);
-  readonly githubRepos = signal<GithubRepo[]>([]);
+  // Git credentials (workspace PATs) + repo browser state
+  readonly credentials = signal<GitCredential[]>([]);
+  readonly selectedCredentialId = signal<string | null>(null);
+  readonly repos = signal<GitRepo[]>([]);
   readonly loadingRepos = signal(false);
-  readonly githubBranches = signal<GithubBranch[]>([]);
+  readonly branches = signal<string[]>([]);
   readonly loadingBranches = signal(false);
 
   // Auto-detection signals
@@ -156,7 +156,7 @@ export class Details implements OnInit, OnDestroy {
   readonly detectedDescription = signal<string>('');
 
   readonly repoSearchQuery = signal('');
-  readonly selectedImportRepo = signal<any | null>(null);
+  readonly selectedImportRepo = signal<GitRepo | null>(null);
 
   // Create-app wizard: 1 = Repo, 2 = Setări, 3 = Env
   readonly createStep = signal(1);
@@ -166,97 +166,80 @@ export class Details implements OnInit, OnDestroy {
 
   readonly filteredRepos = computed(() => {
     const query = this.repoSearchQuery().toLowerCase().trim();
-    if (!query) return this.githubRepos();
-    return this.githubRepos().filter(r => r.name.toLowerCase().includes(query) || r.full_name.toLowerCase().includes(query));
+    if (!query) return this.repos();
+    return this.repos().filter(r => r.name.toLowerCase().includes(query) || r.fullPath.toLowerCase().includes(query));
   });
 
-  linkGithub(): void {
-    const token = this.githubTokenInput().trim();
-    if (!token) {
-      this.toast.error('Tokenul GitHub nu poate fi gol.');
-      return;
-    }
-    this.linkingGithub.set(true);
-    this.githubService.saveToken(token).subscribe({
-      next: (updatedUser) => {
-        this.authService.updateUser(updatedUser);
-        this.linkingGithub.set(false);
-        this.githubTokenInput.set('');
-        this.toast.success('Contul GitHub a fost conectat cu succes!');
-        this.loadGithubRepos();
-      },
-      error: (err) => {
-        this.toast.error(err.error?.error?.message || err.error?.message || 'Eroare la conectarea contului GitHub.');
-        this.linkingGithub.set(false);
-      }
-    });
-  }
+  readonly selectedCredential = computed(() =>
+    this.credentials().find(c => c.id === this.selectedCredentialId()) || null);
 
-  disconnectGithub(): void {
-    this.linkingGithub.set(true);
-    this.githubService.saveToken(null).subscribe({
-      next: (updatedUser) => {
-        this.authService.updateUser(updatedUser);
-        this.linkingGithub.set(false);
-        this.toast.success('Contul GitHub a fost deconectat.');
-        this.githubRepos.set([]);
-      },
-      error: (err) => {
-        this.toast.error(err.error?.error?.message || err.error?.message || 'Eroare la deconectarea contului GitHub.');
-        this.linkingGithub.set(false);
-      }
-    });
-  }
-
-  loadGithubRepos(): void {
-    if (!this.authService.currentUser()?.github_username) return;
-    this.loadingRepos.set(true);
-    this.githubService.listRepos().subscribe({
-      next: (repos) => {
-        this.githubRepos.set(repos);
-        this.loadingRepos.set(false);
-      },
-      error: (err) => {
-        this.toast.error('Eroare la încărcarea repository-urilor GitHub.');
-        this.loadingRepos.set(false);
-      }
-    });
-  }
-
-  loadBranches(owner: string, repo: string): void {
-    this.loadingBranches.set(true);
-    this.githubBranches.set([]);
-    this.githubService.listBranches(owner, repo).subscribe({
-      next: (branches) => {
-        this.githubBranches.set(branches);
-        this.loadingBranches.set(false);
-        if (branches.length > 0) {
-          const hasMain = branches.some(b => b.name === 'main');
-          const hasMaster = branches.some(b => b.name === 'master');
-          if (hasMain) {
-            this.branchName.set('main');
-          } else if (hasMaster) {
-            this.branchName.set('master');
-          } else {
-            this.branchName.set(branches[0].name);
-          }
+  loadCredentials(): void {
+    this.gitService.listCredentials().subscribe({
+      next: (creds) => {
+        this.credentials.set(creds || []);
+        // Default to the first credential if none picked yet.
+        if (!this.selectedCredentialId() && creds.length > 0) {
+          this.selectedCredentialId.set(creds[0].id);
+          this.loadRepos();
         }
       },
-      error: (err) => {
+      error: () => this.credentials.set([])
+    });
+  }
+
+  onSelectCredential(credentialId: string): void {
+    this.selectedCredentialId.set(credentialId);
+    this.repos.set([]);
+    this.selectedImportRepo.set(null);
+    this.loadRepos();
+  }
+
+  loadRepos(): void {
+    const credId = this.selectedCredentialId();
+    if (!credId) return;
+    this.loadingRepos.set(true);
+    this.gitService.listRepos(credId).subscribe({
+      next: (repos) => {
+        this.repos.set(repos || []);
+        this.loadingRepos.set(false);
+      },
+      error: () => {
+        this.toast.error('Eroare la încărcarea repository-urilor.');
+        this.loadingRepos.set(false);
+      }
+    });
+  }
+
+  loadBranches(repo: string): void {
+    const credId = this.selectedCredentialId();
+    if (!credId) return;
+    this.loadingBranches.set(true);
+    this.branches.set([]);
+    this.gitService.listBranches(credId, repo).subscribe({
+      next: (branches) => {
+        this.branches.set(branches);
+        this.loadingBranches.set(false);
+        if (branches.length > 0) {
+          if (branches.includes('main')) this.branchName.set('main');
+          else if (branches.includes('master')) this.branchName.set('master');
+          else this.branchName.set(branches[0]);
+        }
+      },
+      error: () => {
         this.toast.error('Eroare la încărcarea branch-urilor.');
         this.loadingBranches.set(false);
       }
     });
   }
 
-  onImportRepo(repo: any): void {
+  onImportRepo(repo: GitRepo): void {
     this.selectedImportRepo.set(repo);
     this.createStep.set(1);
     this.isCustomGitUrl.set(false);
     this.appName.set(repo.name);
-    this.gitRepository.set(repo.html_url || repo.url);
-    this.branchName.set('main');
-    
+    this.gitRepository.set(repo.htmlUrl || '');
+    this.branchName.set(repo.defaultBranch || 'main');
+
     this.internalPort.set(8080);
     this.externalPort.set(null);
     this.gitSubpath.set('');
@@ -267,14 +250,19 @@ export class Details implements OnInit, OnDestroy {
     this.startCommand.set('');
     this.detectedType.set('');
     this.detectedDescription.set('');
-    
-    this.loadBranches(repo.owner.login, repo.name);
 
-    // Auto-detect project type and configs in specified subdirectory
+    this.loadBranches(repo.fullPath);
     this.triggerAutoDetection();
+    this.checkCompose(repo.fullPath);
+  }
 
-    // Look for a docker-compose file to offer an auto-split.
-    this.checkCompose(repo.owner.login, repo.name);
+  onBranchChange(newBranch: string): void {
+    this.branchName.set(newBranch);
+    const repo = this.selectedImportRepo();
+    if (repo) {
+      this.checkCompose(repo.fullPath);
+      this.triggerAutoDetection();
+    }
   }
 
   // --- docker-compose auto-split ---
@@ -286,10 +274,12 @@ export class Details implements OnInit, OnDestroy {
   readonly planningCompose = signal(false);
   readonly applyingCompose = signal(false);
 
-  checkCompose(owner: string, repo: string): void {
+  checkCompose(repo: string): void {
+    const credId = this.selectedCredentialId();
+    if (!credId) return;
     this.composeDetected.set(false);
     this.composePlan.set(null);
-    this.githubService.getRepoCompose(owner, repo, this.gitSubpath() || undefined).subscribe({
+    this.gitService.getCompose(credId, repo, this.gitSubpath() || undefined, this.branchName() || undefined).subscribe({
       next: (res) => {
         if (res.found) {
           this.composeDetected.set(true);
@@ -317,6 +307,12 @@ export class Details implements OnInit, OnDestroy {
     });
   }
 
+  // Which app/db rows are expanded for editing (by index).
+  readonly expandedApps = signal<Record<number, boolean>>({});
+  readonly expandedDbs = signal<Record<number, boolean>>({});
+  toggleAppExpand(i: number): void { this.expandedApps.update(m => ({ ...m, [i]: !m[i] })); }
+  toggleDbExpand(i: number): void { this.expandedDbs.update(m => ({ ...m, [i]: !m[i] })); }
+
   toggleComposeApp(index: number): void {
     this.composePlan.update(p => {
       if (!p) return p;
@@ -333,6 +329,41 @@ export class Details implements OnInit, OnDestroy {
     });
   }
 
+  // --- Edit app fields in the plan before applying ---
+  updateAppName(i: number, v: string): void {
+    this.composePlan.update(p => p ? { ...p, apps: p.apps.map((a, idx) => idx === i ? { ...a, name: v } : a) } : p);
+  }
+  updateAppInternalPort(i: number, v: number): void {
+    this.composePlan.update(p => p ? { ...p, apps: p.apps.map((a, idx) => idx === i ? { ...a, internalPort: +v || 0 } : a) } : p);
+  }
+  updateAppExternalPort(i: number, v: string): void {
+    const port = v === '' || v === null ? null : (+v || null);
+    this.composePlan.update(p => p ? { ...p, apps: p.apps.map((a, idx) => idx === i ? { ...a, externalPort: port } : a) } : p);
+  }
+  addAppEnv(appIdx: number): void {
+    this.composePlan.update(p => p ? { ...p, apps: p.apps.map((a, idx) => idx === appIdx ? { ...a, env: [...a.env, { key: '', value: '' }] } : a) } : p);
+  }
+  removeAppEnv(appIdx: number, envIdx: number): void {
+    this.composePlan.update(p => p ? { ...p, apps: p.apps.map((a, idx) => idx === appIdx ? { ...a, env: a.env.filter((_, j) => j !== envIdx) } : a) } : p);
+  }
+  updateAppEnvKey(appIdx: number, envIdx: number, v: string): void {
+    this.composePlan.update(p => p ? { ...p, apps: p.apps.map((a, idx) => idx === appIdx ? { ...a, env: a.env.map((e, j) => j === envIdx ? { ...e, key: v.toUpperCase() } : e) } : a) } : p);
+  }
+  updateAppEnvValue(appIdx: number, envIdx: number, v: string): void {
+    this.composePlan.update(p => p ? { ...p, apps: p.apps.map((a, idx) => idx === appIdx ? { ...a, env: a.env.map((e, j) => j === envIdx ? { ...e, value: v } : e) } : a) } : p);
+  }
+
+  // --- Edit database fields in the plan before applying ---
+  updateDbName(i: number, v: string): void {
+    this.composePlan.update(p => p ? { ...p, databases: p.databases.map((d, idx) => idx === i ? { ...d, name: v } : d) } : p);
+  }
+  updateDbVersion(i: number, v: string): void {
+    this.composePlan.update(p => p ? { ...p, databases: p.databases.map((d, idx) => idx === i ? { ...d, version: v } : d) } : p);
+  }
+  updateDbInternalPort(i: number, v: number): void {
+    this.composePlan.update(p => p ? { ...p, databases: p.databases.map((d, idx) => idx === i ? { ...d, internalPort: +v || 0 } : d) } : p);
+  }
+
   composeSelectedCount(): number {
     const p = this.composePlan();
     if (!p) return 0;
@@ -347,6 +378,7 @@ export class Details implements OnInit, OnDestroy {
     this.projectService.applyComposeSplit({
       projectId,
       gitRepository: this.gitRepository() || undefined,
+      gitCredentialId: this.selectedCredentialId() || undefined,
       branchName: this.branchName() || 'main',
       plan
     }).subscribe({
@@ -377,7 +409,7 @@ export class Details implements OnInit, OnDestroy {
     this.gitSubpath.set('');
     this.buildCommand.set('');
     this.startCommand.set('');
-    this.githubBranches.set([]);
+    this.branches.set([]);
   }
 
   onBackToSelection(): void {
@@ -395,7 +427,7 @@ export class Details implements OnInit, OnDestroy {
         this.startPolling(id);
       }
     });
-    this.loadGithubRepos();
+    this.loadCredentials();
 
     // Real-time WebSocket subscriptions
     const events = ['instance_status_changed', 'build_status_changed', 'database_status_changed', 'serverless_function_updated'];
@@ -411,6 +443,10 @@ export class Details implements OnInit, OnDestroy {
     }
   }
 
+  // Reactivity comes from the WebSocket subscriptions in ngOnInit (instance /
+  // build / database / serverless events refresh instantly). This slow poll is
+  // only a reconciliation safety-net in case a WS event is missed (reconnect,
+  // backend restart) — hence 30s rather than a tight loop.
   private startPolling(id: string): void {
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
@@ -419,7 +455,7 @@ export class Details implements OnInit, OnDestroy {
       if (this.projectId() && !this.loading() && !this.deployingApp()) {
         this.loadDetails(this.projectId()!, true);
       }
-    }, 4000);
+    }, 30000);
   }
 
   ngOnDestroy(): void {
@@ -501,6 +537,7 @@ export class Details implements OnInit, OnDestroy {
       internalPort: this.internalPort() || undefined,
       externalPort: this.externalPort() || undefined,
       gitSubpath: this.gitSubpath() || undefined,
+      gitCredentialId: this.selectedCredentialId() || undefined,
       envVariables: envVariables.length > 0 ? envVariables : undefined,
       linkedProjectEnvIds: this.selectedProjectEnvIds().length > 0 ? this.selectedProjectEnvIds() : undefined
     }).subscribe({
@@ -543,9 +580,11 @@ export class Details implements OnInit, OnDestroy {
     this.detectedType.set('');
     this.detectedDescription.set('');
 
+    const credId = this.selectedCredentialId();
+    if (!credId) { this.detectingType.set(false); return; }
     const subpathVal = this.gitSubpath() ? this.gitSubpath().trim() : undefined;
 
-    this.githubService.detectProjectType(repo.owner.login, repo.name, subpathVal).subscribe({
+    this.gitService.detect(credId, repo.fullPath, subpathVal, this.branchName() || undefined).subscribe({
       next: (res) => {
         this.detectingType.set(false);
         this.detectedType.set(res.projectType);

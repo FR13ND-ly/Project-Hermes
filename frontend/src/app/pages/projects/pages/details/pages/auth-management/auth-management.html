@@ -549,8 +549,9 @@
                 <code class="flex-1 px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ revealSecret() ? i.authSecret : '••••••••••••••••••••••••••••' }}</code>
                 <button (click)="revealSecret.set(!revealSecret())" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">{{ revealSecret() ? 'Ascunde' : 'Arată' }}</button>
                 <button (click)="copyText(i.authSecret, 'Secret')" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copiază</button>
+                <button (click)="rotateAuthSecret()" [disabled]="rotatingSecret()" class="px-2.5 py-2 rounded bg-amber-950/40 hover:bg-amber-900/50 border border-amber-900/50 text-amber-300 hover:text-amber-200 text-[10px] font-semibold cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed" title="Generează un secret nou; token-urile end-user existente devin invalide">{{ rotatingSecret() ? 'Se rotește...' : 'Rotește' }}</button>
               </div>
-              <p class="text-[9px] text-amber-500/80 font-sans">Secret de semnare — tratează-l ca pe o parolă. Conectează-l în aplicații din modalul „Din Proiect" (e deja în pool).</p>
+              <p class="text-[9px] text-amber-500/80 font-sans">Secret de semnare — tratează-l ca pe o parolă. Conectează-l în aplicații din modalul „Din Proiect" (e deja în pool). La rotație, token-urile end-user existente devin invalide.</p>
             </div>
 
             <!-- Endpoints -->

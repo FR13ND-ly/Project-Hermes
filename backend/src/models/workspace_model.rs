@@ -10,6 +10,7 @@ pub struct Workspace {
     pub slug: String,
     pub max_memory_mb: i32,
     pub max_storage_gb: i32,
+    pub max_cpu_millicores: i32,
     pub created_by: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

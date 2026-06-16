@@ -16,6 +16,9 @@ pub struct CreateAppRequest {
     pub internal_port: Option<i32>,
     pub external_port: Option<i32>,
     pub git_subpath: Option<String>,
+    /// Workspace git credential used to clone + detect this app's repo (None = legacy/SSH/public).
+    #[serde(default)]
+    pub git_credential_id: Option<Uuid>,
     #[serde(default)]
     pub env_variables: Option<Vec<EnvVarInput>>,
     /// Project-pool env vars to link the new instance to at creation time.
@@ -59,6 +62,7 @@ pub struct AppDetailedResponse {
     pub git_repository: String,
     pub instances: Vec<AppInstanceResponse>,
     pub git_subpath: Option<String>,
+    pub git_credential_id: Option<Uuid>,
     pub build_command: Option<String>,
     pub start_command: Option<String>,
     #[serde(rename = "created_at")]

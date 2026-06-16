@@ -94,6 +94,7 @@ export interface PlanApp {
   image?: string | null;
   buildPath?: string | null;
   internalPort: number;
+  externalPort?: number | null;
   buildable: boolean;
   env: PlanEnv[];
   volumes: PlanVolume[];
@@ -159,6 +160,7 @@ export class ProjectService {
     internalPort?: number;
     externalPort?: number;
     gitSubpath?: string;
+    gitCredentialId?: string;
     envVariables?: EnvVarInput[];
     linkedProjectEnvIds?: string[];
   }): Observable<any> {
@@ -195,7 +197,7 @@ export class ProjectService {
     return this.api.post<ComposePlan>('/stacks/plan', { composeYaml });
   }
 
-  applyComposeSplit(payload: { projectId: string; gitRepository?: string; branchName?: string; plan: ComposePlan }): Observable<any> {
+  applyComposeSplit(payload: { projectId: string; gitRepository?: string; gitCredentialId?: string; branchName?: string; plan: ComposePlan }): Observable<any> {
     return this.api.post<any>('/stacks/apply', payload);
   }
 
@@ -309,22 +311,52 @@ export class ProjectService {
     return this.api.delete<any>(`/instances/${instanceId}/env-links/${projectEnvId}`);
   }
 
-  // --- Serverless function project-pool links (parity with app instances) ---
-  listFunctionProjectEnv(projectId: string, functionId: string): Observable<ProjectEnvResponse[]> {
-    return this.api.get<ProjectEnvResponse[]>(`/projects/${projectId}/functions/${functionId}/project-env`);
+  // --- Serverless instance project-pool links (instance-level env) ---
+  listFunctionProjectEnv(projectId: string, instanceId: string): Observable<ProjectEnvResponse[]> {
+    return this.api.get<ProjectEnvResponse[]>(`/projects/${projectId}/serverless/${instanceId}/project-env`);
   }
 
-  linkFunctionProjectEnv(projectId: string, functionId: string, projectEnvId: string): Observable<any> {
-    return this.api.post<any>(`/projects/${projectId}/functions/${functionId}/env-links`, { projectEnvId });
+  linkFunctionProjectEnv(projectId: string, instanceId: string, projectEnvId: string): Observable<any> {
+    return this.api.post<any>(`/projects/${projectId}/serverless/${instanceId}/env-links`, { projectEnvId });
   }
 
-  unlinkFunctionProjectEnv(projectId: string, functionId: string, projectEnvId: string): Observable<any> {
-    return this.api.delete<any>(`/projects/${projectId}/functions/${functionId}/env-links/${projectEnvId}`);
+  unlinkFunctionProjectEnv(projectId: string, instanceId: string, projectEnvId: string): Observable<any> {
+    return this.api.delete<any>(`/projects/${projectId}/serverless/${instanceId}/env-links/${projectEnvId}`);
+  }
+
+  // --- Serverless instance own env vars ---
+  listFunctionEnv(projectId: string, instanceId: string): Observable<FunctionEnvResponse[]> {
+    return this.api.get<FunctionEnvResponse[]>(`/projects/${projectId}/serverless/${instanceId}/env`);
+  }
+
+  setFunctionEnv(projectId: string, instanceId: string, payload: { key: string, value: string, isSecret: boolean }): Observable<FunctionEnvResponse> {
+    return this.api.post<FunctionEnvResponse>(`/projects/${projectId}/serverless/${instanceId}/env`, payload);
+  }
+
+  deleteFunctionEnv(projectId: string, instanceId: string, envId: string): Observable<void> {
+    return this.api.delete<void>(`/projects/${projectId}/serverless/${instanceId}/env/${envId}`);
   }
 
   // Re-apply env on the running Knative service without a rebuild.
-  reloadFunctionEnv(projectId: string, functionId: string): Observable<ServerlessFunction> {
-    return this.api.post<ServerlessFunction>(`/projects/${projectId}/functions/${functionId}/reload-env`, {});
+  reloadFunctionEnv(projectId: string, instanceId: string): Observable<ServerlessInstance> {
+    return this.api.post<ServerlessInstance>(`/projects/${projectId}/serverless/${instanceId}/reload-env`, {});
+  }
+
+  // --- Serverless routes (inside an instance) ---
+  listRoutes(projectId: string, instanceId: string): Observable<ServerlessRoute[]> {
+    return this.api.get<ServerlessRoute[]>(`/projects/${projectId}/serverless/${instanceId}/routes`);
+  }
+
+  createRoute(projectId: string, instanceId: string, payload: { method: string, routePath: string, code?: string }): Observable<ServerlessRoute> {
+    return this.api.post<ServerlessRoute>(`/projects/${projectId}/serverless/${instanceId}/routes`, payload);
+  }
+
+  updateRoute(projectId: string, instanceId: string, routeId: string, payload: { method?: string, routePath?: string, code?: string }): Observable<ServerlessRoute> {
+    return this.api.put<ServerlessRoute>(`/projects/${projectId}/serverless/${instanceId}/routes/${routeId}`, payload);
+  }
+
+  deleteRoute(projectId: string, instanceId: string, routeId: string): Observable<void> {
+    return this.api.delete<void>(`/projects/${projectId}/serverless/${instanceId}/routes/${routeId}`);
   }
 
   updateInstanceSettings(appId: string, instanceId: string, payload: {
@@ -435,37 +467,43 @@ export class ProjectService {
     return this.api.delete<any>(`/projects/${projectId}/ssh-keys/${keyId}`);
   }
 
-  listProjectFunctions(projectId: string, page = 1, pageSize = DEFAULT_PAGE_SIZE): Observable<Paginated<ServerlessFunction>> {
-    return this.api.get<Paginated<ServerlessFunction>>(`/projects/${projectId}/functions?page=${page}&pageSize=${pageSize}`);
+  // --- Serverless instances ---
+  listProjectFunctions(projectId: string, page = 1, pageSize = DEFAULT_PAGE_SIZE): Observable<Paginated<ServerlessInstance>> {
+    return this.api.get<Paginated<ServerlessInstance>>(`/projects/${projectId}/serverless?page=${page}&pageSize=${pageSize}`);
   }
 
-  createFunction(projectId: string, payload: { name: string, code?: string, method: string, routePath: string, memoryLimitMb?: number, runtime?: string }): Observable<ServerlessFunction> {
-    return this.api.post<ServerlessFunction>(`/projects/${projectId}/functions`, payload);
+  createInstance(projectId: string, payload: { name: string, runtime?: string, memoryLimitMb?: number }): Observable<ServerlessInstance> {
+    return this.api.post<ServerlessInstance>(`/projects/${projectId}/serverless`, payload);
   }
 
-  updateFunction(projectId: string, id: string, payload: { name?: string, code?: string, method?: string, routePath?: string, memoryLimitMb?: number, envVariables?: any, assignedDomain?: string | null, runtime?: string, inheritProjectEnvs?: boolean }): Observable<ServerlessFunction> {
-    return this.api.put<ServerlessFunction>(`/projects/${projectId}/functions/${id}`, payload);
+  updateInstance(projectId: string, id: string, payload: { name?: string, runtime?: string, memoryLimitMb?: number, assignedDomain?: string | null, inheritProjectEnvs?: boolean }): Observable<ServerlessInstance> {
+    return this.api.put<ServerlessInstance>(`/projects/${projectId}/serverless/${id}`, payload);
   }
 
   deleteFunction(projectId: string, id: string): Observable<any> {
-    return this.api.delete<any>(`/projects/${projectId}/functions/${id}`);
+    return this.api.delete<any>(`/projects/${projectId}/serverless/${id}`);
   }
 
   deployFunction(projectId: string, id: string): Observable<{ buildId: string }> {
-    return this.api.post<{ buildId: string }>(`/projects/${projectId}/functions/${id}/deploy`, {});
+    return this.api.post<{ buildId: string }>(`/projects/${projectId}/serverless/${id}/deploy`, {});
   }
 
-  getFunctionDetails(projectId: string, id: string): Observable<ServerlessFunction> {
-    return this.api.get<ServerlessFunction>(`/projects/${projectId}/functions/${id}`);
+  getFunctionDetails(projectId: string, id: string): Observable<ServerlessInstance> {
+    return this.api.get<ServerlessInstance>(`/projects/${projectId}/serverless/${id}`);
+  }
+
+  // Historical CPU/memory for a serverless instance (Prometheus).
+  getInstanceMetrics(projectId: string, instanceId: string, metric: string, range: string): Observable<MetricsHistory> {
+    return this.api.get<MetricsHistory>(`/projects/${projectId}/serverless/${instanceId}/metrics?metric=${metric}&range=${range}`);
   }
 
   // --- Serverless build history + live build logs ---
-  listFunctionBuilds(projectId: string, functionId: string): Observable<ServerlessBuild[]> {
-    return this.api.get<ServerlessBuild[]>(`/projects/${projectId}/functions/${functionId}/builds`);
+  listFunctionBuilds(projectId: string, instanceId: string): Observable<ServerlessBuild[]> {
+    return this.api.get<ServerlessBuild[]>(`/projects/${projectId}/serverless/${instanceId}/builds`);
   }
 
-  getFunctionBuildLogsStreamUrl(projectId: string, functionId: string, buildId: string): string {
-    return this.api.getStreamUrl(`/projects/${projectId}/functions/${functionId}/builds/${buildId}/logs/stream`);
+  getFunctionBuildLogsStreamUrl(projectId: string, instanceId: string, buildId: string): string {
+    return this.api.getStreamUrl(`/projects/${projectId}/serverless/${instanceId}/builds/${buildId}/logs/stream`);
   }
 }
 
@@ -540,6 +578,14 @@ export interface EnvResponse {
   isSecret: boolean;
 }
 
+export interface FunctionEnvResponse {
+  id: string;
+  functionId: string;
+  key: string;
+  value: string | null;
+  isSecret: boolean;
+}
+
 export interface EnvVarInput {
   key: string;
   value: string;
@@ -568,22 +614,32 @@ export interface GroupedAppEnv {
   instances: GroupedInstanceEnv[];
 }
 
-export interface ServerlessFunction {
+export interface MetricsHistory {
+  timestamps: number[];
+  values: number[];
+  simulated?: boolean;
+}
+
+export interface ServerlessRoute {
+  id: string;
+  instanceId: string;
+  method: string;
+  routePath: string;
+  code: string;
+}
+
+export interface ServerlessInstance {
   id: string;
   workspaceId: string;
   projectId: string;
   name: string;
-  code: string;
-  method: string;
-  routePath: string;
+  runtime: string;
   memoryLimitMb: number;
-  envVariables: any;
   status: 'draft' | 'building' | 'active' | 'failed';
   assignedDomain: string | null;
-  buildLogs: string | null;
   externalPort: number | null;
-  runtime: string;
   inheritProjectEnvs: boolean;
+  routes: ServerlessRoute[];
   createdAt: string;
   updatedAt: string;
 }

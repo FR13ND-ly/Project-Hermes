@@ -6,6 +6,8 @@ import { StorageService, StorageBucket, StorageObject, ImageVariant, ImageVarian
 import { VolumeService, VolumeFileItem } from '../../../../../../core/services/volume.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
+import { WebSocketService } from '../../../../../../core/services/websocket.service';
+import { Subscription } from 'rxjs';
 import { HttpEvent, HttpEventType } from '@angular/common/http';
 import { environment } from '../../../../../../../environments/environment';
 import { Pagination } from '../../../../../../shared/components/pagination/pagination';
@@ -44,6 +46,8 @@ export class Storages implements OnInit, OnDestroy {
   private readonly volumeService = inject(VolumeService);
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
+  private readonly wsService = inject(WebSocketService);
+  private readonly sub = new Subscription();
 
   // PVCs (app volumes) listed + browsed centrally in Storage
   readonly pvcs = signal<ProjectVolume[]>([]);
@@ -54,6 +58,8 @@ export class Storages implements OnInit, OnDestroy {
 
   readonly buckets = signal<StorageBucket[]>([]);
   readonly selectedBucket = signal<StorageBucket | null>(null);
+  readonly rotatingCreds = signal(false);
+  readonly rotatedSecret = signal<string | null>(null);
   readonly allFiles = signal<StorageObject[]>([]);
 
   // Pagination for the bucket's object list.
@@ -146,6 +152,34 @@ export class Storages implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadBuckets();
     this.loadPvcs();
+
+    // Live refresh when a file finishes processing (Ready/Failed) in the bucket
+    // currently open. The poll below stays only as a reconciliation safety-net.
+    this.sub.add(
+      this.wsService.onEvent<{ bucket_id: string }>('storage_object_updated').subscribe((payload) => {
+        const bucket = this.selectedBucket();
+        if (bucket && payload?.bucket_id === bucket.id) {
+          this.reloadObjectsSilent();
+        }
+      })
+    );
+  }
+
+  // Silent reload (no loading flicker) for WS-driven and poll-driven refreshes.
+  private reloadObjectsSilent(): void {
+    const bucket = this.selectedBucket();
+    if (!bucket) {
+      this.stopPolling();
+      return;
+    }
+    this.storageService.listObjects(bucket.slug, this.objectsPage(), this.objectsPageSize()).subscribe({
+      next: (res) => {
+        this.allFiles.set(res?.items || []);
+        this.objectsTotal.set(res?.total || 0);
+        this.checkAndStartPolling();
+      },
+      error: () => this.stopPolling()
+    });
   }
 
   // --- PVCs (read-only browse from Storage) ---
@@ -365,6 +399,7 @@ export class Storages implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopPolling();
+    this.sub.unsubscribe();
   }
 
   private checkAndStartPolling(): void {
@@ -372,24 +407,11 @@ export class Storages implements OnInit, OnDestroy {
     const hasActiveFiles = files.some(f => f.status === 'processing' || f.status === 'pending_upload');
 
     if (hasActiveFiles) {
+      // `storage_object_updated` (WS, see ngOnInit) drives instant refresh when a
+      // file finishes; this poll is only a fallback while files are still active,
+      // so a slow 10s tick is enough.
       if (!this.pollingInterval) {
-        this.pollingInterval = setInterval(() => {
-          const bucket = this.selectedBucket();
-          if (!bucket) {
-            this.stopPolling();
-            return;
-          }
-          this.storageService.listObjects(bucket.slug, this.objectsPage(), this.objectsPageSize()).subscribe({
-            next: (res) => {
-              this.allFiles.set(res?.items || []);
-              this.objectsTotal.set(res?.total || 0);
-              this.checkAndStartPolling();
-            },
-            error: () => {
-              this.stopPolling();
-            }
-          });
-        }, 2000);
+        this.pollingInterval = setInterval(() => this.reloadObjectsSilent(), 10000);
       }
     } else {
       this.stopPolling();
@@ -754,6 +776,31 @@ export class Storages implements OnInit, OnDestroy {
       error: (err) => {
         this.toast.error(err.error?.message || 'Eroare la ștergerea bucket-ului.');
         this.loading.set(false);
+      }
+    });
+  }
+
+  async onRotateBucketCredentials(bucket: StorageBucket): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Rotește credențialele bucket-ului',
+      message: `Se generează un secret_key nou pentru "${bucket.name}" (app_id-ul rămâne neschimbat). Aplicațiile care folosesc cheia veche vor fi respinse până le reîncarci manual. Continuați?`,
+      confirmText: 'Rotește',
+      cancelText: 'Anulează',
+      isDanger: true
+    });
+    if (!confirmed) return;
+
+    this.rotatingCreds.set(true);
+    this.rotatedSecret.set(null);
+    this.storageService.rotateCredentials(bucket.id).subscribe({
+      next: (res) => {
+        this.rotatingCreds.set(false);
+        this.rotatedSecret.set(res.secret_key);
+        this.toast.success('Credențiale rotite. Salvează noul secret_key — nu va mai fi afișat. Aplicațiile au nevoie de reload manual.');
+      },
+      error: (err) => {
+        this.rotatingCreds.set(false);
+        this.toast.error(err.error?.message || 'Eroare la rotația credențialelor.');
       }
     });
   }

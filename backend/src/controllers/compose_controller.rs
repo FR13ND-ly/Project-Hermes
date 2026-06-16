@@ -224,9 +224,9 @@ pub async fn apply_compose_plan(
         let can_build = app.buildable && payload.git_repository.is_some();
 
         sqlx::query!(
-            "INSERT INTO apps (id, workspace_id, project_id, name, slug, git_repository, git_subpath)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)",
-            app_id, ws_id, payload.project_id, app.name, slug, git_repository, app.build_path
+            "INSERT INTO apps (id, workspace_id, project_id, name, slug, git_repository, git_subpath, git_credential_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+            app_id, ws_id, payload.project_id, app.name, slug, git_repository, app.build_path, payload.git_credential_id
         )
         .execute(&state.pool)
         .await?;
@@ -239,7 +239,7 @@ pub async fn apply_compose_plan(
                     UNION
                     SELECT 1 FROM databases WHERE external_port = $1 AND is_external = true
                     UNION
-                    SELECT 1 FROM serverless_functions WHERE external_port = $1
+                    SELECT 1 FROM serverless_instances WHERE external_port = $1
                 )",
                 p
             )

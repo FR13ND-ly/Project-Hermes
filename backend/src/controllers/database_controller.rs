@@ -58,7 +58,7 @@ pub async fn create_database(
     let connection_url = match payload.r#type {
         DbType::Postgres => format!("postgresql://{}:{}@{}:{}/{}", db_user, raw_password, container_name, internal_port, db_name),
         DbType::Mysql => format!("mysql://{}:{}@{}:{}/{}", db_user, raw_password, container_name, internal_port, db_name),
-        DbType::Redis => format!("redis://{}:{}", container_name, internal_port),
+        DbType::Redis => format!("redis://:{}@{}:{}", raw_password, container_name, internal_port),
         DbType::Mongodb => format!("mongodb://{}:{}@{}:{}/?authSource=admin", db_user, raw_password, container_name, internal_port),
     };
 
@@ -77,12 +77,16 @@ pub async fn create_database(
         db_memory_needed_mb,
         None
     ).await?;
+    let db_cpu_needed = payload.cpu_limit.filter(|&c| c > 0).unwrap_or(0);
+    if db_cpu_needed > 0 {
+        crate::utils::limits::check_workspace_cpu_limit(&state.pool, ws_id, db_cpu_needed, None).await?;
+    }
     // --- End resource check ---
 
     sqlx::query!(
-        "INSERT INTO databases (id, workspace_id, project_id, app_instance_id, name, type, version, db_user, db_password, db_password_nonce, db_name, container_name, internal_port, is_external, external_port, status, cpu_limit, memory_limit_mb)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)",
-        db_id, ws_id, payload.project_id, payload.app_instance_id, payload.name, payload.r#type.clone() as DbType, full_image, db_user, encrypted_password, password_nonce, db_name, container_name, internal_port, is_external, ext_port, DbStatus::Provisioning as DbStatus, payload.cpu_limit.unwrap_or(0), payload.memory_limit_mb.unwrap_or(0)
+        "INSERT INTO databases (id, workspace_id, project_id, app_instance_id, name, type, version, db_user, db_password, db_password_nonce, db_name, container_name, internal_port, is_external, external_port, status, cpu_limit, memory_limit_mb, storage_size_gb)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)",
+        db_id, ws_id, payload.project_id, payload.app_instance_id, payload.name, payload.r#type.clone() as DbType, full_image, db_user, encrypted_password, password_nonce, db_name, container_name, internal_port, is_external, ext_port, DbStatus::Provisioning as DbStatus, payload.cpu_limit.unwrap_or(0), payload.memory_limit_mb.unwrap_or(0), payload.storage_size_gb.filter(|&s| s > 0).unwrap_or(1)
     )
     .execute(&state.pool)
     .await?;
@@ -152,6 +156,7 @@ pub async fn create_database(
     let ws_id_str = ws_id.to_string();
     let cpu_limit = payload.cpu_limit.unwrap_or(0);
     let memory_limit_mb = payload.memory_limit_mb.unwrap_or(0);
+    let storage_gb = payload.storage_size_gb.filter(|&s| s > 0).unwrap_or(1);
 
     tokio::spawn(async move {
         let k8s_client = match crate::utils::k8s::K8sManager::get_client().await {
@@ -164,14 +169,14 @@ pub async fn create_database(
         };
 
         let namespace = format!("hermes-ws-{}", ws_id_str);
-        let limits = sqlx::query!("SELECT max_memory_mb, max_storage_gb FROM workspaces WHERE id = $1", ws_id)
+        let limits = sqlx::query!("SELECT max_memory_mb, max_storage_gb, max_cpu_millicores FROM workspaces WHERE id = $1", ws_id)
             .fetch_one(&pool_clone)
             .await;
-        let (max_mem, max_storage) = match limits {
-            Ok(r) => (r.max_memory_mb, r.max_storage_gb),
-            Err(_) => (2048, 10),
+        let (max_mem, max_storage, max_cpu) = match limits {
+            Ok(r) => (r.max_memory_mb, r.max_storage_gb, r.max_cpu_millicores),
+            Err(_) => (2048, 10, 0),
         };
-        if let Err(e) = crate::utils::k8s::K8sManager::create_namespace(&k8s_client, &namespace, max_mem, max_storage).await {
+        if let Err(e) = crate::utils::k8s::K8sManager::create_namespace(&k8s_client, &namespace, max_mem, max_storage, max_cpu).await {
             tracing::warn!(db_id = %db_id, namespace = %namespace, "create_namespace warning: {}", e);
             // Non-fatal: namespace may already exist, continue
         }
@@ -193,7 +198,11 @@ pub async fn create_database(
                 envs.push(("MONGO_INITDB_ROOT_USERNAME".to_string(), db_user_clone));
                 envs.push(("MONGO_INITDB_ROOT_PASSWORD".to_string(), raw_password));
             },
-            DbType::Redis => {}
+            DbType::Redis => {
+                // Redis takes its password via env; deploy_database wires it into
+                // `redis-server --requirepass "$REDIS_PASSWORD"` (empty = authless).
+                envs.push(("REDIS_PASSWORD".to_string(), raw_password));
+            }
         }
 
         match crate::utils::k8s::K8sManager::deploy_database(
@@ -205,6 +214,7 @@ pub async fn create_database(
             internal_port,
             cpu_limit,
             memory_limit_mb,
+            storage_gb,
         ).await {
             Ok(_) => {
                 if is_external {
@@ -365,11 +375,11 @@ pub(crate) fn spawn_db_provisioning(
         };
 
         let namespace = format!("hermes-ws-{}", ws_id);
-        let (max_mem, max_storage) = match sqlx::query!("SELECT max_memory_mb, max_storage_gb FROM workspaces WHERE id = $1", ws_id).fetch_one(&pool).await {
-            Ok(r) => (r.max_memory_mb, r.max_storage_gb),
-            Err(_) => (2048, 10),
+        let (max_mem, max_storage, max_cpu) = match sqlx::query!("SELECT max_memory_mb, max_storage_gb, max_cpu_millicores FROM workspaces WHERE id = $1", ws_id).fetch_one(&pool).await {
+            Ok(r) => (r.max_memory_mb, r.max_storage_gb, r.max_cpu_millicores),
+            Err(_) => (2048, 10, 0),
         };
-        let _ = crate::utils::k8s::K8sManager::create_namespace(&k8s_client, &namespace, max_mem, max_storage).await;
+        let _ = crate::utils::k8s::K8sManager::create_namespace(&k8s_client, &namespace, max_mem, max_storage, max_cpu).await;
 
         let mut envs = Vec::new();
         match db_type {
@@ -388,11 +398,15 @@ pub(crate) fn spawn_db_provisioning(
                 envs.push(("MONGO_INITDB_ROOT_USERNAME".to_string(), db_user));
                 envs.push(("MONGO_INITDB_ROOT_PASSWORD".to_string(), raw_password));
             }
-            DbType::Redis => {}
+            DbType::Redis => {
+                envs.push(("REDIS_PASSWORD".to_string(), raw_password));
+            }
         }
 
+        let storage_gb = sqlx::query_scalar!("SELECT storage_size_gb FROM databases WHERE id = $1", db_id)
+            .fetch_one(&pool).await.unwrap_or(1);
         match crate::utils::k8s::K8sManager::deploy_database(
-            &k8s_client, &namespace, &container_name, &image, envs, internal_port, cpu_limit, memory_limit_mb,
+            &k8s_client, &namespace, &container_name, &image, envs, internal_port, cpu_limit, memory_limit_mb, storage_gb,
         ).await {
             Ok(_) => {
                 if is_external {
@@ -473,7 +487,7 @@ pub async fn reveal_database_credentials(
     let raw_url = match db_service.r#type {
         DbType::Postgres => format!("postgresql://{}:{}@{}:{}/{}", db_service.db_user, decrypted_password, db_service.container_name, db_service.internal_port, db_service.db_name),
         DbType::Mysql => format!("mysql://{}:{}@{}:{}/{}", db_service.db_user, decrypted_password, db_service.container_name, db_service.internal_port, db_service.db_name),
-        DbType::Redis => format!("redis://{}", db_service.container_name),
+        DbType::Redis => format!("redis://:{}@{}:{}", decrypted_password, db_service.container_name, db_service.internal_port),
         DbType::Mongodb => format!("mongodb://{}:{}@{}:{}", db_service.db_user, decrypted_password, db_service.container_name, db_service.internal_port),
     };
 
@@ -602,6 +616,9 @@ pub async fn execute_database_query(
         }
         DbType::Redis => {
             cmd.arg("redis-cli");
+            cmd.arg("-a");
+            cmd.arg(&decrypted_password);
+            cmd.arg("--no-auth-warning");
             let parts: Vec<&str> = payload.query.split_whitespace().collect();
             for part in parts {
                 cmd.arg(part);
@@ -778,6 +795,9 @@ pub async fn update_database_settings(
         payload.memory_limit_mb,
         Some(db_id)
     ).await?;
+    if payload.cpu_limit > 0 {
+        crate::utils::limits::check_workspace_cpu_limit(&state.pool, ws_id, payload.cpu_limit, Some(db_id)).await?;
+    }
 
     // 2. Update resource limits and backup settings in databases table
     let backup_enabled = payload.backup_enabled.unwrap_or(false);
@@ -808,10 +828,10 @@ pub async fn update_database_settings(
     let new_connection_url = match db_service.r#type {
         DbType::Postgres => format!("postgresql://{}:{}@{}:{}/{}", db_service.db_user, decrypted_password, db_service.container_name, db_service.internal_port, db_service.db_name),
         DbType::Mysql => format!("mysql://{}:{}@{}:{}/{}", db_service.db_user, decrypted_password, db_service.container_name, db_service.internal_port, db_service.db_name),
-        DbType::Redis => format!("redis://{}:{}", db_service.container_name, db_service.internal_port),
+        DbType::Redis => format!("redis://:{}@{}:{}", decrypted_password, db_service.container_name, db_service.internal_port),
         DbType::Mongodb => format!("mongodb://{}:{}@{}:{}", db_service.db_user, decrypted_password, db_service.container_name, db_service.internal_port),
     };
-    
+
     if let Some(instance_id) = db_service.app_instance_id {
         let (enc_url, nonce_url) = crypto::encrypt_env_value(&new_connection_url)?;
         sqlx::query!(
@@ -845,7 +865,9 @@ pub async fn update_database_settings(
             envs.push(("MONGO_INITDB_ROOT_USERNAME".to_string(), db_service.db_user.clone()));
             envs.push(("MONGO_INITDB_ROOT_PASSWORD".to_string(), decrypted_password));
         },
-        DbType::Redis => {}
+        DbType::Redis => {
+            envs.push(("REDIS_PASSWORD".to_string(), decrypted_password));
+        }
     }
 
     // Update database status based on deployment success
@@ -858,6 +880,7 @@ pub async fn update_database_settings(
         db_service.internal_port,
         payload.cpu_limit,
         payload.memory_limit_mb,
+        db_service.storage_size_gb,
     ).await {
         Ok(_) => {
             let _ = update_db_status(&state.pool, db_id, DbStatus::Running).await;
@@ -989,6 +1012,9 @@ pub async fn perform_database_backup(pool: &sqlx::PgPool, db_id: Uuid, custom_co
             }
             DbType::Redis => {
                 cmd.arg("redis-cli");
+                cmd.arg("-a");
+                cmd.arg(&decrypted_password);
+                cmd.arg("--no-auth-warning");
                 cmd.arg("--rdb");
                 cmd.arg("-");
             }
@@ -1373,11 +1399,19 @@ pub async fn restore_database_backup(
      let container_name = db_service.container_name.clone();
      let range = query.range.unwrap_or_else(|| "1h".to_string());
  
+     let engine = match db_service.r#type {
+         crate::models::database_model::DbType::Postgres => "postgres",
+         crate::models::database_model::DbType::Mysql => "mysql",
+         crate::models::database_model::DbType::Redis => "redis",
+         crate::models::database_model::DbType::Mongodb => "mongodb",
+     };
+
      let (timestamps, values, simulated) = crate::utils::prometheus::get_historical_metrics(
          &namespace,
          &container_name,
          &query.metric,
          &range,
+         engine,
      ).await?;
 
      Ok(Json(crate::dtos::metrics_dto::MetricsHistoryResponse {
@@ -1386,3 +1420,135 @@ pub async fn restore_database_backup(
          simulated,
      }))
  }
+
+/// POST /databases/:id/rotate-password — rotate the engine's password, persist the
+/// new encrypted value, refresh the published DATABASE_URL and auto-reload the
+/// consuming app instance so it reconnects.
+///
+/// Postgres/MySQL/Mongo: live ALTER USER inside the running pod (which must succeed
+/// BEFORE we persist, so the stored value never diverges from the engine). Redis:
+/// the password is a server arg, so we redeploy with the new REDIS_PASSWORD and
+/// restart the pod (the first rotation also migrates an authless Redis to auth).
+pub async fn rotate_database_password(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(db_id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let db_service = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1 AND workspace_id = $2")
+        .bind(db_id).bind(ws_id).fetch_optional(&state.pool).await?
+        .ok_or_else(|| AppError::NotFound("Database service not found.".to_string()))?;
+
+    // Old password — needed to authenticate the ALTER for mysql/mongo.
+    let old_password = match db_service.db_password_nonce {
+        Some(ref nonce) => crypto::decrypt_env_value(&db_service.db_password, nonce)?,
+        None => crypto::decrypt_env_value(&db_service.db_password, "AAAAAAAAAAAAAAAA")?,
+    };
+
+    let new_password = crate::utils::string_gen::generate_secure_string(32);
+
+    let k8s_client = crate::utils::k8s::K8sManager::get_client().await?;
+    let namespace = format!("hermes-ws-{}", ws_id);
+    let pod = crate::utils::k8s::K8sManager::pod_name_for_app(&k8s_client, &namespace, &db_service.container_name).await?;
+
+    if matches!(db_service.r#type, DbType::Redis) {
+        // Redis' password is config (a server arg), not stored data — so an in-place
+        // ALTER doesn't apply. Persist it, redeploy so the Secret carries the new
+        // REDIS_PASSWORD, then restart the pod so redis-server boots with the new
+        // requirepass. (First rotation also migrates an authless Redis to auth.)
+        let (enc, nonce) = crypto::encrypt_env_value(&new_password)?;
+        sqlx::query!(
+            "UPDATE databases SET db_password = $1, db_password_nonce = $2, updated_at = now() WHERE id = $3",
+            enc, nonce, db_id
+        )
+        .execute(&state.pool)
+        .await?;
+
+        crate::utils::k8s::K8sManager::deploy_database(
+            &k8s_client,
+            &namespace,
+            &db_service.container_name,
+            &db_service.version,
+            vec![("REDIS_PASSWORD".to_string(), new_password.clone())],
+            db_service.internal_port,
+            db_service.cpu_limit,
+            db_service.memory_limit_mb,
+            db_service.storage_size_gb,
+        )
+        .await?;
+        crate::utils::k8s::K8sManager::delete_pod(&k8s_client, &namespace, &pod).await?;
+    } else {
+        let command: Vec<String> = match db_service.r#type {
+            DbType::Postgres => vec![
+                "psql".into(), "-U".into(), db_service.db_user.clone(), "-d".into(), db_service.db_name.clone(),
+                "-c".into(), format!("ALTER USER \"{}\" WITH PASSWORD '{}';", db_service.db_user, new_password),
+            ],
+            DbType::Mysql => vec![
+                "mysql".into(), "-uroot".into(), format!("-p{}", old_password), "-e".into(),
+                format!(
+                    "ALTER USER '{}'@'%' IDENTIFIED BY '{}'; ALTER USER 'root'@'%' IDENTIFIED BY '{}'; FLUSH PRIVILEGES;",
+                    db_service.db_user, new_password, new_password
+                ),
+            ],
+            // The root user lives in the `admin` db, so target it explicitly via
+            // getSiblingDB (the eval otherwise runs against the default `test` db).
+            // mongo:6.0 (the Hermes default) ships `mongosh`.
+            DbType::Mongodb => vec![
+                "mongosh".into(), "-u".into(), db_service.db_user.clone(), "-p".into(), old_password.clone(),
+                "--authenticationDatabase".into(), "admin".into(), "--quiet".into(),
+                "--eval".into(),
+                format!("db.getSiblingDB('admin').changeUserPassword('{}','{}')", db_service.db_user, new_password),
+            ],
+            DbType::Redis => unreachable!("redis handled above"),
+        };
+
+        // Live password change (errors out cleanly if the pod isn't reachable).
+        crate::utils::k8s::K8sManager::exec_in_pod(&k8s_client, &namespace, &pod, command).await?;
+
+        // Engine changed — now persist the new encrypted password.
+        let (enc, nonce) = crypto::encrypt_env_value(&new_password)?;
+        sqlx::query!(
+            "UPDATE databases SET db_password = $1, db_password_nonce = $2, updated_at = now() WHERE id = $3",
+            enc, nonce, db_id
+        )
+        .execute(&state.pool)
+        .await?;
+    }
+
+    // Refresh the published DATABASE_URL for the consuming instance, then reload it.
+    let new_connection_url = match db_service.r#type {
+        DbType::Postgres => format!("postgresql://{}:{}@{}:{}/{}", db_service.db_user, new_password, db_service.container_name, db_service.internal_port, db_service.db_name),
+        DbType::Mysql => format!("mysql://{}:{}@{}:{}/{}", db_service.db_user, new_password, db_service.container_name, db_service.internal_port, db_service.db_name),
+        DbType::Mongodb => format!("mongodb://{}:{}@{}:{}", db_service.db_user, new_password, db_service.container_name, db_service.internal_port),
+        DbType::Redis => format!("redis://:{}@{}:{}", new_password, db_service.container_name, db_service.internal_port),
+    };
+
+    if let Some(instance_id) = db_service.app_instance_id {
+        let (enc_url, nonce_url) = crypto::encrypt_env_value(&new_connection_url)?;
+        sqlx::query!(
+            "INSERT INTO environment_variables (id, workspace_id, app_instance_id, key, encrypted_value, nonce, is_secret)
+             VALUES ($1, $2, $3, 'DATABASE_URL', $4, $5, true)
+             ON CONFLICT (app_instance_id, key) DO UPDATE SET encrypted_value = $4, nonce = $5",
+            Uuid::new_v4(), ws_id, instance_id, enc_url, nonce_url
+        )
+        .execute(&state.pool)
+        .await?;
+
+        // Auto-reload the consumer so it reconnects with the new credentials.
+        let pool_clone = state.pool.clone();
+        tokio::spawn(async move {
+            let tag = crate::utils::builder::resolve_instance_image_tag(&pool_clone, instance_id).await;
+            crate::utils::builder::deploy_compiled_app(pool_clone, instance_id, tag).await;
+        });
+    }
+
+    tracing::info!(db_id = %db_id, engine = ?db_service.r#type, reloaded_instance = ?db_service.app_instance_id, "Database password rotated");
+
+    Ok(Json(serde_json::json!({
+        "status": "rotated",
+        "reloaded_instance": db_service.app_instance_id,
+    })))
+}

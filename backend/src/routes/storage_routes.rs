@@ -55,6 +55,7 @@ pub fn routes(state: AppState) -> Router {
 
     let generate_token_router = Router::new()
         .route("/buckets/:id/token", post(storage_controller::generate_bucket_token))
+        .route("/buckets/:id/rotate-credentials", post(storage_controller::rotate_bucket_credentials))
         .layer(from_fn_with_state(state.clone(), check_permission))
         .layer(Extension(RequiredPermission("volume:create")));
 

@@ -11,7 +11,7 @@ pub mod project_controller;
 pub mod storage_controller;
 pub mod volume_controller;
 pub mod workspace_controller;
-pub mod github_controller;
+pub mod git_controller;
 pub mod incident_controller;
 pub mod webhook_controller;
 pub mod serverless_controller;

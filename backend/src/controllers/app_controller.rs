@@ -141,10 +141,24 @@ pub async fn create_app(
 
     let git_subpath = payload.git_subpath.as_deref().map(|s| s.trim().trim_matches('/')).filter(|s| !s.is_empty()).map(|s| s.to_string());
 
+    // The chosen git credential (if any) must belong to this workspace.
+    if let Some(cred_id) = payload.git_credential_id {
+        let ok = sqlx::query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM git_credentials WHERE id = $1 AND workspace_id = $2)",
+            cred_id, ws_id
+        )
+        .fetch_one(&state.pool)
+        .await?
+        .unwrap_or(false);
+        if !ok {
+            return Err(AppError::Validation("Credențiala git nu aparține acestui workspace.".to_string()));
+        }
+    }
+
     sqlx::query!(
-        "INSERT INTO apps (id, workspace_id, project_id, name, slug, git_repository, build_command, start_command, git_subpath)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-        app_id, ws_id, payload.project_id, payload.name, slug, payload.git_repository, payload.build_command, payload.start_command, git_subpath
+        "INSERT INTO apps (id, workspace_id, project_id, name, slug, git_repository, build_command, start_command, git_subpath, git_credential_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+        app_id, ws_id, payload.project_id, payload.name, slug, payload.git_repository, payload.build_command, payload.start_command, git_subpath, payload.git_credential_id
     )
     .execute(&state.pool)
     .await?;
@@ -300,15 +314,13 @@ pub async fn create_app(
             match res {
                 Ok(resp) => {
                     if resp.status().is_success() {
-                        println!("Successfully registered GitHub webhook for {}/{} at {}", owner, repo, webhook_url);
-                    } else {
-                        if let Ok(err_txt) = resp.text().await {
-                            println!("Failed to register GitHub webhook: {}", err_txt);
-                        }
+                        tracing::info!(%owner, %repo, "Registered GitHub webhook at {}", webhook_url);
+                    } else if let Ok(err_txt) = resp.text().await {
+                        tracing::warn!(%owner, %repo, "Failed to register GitHub webhook: {}", err_txt);
                     }
                 }
                 Err(e) => {
-                    println!("Network error trying to register GitHub webhook: {}", e);
+                    tracing::warn!(%owner, %repo, "Network error registering GitHub webhook: {}", e);
                 }
             }
         });
@@ -336,6 +348,7 @@ pub async fn create_app(
             git_repository: payload.git_repository,
             instances,
             git_subpath,
+            git_credential_id: payload.git_credential_id,
             build_command: payload.build_command,
             start_command: payload.start_command,
             created_at: chrono::Utc::now(),
@@ -374,6 +387,10 @@ pub async fn create_branch_instance(
             requested_mem,
             None
         ).await?;
+    }
+    let requested_cpu = payload.cpu_limit.unwrap_or(0);
+    if requested_cpu > 0 {
+        crate::utils::limits::check_workspace_cpu_limit(&state.pool, ws_id, requested_cpu, None).await?;
     }
 
     sqlx::query!(
@@ -461,6 +478,7 @@ pub async fn get_app_details(
         git_repository: app.git_repository,
         instances,
         git_subpath: app.git_subpath,
+        git_credential_id: app.git_credential_id,
         build_command: app.build_command,
         start_command: app.start_command,
         created_at: app.created_at,
@@ -758,8 +776,10 @@ pub async fn stream_instance_stats(
 
     let sse_stream = async_stream::stream! {
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(2));
-        let mut sim_cpu_container = 0u64;
-        let mut sim_cpu_system = 0u64;
+        // Cumulative counters the UI diffs into a CPU% (container-ns / wall-ns).
+        let mut cpu_container_ns = 0u64;
+        let mut cpu_system_ns = 0u64;
+        let mut last_tick = std::time::Instant::now();
 
         loop {
             interval.tick().await;
@@ -780,35 +800,10 @@ pub async fn stream_instance_stats(
                                     if let Some(c) = containers.first() {
                                         if let Some(usage) = c.get("usage") {
                                             if let Some(mem_str) = usage.get("memory").and_then(|m| m.as_str()) {
-                                                let mem_digits: String = mem_str.chars().filter(|ch| ch.is_ascii_digit()).collect();
-                                                if let Ok(val) = mem_digits.parse::<u64>() {
-                                                    if mem_str.contains("Ki") {
-                                                        ram_usage = val * 1024;
-                                                    } else if mem_str.contains("Mi") {
-                                                        ram_usage = val * 1024 * 1024;
-                                                    } else if mem_str.contains("Gi") {
-                                                        ram_usage = val * 1024 * 1024 * 1024;
-                                                    } else {
-                                                        ram_usage = val;
-                                                    }
-                                                }
+                                                ram_usage = crate::utils::quantity::parse_memory_bytes(mem_str);
                                             }
                                             if let Some(cpu_str) = usage.get("cpu").and_then(|c| c.as_str()) {
-                                                let cpu_digits: String = cpu_str.chars().filter(|ch| ch.is_ascii_digit()).collect();
-                                                if let Ok(val) = cpu_digits.parse::<u64>() {
-                                                    if cpu_str.contains('m') {
-                                                        cpu_usage = val * 1_000_000;
-                                                    } else if cpu_str.contains('u') {
-                                                        cpu_usage = val * 1_000;
-                                                    } else if cpu_str.contains('n') {
-                                                        cpu_usage = val;
-                                                    } else {
-                                                        cpu_usage = val * 1_000_000_000;
-                                                    }
-                                                }
-                                            }
-                                            if cpu_usage == 0 {
-                                                cpu_usage = 50_000_000 + (rand::random::<u64>() % 150_000_000);
+                                                cpu_usage = crate::utils::quantity::parse_cpu_nanocores(cpu_str);
                                             }
                                             got_real_metrics = true;
                                         }
@@ -820,23 +815,25 @@ pub async fn stream_instance_stats(
                 }
             }
 
-            let (final_ram, final_cpu_sys, final_cpu_cont) = if got_real_metrics {
-                sim_cpu_system += 1_000_000_000;
-                sim_cpu_container += cpu_usage;
-                (ram_usage, sim_cpu_system, sim_cpu_container)
-            } else {
-                let rand_val = rand::random::<u64>() % 30;
-                let ram = (30 + rand_val) * 1024 * 1024;
-                sim_cpu_system += 1_000_000_000;
-                sim_cpu_container += 50_000_000 + (rand::random::<u64>() % 150_000_000);
-                (ram, sim_cpu_system, sim_cpu_container)
-            };
+            let elapsed_ns = last_tick.elapsed().as_nanos() as u64;
+            last_tick = std::time::Instant::now();
 
-            let stats_payload = serde_json::json!({
-                "memoryBytes": final_ram,
-                "cpuSystem": final_cpu_sys,
-                "cpuContainer": final_cpu_cont
-            });
+            // NEVER fabricate. Emit real values with `available: true`, or signal
+            // `available: false` so the UI shows "unavailable" instead of fiction.
+            let stats_payload = if got_real_metrics {
+                cpu_system_ns += elapsed_ns;
+                // cpu_usage is nanocores (cores * 1e9); CPU-ns consumed this interval
+                // = nanocores * elapsed_ns / 1e9.
+                cpu_container_ns += ((cpu_usage as u128 * elapsed_ns as u128) / 1_000_000_000u128) as u64;
+                serde_json::json!({
+                    "available": true,
+                    "memoryBytes": ram_usage,
+                    "cpuSystem": cpu_system_ns,
+                    "cpuContainer": cpu_container_ns
+                })
+            } else {
+                serde_json::json!({ "available": false })
+            };
 
             yield Ok::<_, Infallible>(Event::default().data(stats_payload.to_string()));
         }
@@ -1191,11 +1188,11 @@ pub async fn list_build_queue(
         });
     }
 
-    // Serverless functions currently building.
+    // Serverless instances currently building.
     let fn_rows = sqlx::query!(
-        r#"SELECT f.id, f.name, f.route_path, f.project_id, p.name AS project_name,
+        r#"SELECT f.id, f.name, f.runtime, f.project_id, p.name AS project_name,
                   f.workspace_id, w.name AS workspace_name, f.updated_at
-           FROM serverless_functions f
+           FROM serverless_instances f
            JOIN projects p ON f.project_id = p.id
            JOIN workspaces w ON f.workspace_id = w.id
            WHERE f.status = 'building'
@@ -1210,7 +1207,7 @@ pub async fn list_build_queue(
             kind: "serverless".to_string(),
             resource_id: r.id,
             name: r.name,
-            detail: Some(r.route_path),
+            detail: Some(r.runtime),
             project_id: r.project_id,
             project_name: r.project_name,
             workspace_id: r.workspace_id,
@@ -1583,6 +1580,7 @@ pub async fn get_instance_metrics(
         &container_name,
         &query.metric,
         &range,
+        "app", // apps don't use the engine-specific db_* queries
     ).await?;
 
     Ok(Json(MetricsHistoryResponse {
@@ -1665,6 +1663,7 @@ pub async fn list_project_apps(
             git_repository: app.git_repository,
             instances,
             git_subpath: app.git_subpath,
+            git_credential_id: app.git_credential_id,
             build_command: app.build_command,
             start_command: app.start_command,
             created_at: app.created_at,
@@ -1714,6 +1713,16 @@ pub async fn update_instance_settings(
                 &state.pool,
                 ws_id,
                 requested_mem,
+                Some(instance_id)
+            ).await?;
+        }
+    }
+    if let Some(requested_cpu) = payload.cpu_limit {
+        if requested_cpu > 0 {
+            crate::utils::limits::check_workspace_cpu_limit(
+                &state.pool,
+                ws_id,
+                requested_cpu,
                 Some(instance_id)
             ).await?;
         }

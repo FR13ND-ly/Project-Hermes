@@ -77,15 +77,15 @@
               class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
             />
             <span class="text-[11px] font-semibold text-zinc-300">Adaugă în .env proiect</span>
-            <span class="text-[10px] text-zinc-600">— URL-ul bucket-ului devine disponibil aplicațiilor din proiect.</span>
+            <span class="text-[10px] text-zinc-600">— credențialele (APP_ID + SECRET_KEY) devin disponibile aplicațiilor din proiect.</span>
           </label>
           @if (publishToEnv()) {
             <div class="flex items-center gap-2 pl-6 animate-fade-in">
-              <label for="bucket-env-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Nume cheie:</label>
+              <label for="bucket-env-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Prefix chei:</label>
               <input
                 id="bucket-env-key"
                 type="text"
-                placeholder="BUCKET_<NUME>_URL (implicit)"
+                placeholder="BUCKET_<NUME> (implicit) → _APP_ID, _SECRET_KEY"
                 [ngModel]="envKeyName()"
                 (ngModelChange)="envKeyName.set($event)"
                 [disabled]="creatingBucket()"
@@ -1168,15 +1168,37 @@
           </div>
         </div>
 
+        <!-- Rotated secret_key (shown once) -->
+        @if (rotatedSecret()) {
+          <div class="bg-amber-950/20 border border-amber-900/40 rounded-lg p-3 space-y-2">
+            <span class="text-[9px] font-bold text-amber-400 uppercase tracking-wider">Noul SECRET_KEY (afișat o singură dată)</span>
+            <div class="flex items-center gap-2">
+              <code class="flex-1 px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ rotatedSecret() }}</code>
+              <button (click)="copyToClipboard(rotatedSecret()!)" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copiază</button>
+            </div>
+            <p class="text-[9px] text-amber-500/80 font-sans">app_id-ul rămâne neschimbat. Aplicațiile care folosesc cheia veche au nevoie de reload manual.</p>
+          </div>
+        }
+
         <!-- Settings footer actions -->
         <div class="flex items-center justify-between border-t border-zinc-900 pt-4 gap-4">
-          <button 
-            (click)="onDeleteBucket(bucket)"
-            class="px-3 py-1.5 rounded border border-zinc-900 hover:border-red-900 text-zinc-550 hover:text-red-400 hover:bg-red-950/10 text-xs font-semibold transition-colors cursor-pointer"
-          >
-            Șterge definitiv acest Bucket
-          </button>
-          
+          <div class="flex items-center gap-2">
+            <button
+              (click)="onDeleteBucket(bucket)"
+              class="px-3 py-1.5 rounded border border-zinc-900 hover:border-red-900 text-zinc-550 hover:text-red-400 hover:bg-red-950/10 text-xs font-semibold transition-colors cursor-pointer"
+            >
+              Șterge definitiv acest Bucket
+            </button>
+            <button
+              (click)="onRotateBucketCredentials(bucket)"
+              [disabled]="rotatingCreds()"
+              class="px-3 py-1.5 rounded border border-amber-900/50 bg-amber-950/30 hover:bg-amber-900/40 text-amber-300 hover:text-amber-200 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Generează un secret_key nou (app_id-ul rămâne)"
+            >
+              {{ rotatingCreds() ? 'Se rotește...' : 'Rotește Credențiale' }}
+            </button>
+          </div>
+
           <div class="flex items-center gap-3">
             <button 
               (click)="selectBucket(bucket)"

@@ -41,6 +41,7 @@ export class Databases implements OnInit, OnDestroy {
   readonly dbType = signal<'postgres' | 'redis' | 'mongodb'>('postgres');
   readonly cpuLimit = signal(0); // Millicores
   readonly memLimit = signal(0); // Megabytes
+  readonly storageGb = signal(1); // GB (PVC size, set at creation)
   readonly isExternal = signal(false);
   readonly externalPort = signal(5432);
 
@@ -95,10 +96,13 @@ export class Databases implements OnInit, OnDestroy {
         this.timeTicker.set(Date.now());
       }, 1000);
     }
+    // `database_status_changed` (WS, see setupWsSubscription) drives instant
+    // updates; this poll is only a safety-net while a DB is still provisioning,
+    // so a slower 15s tick is enough.
     if (!this.pollInterval) {
       this.pollInterval = setInterval(() => {
         this.loadDatabases(true);
-      }, 5000);
+      }, 15000);
     }
   }
 
@@ -178,6 +182,7 @@ export class Databases implements OnInit, OnDestroy {
       type: this.dbType(),
       cpuLimit: this.cpuLimit(),
       memoryLimitMb: this.memLimit(),
+      storageSizeGb: this.storageGb(),
       isExternal: this.isExternal(),
       externalPort: this.isExternal() ? this.externalPort() : undefined,
       publishToEnv: this.publishToEnv(),

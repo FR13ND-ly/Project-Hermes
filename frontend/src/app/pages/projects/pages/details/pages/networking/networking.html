@@ -377,7 +377,7 @@
 
               <div class="flex items-center justify-between border-t border-indigo-900/20 pt-2.5">
                 <div class="text-[10px] text-zinc-500">
-                  Rută: <span class="text-cyan-400 font-semibold">{{ fn.method }}</span> {{ fn.routePath }}
+                  Rute: <span class="text-cyan-400 font-semibold">{{ (fn.routes || []).length }}</span> · {{ fn.runtime }}
                 </div>
                 <div class="flex items-center gap-1.5">
                   <span class="text-white font-bold text-xs">Port Public: {{ fn.externalPort }}</span>

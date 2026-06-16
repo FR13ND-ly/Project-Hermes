@@ -12,6 +12,7 @@ pub struct UpdateWorkspaceRequest {
     pub name: Option<String>,
     pub max_memory_mb: Option<i32>,
     pub max_storage_gb: Option<i32>,
+    pub max_cpu_millicores: Option<i32>,
 }
 
 #[derive(Debug, Serialize)]
@@ -22,6 +23,7 @@ pub struct WorkspaceResponse {
     pub slug: String,
     pub max_memory_mb: i32,
     pub max_storage_gb: i32,
+    pub max_cpu_millicores: i32,
 }
 
 #[derive(Debug, Serialize)]
@@ -32,4 +34,6 @@ pub struct WorkspaceUsageResponse {
     pub used_memory_mb: i32,
     pub max_storage_gb: i32,
     pub used_storage_gb: i32,
+    pub max_cpu_millicores: i32,
+    pub used_cpu_millicores: i32,
 }

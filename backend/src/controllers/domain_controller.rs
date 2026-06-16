@@ -57,12 +57,12 @@ async fn resolve_target(
         "serverless" => {
             let id = payload.target_id.ok_or_else(|| AppError::Validation("target_id is required for a serverless domain.".to_string()))?;
             let row = sqlx::query!(
-                "SELECT name FROM serverless_functions WHERE id = $1 AND workspace_id = $2",
+                "SELECT name FROM serverless_instances WHERE id = $1 AND workspace_id = $2",
                 id, ws_id
             )
             .fetch_optional(pool)
             .await?
-            .ok_or_else(|| AppError::NotFound("Serverless function not found in this workspace.".to_string()))?;
+            .ok_or_else(|| AppError::NotFound("Serverless instance not found in this workspace.".to_string()))?;
             let svc = format!("fn-{}-proxy-svc", crate::controllers::serverless_controller::slugify(&row.name));
             Ok(ResolvedTarget {
                 routing_type: DomainRoutingType::ReverseProxy,
@@ -113,7 +113,7 @@ async fn target_name_for(pool: &sqlx::PgPool, target_type: &str, target_id: Opti
             "SELECT a.name FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE ai.id = $1", id
         ).fetch_optional(pool).await.ok().flatten(),
         "serverless" => sqlx::query_scalar!(
-            "SELECT name FROM serverless_functions WHERE id = $1", id
+            "SELECT name FROM serverless_instances WHERE id = $1", id
         ).fetch_optional(pool).await.ok().flatten(),
         "database" => sqlx::query_scalar!(
             "SELECT name FROM databases WHERE id = $1", id
@@ -145,7 +145,7 @@ async fn resolve_project_cf(
             id, ws_id
         ).fetch_optional(pool).await.ok().flatten(),
         "serverless" => sqlx::query_scalar!(
-            "SELECT project_id FROM serverless_functions WHERE id = $1 AND workspace_id = $2",
+            "SELECT project_id FROM serverless_instances WHERE id = $1 AND workspace_id = $2",
             id, ws_id
         ).fetch_optional(pool).await.ok().flatten(),
         "database" => sqlx::query_scalar!(
@@ -386,7 +386,7 @@ pub async fn add_domain(
     // Keep the serverless function aware of its public domain.
     if payload.target_type == "serverless" {
         if let Some(fn_id) = payload.target_id {
-            let _ = sqlx::query!("UPDATE serverless_functions SET assigned_domain = $1, updated_at = now() WHERE id = $2", fqdn, fn_id)
+            let _ = sqlx::query!("UPDATE serverless_instances SET assigned_domain = $1, updated_at = now() WHERE id = $2", fqdn, fn_id)
                 .execute(&state.pool).await;
         }
     }
@@ -529,7 +529,7 @@ pub async fn remove_domain(
     // Clear the serverless function's domain reference.
     if domain.target_type == "serverless" {
         if let Some(fn_id) = domain.target_id {
-            let _ = sqlx::query!("UPDATE serverless_functions SET assigned_domain = NULL, updated_at = now() WHERE id = $1", fn_id)
+            let _ = sqlx::query!("UPDATE serverless_instances SET assigned_domain = NULL, updated_at = now() WHERE id = $1", fn_id)
                 .execute(&state.pool).await;
         }
     }

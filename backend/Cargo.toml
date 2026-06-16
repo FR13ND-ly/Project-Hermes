@@ -11,7 +11,7 @@ tower = { version = "0.4.13" }
 tower-http = { version = "0.5.2", features = ["cors", "trace", "request-id"] }
 
 sqlx = { version = "0.7.4", features = ["runtime-tokio", "tls-rustls", "postgres", "uuid", "chrono"] }
-kube = { version = "0.91.0", features = ["runtime", "derive", "client"] }
+kube = { version = "0.91.0", features = ["runtime", "derive", "client", "ws"] }
 k8s-openapi = { version = "0.22.0", features = ["v1_28"] }
 
 serde = { version = "1.0.203", features = ["derive"] }
@@ -23,7 +23,15 @@ chrono = { version = "0.4.38", features = ["serde"] }
 
 anyhow = "1.0.86"
 tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
+
+# Observability: OpenTelemetry (OTLP/http) + Prometheus exposition for the app's own RED metrics.
+opentelemetry = "0.27"
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.27", default-features = false, features = ["http-proto", "reqwest-client", "trace"] }
+tracing-opentelemetry = "0.28"
+metrics = "0.24"
+metrics-exporter-prometheus = { version = "0.16", default-features = false }
 
 jsonwebtoken = "9.3.0"
 bcrypt = "0.16.0"

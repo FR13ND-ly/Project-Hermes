@@ -158,4 +158,16 @@ export class WebSocketService {
       map(event => event.payload as T)
     );
   }
+
+  /**
+   * Emitted when the server signals the client fell behind and dropped events
+   * (broadcast lag). Subscribers should refetch the data they render live so the
+   * UI doesn't get stuck on stale state.
+   */
+  onResync(): Observable<void> {
+    return this.eventSubject.asObservable().pipe(
+      filter(event => event && event.type === 'resync'),
+      map(() => undefined)
+    );
+  }
 }

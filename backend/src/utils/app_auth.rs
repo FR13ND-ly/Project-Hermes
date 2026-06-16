@@ -45,8 +45,23 @@ pub async fn get_or_create_app_auth_secret(
         return crypto::decrypt_env_value(&enc, &nonce);
     }
 
-    // First use: generate, store encrypted, publish to the project pool, and
-    // auto-link the app's existing instances so it lands in their env.
+    // First use: generate + publish (same path as an explicit rotation).
+    rotate_app_auth_secret(pool, app_id, ws_id, project_id).await
+}
+
+/// Force-rotate the app's signing secret: generate a fresh one, persist encrypted,
+/// republish to the project pool (upsert on the same key) and ensure the app's
+/// instances are linked so it lands in their env. Returns the new secret.
+///
+/// Side effect: every end-user JWT signed with the previous secret stops verifying,
+/// so existing end-user sessions must re-authenticate. Apps pick up the new
+/// `HERMES_AUTH_SECRET` on their next reload (caller is responsible for that).
+pub async fn rotate_app_auth_secret(
+    pool: &PgPool,
+    app_id: Uuid,
+    ws_id: Uuid,
+    project_id: Uuid,
+) -> Result<String, AppError> {
     let secret = generate_secret();
     let (enc, nonce) = crypto::encrypt_env_value(&secret)?;
     sqlx::query!(

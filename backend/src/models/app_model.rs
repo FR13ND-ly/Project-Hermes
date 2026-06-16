@@ -36,6 +36,7 @@ pub struct App {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub git_subpath: Option<String>,
+    pub git_credential_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]

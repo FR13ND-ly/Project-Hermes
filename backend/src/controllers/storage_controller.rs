@@ -21,6 +21,113 @@ use crate::utils::{storage_engine::StorageEngine, error::AppError};
 use crate::utils::pagination::{PaginationParams, Paginated};
 use image::io::Reader as ImageReader;
 
+/// Upsert a bucket's access credentials into the project env pool as two vars:
+/// <PREFIX>_APP_ID (visible) and <PREFIX>_SECRET_KEY (secret). Both carry
+/// source='storage'/source_id=bucket so delete_bucket removes them together.
+async fn publish_bucket_credentials(
+    pool: &sqlx::PgPool,
+    ws_id: Uuid,
+    project_id: Uuid,
+    bucket_id: Uuid,
+    prefix: &str,
+    app_id: &str,
+    secret_key: &str,
+) {
+    for (key, value, is_secret) in [
+        (format!("{}_APP_ID", prefix), app_id.to_string(), false),
+        (format!("{}_SECRET_KEY", prefix), secret_key.to_string(), true),
+    ] {
+        if let Ok((enc, nonce)) = crate::utils::crypto::encrypt_env_value(&value) {
+            let _ = sqlx::query!(
+                "INSERT INTO project_env_variables (id, workspace_id, project_id, key, encrypted_value, nonce, is_secret, source, source_id)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, 'storage', $8)
+                 ON CONFLICT (project_id, key)
+                 DO UPDATE SET encrypted_value = $5, nonce = $6, is_secret = $7, source = 'storage', source_id = $8, updated_at = now()",
+                Uuid::new_v4(), ws_id, project_id, key, enc, nonce, is_secret, bucket_id
+            )
+            .execute(pool)
+            .await;
+        }
+    }
+}
+
+/// Backfill access credentials for buckets created before the key-pair model, and
+/// publish them for project-scoped buckets. Idempotent — runs on every startup.
+pub async fn reconcile_bucket_credentials(pool: &sqlx::PgPool) {
+    let rows = match sqlx::query!(
+        "SELECT id, workspace_id, project_id, slug FROM storage_buckets WHERE app_id IS NULL"
+    )
+    .fetch_all(pool)
+    .await
+    {
+        Ok(r) => r,
+        Err(_) => return,
+    };
+    for b in rows {
+        let app_id = format!("hsk_{}", crate::utils::string_gen::generate_secure_string(24));
+        let secret_key = crate::utils::string_gen::generate_secure_string(40);
+        let (enc, nonce) = match crate::utils::crypto::encrypt_env_value(&secret_key) {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        let updated = sqlx::query!(
+            "UPDATE storage_buckets SET app_id = $1, secret_key_encrypted = $2, secret_key_nonce = $3 WHERE id = $4 AND app_id IS NULL",
+            app_id, enc, nonce, b.id
+        )
+        .execute(pool)
+        .await;
+        if updated.map(|r| r.rows_affected() > 0).unwrap_or(false) {
+            if let Some(pid) = b.project_id {
+                let prefix = format!("BUCKET_{}", crate::utils::app_env::sanitize_key_fragment(&b.slug, "STORAGE"));
+                publish_bucket_credentials(pool, b.workspace_id, pid, b.id, &prefix, &app_id, &secret_key).await;
+            }
+        }
+    }
+}
+
+/// POST /buckets/:id/rotate-credentials — regenerate the bucket's `secret_key`
+/// (the `app_id` identity stays stable, mirroring access-key-id/secret), re-encrypt,
+/// persist, and republish to the project env pool. Returns the new secret_key (shown
+/// once). Apps holding the old key break until they reload — the UI warns, no auto-reload.
+pub async fn rotate_bucket_credentials(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(bucket_id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let bucket = sqlx::query!(
+        "SELECT slug, project_id, app_id FROM storage_buckets WHERE id = $1 AND workspace_id = $2",
+        bucket_id, ws_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Storage bucket not found.".to_string()))?;
+
+    // Keep app_id stable (identity); rotate only the secret.
+    let app_id = bucket
+        .app_id
+        .unwrap_or_else(|| format!("hsk_{}", crate::utils::string_gen::generate_secure_string(24)));
+    let secret_key = crate::utils::string_gen::generate_secure_string(40);
+    let (enc, nonce) = crate::utils::crypto::encrypt_env_value(&secret_key)?;
+
+    sqlx::query!(
+        "UPDATE storage_buckets SET app_id = $1, secret_key_encrypted = $2, secret_key_nonce = $3, updated_at = now() WHERE id = $4",
+        app_id, enc, nonce, bucket_id
+    )
+    .execute(&state.pool)
+    .await?;
+
+    if let Some(pid) = bucket.project_id {
+        let prefix = format!("BUCKET_{}", crate::utils::app_env::sanitize_key_fragment(&bucket.slug, "STORAGE"));
+        publish_bucket_credentials(&state.pool, ws_id, pid, bucket_id, &prefix, &app_id, &secret_key).await;
+    }
+
+    Ok(Json(serde_json::json!({ "app_id": app_id, "secret_key": secret_key })))
+}
+
 pub async fn create_bucket(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -32,7 +139,9 @@ pub async fn create_bucket(
 
     let slug = payload.name.trim().to_lowercase().replace(' ', "-");
     let is_public = payload.is_public.unwrap_or(false);
-    let max_size = payload.max_bucket_size_bytes.unwrap_or(1073741824);
+    // 0 = unlimited; limits are opt-in (set explicitly per bucket), matching the
+    // workspace RAM/storage convention.
+    let max_size = payload.max_bucket_size_bytes.unwrap_or(0);
     let max_file_size = payload.max_file_size_bytes.unwrap_or(0);
     let allow_custom_processing = payload.allow_custom_processing.unwrap_or(false);
     let processing_rules = payload.default_processing_rules.unwrap_or_default();
@@ -58,10 +167,15 @@ pub async fn create_bucket(
     let bucket_id = Uuid::new_v4();
     let bucket_dir = StorageEngine::get_bucket_path(&ws_id.to_string(), &slug, &access_type);
 
+    // Per-bucket access credentials. Apps connect with (app_id, secret_key).
+    let app_id = format!("hsk_{}", crate::utils::string_gen::generate_secure_string(24));
+    let secret_key = crate::utils::string_gen::generate_secure_string(40);
+    let (secret_enc, secret_nonce) = crate::utils::crypto::encrypt_env_value(&secret_key)?;
+
     sqlx::query!(
-        "INSERT INTO storage_buckets (id, workspace_id, project_id, name, slug, access_type, is_public, max_bucket_size_bytes, max_file_size_bytes, allow_custom_processing, default_processing_rules, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6::bucket_access_type, $7, $8, $9, $10, $11, $12)",
-        bucket_id, ws_id, payload.project_id, payload.name.trim(), slug, access_type as _, is_public, max_size, max_file_size, allow_custom_processing, sqlx::types::Json(processing_rules.clone()) as _, claims.sub
+        "INSERT INTO storage_buckets (id, workspace_id, project_id, name, slug, access_type, is_public, max_bucket_size_bytes, max_file_size_bytes, allow_custom_processing, default_processing_rules, created_by, app_id, secret_key_encrypted, secret_key_nonce)
+         VALUES ($1, $2, $3, $4, $5, $6::bucket_access_type, $7, $8, $9, $10, $11, $12, $13, $14, $15)",
+        bucket_id, ws_id, payload.project_id, payload.name.trim(), slug, access_type as _, is_public, max_size, max_file_size, allow_custom_processing, sqlx::types::Json(processing_rules.clone()) as _, claims.sub, app_id, secret_enc, secret_nonce
     )
     .execute(&mut *tx)
     .await?;
@@ -72,9 +186,11 @@ pub async fn create_bucket(
 
     tx.commit().await?;
 
-    // Publish the bucket's URL into the project env pool when scoped to a project.
-    // Opt-out via publish_to_env=false; the key defaults to BUCKET_<SLUG>_URL but a
-    // custom env_key may be supplied at creation.
+    // Publish the bucket's access credentials into the project env pool when scoped
+    // to a project. Both BUCKET_<SLUG>_APP_ID (visible) and BUCKET_<SLUG>_SECRET_KEY
+    // (secret) are added so apps can connect with the key pair. Opt-out via
+    // publish_to_env=false; an optional env_key prefix may be supplied.
+    let _ = base_domain; // legacy public-URL publish removed (buckets are private)
     if let (Some(pid), true) = (payload.project_id, payload.publish_to_env.unwrap_or(true)) {
         let in_workspace = sqlx::query_scalar!(
             "SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1 AND workspace_id = $2)",
@@ -84,16 +200,11 @@ pub async fn create_bucket(
         .await?
         .unwrap_or(false);
         if in_workspace {
-            let bucket_url = format!("https://{}.{}", slug, base_domain);
-            let default_key = format!("BUCKET_{}_URL", crate::utils::app_env::sanitize_key_fragment(&slug, "STORAGE"));
-            let key = match payload.env_key.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-                Some(custom) => crate::utils::app_env::sanitize_key_fragment(custom, &default_key),
-                None => default_key,
+            let prefix = match payload.env_key.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+                Some(custom) => crate::utils::app_env::sanitize_key_fragment(custom, &format!("BUCKET_{}", crate::utils::app_env::sanitize_key_fragment(&slug, "STORAGE"))),
+                None => format!("BUCKET_{}", crate::utils::app_env::sanitize_key_fragment(&slug, "STORAGE")),
             };
-            let _ = crate::utils::app_env::publish_project_env(
-                &state.pool, ws_id, pid, &key, &bucket_url, false, "storage", bucket_id,
-            )
-            .await;
+            publish_bucket_credentials(&state.pool, ws_id, pid, bucket_id, &prefix, &app_id, &secret_key).await;
         }
     }
 
@@ -152,6 +263,26 @@ pub async fn initialize_upload(
             format_bytes(payload.size_bytes),
             format_bytes(bucket.max_file_size_bytes)
         )));
+    }
+
+    // Enforce the bucket's total-size limit (0 = unlimited). Counts all existing
+    // objects (conservative on overwrite — the prior copy is replaced just below).
+    if bucket.max_bucket_size_bytes > 0 {
+        let used: i64 = sqlx::query_scalar!(
+            "SELECT COALESCE(SUM(size_bytes), 0)::bigint FROM storage_objects WHERE bucket_id = $1",
+            bucket.id
+        )
+        .fetch_one(&state.pool)
+        .await?
+        .unwrap_or(0);
+        if used + payload.size_bytes > bucket.max_bucket_size_bytes {
+            return Err(AppError::Validation(format!(
+                "Bucket is full: {} of {} used; this {} upload would exceed the limit.",
+                format_bytes(used),
+                format_bytes(bucket.max_bucket_size_bytes),
+                format_bytes(payload.size_bytes)
+            )));
+        }
     }
 
     if let Some(allowed) = bucket.allowed_file_types {
@@ -217,6 +348,7 @@ pub async fn initialize_upload(
     }))
 }
 
+#[tracing::instrument(skip_all, fields(file_id = %file_id), err)]
 pub async fn process_upload_stream(
     State(state): State<AppState>,
     Path(file_id): Path<Uuid>,
@@ -286,6 +418,7 @@ pub async fn process_upload_stream(
     let mime_type = object.mime_type.clone();
     let disk_path_clone = final_disk_path.clone();
     let options = object.processing_options.0;
+    let event_bucket_id = object.bucket_id;
 
     tokio::spawn(async move {
         // Granular processing stages are reported through an unbounded channel and
@@ -456,6 +589,17 @@ pub async fn process_upload_stream(
                 &meta_clone.variants,
             ).await;
         }
+
+        // Notify the dashboard live that processing finished (Ready/Failed) so the
+        // Storage UI refreshes instantly instead of waiting for the safety-net poll.
+        crate::utils::event_broadcaster::broadcast_event(
+            crate::utils::event_broadcaster::SystemEvent::StorageObjectUpdated {
+                workspace_id,
+                bucket_id: event_bucket_id,
+                object_id: file_id,
+                status: format!("{:?}", final_status).to_lowercase(),
+            }
+        );
     });
 
     let virtual_url = calculate_virtual_url(object.id, &object.file_path, &bucket_slug, workspace_id, &access_type);
@@ -500,6 +644,7 @@ pub async fn upload_progress_stream(
     Sse::new(stream)
 }
 
+#[tracing::instrument(skip_all, fields(file_id = %file_id), err)]
 pub async fn download_private_file(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -841,26 +986,46 @@ pub async fn serve_public_file(
     .await?
     .ok_or_else(|| AppError::NotFound("Storage bucket not found.".to_string()))?;
 
-    // All buckets are private — a valid token is always required.
+    // All buckets are private. Access is granted either via a workspace JWT
+    // (?token=) or the bucket's own key pair (?app_id=&secret_key=) — the latter
+    // is how deployed apps connect using the vars published to the project pool.
     {
-        let token = params.get("token").ok_or_else(|| {
-            AppError::Permission("Access denied to private storage bucket. Missing token.".to_string())
-        })?;
+        if let Some(token) = params.get("token") {
+            let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "super_secret_key".to_string());
+            let token_data = jsonwebtoken::decode::<crate::middlewares::auth_middleware::Claims>(
+                token,
+                &jsonwebtoken::DecodingKey::from_secret(jwt_secret.as_bytes()),
+                &jsonwebtoken::Validation::default(),
+            )
+            .map_err(|_| AppError::Auth("Invalid or expired token".to_string()))?;
 
-        let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "super_secret_key".to_string());
-        let token_data = jsonwebtoken::decode::<crate::middlewares::auth_middleware::Claims>(
-            token,
-            &jsonwebtoken::DecodingKey::from_secret(jwt_secret.as_bytes()),
-            &jsonwebtoken::Validation::default(),
-        )
-        .map_err(|_| AppError::Auth("Invalid or expired token".to_string()))?;
-
-        if token_data.claims.status == crate::models::user_model::UserStatus::Suspended {
-            return Err(AppError::Permission("This account has been suspended".to_string()));
-        }
-
-        if token_data.claims.current_workspace_id != Some(workspace_id) && !token_data.claims.is_super_admin {
-            return Err(AppError::Permission("You do not have permission to access this workspace's assets.".to_string()));
+            if token_data.claims.status == crate::models::user_model::UserStatus::Suspended {
+                return Err(AppError::Permission("This account has been suspended".to_string()));
+            }
+            if token_data.claims.current_workspace_id != Some(workspace_id) && !token_data.claims.is_super_admin {
+                return Err(AppError::Permission("You do not have permission to access this workspace's assets.".to_string()));
+            }
+        } else if let (Some(prov_app), Some(prov_secret)) = (params.get("app_id"), params.get("secret_key")) {
+            let creds = sqlx::query!(
+                "SELECT app_id, secret_key_encrypted, secret_key_nonce FROM storage_buckets WHERE id = $1",
+                bucket_id
+            )
+            .fetch_one(&state.pool)
+            .await?;
+            let ok = match (creds.app_id, creds.secret_key_encrypted, creds.secret_key_nonce) {
+                (Some(a), Some(e), Some(n)) => {
+                    a == *prov_app
+                        && crate::utils::crypto::decrypt_env_value(&e, &n).map(|s| s == *prov_secret).unwrap_or(false)
+                }
+                _ => false,
+            };
+            if !ok {
+                return Err(AppError::Permission("Invalid storage credentials (app_id/secret_key).".to_string()));
+            }
+        } else {
+            return Err(AppError::Permission(
+                "Access denied to private bucket. Provide ?token= or ?app_id=&secret_key=.".to_string(),
+            ));
         }
     }
 

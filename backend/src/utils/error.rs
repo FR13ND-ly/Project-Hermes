@@ -5,7 +5,6 @@ use axum::{
 };
 use serde_json::json;
 use tracing::error;
-use uuid::Uuid;
 
 #[derive(Debug)]
 pub enum AppError {
@@ -40,12 +39,20 @@ impl From<std::io::Error> for AppError {
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let request_id = Uuid::new_v4().to_string();
+        // Reuse the request's correlation id so the error body, the access log and
+        // the x-request-id response header all match (see middlewares::logger).
+        let request_id = crate::middlewares::logger::current_request_id();
 
         let (status, code, message) = match self {
             AppError::Validation(msg) => (StatusCode::BAD_REQUEST, "VALIDATION_ERROR", msg),
-            AppError::Auth(msg) => (StatusCode::UNAUTHORIZED, "AUTH_ERROR", msg),
-            AppError::Permission(msg) => (StatusCode::FORBIDDEN, "PERMISSION_DENIED", msg),
+            AppError::Auth(msg) => {
+                tracing::warn!(%request_id, kind = "auth", "Authentication rejected: {}", msg);
+                (StatusCode::UNAUTHORIZED, "AUTH_ERROR", msg)
+            }
+            AppError::Permission(msg) => {
+                tracing::warn!(%request_id, kind = "permission", "Authorization denied: {}", msg);
+                (StatusCode::FORBIDDEN, "PERMISSION_DENIED", msg)
+            }
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, "NOT_FOUND", msg),
             AppError::Conflict(msg) => (StatusCode::CONFLICT, "CONFLICT", msg),
             

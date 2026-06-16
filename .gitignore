@@ -25,3 +25,11 @@ frontend/package-lock.json
 first_build_logs.txt
 src.zip
 update_db.py
+
+# Scratch scripts & AI-tool artifacts (not part of the codebase)
+.gemini/
+temp_hermes_test/
+matching_log.txt
+scratch_*.py
+backend/.cargo/
+backend/src/**/*.py

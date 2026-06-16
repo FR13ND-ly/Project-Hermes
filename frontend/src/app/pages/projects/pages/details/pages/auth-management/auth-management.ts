@@ -30,6 +30,7 @@ export class AuthManagement {
   // Integration tab
   readonly integration = signal<AuthIntegration | null>(null);
   readonly revealSecret = signal(false);
+  readonly rotatingSecret = signal(false);
   readonly integrationSnippet = computed(() => {
     const i = this.integration();
     if (!i) return '';
@@ -164,6 +165,34 @@ export const requireRole = (role) => (req, res, next) =>
       error: (err) => {
         this.toast.error(err.error?.message || 'Eroare la încărcarea datelor de integrare.');
         this.loading.set(false);
+      }
+    });
+  }
+
+  async rotateAuthSecret(): Promise<void> {
+    const activeApp = this.parent.selectedApp();
+    if (!activeApp) return;
+
+    const confirmed = await this.confirm.ask({
+      title: 'Rotește secretul BaaS',
+      message: 'Se generează un secret de semnare nou. Toate token-urile end-user existente devin invalide (utilizatorii trebuie să se reautentifice), iar aplicația preia noul secret la următorul reload. Continuați?',
+      confirmText: 'Rotește',
+      cancelText: 'Anulează',
+      isDanger: true
+    });
+    if (!confirmed) return;
+
+    this.rotatingSecret.set(true);
+    this.authMgmtService.rotateAuthSecret(activeApp.id).subscribe({
+      next: (res) => {
+        this.rotatingSecret.set(false);
+        this.integration.update(i => i ? { ...i, authSecret: res.auth_secret } : i);
+        this.revealSecret.set(true);
+        this.toast.success('Secretul a fost rotit. Token-urile end-user existente sunt acum invalide; reîncarcă aplicația ca să preia noul secret.');
+      },
+      error: (err) => {
+        this.rotatingSecret.set(false);
+        this.toast.error(err.error?.message || 'Eroare la rotația secretului.');
       }
     });
   }

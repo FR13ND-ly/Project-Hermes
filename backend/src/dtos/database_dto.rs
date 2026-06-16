@@ -12,6 +12,7 @@ pub struct CreateDatabaseRequest {
     pub version: Option<String>,
     pub cpu_limit: Option<i32>,
     pub memory_limit_mb: Option<i64>,
+    pub storage_size_gb: Option<i32>,
     pub is_external: Option<bool>,
     pub external_port: Option<i32>,
     /// Publish the connection string into the project env pool (default: true).

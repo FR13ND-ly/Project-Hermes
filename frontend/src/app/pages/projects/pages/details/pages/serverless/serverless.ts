@@ -1,8 +1,9 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { Details } from '../../details';
-import { ProjectService, ServerlessFunction, ProjectEnvResponse, ServerlessBuild } from '../../../../../../core/services/project.service';
+import { ProjectService, ServerlessInstance, ServerlessRoute, ProjectEnvResponse, ServerlessBuild, FunctionEnvResponse } from '../../../../../../core/services/project.service';
 import { DomainService, Domain } from '../../../../../../core/services/domain.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
@@ -27,506 +28,512 @@ export class ServerlessComponent implements OnInit, OnDestroy {
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
   private readonly wsService = inject(WebSocketService);
+  private readonly route = inject(ActivatedRoute);
 
   readonly loading = signal(false);
-  readonly functions = signal<ServerlessFunction[]>([]);
+  readonly instances = signal<ServerlessInstance[]>([]);
   readonly page = signal(1);
   readonly pageSize = signal(DEFAULT_PAGE_SIZE);
   readonly total = signal(0);
-  readonly selectedFunction = signal<ServerlessFunction | null>(null);
-  readonly activeTab = signal<'details' | 'code' | 'settings' | 'env' | 'builds' | 'logs'>('details');
+  readonly selectedInstance = signal<ServerlessInstance | null>(null);
+
+  readonly activeTab = signal<'details' | 'routes' | 'settings' | 'env' | 'metrics' | 'builds' | 'logs'>('details');
+
+  // Telemetry (historical, Prometheus)
+  readonly metricsRange = signal('1h');
+  readonly metricsLoading = signal(false);
+  readonly metricsSimulated = signal(false);
+  readonly cpuValues = signal<number[]>([]);
+  readonly memValues = signal<number[]>([]);
   readonly domains = signal<Domain[]>([]);
   readonly logs = signal<string[]>([]);
-
-  // Build history + live build (Kaniko) logs
   readonly builds = signal<ServerlessBuild[]>([]);
   readonly selectedBuildId = signal<string | null>(null);
   readonly buildLogs = signal<string[]>([]);
 
-  // Creation Modal Signals
+  // Create instance modal
   readonly showCreateModal = signal(false);
   readonly creating = signal(false);
-  readonly newFnName = signal('');
-  readonly newFnMethod = signal('GET');
-  readonly newFnRoutePath = signal('');
-  readonly newFnMemory = signal(0);
-  readonly newFnRuntime = signal('nodejs-cjs');
+  readonly newName = signal('');
+  readonly newRuntime = signal('nodejs-cjs');
+  readonly newMemory = signal(128);
 
-  // Register Domain Modal Signals
+  // Register domain modal
   readonly showAddDomainModal = signal(false);
   readonly newDomainFqdn = signal('');
   readonly addingDomain = signal(false);
 
-  // Edit / Settings Signals
+  // Settings (instance-level)
   readonly editName = signal('');
-  readonly editCode = signal('');
-  readonly editMethod = signal('GET');
-  readonly editRoutePath = signal('');
+  readonly editRuntime = signal('nodejs-cjs');
   readonly editMemory = signal(0);
   readonly editAssignedDomain = signal<string | null>(null);
-  readonly editEnvVariables = signal<{ key: string, value: string }[]>([]);
-  // Project-pool vars available to this function, each flagged linked/not (parity with apps).
+  readonly savingSettings = signal(false);
+  readonly deploying = signal(false);
+
+  // Routes
+  readonly routes = signal<ServerlessRoute[]>([]);
+  readonly selectedRoute = signal<ServerlessRoute | null>(null);
+  readonly routeMethod = signal('GET');
+  readonly routePath = signal('');
+  readonly routeCode = signal('');
+  readonly savingRoute = signal(false);
+
+  // Env (instance-level)
+  readonly functionEnv = signal<FunctionEnvResponse[]>([]);
+  readonly revealedEnvIds = signal<Record<string, boolean>>({});
   readonly availableProjectEnv = signal<ProjectEnvResponse[]>([]);
   readonly togglingLinkId = signal<string | null>(null);
   readonly linkedProjectEnv = computed(() => this.availableProjectEnv().filter(v => v.linked));
-  // "Adaugă Variabilă" panel (mirror app-detail): a brand-new var or one from the pool.
   readonly showAddEnvPanel = signal(false);
   readonly addEnvMode = signal<'new' | 'project'>('new');
   readonly newEnvKey = signal('');
   readonly newEnvValue = signal('');
+  readonly newEnvIsSecret = signal(true);
+  readonly editingEnvId = signal<string | null>(null);
+  readonly savingEnv = signal(false);
   readonly reloadingEnv = signal(false);
-  readonly editRuntime = signal('nodejs-cjs');
-  readonly editInheritProjectEnvs = signal(false);
-  readonly savingSettings = signal(false);
-  readonly deploying = signal(false);
 
   editorInstance: any = null;
   private logSource: EventSource | null = null;
   private buildLogSource: EventSource | null = null;
   private wsSubscriptions = new Subscription();
 
+  readonly httpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'ANY'];
+
   constructor() {
     effect(() => {
       const projId = this.parent.projectId();
       if (projId) {
-        this.loadFunctions();
+        this.loadInstances();
         this.loadDomains();
       }
     });
   }
 
   ngOnInit(): void {
-    this.loadFunctions();
+    this.loadInstances();
     this.loadDomains();
-    this.setupWsSubscriptions();
+    for (const evt of ['serverless_function_updated', 'serverless_function_deleted']) {
+      this.wsSubscriptions.add(this.wsService.onEvent<any>(evt).subscribe(() => {
+        this.loadInstances();
+        const sel = this.selectedInstance();
+        if (sel) {
+          this.projectService.getFunctionDetails(this.parent.projectId()!, sel.id).subscribe({
+            next: (fresh) => this.selectedInstance.set(fresh),
+            error: () => {}
+          });
+        }
+      }));
+    }
   }
 
   ngOnDestroy(): void {
     this.stopLogsStream();
     this.stopBuildLogsStream();
-    if (this.editorInstance) {
-      this.editorInstance.dispose();
-      this.editorInstance = null;
-    }
     this.wsSubscriptions.unsubscribe();
+    if (this.editorInstance) { this.editorInstance.dispose(); this.editorInstance = null; }
   }
 
-  loadFunctions(): void {
+  // ---------- Instances ----------
+  loadInstances(): void {
     const projId = this.parent.projectId();
     if (!projId) return;
-
     this.loading.set(true);
     this.projectService.listProjectFunctions(projId, this.page(), this.pageSize()).subscribe({
       next: (res) => {
-        this.functions.set(res?.items || []);
+        this.instances.set(res?.items || []);
         this.total.set(res?.total || 0);
         this.loading.set(false);
       },
-      error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la încărcarea funcțiilor serverless.');
-        this.loading.set(false);
-      }
+      error: () => { this.instances.set([]); this.loading.set(false); }
     });
   }
 
-  onPageChange(page: number): void {
-    this.page.set(page);
-    this.loadFunctions();
-  }
+  onPageChange(p: number): void { this.page.set(p); this.loadInstances(); }
 
   loadDomains(): void {
-    // Secondary list (attach targets) — fetch a large page to keep all options.
     this.domainService.listDomains(1, 1000).subscribe({
-      next: (res) => {
-        this.domains.set(res?.items || []);
-      },
-      error: (err) => {
-        console.error('Failed to load domains:', err);
-      }
+      next: (res) => this.domains.set(res?.items || []),
+      error: () => {}
     });
   }
 
-  onOpenCreateModal(): void {
-    this.newFnName.set('');
-    this.newFnMethod.set('GET');
-    this.newFnRoutePath.set('');
-    this.newFnMemory.set(128);
-    this.newFnRuntime.set('nodejs-cjs');
-    this.showCreateModal.set(true);
-  }
-
-  onOpenAddDomainModal(): void {
-    this.newDomainFqdn.set('');
-    this.showAddDomainModal.set(true);
-  }
-
-  onCloseAddDomainModal(): void {
-    this.showAddDomainModal.set(false);
-  }
-
-  onRegisterDomain(): void {
-    const projId = this.parent.projectId();
-    const fn = this.selectedFunction();
-    if (!projId || !fn) return;
-
-    const fqdn = this.newDomainFqdn().trim().toLowerCase();
-    if (!fqdn) {
-      this.toast.error('Numele de domeniu este obligatoriu.');
-      return;
-    }
-
-    this.addingDomain.set(true);
-    this.domainService.addDomain({
-      fqdn,
-      targetType: 'serverless',
-      targetId: fn.id,
-      routingType: 'reverse_proxy',
-      isSsl: true,
-    }).subscribe({
-      next: (domain) => {
-        this.addingDomain.set(false);
-        this.showAddDomainModal.set(false);
-        this.toast.success(`Domeniul ${fqdn} a fost înregistrat cu succes!`);
-        this.loadDomains();
-        this.editAssignedDomain.set(domain.fqdn);
-      },
-      error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la înregistrarea domeniului.');
-        this.addingDomain.set(false);
-      }
-    });
-  }
-
-  onCreateFunction(): void {
-    const projId = this.parent.projectId();
-    if (!projId) return;
-
-    const name = this.newFnName().trim();
-    const method = this.newFnMethod();
-    let routePath = this.newFnRoutePath().trim();
-    const memory = this.newFnMemory();
-
-    if (!name || !routePath) {
-      this.toast.error('Numele și calea de rută sunt obligatorii.');
-      return;
-    }
-
-    if (!routePath.startsWith('/')) {
-      routePath = '/' + routePath;
-    }
-
-    this.creating.set(true);
-    this.projectService.createFunction(projId, {
-      name,
-      method,
-      routePath,
-      memoryLimitMb: memory,
-      runtime: this.newFnRuntime()
-    }).subscribe({
-      next: (res) => {
-        this.creating.set(false);
-        this.showCreateModal.set(false);
-        this.toast.success('Funcția serverless a fost creată cu succes!');
-        this.loadFunctions();
-        this.selectFunction(res);
-      },
-      error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la crearea funcției.');
-        this.creating.set(false);
-      }
-    });
-  }
-
-  selectFunction(fn: ServerlessFunction): void {
+  selectInstance(inst: ServerlessInstance): void {
     this.stopLogsStream();
-    this.selectedFunction.set(fn);
+    this.stopBuildLogsStream();
+    this.selectedInstance.set(inst);
     this.activeTab.set('details');
-    this.logs.set([]);
 
-    // Populate edit fields
-    this.editName.set(fn.name);
-    this.editCode.set(fn.code);
-    this.editMethod.set(fn.method);
-    this.editRoutePath.set(fn.routePath);
-    this.editMemory.set(fn.memoryLimitMb);
-    this.editAssignedDomain.set(fn.assignedDomain || null);
-    this.editRuntime.set(fn.runtime || 'nodejs-cjs');
-    this.editInheritProjectEnvs.set(fn.inheritProjectEnvs || false);
+    this.editName.set(inst.name);
+    this.editRuntime.set(inst.runtime || 'nodejs-cjs');
+    this.editMemory.set(inst.memoryLimitMb);
+    this.editAssignedDomain.set(inst.assignedDomain || null);
 
-    // Update editor value if initialized
-    if (this.editorInstance) {
-      this.editorInstance.setValue(fn.code);
-      const model = this.editorInstance.getModel();
-      if (model && typeof monaco !== 'undefined') {
-        const lang = fn.runtime?.startsWith('python') ? 'python' : 'javascript';
-        monaco.editor.setModelLanguage(model, lang);
-      }
-    }
+    this.routes.set(inst.routes || []);
+    this.selectedRoute.set(null);
+    this.loadRoutes();
 
-    // Parse environment variables
-    const envs = fn.envVariables || [];
-    const formattedEnvs = Array.isArray(envs) ? envs.map((e: any) => ({
-      key: e.key || '',
-      value: e.value || ''
-    })) : [];
-    this.editEnvVariables.set(formattedEnvs);
-
-    // Load the project pool (with linked flags) for the "associate from pool" panel.
+    this.functionEnv.set([]);
+    this.revealedEnvIds.set({});
+    this.loadFunctionEnv();
     this.availableProjectEnv.set([]);
     this.loadFunctionProjectEnv();
 
-    // Build history for the "Build-uri" tab.
-    this.stopBuildLogsStream();
     this.selectedBuildId.set(null);
     this.buildLogs.set([]);
     this.loadBuilds();
   }
 
-  deselectFunction(): void {
+  deselectInstance(): void {
     this.stopLogsStream();
     this.stopBuildLogsStream();
-    if (this.editorInstance) {
-      this.editorInstance.dispose();
-      this.editorInstance = null;
-    }
-    this.selectedFunction.set(null);
+    if (this.editorInstance) { this.editorInstance.dispose(); this.editorInstance = null; }
+    this.selectedInstance.set(null);
   }
 
-  onTabChange(tab: 'details' | 'code' | 'settings' | 'env' | 'builds' | 'logs'): void {
-    this.activeTab.set(tab);
-    if (tab === 'code') {
-      setTimeout(() => {
-        this.initMonaco();
-      }, 50);
-    } else {
-      this.stopLogsStream();
-    }
-    if (tab === 'logs') {
-      this.startLogsStream();
-    }
-    if (tab === 'builds') {
-      this.loadBuilds();
-    } else {
-      this.stopBuildLogsStream();
-    }
+  openCreateModal(): void {
+    this.newName.set('');
+    this.newRuntime.set('nodejs-cjs');
+    this.newMemory.set(128);
+    this.showCreateModal.set(true);
   }
 
-  onSaveFunction(): void {
+  onCreateInstance(): void {
     const projId = this.parent.projectId();
-    const fn = this.selectedFunction();
-    if (!projId || !fn) return;
+    if (!projId) return;
+    const name = this.newName().trim();
+    if (!name) { this.toast.error('Numele instanței este obligatoriu.'); return; }
+    this.creating.set(true);
+    this.projectService.createInstance(projId, { name, runtime: this.newRuntime(), memoryLimitMb: this.newMemory() }).subscribe({
+      next: (res) => {
+        this.creating.set(false);
+        this.showCreateModal.set(false);
+        this.toast.success('Instanța serverless a fost creată.');
+        this.loadInstances();
+        this.selectInstance(res);
+      },
+      error: (err) => { this.creating.set(false); this.toast.error(err.error?.message || 'Eroare la creare.'); }
+    });
+  }
 
+  onSaveSettings(): void {
+    const projId = this.parent.projectId();
+    const inst = this.selectedInstance();
+    if (!projId || !inst) return;
     const name = this.editName().trim();
-    const code = this.editCode();
-    const method = this.editMethod();
-    let routePath = this.editRoutePath().trim();
-    const memory = this.editMemory();
-    const assignedDomain = this.editAssignedDomain();
-    
-    // Filter and clean env variables
-    const envVariables = this.editEnvVariables()
-      .map(v => ({ key: v.key.trim().toUpperCase(), value: v.value.trim() }))
-      .filter(v => v.key !== '');
-
-    if (!name || !routePath) {
-      this.toast.error('Numele și calea de rută sunt obligatorii.');
-      return;
-    }
-
-    if (!routePath.startsWith('/')) {
-      routePath = '/' + routePath;
-    }
-
+    if (!name) { this.toast.error('Numele este obligatoriu.'); return; }
     this.savingSettings.set(true);
-    this.projectService.updateFunction(projId, fn.id, {
+    this.projectService.updateInstance(projId, inst.id, {
       name,
-      code,
-      method,
-      routePath,
-      memoryLimitMb: memory,
-      assignedDomain: assignedDomain || null,
-      envVariables,
       runtime: this.editRuntime(),
-      inheritProjectEnvs: false
+      memoryLimitMb: this.editMemory(),
+      assignedDomain: this.editAssignedDomain() || null,
     }).subscribe({
       next: (updated) => {
-        this.toast.success('Configurațiile funcției au fost salvate cu succes!');
-        this.selectedFunction.set(updated);
         this.savingSettings.set(false);
-        this.loadFunctions();
+        this.selectedInstance.set(updated);
+        this.routes.set(updated.routes || []);
+        this.toast.success('Setările instanței au fost salvate.');
+        this.loadInstances();
       },
-      error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la salvarea setărilor.');
-        this.savingSettings.set(false);
-      }
+      error: (err) => { this.savingSettings.set(false); this.toast.error(err.error?.message || 'Eroare la salvare.'); }
     });
   }
 
-  onDeployFunction(): void {
+  onDeployInstance(): void {
     const projId = this.parent.projectId();
-    const fn = this.selectedFunction();
-    if (!projId || !fn) return;
-
-    // First save the current code and settings to draft
-    const name = this.editName().trim();
-    const code = this.editCode();
-    const method = this.editMethod();
-    let routePath = this.editRoutePath().trim();
-    const memory = this.editMemory();
-    const assignedDomain = this.editAssignedDomain();
-    const envVariables = this.editEnvVariables()
-      .map(v => ({ key: v.key.trim().toUpperCase(), value: v.value.trim() }))
-      .filter(v => v.key !== '');
-
-    if (!name || !routePath) {
-      this.toast.error('Numele și calea de rută sunt obligatorii.');
+    const inst = this.selectedInstance();
+    if (!projId || !inst) return;
+    if ((this.routes() || []).length === 0) {
+      this.toast.error('Adaugă cel puțin o rută înainte de Deploy.');
       return;
     }
-
-    if (!routePath.startsWith('/')) {
-      routePath = '/' + routePath;
-    }
-
     this.deploying.set(true);
-    this.projectService.updateFunction(projId, fn.id, {
-      name,
-      code,
-      method,
+    this.projectService.deployFunction(projId, inst.id).subscribe({
+      next: (res) => {
+        this.deploying.set(false);
+        this.toast.success('Compilarea și deployment-ul au fost inițiate!');
+        const cur = this.selectedInstance();
+        if (cur) this.selectedInstance.set({ ...cur, status: 'building' });
+        this.loadInstances();
+        if (res?.buildId) {
+          this.activeTab.set('builds');
+          this.loadBuilds();
+          this.selectBuild({ id: res.buildId, status: 'building' } as ServerlessBuild);
+        }
+      },
+      error: (err) => { this.deploying.set(false); this.toast.error(err.error?.message || 'Eroare la deploy.'); }
+    });
+  }
+
+  async onDeleteInstance(): Promise<void> {
+    const projId = this.parent.projectId();
+    const inst = this.selectedInstance();
+    if (!projId || !inst) return;
+    const confirmed = await this.confirm.ask({
+      title: 'Ștergere instanță serverless',
+      message: `Sigur ștergi instanța „${inst.name}"? Toate rutele și resursele K8s asociate vor fi eliminate.`,
+      confirmText: 'Șterge', cancelText: 'Anulează', isDanger: true,
+    });
+    if (!confirmed) return;
+    this.projectService.deleteFunction(projId, inst.id).subscribe({
+      next: () => { this.toast.success('Instanță ștearsă.'); this.deselectInstance(); this.loadInstances(); },
+      error: (err) => this.toast.error(err.error?.message || 'Eroare la ștergere.')
+    });
+  }
+
+  // ---------- Tabs ----------
+  onTabChange(tab: 'details' | 'routes' | 'settings' | 'env' | 'metrics' | 'builds' | 'logs'): void {
+    this.activeTab.set(tab);
+    if (tab === 'logs') this.startLogsStream();
+    else this.stopLogsStream();
+    if (tab === 'metrics') this.loadMetrics();
+    if (tab === 'routes' && this.selectedRoute()) {
+      setTimeout(() => this.mountEditor(), 50);
+    }
+  }
+
+  // ---------- Telemetry ----------
+  loadMetrics(): void {
+    const projId = this.parent.projectId();
+    const inst = this.selectedInstance();
+    if (!projId || !inst) return;
+    const range = this.metricsRange();
+    this.metricsLoading.set(true);
+    this.projectService.getInstanceMetrics(projId, inst.id, 'cpu', range).subscribe({
+      next: (res) => {
+        this.cpuValues.set((res.values || []).map(v => v * 1000)); // cores -> millicores
+        this.metricsSimulated.set(!!res.simulated);
+        this.metricsLoading.set(false);
+      },
+      error: () => { this.cpuValues.set([]); this.metricsLoading.set(false); }
+    });
+    this.projectService.getInstanceMetrics(projId, inst.id, 'memory', range).subscribe({
+      next: (res) => this.memValues.set(res.values || []),
+      error: () => this.memValues.set([])
+    });
+  }
+
+  onMetricsRangeChange(range: string): void { this.metricsRange.set(range); this.loadMetrics(); }
+
+  lastVal(values: number[]): number { return values.length > 0 ? values[values.length - 1] : 0; }
+
+  getSvgPath(values: number[]): string {
+    if (values.length < 2) return '';
+    const width = 500, height = 150;
+    const max = Math.max(...values, 0.1) * 1.1;
+    const min = Math.min(...values, 0);
+    const span = (max - min) || 1;
+    return values.map((val, idx) => {
+      const x = (idx / (values.length - 1)) * width;
+      const y = height - ((val - min) / span) * height;
+      return `${idx === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+    }).join(' ');
+  }
+
+  getSvgFillPath(values: number[]): string {
+    const linePath = this.getSvgPath(values);
+    if (!linePath) return '';
+    return `${linePath} L 500 150 L 0 150 Z`;
+  }
+
+  // ---------- Routes ----------
+  loadRoutes(): void {
+    const projId = this.parent.projectId();
+    const inst = this.selectedInstance();
+    if (!projId || !inst) return;
+    this.projectService.listRoutes(projId, inst.id).subscribe({
+      next: (res) => this.routes.set(res || []),
+      error: () => {}
+    });
+  }
+
+  onAddRoute(): void {
+    const projId = this.parent.projectId();
+    const inst = this.selectedInstance();
+    if (!projId || !inst) return;
+    // Create a blank route, then open it in the editor.
+    this.projectService.createRoute(projId, inst.id, { method: 'GET', routePath: '/noua-ruta-' + (this.routes().length + 1) }).subscribe({
+      next: (r) => { this.toast.success('Rută adăugată. Editeaz-o și apoi Deploy.'); this.loadRoutes(); this.selectRoute(r); },
+      error: (err) => this.toast.error(err.error?.message || 'Eroare la adăugarea rutei.')
+    });
+  }
+
+  selectRoute(r: ServerlessRoute): void {
+    this.selectedRoute.set(r);
+    this.routeMethod.set(r.method);
+    this.routePath.set(r.routePath);
+    this.routeCode.set(r.code);
+    setTimeout(() => this.mountEditor(), 50);
+  }
+
+  closeRouteEditor(): void {
+    this.selectedRoute.set(null);
+    if (this.editorInstance) { this.editorInstance.dispose(); this.editorInstance = null; }
+  }
+
+  onSaveRoute(): void {
+    const projId = this.parent.projectId();
+    const inst = this.selectedInstance();
+    const r = this.selectedRoute();
+    if (!projId || !inst || !r) return;
+    const routePath = this.routePath().trim();
+    if (!routePath) { this.toast.error('Calea rutei este obligatorie.'); return; }
+    this.savingRoute.set(true);
+    this.projectService.updateRoute(projId, inst.id, r.id, {
+      method: this.routeMethod(),
       routePath,
-      memoryLimitMb: memory,
-      assignedDomain: assignedDomain || null,
-      envVariables,
-      runtime: this.editRuntime(),
-      inheritProjectEnvs: false
+      code: this.editorInstance ? this.editorInstance.getValue() : this.routeCode(),
     }).subscribe({
       next: (updated) => {
-        this.selectedFunction.set(updated);
-        
-        // Trigger deploy
-        this.projectService.deployFunction(projId, fn.id).subscribe({
-          next: (res) => {
-            this.toast.success('Compilarea și deployment-ul funcției au fost inițiate!');
-            this.deploying.set(false);
-
-            // Set local status to building
-            const current = this.selectedFunction();
-            if (current) {
-              this.selectedFunction.set({
-                ...current,
-                status: 'building'
-              });
-            }
-            this.loadFunctions();
-
-            // Jump to the Build-uri tab and stream the new build's Kaniko logs live.
-            if (res?.buildId) {
-              this.activeTab.set('builds');
-              this.loadBuilds();
-              this.selectBuild({ id: res.buildId, status: 'building' });
-            }
-          },
-          error: (err) => {
-            this.toast.error(err.error?.message || 'Eroare la inițierea deployment-ului.');
-            this.deploying.set(false);
-          }
-        });
+        this.savingRoute.set(false);
+        this.selectedRoute.set(updated);
+        this.toast.success('Rută salvată. Lansează (Deploy) pentru a aplica.');
+        this.loadRoutes();
       },
-      error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la salvarea codului înainte de deploy.');
-        this.deploying.set(false);
-      }
+      error: (err) => { this.savingRoute.set(false); this.toast.error(err.error?.message || 'Eroare la salvarea rutei.'); }
     });
   }
 
-  async onDeleteFunction(): Promise<void> {
+  async onDeleteRoute(r: ServerlessRoute): Promise<void> {
     const projId = this.parent.projectId();
-    const fn = this.selectedFunction();
-    if (!projId || !fn) return;
-
+    const inst = this.selectedInstance();
+    if (!projId || !inst) return;
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Funcție Serverless',
-      message: `Sigur doriți să ștergeți funcția "${fn.name}"? Serviciul asociat din Kubernetes va fi eliminat complet. Această acțiune este ireversibilă!`,
-      confirmText: 'Șterge',
-      cancelText: 'Anulează',
-      isDanger: true,
-      matchText: fn.name
+      title: 'Ștergere rută',
+      message: `Sigur ștergi ruta ${r.method} ${r.routePath}?`,
+      confirmText: 'Șterge', cancelText: 'Anulează', isDanger: true,
     });
-
     if (!confirmed) return;
-
-    this.projectService.deleteFunction(projId, fn.id).subscribe({
+    this.projectService.deleteRoute(projId, inst.id, r.id).subscribe({
       next: () => {
-        this.toast.success('Funcția serverless a fost ștearsă.');
-        this.deselectFunction();
-        this.loadFunctions();
+        this.toast.success('Rută ștearsă.');
+        if (this.selectedRoute()?.id === r.id) this.closeRouteEditor();
+        this.loadRoutes();
       },
-      error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la ștergerea funcției.');
-      }
+      error: (err) => this.toast.error(err.error?.message || 'Eroare la ștergere.')
     });
   }
 
-  copyBuildLogs(): void {
-    const logs = this.selectedFunction()?.buildLogs;
-    if (!logs) return;
-    navigator.clipboard.writeText(logs).then(() => {
-      this.toast.success('Logurile de compilare au fost copiate în clipboard!');
+  invokeUrl(r: ServerlessRoute): string {
+    const inst = this.selectedInstance();
+    if (!inst) return '';
+    const base = inst.assignedDomain ? `https://${inst.assignedDomain}` : (inst.externalPort ? `http://localhost:${inst.externalPort}` : '');
+    return base + r.routePath;
+  }
+
+  // ---------- Domain ----------
+  onOpenAddDomainModal(): void { this.newDomainFqdn.set(''); this.showAddDomainModal.set(true); }
+
+  onRegisterDomain(): void {
+    const inst = this.selectedInstance();
+    if (!inst) return;
+    const fqdn = this.newDomainFqdn().trim().toLowerCase();
+    if (!fqdn) { this.toast.error('Numele de domeniu este obligatoriu.'); return; }
+    this.addingDomain.set(true);
+    this.domainService.addDomain({ fqdn, targetType: 'serverless', targetId: inst.id, routingType: 'reverse_proxy', isSsl: true }).subscribe({
+      next: (domain) => {
+        this.addingDomain.set(false);
+        this.showAddDomainModal.set(false);
+        this.toast.success(`Domeniul ${fqdn} a fost înregistrat!`);
+        this.loadDomains();
+        this.editAssignedDomain.set(domain.fqdn);
+      },
+      error: (err) => { this.addingDomain.set(false); this.toast.error(err.error?.message || 'Eroare la înregistrarea domeniului.'); }
     });
   }
 
-  // Env vars helper actions
-  addEnvVar(): void {
-    this.editEnvVariables.update(vars => [...vars, { key: '', value: '' }]);
-  }
-
-  removeEnvVar(index: number): void {
-    this.editEnvVariables.update(vars => vars.filter((_, i) => i !== index));
+  // ---------- Env (instance-level) ----------
+  loadFunctionEnv(): void {
+    const projId = this.parent.projectId();
+    const inst = this.selectedInstance();
+    if (!projId || !inst) return;
+    this.projectService.listFunctionEnv(projId, inst.id).subscribe({
+      next: (res) => this.functionEnv.set(res || []),
+      error: () => this.functionEnv.set([])
+    });
   }
 
   openAddEnvPanel(mode: 'new' | 'project'): void {
     this.addEnvMode.set(mode);
     this.showAddEnvPanel.set(true);
+    this.editingEnvId.set(null);
     this.newEnvKey.set('');
     this.newEnvValue.set('');
+    this.newEnvIsSecret.set(true);
   }
 
-  onAddManualEnv(): void {
-    const key = this.newEnvKey().trim().toUpperCase();
-    if (!key) {
-      this.toast.error('Cheia este obligatorie.');
-      return;
-    }
-    this.editEnvVariables.update(vars => [...vars, { key, value: this.newEnvValue().trim() }]);
-    this.newEnvKey.set('');
-    this.newEnvValue.set('');
+  closeAddEnvPanel(): void {
     this.showAddEnvPanel.set(false);
-    this.toast.success('Variabilă adăugată. Apasă „Salvează Variabilele" pentru a persista.');
+    this.editingEnvId.set(null);
+    this.newEnvKey.set('');
+    this.newEnvValue.set('');
+    this.newEnvIsSecret.set(true);
   }
 
-  onReloadFunctionEnv(): void {
+  startEditEnv(env: FunctionEnvResponse): void {
+    this.addEnvMode.set('new');
+    this.showAddEnvPanel.set(true);
+    this.editingEnvId.set(env.id);
+    this.newEnvKey.set(env.key);
+    this.newEnvValue.set(env.isSecret ? '' : (env.value ?? ''));
+    this.newEnvIsSecret.set(env.isSecret);
+    setTimeout(() => document.getElementById('fn-env-form-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
+  }
+
+  onAddFunctionEnv(): void {
     const projId = this.parent.projectId();
-    const fn = this.selectedFunction();
-    if (!projId || !fn) return;
-    this.reloadingEnv.set(true);
-    this.projectService.reloadFunctionEnv(projId, fn.id).subscribe({
-      next: (updated) => {
-        this.reloadingEnv.set(false);
-        this.selectedFunction.set(updated);
-        this.toast.success('Variabilele au fost reaplicate fără recompilare.');
+    const inst = this.selectedInstance();
+    if (!projId || !inst) return;
+    const key = this.newEnvKey().trim().toUpperCase();
+    if (!key) { this.toast.error('Cheia este obligatorie.'); return; }
+    this.savingEnv.set(true);
+    this.projectService.setFunctionEnv(projId, inst.id, { key, value: this.newEnvValue(), isSecret: this.newEnvIsSecret() }).subscribe({
+      next: () => {
+        this.savingEnv.set(false);
+        this.closeAddEnvPanel();
+        this.toast.success('Variabilă salvată. Lansează (Deploy) sau „Reload variabile".');
+        this.loadFunctionEnv();
       },
-      error: (err) => {
-        this.reloadingEnv.set(false);
-        this.toast.error(err.error?.message || 'Eroare la reîncărcarea variabilelor.');
-      }
+      error: (err) => { this.savingEnv.set(false); this.toast.error(err.error?.message || 'Eroare la salvare.'); }
     });
   }
 
-  // --- Project-pool linking (parity with apps) ---
+  async onDeleteFunctionEnv(env: FunctionEnvResponse): Promise<void> {
+    const projId = this.parent.projectId();
+    const inst = this.selectedInstance();
+    if (!projId || !inst) return;
+    const confirmed = await this.confirm.ask({
+      title: 'Ștergere variabilă',
+      message: `Sigur ștergi „${env.key}"?`, confirmText: 'Șterge', cancelText: 'Anulează', isDanger: true,
+    });
+    if (!confirmed) return;
+    this.projectService.deleteFunctionEnv(projId, inst.id, env.id).subscribe({
+      next: () => { this.toast.success('Variabilă ștearsă.'); this.loadFunctionEnv(); },
+      error: (err) => this.toast.error(err.error?.message || 'Eroare la ștergere.')
+    });
+  }
+
+  toggleRevealEnv(id: string): void { this.revealedEnvIds.update(m => ({ ...m, [id]: !m[id] })); }
+  copyToClipboard(text: string): void { navigator.clipboard.writeText(text).then(() => this.toast.success('Copiat!')); }
+
+  onReloadFunctionEnv(): void {
+    const projId = this.parent.projectId();
+    const inst = this.selectedInstance();
+    if (!projId || !inst) return;
+    this.reloadingEnv.set(true);
+    this.projectService.reloadFunctionEnv(projId, inst.id).subscribe({
+      next: (updated) => { this.reloadingEnv.set(false); this.selectedInstance.set(updated); this.toast.success('Variabile reaplicate fără recompilare.'); },
+      error: (err) => { this.reloadingEnv.set(false); this.toast.error(err.error?.message || 'Eroare la reload.'); }
+    });
+  }
+
   loadFunctionProjectEnv(): void {
     const projId = this.parent.projectId();
-    const fn = this.selectedFunction();
-    if (!projId || !fn) return;
-    this.projectService.listFunctionProjectEnv(projId, fn.id).subscribe({
+    const inst = this.selectedInstance();
+    if (!projId || !inst) return;
+    this.projectService.listFunctionProjectEnv(projId, inst.id).subscribe({
       next: (res) => this.availableProjectEnv.set(res || []),
       error: () => this.availableProjectEnv.set([])
     });
@@ -534,262 +541,96 @@ export class ServerlessComponent implements OnInit, OnDestroy {
 
   onToggleProjectEnvLink(penv: ProjectEnvResponse): void {
     const projId = this.parent.projectId();
-    const fn = this.selectedFunction();
-    if (!projId || !fn) return;
+    const inst = this.selectedInstance();
+    if (!projId || !inst) return;
     this.togglingLinkId.set(penv.id);
     const op = penv.linked
-      ? this.projectService.unlinkFunctionProjectEnv(projId, fn.id, penv.id)
-      : this.projectService.linkFunctionProjectEnv(projId, fn.id, penv.id);
+      ? this.projectService.unlinkFunctionProjectEnv(projId, inst.id, penv.id)
+      : this.projectService.linkFunctionProjectEnv(projId, inst.id, penv.id);
     op.subscribe({
-      next: () => {
-        this.togglingLinkId.set(null);
-        this.loadFunctionProjectEnv();
-        this.toast.success(penv.linked ? 'Variabilă deconectată din pool.' : 'Variabilă conectată din pool. Lansează (Deploy) pentru a aplica.');
-      },
-      error: (err) => {
-        this.togglingLinkId.set(null);
-        this.toast.error(err.error?.message || 'Eroare la actualizarea legăturii.');
-      }
+      next: () => { this.togglingLinkId.set(null); this.loadFunctionProjectEnv(); this.toast.success(penv.linked ? 'Deconectată din pool.' : 'Conectată din pool. Deploy/Reload pentru a aplica.'); },
+      error: (err) => { this.togglingLinkId.set(null); this.toast.error(err.error?.message || 'Eroare la actualizarea legăturii.'); }
     });
   }
 
-  // --- Build history + live build logs ---
+  // ---------- Builds + logs ----------
   loadBuilds(): void {
     const projId = this.parent.projectId();
-    const fn = this.selectedFunction();
-    if (!projId || !fn) return;
-    this.projectService.listFunctionBuilds(projId, fn.id).subscribe({
+    const inst = this.selectedInstance();
+    if (!projId || !inst) return;
+    this.projectService.listFunctionBuilds(projId, inst.id).subscribe({
       next: (res) => this.builds.set(res || []),
       error: () => this.builds.set([])
     });
   }
 
-  selectBuild(build: ServerlessBuild | { id: string; status: string }): void {
+  selectBuild(build: ServerlessBuild): void {
+    const projId = this.parent.projectId();
+    const inst = this.selectedInstance();
+    if (!projId || !inst) return;
     this.stopBuildLogsStream();
     this.selectedBuildId.set(build.id);
     this.buildLogs.set(['[Console] Conectare la fluxul de loguri de compilare...']);
-
-    const projId = this.parent.projectId();
-    const fn = this.selectedFunction();
-    if (!projId || !fn) return;
-
-    const url = this.projectService.getFunctionBuildLogsStreamUrl(projId, fn.id, build.id);
+    const url = this.projectService.getFunctionBuildLogsStreamUrl(projId, inst.id, build.id);
     this.buildLogSource = new EventSource(url);
     this.buildLogSource.onmessage = (event) => {
-      this.buildLogs.update(lines => {
-        const next = [...lines, event.data];
-        if (next.length > 1000) next.shift();
-        return next;
-      });
+      this.buildLogs.update(lines => { const next = [...lines, event.data]; if (next.length > 1000) next.shift(); return next; });
     };
-    this.buildLogSource.onerror = () => {
-      // Stream closed (build finished or pod gone) — refresh the list so status/duration update.
-      this.stopBuildLogsStream();
-      this.loadBuilds();
-    };
+    this.buildLogSource.onerror = () => { this.stopBuildLogsStream(); this.loadBuilds(); };
   }
 
-  private stopBuildLogsStream(): void {
-    if (this.buildLogSource) {
-      this.buildLogSource.close();
-      this.buildLogSource = null;
-    }
-  }
-
-  buildStatusClass(status: string | undefined): string {
-    switch (status) {
-      case 'success': return 'bg-emerald-950/30 border border-emerald-800/40 text-emerald-400';
-      case 'building': return 'bg-amber-950/30 border border-amber-800/40 text-amber-400 animate-pulse';
-      case 'failed': return 'bg-red-950/30 border border-red-800/40 text-red-400';
-      default: return 'bg-zinc-800/50 border border-zinc-700/60 text-zinc-400';
-    }
-  }
-
-  buildStatusLabel(status: string | undefined): string {
-    switch (status) {
-      case 'success': return 'Succes';
-      case 'building': return 'Compilare';
-      case 'failed': return 'Eșuat';
-      default: return status || '—';
-    }
-  }
+  private stopBuildLogsStream(): void { if (this.buildLogSource) { this.buildLogSource.close(); this.buildLogSource = null; } }
 
   private startLogsStream(): void {
-    this.stopLogsStream();
     const projId = this.parent.projectId();
-    const fn = this.selectedFunction();
-    if (!projId || !fn) return;
-
-    this.logs.set(['[Console] Conectare la fluxul de loguri live...']);
-    const url = `${environment.apiBaseUrl}/projects/${projId}/functions/${fn.id}/logs/stream`;
-    
+    const inst = this.selectedInstance();
+    if (!projId || !inst) return;
+    this.stopLogsStream();
+    this.logs.set(['[Console] Conectare la fluxul de loguri...']);
+    const url = `${environment.apiBaseUrl}/projects/${projId}/serverless/${inst.id}/logs/stream?token=${encodeURIComponent(localStorage.getItem('hermes_token') || '')}`;
     this.logSource = new EventSource(url);
     this.logSource.onmessage = (event) => {
-      const line = event.data;
-      this.logs.update(lines => {
-        const nextLines = [...lines, line];
-        if (nextLines.length > 500) {
-          nextLines.shift();
-        }
-        return nextLines;
-      });
+      this.logs.update(lines => { const next = [...lines, event.data]; if (next.length > 500) next.shift(); return next; });
     };
-
-    this.logSource.onerror = (err) => {
-      console.error('SSE connection error:', err);
-    };
+    this.logSource.onerror = () => { /* keep open; Knative scale-to-zero is normal */ };
   }
 
-  private stopLogsStream(): void {
-    if (this.logSource) {
-      this.logSource.close();
-      this.logSource = null;
-    }
-  }
+  private stopLogsStream(): void { if (this.logSource) { this.logSource.close(); this.logSource = null; } }
 
-  private setupWsSubscriptions(): void {
-    this.wsSubscriptions.unsubscribe();
-    this.wsSubscriptions = new Subscription();
-
-    // 1. WebSocket updated
-    this.wsSubscriptions.add(
-      this.wsService.onEvent<any>('serverless_function_updated').subscribe(payload => {
-        const activeProj = this.parent.projectId();
-        if (payload && payload.function && payload.function.projectId === activeProj) {
-          // Update inside list
-          this.functions.update(list => {
-            const idx = list.findIndex(f => f.id === payload.function.id);
-            if (idx !== -1) {
-              const updated = [...list];
-              updated[idx] = payload.function;
-              return updated;
-            } else {
-              return [...list, payload.function];
-            }
-          });
-
-          // Update selected if active
-          const current = this.selectedFunction();
-          if (current && current.id === payload.function.id) {
-            this.selectedFunction.set(payload.function);
-            // If function is now active or failed, we can notify user
-            if (current.status === 'building' && payload.function.status === 'active') {
-              this.toast.success(`Funcția "${payload.function.name}" a fost compilată și este online!`);
-            } else if (current.status === 'building' && payload.function.status === 'failed') {
-              this.toast.error(`Compilarea funcției "${payload.function.name}" a eșuat.`);
-            }
-          }
-        }
-      })
-    );
-
-    // 2. WebSocket deleted
-    this.wsSubscriptions.add(
-      this.wsService.onEvent<any>('serverless_function_deleted').subscribe(payload => {
-        const activeProj = this.parent.projectId();
-        if (payload && payload.function_id) {
-          this.functions.update(list => list.filter(f => f.id !== payload.function_id));
-          const current = this.selectedFunction();
-          if (current && current.id === payload.function_id) {
-            this.toast.info('Funcția pe care o vizualizați a fost ștearsă.');
-            this.deselectFunction();
-          }
-        }
-      })
-    );
-  }
-
-  getStatusClass(status: string | undefined): string {
-    switch (status) {
-      case 'active':
-        return 'bg-emerald-950/30 border border-emerald-800/40 text-emerald-400';
-      case 'building':
-        return 'bg-amber-950/30 border border-amber-800/40 text-amber-400 animate-pulse';
-      case 'failed':
-        return 'bg-red-950/30 border border-red-800/40 text-red-400';
-      case 'draft':
-      default:
-        return 'bg-zinc-800/50 border border-zinc-700/60 text-zinc-400';
-    }
-  }
-
-  getStatusText(status: string | undefined): string {
-    switch (status) {
-      case 'active': return 'Activ';
-      case 'building': return 'Compilare';
-      case 'failed': return 'Eșuat';
-      case 'draft': return 'Draft';
-      default: return 'Draft';
-    }
-  }
-
-  initMonaco(): void {
-    if (typeof monaco !== 'undefined') {
-      this.createEditor();
-      return;
-    }
-
+  // ---------- Monaco (route code editor) ----------
+  private mountEditor(): void {
+    if (typeof monaco !== 'undefined') { this.createEditor(); return; }
     const loaderUrl = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.48.0/min/vs/loader.min.js';
-    const existingScript = document.querySelector(`script[src="${loaderUrl}"]`);
-    if (!existingScript) {
+    if (!document.querySelector(`script[src="${loaderUrl}"]`)) {
       const script = document.createElement('script');
       script.src = loaderUrl;
-      script.async = true;
       script.onload = () => {
         const req = (window as any).require;
         req.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.48.0/min/vs' } });
-        req(['vs/editor/editor.main'], () => {
-          this.createEditor();
-        });
+        req(['vs/editor/editor.main'], () => this.createEditor());
       };
       document.body.appendChild(script);
     } else {
-      const interval = setInterval(() => {
-        if (typeof monaco !== 'undefined') {
-          clearInterval(interval);
-          this.createEditor();
-        }
-      }, 100);
+      const i = setInterval(() => { if (typeof monaco !== 'undefined') { clearInterval(i); this.createEditor(); } }, 100);
     }
   }
 
-  createEditor(): void {
-    const container = document.getElementById('monaco-editor-container');
+  private createEditor(): void {
+    const container = document.getElementById('route-editor-container');
     if (!container) return;
-
-    if (this.editorInstance) {
-      this.editorInstance.dispose();
-      this.editorInstance = null;
-    }
-
-    const runtime = this.editRuntime();
-    const language = runtime.startsWith('python') ? 'python' : 'javascript';
-
+    if (this.editorInstance) { this.editorInstance.dispose(); this.editorInstance = null; }
+    const language = this.editRuntime().startsWith('python') ? 'python' : 'javascript';
     this.editorInstance = monaco.editor.create(container, {
-      value: this.editCode(),
-      language: language,
+      value: this.routeCode(),
+      language,
       theme: 'vs-dark',
       automaticLayout: true,
       minimap: { enabled: false },
       fontSize: 12,
-      fontFamily: 'Fira Code, JetBrains Mono, Courier New, monospace',
+      fontFamily: 'Fira Code, JetBrains Mono, monospace',
       lineHeight: 20,
       tabSize: 2,
     });
-
-    this.editorInstance.onDidChangeModelContent(() => {
-      this.editCode.set(this.editorInstance.getValue());
-    });
-  }
-
-  onRuntimeChange(runtime: string): void {
-    this.editRuntime.set(runtime);
-    if (this.editorInstance) {
-      const model = this.editorInstance.getModel();
-      if (model && typeof monaco !== 'undefined') {
-        const lang = runtime.startsWith('python') ? 'python' : 'javascript';
-        monaco.editor.setModelLanguage(model, lang);
-      }
-    }
+    this.editorInstance.onDidChangeModelContent(() => this.routeCode.set(this.editorInstance.getValue()));
   }
 }

@@ -7,7 +7,7 @@ use crate::dtos::workspace_member_dto::{AddMemberRequest, UpdateMemberRoleReques
 use crate::middlewares::auth_middleware::AuthenticatedUser;
 use crate::models::workspace_model::Workspace;
 use crate::utils::error::AppError;
-use crate::config::platform_defaults::{WORKSPACE_MAX_MEMORY_MB, WORKSPACE_MAX_STORAGE_GB};
+use crate::config::platform_defaults::{WORKSPACE_MAX_MEMORY_MB, WORKSPACE_MAX_STORAGE_GB, WORKSPACE_MAX_CPU_MILLICORES};
 
 pub async fn create_workspace(
     State(state): State<AppState>,
@@ -37,8 +37,8 @@ pub async fn create_workspace(
     let mut tx = state.pool.begin().await?;
 
     sqlx::query!(
-        "INSERT INTO workspaces (id, name, slug, created_by, max_memory_mb, max_storage_gb) VALUES ($1, $2, $3, $4, $5, $6)",
-        workspace_id, payload.name, slug, claims.sub, WORKSPACE_MAX_MEMORY_MB, WORKSPACE_MAX_STORAGE_GB
+        "INSERT INTO workspaces (id, name, slug, created_by, max_memory_mb, max_storage_gb, max_cpu_millicores) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        workspace_id, payload.name, slug, claims.sub, WORKSPACE_MAX_MEMORY_MB, WORKSPACE_MAX_STORAGE_GB, WORKSPACE_MAX_CPU_MILLICORES
     )
     .execute(&mut *tx)
     .await?;
@@ -61,7 +61,7 @@ pub async fn create_workspace(
 
     let client = crate::utils::k8s::K8sManager::get_client().await?;
     let k8s_ns_name = format!("hermes-ws-{}", workspace_id);
-    crate::utils::k8s::K8sManager::create_namespace(&client, &k8s_ns_name, WORKSPACE_MAX_MEMORY_MB, WORKSPACE_MAX_STORAGE_GB).await?;
+    crate::utils::k8s::K8sManager::create_namespace(&client, &k8s_ns_name, WORKSPACE_MAX_MEMORY_MB, WORKSPACE_MAX_STORAGE_GB, WORKSPACE_MAX_CPU_MILLICORES).await?;
 
     tx.commit().await?;
 
@@ -73,6 +73,7 @@ pub async fn create_workspace(
             slug,
             max_memory_mb: WORKSPACE_MAX_MEMORY_MB,
             max_storage_gb: WORKSPACE_MAX_STORAGE_GB,
+            max_cpu_millicores: WORKSPACE_MAX_CPU_MILLICORES,
         }),
     ))
 }
@@ -97,6 +98,7 @@ pub async fn list_my_workspaces(
             slug: w.slug,
             max_memory_mb: w.max_memory_mb,
             max_storage_gb: w.max_storage_gb,
+            max_cpu_millicores: w.max_cpu_millicores,
         })
         .collect();
 
@@ -116,16 +118,33 @@ pub async fn get_workspace_usage(
                 used_memory_mb: 0,
                 max_storage_gb: 0,
                 used_storage_gb: 0,
+                max_cpu_millicores: 0,
+                used_cpu_millicores: 0,
             }));
         }
     };
 
     let limits = sqlx::query!(
-        "SELECT max_memory_mb, max_storage_gb FROM workspaces WHERE id = $1",
+        "SELECT max_memory_mb, max_storage_gb, max_cpu_millicores FROM workspaces WHERE id = $1",
         ws_id
     )
     .fetch_one(&state.pool)
     .await?;
+
+    // Allocated CPU = sum of cpu_limit (millicores) across running apps + databases,
+    // consistent with how used memory/storage are reported (allocation, not live use).
+    let used_cpu = sqlx::query_scalar!(
+        r#"SELECT (
+            COALESCE((SELECT SUM(ai.cpu_limit) FROM app_instances ai JOIN apps a ON ai.app_id = a.id
+                      WHERE a.workspace_id = $1 AND ai.status = 'running'), 0)
+          + COALESCE((SELECT SUM(d.cpu_limit) FROM databases d
+                      WHERE d.workspace_id = $1 AND d.status = 'running'), 0)
+        )::bigint"#,
+        ws_id
+    )
+    .fetch_one(&state.pool)
+    .await?
+    .unwrap_or(0) as i32;
 
     // Query real K8s namespace usage
     let namespace = format!("hermes-ws-{}", ws_id);
@@ -180,6 +199,8 @@ pub async fn get_workspace_usage(
         used_memory_mb: used_memory,
         max_storage_gb: limits.max_storage_gb,
         used_storage_gb: used_storage_rounded as i32,
+        max_cpu_millicores: limits.max_cpu_millicores,
+        used_cpu_millicores: used_cpu,
     }))
 }
 
@@ -205,6 +226,7 @@ pub async fn get_current_workspace(
         slug: w.slug,
         max_memory_mb: w.max_memory_mb,
         max_storage_gb: w.max_storage_gb,
+        max_cpu_millicores: w.max_cpu_millicores,
     }))
 }
 
@@ -236,20 +258,24 @@ pub async fn update_workspace_settings(
     if let Some(max_store) = payload.max_storage_gb {
         current.max_storage_gb = max_store;
     }
+    if let Some(max_cpu) = payload.max_cpu_millicores {
+        current.max_cpu_millicores = max_cpu;
+    }
 
     sqlx::query!(
         "UPDATE workspaces
-         SET name = $1, slug = $2, max_memory_mb = $3, max_storage_gb = $4, updated_at = now()
-         WHERE id = $5",
+         SET name = $1, slug = $2, max_memory_mb = $3, max_storage_gb = $4, max_cpu_millicores = $5, updated_at = now()
+         WHERE id = $6",
         current.name,
         current.slug,
         current.max_memory_mb,
         current.max_storage_gb,
+        current.max_cpu_millicores,
         ws_id
     )
     .execute(&state.pool)
     .await?;
- 
+
     // Propagate limits to Kubernetes namespace immediately
     if let Ok(client) = crate::utils::k8s::K8sManager::get_client().await {
         let k8s_ns_name = format!("hermes-ws-{}", ws_id);
@@ -258,16 +284,18 @@ pub async fn update_workspace_settings(
             &k8s_ns_name,
             current.max_memory_mb,
             current.max_storage_gb,
+            current.max_cpu_millicores,
         )
         .await;
     }
- 
+
     Ok(Json(WorkspaceResponse {
         id: current.id,
         name: current.name,
         slug: current.slug,
         max_memory_mb: current.max_memory_mb,
         max_storage_gb: current.max_storage_gb,
+        max_cpu_millicores: current.max_cpu_millicores,
     }))
 }
 

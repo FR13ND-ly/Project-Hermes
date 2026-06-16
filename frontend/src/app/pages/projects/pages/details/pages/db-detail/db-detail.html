@@ -161,16 +161,29 @@
     <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4">
       <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
         <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Credențiale & Conectare</h3>
-        <button 
-          (click)="onRevealCredentials()"
-          class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer border border-zinc-800 transition-colors flex items-center gap-1.5"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-500">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          {{ credentialsRevealed() ? 'Ascunde Credențiale' : 'Afișează Credențiale' }}
-        </button>
+        <div class="flex items-center gap-2">
+          <button
+            (click)="onRevealCredentials()"
+            class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer border border-zinc-800 transition-colors flex items-center gap-1.5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-500">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {{ credentialsRevealed() ? 'Ascunde Credențiale' : 'Afișează Credențiale' }}
+          </button>
+          <button
+            (click)="rotatePassword()"
+            [disabled]="rotatingPassword()"
+            class="px-2.5 py-1 rounded bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 hover:text-amber-200 text-xs font-semibold cursor-pointer border border-amber-900/50 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Generează o parolă nouă în engine-ul DB și repornește aplicațiile conectate"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5" [class.animate-spin]="rotatingPassword()">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+            {{ rotatingPassword() ? 'Se rotește...' : 'Rotește Parola' }}
+          </button>
+        </div>
       </div>
 
       <div *ngIf="credentialsRevealed()" class="space-y-4 animate-fade-in">
@@ -334,7 +347,7 @@
         </div>
         <div class="flex items-center gap-2">
           @if (dbMetricsSimulated()) {
-            <span class="px-1.5 py-0.5 rounded bg-amber-950/30 border border-amber-900/40 text-[8px] font-bold uppercase tracking-wider text-amber-400" title="Prometheus indisponibil — valori demonstrative, nu reale">Date simulate</span>
+            <span class="px-1.5 py-0.5 rounded bg-amber-950/30 border border-amber-900/40 text-[8px] font-bold uppercase tracking-wider text-amber-400" title="Prometheus indisponibil — nu există date reale de afișat">Date indisponibile</span>
           }
           <div class="flex items-center rounded bg-black border border-zinc-800 p-0.5 font-mono text-[9px]">
             @for (r of ['1h', '24h', '7d']; track r) {
@@ -444,8 +457,8 @@
             </div>
           </div>
 
-          <!-- Cache hit rate (Postgres only) -->
-          @if (db()?.type === 'postgres') {
+          <!-- Cache hit rate (Postgres + Redis expose hit/miss counters) -->
+          @if (db()?.type === 'postgres' || db()?.type === 'redis') {
             <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner md:col-span-2">
               <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
                 <span>Rată Cache Hit (%)</span>

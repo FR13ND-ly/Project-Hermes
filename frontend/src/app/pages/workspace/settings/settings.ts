@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { WorkspaceService, WorkspaceUsage, Workspace, WorkspaceMember } from '../../../core/services/workspace.service';
+import { GitService, GitCredential, GitProvider } from '../../../core/services/git.service';
 import { AuthService } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
@@ -14,6 +15,7 @@ import { DecimalPipe, CommonModule } from '@angular/common';
 })
 export class WorkspaceSettings implements OnInit {
   private readonly workspaceService = inject(WorkspaceService);
+  private readonly gitService = inject(GitService);
   readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
@@ -32,6 +34,16 @@ export class WorkspaceSettings implements OnInit {
   readonly wsName = signal('');
   readonly maxMemory = signal<number>(2048);
   readonly maxStorage = signal<number>(10);
+  readonly maxCpu = signal<number>(0);
+
+  // Git credentials (PATs)
+  readonly gitCredentials = signal<GitCredential[]>([]);
+  readonly newCredProvider = signal<GitProvider>('github');
+  readonly newCredHost = signal('');
+  readonly newCredLabel = signal('');
+  readonly newCredToken = signal('');
+  readonly newCredSkipTls = signal(false);
+  readonly addingCred = signal(false);
 
   // Members list & forms signals
   readonly members = signal<WorkspaceMember[]>([]);
@@ -42,6 +54,60 @@ export class WorkspaceSettings implements OnInit {
 
   ngOnInit(): void {
     this.loadData();
+    this.loadGitCredentials();
+  }
+
+  loadGitCredentials(): void {
+    this.gitService.listCredentials().subscribe({
+      next: (creds) => this.gitCredentials.set(creds || []),
+      error: () => this.gitCredentials.set([])
+    });
+  }
+
+  onAddCredential(): void {
+    const label = this.newCredLabel().trim();
+    const token = this.newCredToken().trim();
+    if (!label || !token) {
+      this.toast.error('Eticheta și token-ul sunt obligatorii.');
+      return;
+    }
+    this.addingCred.set(true);
+    this.gitService.createCredential({
+      provider: this.newCredProvider(),
+      host: this.newCredHost().trim() || undefined,
+      label,
+      token,
+      skipTlsVerify: this.newCredSkipTls(),
+    }).subscribe({
+      next: () => {
+        this.addingCred.set(false);
+        this.newCredLabel.set('');
+        this.newCredToken.set('');
+        this.newCredHost.set('');
+        this.newCredSkipTls.set(false);
+        this.toast.success('Credențiala Git a fost adăugată.');
+        this.loadGitCredentials();
+      },
+      error: (err) => {
+        this.addingCred.set(false);
+        this.toast.error(err.error?.message || 'Eroare la adăugarea credențialei (token invalid?).');
+      }
+    });
+  }
+
+  async onDeleteCredential(cred: GitCredential): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Ștergere credențială Git',
+      message: `Sigur ștergi credențiala "${cred.label}"? Aplicațiile care o folosesc nu vor mai putea clona până la realocare.`,
+      confirmText: 'Șterge',
+      cancelText: 'Anulează',
+      isDanger: true
+    });
+    if (!confirmed) return;
+    this.gitService.deleteCredential(cred.id).subscribe({
+      next: () => { this.toast.success('Credențială ștearsă.'); this.loadGitCredentials(); },
+      error: (err) => this.toast.error(err.error?.message || 'Eroare la ștergere.')
+    });
   }
 
   loadData(): void {
@@ -65,6 +131,7 @@ export class WorkspaceSettings implements OnInit {
         this.wsName.set(res.name);
         this.maxMemory.set(res.maxMemoryMb);
         this.maxStorage.set(res.maxStorageGb);
+        this.maxCpu.set(res.maxCpuMillicores);
         this.loading.set(false);
       },
       error: (err) => {
@@ -88,6 +155,7 @@ export class WorkspaceSettings implements OnInit {
       name: this.wsName().trim(),
       maxMemoryMb: this.maxMemory(),
       maxStorageGb: this.maxStorage(),
+      maxCpuMillicores: this.maxCpu(),
     }).subscribe({
       next: (res) => {
         this.saving.set(false);

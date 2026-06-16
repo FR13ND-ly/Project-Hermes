@@ -113,4 +113,8 @@ export class AuthManagementService {
   getIntegration(appId: string): Observable<AuthIntegration> {
     return this.api.get<AuthIntegration>(`/apps/${appId}/auth/integration`);
   }
+
+  rotateAuthSecret(appId: string): Observable<{ auth_secret: string; auth_secret_env_key: string }> {
+    return this.api.post<{ auth_secret: string; auth_secret_env_key: string }>(`/apps/${appId}/auth/rotate-secret`, {});
+  }
 }

@@ -62,7 +62,7 @@
         
         <!-- Resource Quotas Panel -->
         @if (usage()) {
-          <div class="grid gap-4 md:grid-cols-2">
+          <div class="grid gap-4 md:grid-cols-3">
             <!-- Memory Usage Gauge Card -->
             <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
               <div class="flex items-center justify-between mb-3">
@@ -140,6 +140,45 @@
                 </div>
               </div>
             </div>
+
+            <!-- CPU Usage Gauge Card -->
+            <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded bg-black border border-zinc-900 flex items-center justify-center text-zinc-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Alocare CPU</h3>
+                    <p class="text-[9px] text-zinc-500 font-mono">Limite CPU Kubernetes</p>
+                  </div>
+                </div>
+                <span class="text-lg font-bold text-white font-mono">
+                  {{ usage()?.usedCpuMillicores }} <span class="text-xs text-zinc-500 font-sans">/ @if (usage()?.maxCpuMillicores === 0) { Nelimitat } @else { {{ usage()?.maxCpuMillicores }} m }</span>
+                </span>
+              </div>
+
+              <div
+                class="space-y-1.5"
+                role="progressbar"
+                [attr.aria-valuenow]="usage()?.maxCpuMillicores === 0 ? 0 : (((usage()!.usedCpuMillicores / usage()!.maxCpuMillicores) * 100) | number:'1.0-0')"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <div class="w-full h-1.5 bg-black rounded-full overflow-hidden border border-zinc-900">
+                  <div
+                    class="bg-zinc-400 h-full transition-all duration-500"
+                    [style.width.%]="usage()?.maxCpuMillicores === 0 ? 0 : ((usage()!.usedCpuMillicores / usage()!.maxCpuMillicores) * 100)"
+                  ></div>
+                </div>
+                <div class="flex items-center justify-between text-[10px] text-zinc-550 font-mono">
+                  <span>Consumat: @if (usage()?.maxCpuMillicores === 0) { - } @else { {{ ((usage()!.usedCpuMillicores / usage()!.maxCpuMillicores) * 100) | number:'1.0-1' }}% }</span>
+                  <span>Rămas: @if (usage()?.maxCpuMillicores === 0) { Nelimitat } @else { {{ usage()!.maxCpuMillicores - usage()!.usedCpuMillicores }} m }</span>
+                </div>
+              </div>
+            </div>
           </div>
         }
 
@@ -182,14 +221,28 @@
             <!-- Max Storage limit -->
             <div class="space-y-1.5">
               <label for="ws-store-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Limită Stocare PVC (GB)</label>
-              <input 
+              <input
                 id="ws-store-input"
-                type="number" 
+                type="number"
                 [ngModel]="maxStorage()"
                 (ngModelChange)="maxStorage.set($event)"
                 [disabled]="saving()"
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
+            </div>
+
+            <!-- Max CPU limit -->
+            <div class="space-y-1.5">
+              <label for="ws-cpu-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Limită CPU Maximă (millicores, 0 = nelimitat)</label>
+              <input
+                id="ws-cpu-input"
+                type="number"
+                [ngModel]="maxCpu()"
+                (ngModelChange)="maxCpu.set($event)"
+                [disabled]="saving()"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              />
+              <p class="text-[9px] text-zinc-600 font-mono">1000m = 1 vCPU. Se aplică ca ResourceQuota pe namespace (requests + limits).</p>
             </div>
           </div>
 
@@ -214,6 +267,73 @@
             </button>
           </div>
 
+        </div>
+
+        <!-- Git Credentials card -->
+        <div class="bg-[#0a0a0a] border border-zinc-850 rounded-lg p-5 space-y-4 shadow-sm font-mono mt-6">
+          <div class="border-b border-zinc-900 pb-2.5">
+            <h4 class="text-xs font-bold text-zinc-355 uppercase tracking-wider">Credențiale Git</h4>
+            <p class="text-[10px] text-zinc-550 mt-0.5 font-sans">Token-uri de acces (GitHub / GitLab) folosite la importul și clonarea repository-urilor. Alegi credențiala când creezi o aplicație.</p>
+          </div>
+
+          <!-- Existing credentials -->
+          @if (gitCredentials().length === 0) {
+            <p class="text-[10px] text-zinc-600 py-1">Nicio credențială adăugată încă.</p>
+          } @else {
+            <div class="divide-y divide-zinc-900">
+              @for (c of gitCredentials(); track c.id) {
+                <div class="flex items-center justify-between gap-3 py-2">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 shrink-0">{{ c.provider }}</span>
+                    <span class="text-xs text-white truncate">{{ c.label }}</span>
+                    <span class="text-[10px] text-zinc-600 truncate">{{ c.host }}{{ c.username ? ' · @' + c.username : '' }}</span>
+                  </div>
+                  <button (click)="onDeleteCredential(c)" class="px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-red-950/20 cursor-pointer shrink-0">Șterge</button>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Add credential -->
+          <div class="grid gap-3 sm:grid-cols-2 border-t border-zinc-900 pt-3">
+            <div class="space-y-1.5">
+              <label for="cred-provider" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Provider</label>
+              <select id="cred-provider" [ngModel]="newCredProvider()" (ngModelChange)="newCredProvider.set($event)"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer">
+                <option value="github">GitHub</option>
+                <option value="gitlab">GitLab</option>
+              </select>
+            </div>
+            <div class="space-y-1.5">
+              <label for="cred-host" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Host (opțional)</label>
+              <input id="cred-host" type="text" placeholder="github.com / gitlab.com"
+                [ngModel]="newCredHost()" (ngModelChange)="newCredHost.set($event)"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+            </div>
+            <div class="space-y-1.5">
+              <label for="cred-label" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Etichetă</label>
+              <input id="cred-label" type="text" placeholder="ex. GitHub personal"
+                [ngModel]="newCredLabel()" (ngModelChange)="newCredLabel.set($event)"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+            </div>
+            <div class="space-y-1.5">
+              <label for="cred-token" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Token (PAT)</label>
+              <input id="cred-token" type="password" placeholder="ghp_… / glpat-…"
+                [ngModel]="newCredToken()" (ngModelChange)="newCredToken.set($event)"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+            </div>
+          </div>
+          <div class="flex items-center justify-between pt-1">
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" [ngModel]="newCredSkipTls()" (ngModelChange)="newCredSkipTls.set($event)"
+                class="w-3.5 h-3.5 accent-white cursor-pointer" />
+              <span class="text-[10px] text-zinc-500 font-sans">Acceptă certificate SSL auto-semnate <span class="text-zinc-650">(self-hosted)</span></span>
+            </label>
+            <button (click)="onAddCredential()" [disabled]="addingCred()"
+              class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
+              {{ addingCred() ? 'Se verifică...' : 'Adaugă credențială' }}
+            </button>
+          </div>
         </div>
 
       </div>

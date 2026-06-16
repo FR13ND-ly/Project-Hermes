@@ -784,3 +784,34 @@ pub async fn get_auth_integration(
         verify_key_endpoint: format!("{}/apps/{}/auth/verify-key", api_base_url, app_id),
     }))
 }
+
+/// POST /apps/:id/auth/rotate-secret — generate a fresh BaaS signing secret,
+/// republish it to the project pool, and return it. Invalidates every end-user JWT
+/// signed with the previous secret (they must re-login); apps pick up the new value
+/// on their next reload (no auto-reload).
+pub async fn rotate_auth_secret(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(app_id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let app = sqlx::query!(
+        "SELECT project_id FROM apps WHERE id = $1 AND workspace_id = $2",
+        app_id, ws_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Application not found in this workspace.".to_string()))?;
+
+    let secret = crate::utils::app_auth::rotate_app_auth_secret(
+        &state.pool, app_id, ws_id, app.project_id,
+    ).await?;
+
+    Ok(Json(serde_json::json!({
+        "auth_secret": secret,
+        "auth_secret_env_key": crate::utils::app_auth::AUTH_SECRET_ENV_KEY,
+    })))
+}

@@ -34,40 +34,51 @@ async fn handle_socket(socket: WebSocket, claims: crate::middlewares::auth_middl
     let ws_id = claims.current_workspace_id;
     let is_admin = claims.is_super_admin;
     
-    // Spawns a task to forward broadcast events to the websocket client, filtered by workspace
+    // Forward broadcast events to the client (filtered by workspace) while sending a
+    // periodic ping so idle connections survive proxy read-timeouts (e.g. nginx 60s).
     let mut send_task = tokio::spawn(async move {
+        let mut heartbeat = tokio::time::interval(std::time::Duration::from_secs(30));
+        heartbeat.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
         loop {
-            match rx.recv().await {
-                Ok(event) => {
-                    // Filter event by workspace_id
-                    let belongs_to_workspace = match &event {
-                        SystemEvent::InstanceStatusChanged { workspace_id, .. } => Some(*workspace_id) == ws_id,
-                        SystemEvent::DatabaseStatusChanged { workspace_id, .. } => Some(*workspace_id) == ws_id,
-                        SystemEvent::BuildStatusChanged { workspace_id, .. } => Some(*workspace_id) == ws_id,
-                        SystemEvent::IncidentCreated { workspace_id, .. } => Some(*workspace_id) == ws_id,
-                        SystemEvent::CronJobUpdated { workspace_id, .. } => Some(*workspace_id) == ws_id,
-                        SystemEvent::CronJobDeleted { workspace_id, .. } => Some(*workspace_id) == ws_id,
-                        SystemEvent::CronJobLogCreated { workspace_id, .. } => Some(*workspace_id) == ws_id,
-                        SystemEvent::ServerlessFunctionUpdated { workspace_id, .. } => Some(*workspace_id) == ws_id,
-                        SystemEvent::ServerlessFunctionDeleted { workspace_id, .. } => Some(*workspace_id) == ws_id,
-                    };
-                    
-                    if is_admin || belongs_to_workspace {
-                        if let Ok(serialized) = serde_json::to_string(&event) {
-                            if let Err(e) = sender.send(Message::Text(serialized)).await {
-                                debug!("Failed to send message over websocket: {}", e);
-                                break;
+            tokio::select! {
+                _ = heartbeat.tick() => {
+                    if sender.send(Message::Ping(Vec::new())).await.is_err() {
+                        break;
+                    }
+                }
+                recv = rx.recv() => match recv {
+                    Ok(event) => {
+                        // Filter event by workspace_id
+                        let belongs_to_workspace = match &event {
+                            SystemEvent::InstanceStatusChanged { workspace_id, .. } => Some(*workspace_id) == ws_id,
+                            SystemEvent::DatabaseStatusChanged { workspace_id, .. } => Some(*workspace_id) == ws_id,
+                            SystemEvent::BuildStatusChanged { workspace_id, .. } => Some(*workspace_id) == ws_id,
+                            SystemEvent::IncidentCreated { workspace_id, .. } => Some(*workspace_id) == ws_id,
+                            SystemEvent::CronJobUpdated { workspace_id, .. } => Some(*workspace_id) == ws_id,
+                            SystemEvent::CronJobDeleted { workspace_id, .. } => Some(*workspace_id) == ws_id,
+                            SystemEvent::CronJobLogCreated { workspace_id, .. } => Some(*workspace_id) == ws_id,
+                            SystemEvent::ServerlessFunctionUpdated { workspace_id, .. } => Some(*workspace_id) == ws_id,
+                            SystemEvent::ServerlessFunctionDeleted { workspace_id, .. } => Some(*workspace_id) == ws_id,
+                            SystemEvent::StorageObjectUpdated { workspace_id, .. } => Some(*workspace_id) == ws_id,
+                        };
+
+                        if is_admin || belongs_to_workspace {
+                            if let Ok(serialized) = serde_json::to_string(&event) {
+                                if let Err(e) = sender.send(Message::Text(serialized)).await {
+                                    debug!("Failed to send message over websocket: {}", e);
+                                    break;
+                                }
                             }
                         }
                     }
-                }
-                Err(broadcast::error::RecvError::Lagged(_)) => {
-                    // Receiver fell behind, continue
-                    continue;
-                }
-                Err(broadcast::error::RecvError::Closed) => {
-                    // Channel closed, terminate connection
-                    break;
+                    Err(broadcast::error::RecvError::Lagged(n)) => {
+                        // The client fell behind and missed `n` events. Tell it to
+                        // refetch so the UI doesn't get stuck on stale state.
+                        debug!("WebSocket client lagged, dropped {} events; sending resync", n);
+                        let _ = sender.send(Message::Text("{\"type\":\"resync\"}".to_string())).await;
+                        continue;
+                    }
+                    Err(broadcast::error::RecvError::Closed) => break,
                 }
             }
         }

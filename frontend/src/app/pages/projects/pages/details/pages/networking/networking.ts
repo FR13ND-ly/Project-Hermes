@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Details } from '../../details';
 import { DatabaseService, DatabaseServiceInfo } from '../../../../../../core/services/database.service';
 import { DomainService, Domain, DomainRoutingType, DomainTargetType } from '../../../../../../core/services/domain.service';
-import { ProjectService, ServerlessFunction } from '../../../../../../core/services/project.service';
+import { ProjectService, ServerlessInstance } from '../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 
@@ -36,7 +36,7 @@ export class Networking implements OnInit, OnDestroy {
   readonly confirm = inject(ConfirmService);
 
   readonly databases = signal<DatabaseServiceInfo[]>([]);
-  readonly serverlessFunctions = signal<ServerlessFunction[]>([]);
+  readonly serverlessFunctions = signal<ServerlessInstance[]>([]);
   readonly loadingDbs = signal(false);
 
   // Custom Domains

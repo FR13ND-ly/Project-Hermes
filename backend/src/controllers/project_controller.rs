@@ -171,9 +171,9 @@ pub async fn delete_project(
         .map(|db| db.container_name)
         .collect::<Vec<_>>();
 
-    // Get all serverless functions in the project (their K8s services live in the workspace namespace)
+    // Get all serverless instances in the project (their K8s services live in the workspace namespace)
     let serverless_names = sqlx::query!(
-        "SELECT name FROM serverless_functions WHERE project_id = $1",
+        "SELECT name FROM serverless_instances WHERE project_id = $1",
         project.id
     )
     .fetch_all(&state.pool)

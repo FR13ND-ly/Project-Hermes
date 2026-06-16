@@ -19,6 +19,7 @@ export interface DatabaseServiceInfo {
   status: 'provisioning' | 'running' | 'stopped' | 'failed';
   cpuLimit: number;
   memoryLimitMb: number;
+  storageSizeGb: number;
   backupEnabled?: boolean;
   backupCount?: number;
   lastBackupAt?: string | null;
@@ -50,6 +51,7 @@ export class DatabaseService {
     version?: string;
     cpuLimit?: number;
     memoryLimitMb?: number;
+    storageSizeGb?: number;
     isExternal?: boolean;
     externalPort?: number;
     publishToEnv?: boolean;
@@ -68,6 +70,10 @@ export class DatabaseService {
 
   revealCredentials(id: string): Observable<{ connectionUrl: string; databaseUser?: string; databasePassword?: string }> {
     return this.api.post<{ connectionUrl: string; databaseUser?: string; databasePassword?: string }>(`/databases/${id}/reveal`, {});
+  }
+
+  rotatePassword(id: string): Observable<{ status: string; reloaded_instance: string | null }> {
+    return this.api.post<{ status: string; reloaded_instance: string | null }>(`/databases/${id}/rotate-password`, {});
   }
 
   runQuery(id: string, query: string): Observable<{ output: string; isError: boolean }> {

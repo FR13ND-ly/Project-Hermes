@@ -37,8 +37,9 @@ export class Environments implements OnInit {
   readonly renameKey = signal('');
   readonly savingRename = signal(false);
 
-  // Inline add form (per instance)
+  // Inline add/edit form (per instance)
   readonly addFormInstance = signal<string | null>(null);
+  readonly editingEnvId = signal<string | null>(null);
   readonly formKey = signal('');
   readonly formVal = signal('');
   readonly formIsSecret = signal(true);
@@ -214,10 +215,30 @@ export class Environments implements OnInit {
     this.revealedEnvIds.update(ids => ({ ...ids, [id]: !ids[id] }));
   }
 
-  // --- Add variable ---
+  // --- Add / edit variable ---
   openAddForm(instanceId: string): void {
     this.jsonInstance.set(null);
-    this.addFormInstance.set(this.addFormInstance() === instanceId ? null : instanceId);
+    const wasOpen = this.addFormInstance() === instanceId && this.editingEnvId() === null;
+    this.addFormInstance.set(wasOpen ? null : instanceId);
+    this.editingEnvId.set(null);
+    this.formKey.set('');
+    this.formVal.set('');
+    this.formIsSecret.set(true);
+  }
+
+  // Open the add form prefilled to edit an existing var (key locked; value blank for secrets).
+  startEditEnv(instanceId: string, env: EnvResponse): void {
+    this.jsonInstance.set(null);
+    this.addFormInstance.set(instanceId);
+    this.editingEnvId.set(env.id);
+    this.formKey.set(env.key);
+    this.formVal.set(env.isSecret ? '' : (env.value ?? ''));
+    this.formIsSecret.set(env.isSecret);
+  }
+
+  cancelAddForm(): void {
+    this.addFormInstance.set(null);
+    this.editingEnvId.set(null);
     this.formKey.set('');
     this.formVal.set('');
     this.formIsSecret.set(true);
@@ -225,19 +246,22 @@ export class Environments implements OnInit {
 
   saveEnv(): void {
     const instanceId = this.addFormInstance();
-    if (!instanceId || !this.formKey().trim() || !this.formVal().trim()) return;
+    // When editing a secret, allow an empty value only if the user really wants to
+    // blank it; otherwise require a value. Key is always required.
+    if (!instanceId || !this.formKey().trim()) return;
 
+    const wasEditing = this.editingEnvId() !== null;
     this.savingEnv.set(true);
     this.projectService.setEnvVariable({
       appInstanceId: instanceId,
       key: this.formKey().trim(),
-      value: this.formVal().trim(),
+      value: this.formVal(),
       isSecret: this.formIsSecret()
     }).subscribe({
       next: () => {
         this.savingEnv.set(false);
-        this.addFormInstance.set(null);
-        this.toast.success('Variabila a fost salvată!');
+        this.cancelAddForm();
+        this.toast.success(wasEditing ? 'Variabila a fost actualizată!' : 'Variabila a fost salvată!');
         this.load();
       },
       error: (err) => {

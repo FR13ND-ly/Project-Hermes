@@ -48,11 +48,17 @@ pub enum SystemEvent {
     },
     ServerlessFunctionUpdated {
         workspace_id: Uuid,
-        function: crate::models::serverless_model::ServerlessFunction,
+        instance: crate::models::serverless_model::ServerlessInstance,
     },
     ServerlessFunctionDeleted {
         workspace_id: Uuid,
-        function_id: Uuid,
+        instance_id: Uuid,
+    },
+    StorageObjectUpdated {
+        workspace_id: Uuid,
+        bucket_id: Uuid,
+        object_id: Uuid,
+        status: String,
     },
 }
 

@@ -12,6 +12,7 @@ pub fn routes(state: AppState) -> Router {
     let create_router = Router::new()
         .route("/databases", post(database_controller::create_database))
         .route("/databases/:id/settings", post(database_controller::update_database_settings))
+        .route("/databases/:id/rotate-password", post(database_controller::rotate_database_password))
         .route("/databases/:id/backups", post(database_controller::create_database_backup))
         .route("/databases/:id/backups/:backup_id/restore", post(database_controller::restore_database_backup))
         .layer(from_fn_with_state(state.clone(), check_permission))

@@ -38,6 +38,7 @@ export class DbDetailComponent implements OnInit, OnDestroy {
   readonly databaseUser = signal<string | null>(null);
   readonly databasePassword = signal<string | null>(null);
   readonly credentialsRevealed = signal(false);
+  readonly rotatingPassword = signal(false);
 
   // Console query signals
   readonly queryInput = signal('');
@@ -145,7 +146,10 @@ export class DbDetailComponent implements OnInit, OnDestroy {
       error: () => this.dbConnValues.set([])
     });
 
-    if (this.db()?.type === 'postgres') {
+    // Cache-hit rate is meaningful for engines that expose hit/miss counters
+    // (postgres via pg_stat, redis via keyspace_hits/misses).
+    const t = this.db()?.type;
+    if (t === 'postgres' || t === 'redis') {
       this.dbService.getMetrics(id, 'db_cache_hit_rate', range).subscribe({
         next: (res) => this.dbCacheValues.set(res.values || []),
         error: () => this.dbCacheValues.set([])
@@ -318,6 +322,36 @@ export class DbDetailComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.toast.error(err.error?.message || 'Nu aveți permisiunea de a decripta credențialele.');
+      }
+    });
+  }
+
+  async rotatePassword(): Promise<void> {
+    const id = this.dbId();
+    if (!id) return;
+
+    const confirmed = await this.confirm.ask({
+      title: 'Rotește parola bazei de date',
+      message: 'Se generează o parolă nouă direct în engine-ul DB, iar aplicațiile conectate vor fi repornite automat ca să se reconecteze (downtime scurt). Continuați?',
+      confirmText: 'Rotește',
+      cancelText: 'Anulează',
+      isDanger: true
+    });
+    if (!confirmed) return;
+
+    this.rotatingPassword.set(true);
+    this.dbService.rotatePassword(id).subscribe({
+      next: () => {
+        this.rotatingPassword.set(false);
+        this.toast.success('Parola a fost rotită. Aplicațiile conectate se repornesc automat.');
+        // Any revealed credentials are now stale — hide them.
+        this.credentialsRevealed.set(false);
+        this.connectionUrl.set(null);
+        this.databasePassword.set(null);
+      },
+      error: (err) => {
+        this.rotatingPassword.set(false);
+        this.toast.error(err.error?.message || 'Eroare la rotația parolei.');
       }
     });
   }

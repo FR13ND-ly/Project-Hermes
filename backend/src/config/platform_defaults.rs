@@ -1,5 +1,6 @@
-pub const WORKSPACE_MAX_MEMORY_MB: i32 = 0; 
-pub const WORKSPACE_MAX_STORAGE_GB: i32 = 0;  
+pub const WORKSPACE_MAX_MEMORY_MB: i32 = 0;
+pub const WORKSPACE_MAX_STORAGE_GB: i32 = 0;
+pub const WORKSPACE_MAX_CPU_MILLICORES: i32 = 0; // 0 = unlimited (set manually)
 
 pub const DEFAULT_EMAIL_NOTIFICATIONS: bool = true;
 
