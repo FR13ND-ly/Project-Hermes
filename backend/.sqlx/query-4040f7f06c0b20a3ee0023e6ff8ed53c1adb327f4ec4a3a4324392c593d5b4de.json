@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ai.container_name, ai.internal_port, ai.assigned_domain, a.id as app_id, a.project_id, a.workspace_id, ai.cpu_limit, ai.memory_limit_mb, u.github_token, a.start_command, a.git_subpath, a.git_credential_id\n         FROM app_instances ai\n         JOIN apps a ON ai.app_id = a.id\n         JOIN workspaces w ON a.workspace_id = w.id\n         JOIN users u ON w.created_by = u.id\n         WHERE ai.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "container_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "internal_port",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "assigned_domain",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "app_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "project_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "cpu_limit",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "memory_limit_mb",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "github_token",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "start_command",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "git_subpath",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "git_credential_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "4040f7f06c0b20a3ee0023e6ff8ed53c1adb327f4ec4a3a4324392c593d5b4de"
+}

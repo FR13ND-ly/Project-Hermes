@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE workspaces\n         SET name = $1, slug = $2, max_memory_mb = $3, max_storage_gb = $4, max_cpu_millicores = $5, updated_at = now()\n         WHERE id = $6",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6c9c6671427541c82043bb2193e8f88615cdb252e646325e25f5d106f1c83320"
+}

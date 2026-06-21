@@ -113,40 +113,62 @@
 
       <!-- Right User Actions & Quotas -->
       <div class="flex items-center gap-6">
-        <!-- Resource Quotas (Compact) -->
-        <div class="hidden md:flex items-center gap-4 text-[10px] text-zinc-500 font-mono">
-          <div 
-            class="flex items-center gap-1.5" 
-            role="progressbar" 
-            aria-valuenow="45" 
-            aria-valuemin="0" 
-            aria-valuemax="100"
-            aria-label="Utilizare Memorie Cluster: 45%"
-          >
-            <span>RAM</span>
-            <div class="w-16 h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
-              <div class="bg-zinc-400 h-full w-[45%]"></div>
+        <!-- Resource Quotas (Compact) — real per-workspace usage -->
+        @if (usage(); as u) {
+          <div class="hidden md:flex items-center gap-4 text-[10px] text-zinc-500 font-mono">
+            <!-- RAM -->
+            <div
+              class="flex items-center gap-1.5"
+              role="progressbar"
+              [attr.aria-valuenow]="ramPercent()"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              [attr.aria-label]="ramPercent() !== null ? ('Utilizare memorie workspace: ' + ramPercent() + '%') : ('Memorie folosită: ' + u.usedMemoryMb + ' MB (fără limită)')"
+            >
+              <span>RAM</span>
+              @if (ramPercent() !== null) {
+                <div class="w-16 h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+                  <div
+                    class="h-full"
+                    [class.bg-zinc-400]="(ramPercent() ?? 0) < 90"
+                    [class.bg-red-500]="(ramPercent() ?? 0) >= 90"
+                    [style.width.%]="ramPercent()"
+                  ></div>
+                </div>
+                <span class="text-zinc-400">{{ ramPercent() }}%</span>
+              } @else {
+                <span class="text-zinc-400">{{ u.usedMemoryMb }}MB</span>
+              }
             </div>
-            <span class="text-zinc-400">45%</span>
-          </div>
-          
-          <div 
-            class="flex items-center gap-1.5" 
-            role="progressbar" 
-            aria-valuenow="30" 
-            aria-valuemin="0" 
-            aria-valuemax="100"
-            aria-label="Utilizare Stocare Cluster: 30%"
-          >
-            <span>DISK</span>
-            <div class="w-16 h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
-              <div class="bg-zinc-400 h-full w-[30%]"></div>
-            </div>
-            <span class="text-zinc-400">30%</span>
-          </div>
-        </div>
 
-        <div class="h-4 w-px bg-zinc-800 hidden md:block" aria-hidden="true"></div>
+            <!-- DISK -->
+            <div
+              class="flex items-center gap-1.5"
+              role="progressbar"
+              [attr.aria-valuenow]="diskPercent()"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              [attr.aria-label]="diskPercent() !== null ? ('Utilizare stocare workspace: ' + diskPercent() + '%') : ('Stocare folosită: ' + u.usedStorageGb + ' GB (fără limită)')"
+            >
+              <span>DISK</span>
+              @if (diskPercent() !== null) {
+                <div class="w-16 h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+                  <div
+                    class="h-full"
+                    [class.bg-zinc-400]="(diskPercent() ?? 0) < 90"
+                    [class.bg-red-500]="(diskPercent() ?? 0) >= 90"
+                    [style.width.%]="diskPercent()"
+                  ></div>
+                </div>
+                <span class="text-zinc-400">{{ diskPercent() }}%</span>
+              } @else {
+                <span class="text-zinc-400">{{ u.usedStorageGb }}GB</span>
+              }
+            </div>
+          </div>
+
+          <div class="h-4 w-px bg-zinc-800 hidden md:block" aria-hidden="true"></div>
+        }
 
         <!-- User Profile & Logout -->
         <div class="flex items-center gap-3">
@@ -268,10 +290,16 @@
 
     <!-- Global Confirmation Modal Overlay -->
     @if (confirm.activeModal(); as modal) {
-      <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 animate-fade-in font-sans">
-        <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg max-w-sm w-full p-6 space-y-4 shadow-2xl">
+      <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 animate-fade-in font-sans" (click)="confirm.cancel()">
+        <div
+          class="bg-[#0a0a0a] border border-zinc-800 rounded-lg max-w-sm w-full p-6 space-y-4 shadow-2xl"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-modal-title"
+          (click)="$event.stopPropagation()"
+        >
           <div class="space-y-1">
-            <h3 class="text-sm font-bold text-white uppercase tracking-wider font-mono">
+            <h3 id="confirm-modal-title" class="text-sm font-bold text-white uppercase tracking-wider font-mono">
               {{ modal.options.title }}
             </h3>
             <p class="text-xs text-zinc-400 leading-relaxed font-sans">

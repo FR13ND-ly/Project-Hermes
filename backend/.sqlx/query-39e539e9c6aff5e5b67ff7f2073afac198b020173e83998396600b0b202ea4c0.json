@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE apps \n             SET build_command = COALESCE($1, build_command),\n                 start_command = COALESCE($2, start_command),\n                 updated_at = now() \n             WHERE id = $3 AND workspace_id = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "39e539e9c6aff5e5b67ff7f2073afac198b020173e83998396600b0b202ea4c0"
+}

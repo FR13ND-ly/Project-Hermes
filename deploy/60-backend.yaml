@@ -1,0 +1,98 @@
+# Hermes control plane (Rust/Axum) running in-cluster. Uses the service-account
+# token for the Kubernetes API (kube::Config::infer auto-detects in-cluster), so
+# no kubeconfig is mounted. Object storage + DB backups are on PVCs.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hermes-backend
+  namespace: hermes-system
+  labels:
+    app: hermes-backend
+spec:
+  replicas: 2
+  strategy:
+    # Single-node: both replicas co-mount the RWO storage/backup PVCs on the same node,
+    # so rolling updates work with no downtime and a pod crash leaves the other serving.
+    # Leader election + Postgres-backed locks make concurrent replicas safe (only the
+    # leader runs the singleton workers). MULTI-NODE would need RWX (NFS/Longhorn) or
+    # object storage for these volumes — RWO can't attach across nodes.
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: hermes-backend
+  template:
+    metadata:
+      labels:
+        app: hermes-backend
+    spec:
+      serviceAccountName: hermes-control-plane
+      containers:
+        - name: backend
+          # Built on the host and imported into k3s containerd by scripts/hermes.sh
+          # (k3s ctr images import). The in-cluster registry is only for USER app
+          # builds (Kaniko), not the platform's own image.
+          image: hermes-control-plane:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - secretRef:
+                name: hermes-secrets
+          env:
+            - name: PORT
+              value: "3000"
+            - name: HERMES_LOG_FORMAT
+              value: "json"
+            - name: HERMES_REGISTRY_URL
+              value: "registry.kube-system.svc.cluster.local:80"
+            - name: HERMES_SSL_ISSUER
+              value: "letsencrypt-prod"
+            - name: HERMES_PROMETHEUS_URL
+              value: "http://prometheus.monitoring.svc:9090"
+            # Set to your platform's base domain (used for generated subdomains).
+            - name: HERMES_BASE_DOMAIN
+              value: "hermes.local"
+          volumeMounts:
+            - name: object-storage
+              mountPath: /var/www/hermes
+            - name: backups
+              mountPath: /var/lib/hermes/backups
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+      volumes:
+        - name: object-storage
+          persistentVolumeClaim:
+            claimName: hermes-object-storage
+        - name: backups
+          persistentVolumeClaim:
+            claimName: hermes-backups
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hermes-backend
+  namespace: hermes-system
+spec:
+  selector:
+    app: hermes-backend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000

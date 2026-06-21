@@ -1,0 +1,63 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ai.id, ai.container_name, ai.internal_port, ai.health_check_path, ai.status as \"status: AppStatus\", a.workspace_id\n                 FROM app_instances ai\n                 JOIN apps a ON ai.app_id = a.id\n                 WHERE ai.status = 'running' OR ai.status = 'failed' OR ai.status = 'crashed'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "container_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "internal_port",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "health_check_path",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "status: AppStatus",
+        "type_info": {
+          "Custom": {
+            "name": "app_status",
+            "kind": {
+              "Enum": [
+                "building",
+                "running",
+                "stopped",
+                "failed",
+                "crashed"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "3c7ca48fd719693c7f5ec1e0aa698736dd9ce3532c79a968a68b5b47228dd8c3"
+}

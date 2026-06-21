@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM app_instances WHERE app_id IN (SELECT id FROM apps WHERE project_id = $1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bf708b0fb84b56b705d0967a6f6806c616eac0c7faeab15f59dbb3c7c7541763"
+}

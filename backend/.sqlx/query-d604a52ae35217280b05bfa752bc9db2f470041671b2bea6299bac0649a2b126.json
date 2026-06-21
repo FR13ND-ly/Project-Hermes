@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(SUM(f.memory_limit_mb), 0)::bigint \n                 FROM serverless_instances f\n                 WHERE f.workspace_id = $1 AND f.id != $2 AND f.status NOT IN ('stopped', 'failed')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "coalesce",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d604a52ae35217280b05bfa752bc9db2f470041671b2bea6299bac0649a2b126"
+}

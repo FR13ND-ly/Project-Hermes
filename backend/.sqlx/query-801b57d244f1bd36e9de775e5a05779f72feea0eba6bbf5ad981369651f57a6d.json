@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE app_incident_logs SET resolved_at = now() WHERE app_instance_id = $1 AND resolved_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "801b57d244f1bd36e9de775e5a05779f72feea0eba6bbf5ad981369651f57a6d"
+}

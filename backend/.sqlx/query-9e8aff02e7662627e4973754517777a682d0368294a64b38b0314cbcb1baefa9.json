@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE domains SET target_type = 'custom', target_id = NULL, nginx_target_host = NULL\n                     WHERE workspace_id = $1 AND target_type = 'serverless' AND target_id = $2 AND fqdn != $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9e8aff02e7662627e4973754517777a682d0368294a64b38b0314cbcb1baefa9"
+}

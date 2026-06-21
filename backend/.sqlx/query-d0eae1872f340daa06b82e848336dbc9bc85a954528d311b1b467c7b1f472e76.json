@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO app_builds (id, app_id, app_instance_id, status, phase, logs, commit_message, commit_sha, image_tag) VALUES ($1, $2, $3, 'queued', 'queued', '', NULL, NULL, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d0eae1872f340daa06b82e848336dbc9bc85a954528d311b1b467c7b1f472e76"
+}

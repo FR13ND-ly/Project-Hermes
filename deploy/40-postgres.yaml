@@ -1,0 +1,66 @@
+# Platform metadata database. Single-replica StatefulSet with a PVC (k3s default
+# storageClass = local-path). User databases are separate, provisioned by the
+# control plane in hermes-ws-* namespaces.
+apiVersion: v1
+kind: Service
+metadata:
+  name: hermes-postgres
+  namespace: hermes-system
+spec:
+  clusterIP: None
+  selector:
+    app: hermes-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: hermes-postgres
+  namespace: hermes-system
+spec:
+  serviceName: hermes-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hermes-postgres
+  template:
+    metadata:
+      labels:
+        app: hermes-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: hermes_db
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-secrets
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-d", "hermes_db"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 8Gi

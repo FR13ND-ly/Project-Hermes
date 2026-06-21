@@ -272,6 +272,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   readonly startCommand = signal('');
   readonly savingSettings = signal(false);
   readonly saveSettingsSuccess = signal(false);
+  readonly enableBaas = signal(false);
   readonly workspace = signal<Workspace | null>(null);
 
   // Add Domain Modal
@@ -356,10 +357,22 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.loadWorkspace();
     this.route.paramMap.subscribe(params => {
       const aId = params.get('appId');
-      if (aId) {
-        this.appId.set(aId);
-        this.loadAppDetails();
-      }
+      if (!aId || aId === this.appId()) return;
+
+      // Switching to a different app while the component is reused (Angular keeps
+      // the same instance across :appId changes, so ngOnDestroy does NOT fire).
+      // Tear down the previous app's live streams and clear per-app view state so
+      // nothing from the old app leaks into the newly opened one.
+      this.disconnectLogs();
+      this.disconnectTelemetry();
+      this.disconnectBuildLogs();
+      this.activeInstanceId.set(null);
+      this.selectedBuildId.set(null);
+      this.builds.set([]);
+      this.app.set(null);
+
+      this.appId.set(aId);
+      this.loadAppDetails();
     });
 
     this.route.queryParams.subscribe(params => {
@@ -402,7 +415,6 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         const belongsToApp = currentApp?.instances?.some(inst => inst.id === payload.instance_id);
         
         if (appId && (isCurrentInstance || belongsToApp)) {
-          console.log('[AppDetail] Instance status changed in WS, reloading app details:', payload);
           this.loadAppDetails();
         }
       })
@@ -414,7 +426,6 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         const appId = this.appId();
         
         if (appId && payload.app_id === appId) {
-          console.log('[AppDetail] Build status changed in WS, reloading builds:', payload);
           
           this.loadBuilds(true);
           
@@ -447,6 +458,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
         this.buildCommand.set(res.buildCommand || '');
         this.startCommand.set(res.startCommand || '');
+        this.enableBaas.set(res.enableBaas || false);
 
         // Status transitions are handled reactively via WebSockets
 
@@ -1118,7 +1130,8 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       internalPort: this.internalPort(),
       externalPort: this.externalPort() || null,
       buildCommand: this.buildCommand() || null,
-      startCommand: this.startCommand() || null
+      startCommand: this.startCommand() || null,
+      enableBaas: this.enableBaas()
     }).subscribe({
       next: () => {
         this.savingSettings.set(false);

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE app_builds SET status='succeeded', phase='deployed' WHERE id=$1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "37515a7d17a135623eca2ba135fcc97dab4dde00b804e0b7d7cc8093c7624ec6"
+}

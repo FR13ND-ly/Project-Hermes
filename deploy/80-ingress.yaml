@@ -1,0 +1,45 @@
+# Front door for the Hermes dashboard itself, via Traefik + automatic TLS.
+#   /api      -> backend (REST + SSE + WebSocket; Traefik streams these natively)
+#   /storage  -> backend (public storage assets: /storage/assets/...)
+#   /         -> frontend (Angular SPA)
+# Replace dashboard.hermes.local with your real dashboard host (and point its DNS
+# at the node / load balancer). Most-specific path wins, so /api and /storage are
+# matched before /.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hermes-dashboard
+  namespace: hermes-system
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - dashboard.hermes.local
+      secretName: tls-hermes-dashboard
+  rules:
+    - host: dashboard.hermes.local
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: hermes-backend
+                port:
+                  number: 80
+          - path: /storage
+            pathType: Prefix
+            backend:
+              service:
+                name: hermes-backend
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hermes-frontend
+                port:
+                  number: 80

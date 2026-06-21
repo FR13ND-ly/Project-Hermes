@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO databases (id, workspace_id, project_id, name, type, version, db_user, db_password, db_password_nonce, db_name, container_name, internal_port, is_external, status, cpu_limit, memory_limit_mb)\n             VALUES ($1, $2, $3, $4, $5::text::db_type, $6, $7, $8, $9, $10, $11, $12, false, 'provisioning'::db_status, 0, 0)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Text",
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ad3759f0e81dadde7ab5e87082237b34ce5d60cd5d39acb60e7a1a5ba4912d20"
+}

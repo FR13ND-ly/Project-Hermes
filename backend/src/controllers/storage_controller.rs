@@ -21,6 +21,172 @@ use crate::utils::{storage_engine::StorageEngine, error::AppError};
 use crate::utils::pagination::{PaginationParams, Paginated};
 use image::io::Reader as ImageReader;
 
+enum StorageAuth {
+    PlatformUser {
+        claims: crate::middlewares::auth_middleware::Claims,
+        ws_id: Uuid,
+    },
+    BucketCredentials {
+        bucket: StorageBucket,
+        ws_id: Uuid,
+    },
+}
+
+async fn check_user_permission(
+    pool: &sqlx::PgPool,
+    claims: &crate::middlewares::auth_middleware::Claims,
+    ws_id: Uuid,
+    permission: &str,
+) -> Result<(), AppError> {
+    if claims.is_super_admin {
+        return Ok(());
+    }
+
+    let has_perm = sqlx::query_scalar!(
+        "SELECT EXISTS (
+            SELECT 1 
+            FROM workspace_members wm
+            JOIN role_permissions rp ON wm.role_id = rp.role_id
+            JOIN permissions p ON rp.permission_id = p.id
+            WHERE wm.workspace_id = $1 
+              AND wm.user_id = $2 
+              AND p.name = $3
+        ) as \"has_perm!\"",
+        ws_id,
+        claims.sub,
+        permission
+    )
+    .fetch_one(pool)
+    .await?;
+
+    if !has_perm {
+        return Err(AppError::Permission(format!(
+            "Permission '{}' required for this workspace.",
+            permission
+        )));
+    }
+
+    Ok(())
+}
+
+async fn authenticate_request(
+    pool: &sqlx::PgPool,
+    headers: &axum::http::HeaderMap,
+    query_token: Option<&str>,
+    query_app_id: Option<&str>,
+    bucket_slug_hint: Option<&str>,
+    bucket_id_hint: Option<Uuid>,
+) -> Result<StorageAuth, AppError> {
+    // 1. Try to extract app_id and secret_key from custom headers
+    let header_app_id = headers
+        .get("x-hermes-app-id")
+        .or_else(|| headers.get("hermes-app-id"))
+        .and_then(|v| v.to_str().ok());
+
+    let header_secret_key = headers
+        .get("x-hermes-secret-key")
+        .or_else(|| headers.get("hermes-secret-key"))
+        .or_else(|| headers.get("x-hermes-api-key"))
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+
+    // 2. Extract token/secret from Authorization header or query parameter
+    let token = if let Some(sk) = header_secret_key {
+        sk
+    } else if let Some(auth_header) = headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+    {
+        if !auth_header.starts_with("Bearer ") {
+            return Err(AppError::Auth("Invalid Authorization header format".to_string()));
+        }
+        auth_header[7..].to_string()
+    } else if let Some(t) = query_token {
+        t.to_string()
+    } else {
+        return Err(AppError::Auth("Missing Authorization token or secret key".to_string()));
+    };
+
+    // 3. Try parsing token as JWT
+    let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "super_secret_key".to_string());
+    if let Ok(token_data) = jsonwebtoken::decode::<crate::middlewares::auth_middleware::Claims>(
+        &token,
+        &jsonwebtoken::DecodingKey::from_secret(jwt_secret.as_bytes()),
+        &jsonwebtoken::Validation::default(),
+    ) {
+        let claims = token_data.claims;
+        if claims.status == crate::models::user_model::UserStatus::Suspended {
+            return Err(AppError::Permission("This account has been suspended".to_string()));
+        }
+        if claims.status == crate::models::user_model::UserStatus::PendingVerification {
+            return Err(AppError::Permission("Account activation required".to_string()));
+        }
+        let ws_id = claims.current_workspace_id.ok_or_else(|| {
+            AppError::Validation("No active workspace selected.".to_string())
+        })?;
+        return Ok(StorageAuth::PlatformUser { claims, ws_id });
+    }
+
+    // 4. Fallback: Check as bucket credentials using app_id and secret key
+    let resolved_app_id = header_app_id.or(query_app_id);
+
+    if let Some(app_id_val) = resolved_app_id {
+        let bucket = sqlx::query_as::<_, StorageBucket>(
+            "SELECT * FROM storage_buckets WHERE app_id = $1"
+        )
+        .bind(app_id_val)
+        .fetch_optional(pool)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Bucket not found for provided app_id.".to_string()))?;
+
+        if let (Some(e), Some(n)) = (&bucket.secret_key_encrypted, &bucket.secret_key_nonce) {
+            if let Ok(decrypted) = crate::utils::crypto::decrypt_env_value(e, n) {
+                if decrypted == token {
+                    let ws_id = bucket.workspace_id;
+                    return Ok(StorageAuth::BucketCredentials { bucket, ws_id });
+                }
+            }
+        }
+    } else if let Some(bucket_id) = bucket_id_hint {
+        let bucket = sqlx::query_as::<_, StorageBucket>(
+            "SELECT * FROM storage_buckets WHERE id = $1"
+        )
+        .bind(bucket_id)
+        .fetch_optional(pool)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Bucket not found.".to_string()))?;
+
+        if let (Some(e), Some(n)) = (&bucket.secret_key_encrypted, &bucket.secret_key_nonce) {
+            if let Ok(decrypted) = crate::utils::crypto::decrypt_env_value(e, n) {
+                if decrypted == token {
+                    let ws_id = bucket.workspace_id;
+                    return Ok(StorageAuth::BucketCredentials { bucket, ws_id });
+                }
+            }
+        }
+    } else if let Some(slug) = bucket_slug_hint {
+        let buckets = sqlx::query_as::<_, StorageBucket>(
+            "SELECT * FROM storage_buckets WHERE slug = $1"
+        )
+        .bind(slug)
+        .fetch_all(pool)
+        .await?;
+
+        for bucket in buckets {
+            if let (Some(e), Some(n)) = (&bucket.secret_key_encrypted, &bucket.secret_key_nonce) {
+                if let Ok(decrypted) = crate::utils::crypto::decrypt_env_value(e, n) {
+                    if decrypted == token {
+                        let ws_id = bucket.workspace_id;
+                        return Ok(StorageAuth::BucketCredentials { bucket, ws_id });
+                    }
+                }
+            }
+        }
+    }
+
+    Err(AppError::Auth("Invalid or expired token".to_string()))
+}
+
 /// Upsert a bucket's access credentials into the project env pool as two vars:
 /// <PREFIX>_APP_ID (visible) and <PREFIX>_SECRET_KEY (secret). Both carry
 /// source='storage'/source_id=bucket so delete_bucket removes them together.
@@ -33,6 +199,39 @@ async fn publish_bucket_credentials(
     app_id: &str,
     secret_key: &str,
 ) {
+    // If this bucket already published its credentials, refresh the VALUES in place
+    // (identity = the owning bucket, not the key) so the published key NAMES never
+    // drift across create/rotate/reconcile — the APP_ID row is the non-secret one,
+    // the SECRET_KEY row the secret one. This mirrors how databases publish via
+    // app_env::publish_project_env and fixes both "the value never updates" and
+    // "rotation republishes under a different name than the convention".
+    let existing = sqlx::query!(
+        "SELECT id, is_secret FROM project_env_variables WHERE project_id = $1 AND source = 'storage' AND source_id = $2",
+        project_id, bucket_id
+    )
+    .fetch_all(pool)
+    .await
+    .unwrap_or_default();
+
+    let has_app_id = existing.iter().any(|r| !r.is_secret);
+    let has_secret = existing.iter().any(|r| r.is_secret);
+
+    if has_app_id && has_secret {
+        for r in existing {
+            let value = if r.is_secret { secret_key } else { app_id };
+            if let Ok((enc, nonce)) = crate::utils::crypto::encrypt_env_value(value) {
+                let _ = sqlx::query!(
+                    "UPDATE project_env_variables SET encrypted_value = $1, nonce = $2, updated_at = now() WHERE id = $3",
+                    enc, nonce, r.id
+                )
+                .execute(pool)
+                .await;
+            }
+        }
+        return;
+    }
+
+    // First publish for this bucket — create the two canonical keys.
     for (key, value, is_secret) in [
         (format!("{}_APP_ID", prefix), app_id.to_string(), false),
         (format!("{}_SECRET_KEY", prefix), secret_key.to_string(), true),
@@ -123,6 +322,23 @@ pub async fn rotate_bucket_credentials(
     if let Some(pid) = bucket.project_id {
         let prefix = format!("BUCKET_{}", crate::utils::app_env::sanitize_key_fragment(&bucket.slug, "STORAGE"));
         publish_bucket_credentials(&state.pool, ws_id, pid, bucket_id, &prefix, &app_id, &secret_key).await;
+
+        // Reload every app linked to this bucket's pool vars so the rotated secret
+        // actually reaches running consumers (not just the pool).
+        let linked: std::collections::HashSet<Uuid> = sqlx::query_scalar!(
+            "SELECT ael.app_instance_id FROM app_env_links ael
+             JOIN project_env_variables pev ON pev.id = ael.project_env_id
+             WHERE pev.source = 'storage' AND pev.source_id = $1",
+            bucket_id
+        )
+        .fetch_all(&state.pool)
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .collect();
+        for inst in linked {
+            crate::controllers::env_variable_controller::hot_reload_if_running(&state.pool, inst);
+        }
     }
 
     Ok(Json(serde_json::json!({ "app_id": app_id, "secret_key": secret_key })))
@@ -229,13 +445,9 @@ pub async fn create_bucket(
 
 pub async fn initialize_upload(
     State(state): State<AppState>,
-    AuthenticatedUser(claims): AuthenticatedUser,
+    headers: axum::http::HeaderMap,
     Json(payload): Json<InitUploadRequest>,
 ) -> Result<Json<InitUploadResponse>, AppError> {
-    let ws_id = claims.current_workspace_id.ok_or_else(|| {
-        AppError::Validation("No active workspace selected.".to_string())
-    })?;
-
     let clean_path = payload.file_path.trim().trim_start_matches('/').to_string();
     let bucket_slug = clean_path.split('/').next().ok_or_else(|| {
         AppError::Validation("Invalid file path format. Must include bucket prefix.".to_string())
@@ -247,14 +459,34 @@ pub async fn initialize_upload(
         return Err(AppError::Validation("File path cannot be empty after bucket resolution.".to_string()));
     }
 
-    let bucket = sqlx::query_as::<_, StorageBucket>(
-        "SELECT * FROM storage_buckets WHERE workspace_id = $1 AND slug = $2"
-    )
-    .bind(ws_id)
-    .bind(bucket_slug)
-    .fetch_optional(&state.pool)
-    .await?
-    .ok_or_else(|| AppError::NotFound(format!("Target bucket '{}' not found.", bucket_slug)))?;
+    let auth = authenticate_request(
+        &state.pool,
+        &headers,
+        None,
+        None,
+        Some(bucket_slug),
+        None,
+    ).await?;
+
+    let (bucket, ws_id) = match auth {
+        StorageAuth::PlatformUser { claims, ws_id } => {
+            check_user_permission(&state.pool, &claims, ws_id, "volume:create").await?;
+
+            let b = sqlx::query_as::<_, StorageBucket>(
+                "SELECT * FROM storage_buckets WHERE workspace_id = $1 AND slug = $2"
+            )
+            .bind(ws_id)
+            .bind(bucket_slug)
+            .fetch_optional(&state.pool)
+            .await?
+            .ok_or_else(|| AppError::NotFound(format!("Target bucket '{}' not found.", bucket_slug)))?;
+
+            (b, ws_id)
+        }
+        StorageAuth::BucketCredentials { bucket, ws_id } => {
+            (bucket, ws_id)
+        }
+    };
 
     // Enforce the per-file size limit (0 = unlimited).
     if bucket.max_file_size_bytes > 0 && payload.size_bytes > bucket.max_file_size_bytes {
@@ -280,6 +512,36 @@ pub async fn initialize_upload(
                 "Bucket is full: {} of {} used; this {} upload would exceed the limit.",
                 format_bytes(used),
                 format_bytes(bucket.max_bucket_size_bytes),
+                format_bytes(payload.size_bytes)
+            )));
+        }
+    }
+
+    // Enforce the workspace-wide native-storage quota (max_storage_gb; 0 = unlimited).
+    // The k8s ResourceQuota only counts PVCs (app volumes / DB storage); native
+    // buckets live on host disk and would otherwise escape the workspace cap.
+    let ws_max_storage_gb: i32 = sqlx::query_scalar!(
+        "SELECT max_storage_gb FROM workspaces WHERE id = $1",
+        ws_id
+    )
+    .fetch_one(&state.pool)
+    .await?;
+    if ws_max_storage_gb > 0 {
+        let ws_max_bytes = ws_max_storage_gb as i64 * 1_073_741_824;
+        let ws_used: i64 = sqlx::query_scalar!(
+            "SELECT COALESCE(SUM(o.size_bytes), 0)::bigint
+             FROM storage_objects o JOIN storage_buckets b ON o.bucket_id = b.id
+             WHERE b.workspace_id = $1",
+            ws_id
+        )
+        .fetch_one(&state.pool)
+        .await?
+        .unwrap_or(0);
+        if ws_used + payload.size_bytes > ws_max_bytes {
+            return Err(AppError::Validation(format!(
+                "Workspace storage is full: {} of {} used; this {} upload would exceed the workspace limit.",
+                format_bytes(ws_used),
+                format_bytes(ws_max_bytes),
                 format_bytes(payload.size_bytes)
             )));
         }
@@ -647,13 +909,10 @@ pub async fn upload_progress_stream(
 #[tracing::instrument(skip_all, fields(file_id = %file_id), err)]
 pub async fn download_private_file(
     State(state): State<AppState>,
-    AuthenticatedUser(claims): AuthenticatedUser,
+    headers: axum::http::HeaderMap,
+    Query(params): Query<std::collections::HashMap<String, String>>,
     Path(file_id): Path<Uuid>,
 ) -> Result<axum::response::Response, AppError> {
-    let ws_id = claims.current_workspace_id.ok_or_else(|| {
-        AppError::Validation("No active workspace selected.".to_string())
-    })?;
-
     let object = sqlx::query_as::<_, StorageObject>(
         "SELECT * FROM storage_objects WHERE id = $1"
     )
@@ -662,16 +921,39 @@ pub async fn download_private_file(
     .await?
     .ok_or_else(|| AppError::NotFound("Requested file not found.".to_string()))?;
 
-    let (bucket_ws_id, bucket_slug, access_type): (Uuid, String, BucketAccessType) = sqlx::query_as(
-        "SELECT workspace_id, slug, access_type FROM storage_buckets WHERE id = $1"
-    )
-    .bind(object.bucket_id)
-    .fetch_one(&state.pool)
-    .await?;
+    let query_token = params.get("token").or_else(|| params.get("secret_key")).map(|s| s.as_str());
+    let query_app_id = params.get("app_id").map(|s| s.as_str());
 
-    if bucket_ws_id != ws_id {
-        return Err(AppError::Permission("You do not have permission to access this storage bucket.".to_string()));
-    }
+    let auth = authenticate_request(
+        &state.pool,
+        &headers,
+        query_token,
+        query_app_id,
+        None,
+        Some(object.bucket_id),
+    ).await?;
+
+    let (ws_id, bucket_slug, access_type) = match auth {
+        StorageAuth::PlatformUser { claims, ws_id } => {
+            check_user_permission(&state.pool, &claims, ws_id, "volume:read").await?;
+
+            let (bucket_ws_id, bucket_slug, access_type): (Uuid, String, BucketAccessType) = sqlx::query_as(
+                "SELECT workspace_id, slug, access_type FROM storage_buckets WHERE id = $1"
+            )
+            .bind(object.bucket_id)
+            .fetch_one(&state.pool)
+            .await?;
+
+            if bucket_ws_id != ws_id {
+                return Err(AppError::Permission("You do not have permission to access this storage bucket.".to_string()));
+            }
+
+            (ws_id, bucket_slug, access_type)
+        }
+        StorageAuth::BucketCredentials { bucket, ws_id } => {
+            (ws_id, bucket.slug, bucket.access_type)
+        }
+    };
 
     if object.status != StorageStatus::Ready {
         return Err(AppError::Validation("File is not ready for download yet.".to_string()));
@@ -707,7 +989,7 @@ pub async fn download_private_file(
         let bucket = s3::Bucket::new(&s3_bucket_name, region, credentials)
             .map_err(|e| AppError::Infrastructure(format!("Failed to connect to S3 Bucket: {}", e)))?;
 
-        let s3_path = format!("hermes/{}/{}/{}", bucket_ws_id, bucket_slug, object.file_path);
+        let s3_path = format!("hermes/{}/{}/{}", ws_id, bucket_slug, object.file_path);
         
         let presigned_url = bucket.presign_get(&s3_path, 3600, None)
             .map_err(|e| AppError::Infrastructure(format!("Failed to generate S3 presigned URL: {}", e)))?;
@@ -721,7 +1003,7 @@ pub async fn download_private_file(
         return Ok(response);
     }
 
-    let bucket_dir = StorageEngine::get_bucket_path(&bucket_ws_id.to_string(), &bucket_slug, &access_type);
+    let bucket_dir = StorageEngine::get_bucket_path(&ws_id.to_string(), &bucket_slug, &access_type);
     let full_disk_path = bucket_dir.join(&object.file_path);
 
     let file = tokio::fs::File::open(&full_disk_path)
@@ -779,8 +1061,11 @@ pub async fn list_buckets(
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
+    // SELECT * so every StorageBucket field (incl. app_id / secret_key_* added
+    // later) is hydrated by FromRow; the credentials are not exposed in
+    // BucketResponse below, so they never reach the client.
     let buckets = sqlx::query_as::<_, StorageBucket>(
-        "SELECT id, workspace_id, name, slug, access_type, is_public, allowed_file_types, max_bucket_size_bytes, max_file_size_bytes, allow_custom_processing, default_processing_rules, created_at, updated_at, created_by FROM storage_buckets WHERE workspace_id = $1 ORDER BY created_at DESC"
+        "SELECT * FROM storage_buckets WHERE workspace_id = $1 ORDER BY created_at DESC"
     )
     .bind(ws_id)
     .fetch_all(&state.pool)
@@ -808,6 +1093,46 @@ pub async fn list_buckets(
         .collect();
 
     Ok(Json(response))
+}
+
+/// Physically removes every object + bucket directory for all buckets owned by a
+/// project. Best-effort (errors are ignored) — the caller is responsible for
+/// deleting the DB rows (storage_objects cascade from storage_buckets). Used by
+/// project teardown so buckets and their files never outlive their project.
+pub async fn purge_project_buckets_physical(pool: &sqlx::PgPool, ws_id: Uuid, project_id: Uuid) {
+    let buckets = match sqlx::query_as::<_, StorageBucket>(
+        "SELECT * FROM storage_buckets WHERE project_id = $1 AND workspace_id = $2"
+    )
+    .bind(project_id)
+    .bind(ws_id)
+    .fetch_all(pool)
+    .await
+    {
+        Ok(b) => b,
+        Err(_) => return,
+    };
+
+    for bucket in buckets {
+        if let Ok(objects) = sqlx::query_as::<_, StorageObject>(
+            "SELECT * FROM storage_objects WHERE bucket_id = $1"
+        )
+        .bind(bucket.id)
+        .fetch_all(pool)
+        .await
+        {
+            for o in objects {
+                let _ = StorageEngine::delete_object_physical(
+                    &ws_id.to_string(),
+                    &bucket.slug,
+                    &bucket.access_type,
+                    &o.file_path,
+                    o.compression,
+                    &o.meta_data.0.variants,
+                ).await;
+            }
+        }
+        let _ = StorageEngine::delete_bucket_physical(&ws_id.to_string(), &bucket.slug, &bucket.access_type).await;
+    }
 }
 
 pub async fn delete_bucket(
@@ -930,13 +1255,9 @@ pub async fn list_objects(
 
 pub async fn delete_object(
     State(state): State<AppState>,
-    AuthenticatedUser(claims): AuthenticatedUser,
+    headers: axum::http::HeaderMap,
     Path(object_id): Path<Uuid>,
 ) -> Result<StatusCode, AppError> {
-    let ws_id = claims.current_workspace_id.ok_or_else(|| {
-        AppError::Validation("No active workspace selected.".to_string())
-    })?;
-
     let object = sqlx::query_as::<_, StorageObject>(
         "SELECT * FROM storage_objects WHERE id = $1"
     )
@@ -945,16 +1266,36 @@ pub async fn delete_object(
     .await?
     .ok_or_else(|| AppError::NotFound("File not found.".to_string()))?;
 
-    let (bucket_ws_id, bucket_slug, access_type): (Uuid, String, BucketAccessType) = sqlx::query_as(
-        "SELECT workspace_id, slug, access_type FROM storage_buckets WHERE id = $1"
-    )
-    .bind(object.bucket_id)
-    .fetch_one(&state.pool)
-    .await?;
+    let auth = authenticate_request(
+        &state.pool,
+        &headers,
+        None,
+        None,
+        None,
+        Some(object.bucket_id),
+    ).await?;
 
-    if bucket_ws_id != ws_id {
-        return Err(AppError::Permission("You do not have permission to delete this file.".to_string()));
-    }
+    let (ws_id, bucket_slug, access_type) = match auth {
+        StorageAuth::PlatformUser { claims, ws_id } => {
+            check_user_permission(&state.pool, &claims, ws_id, "volume:delete").await?;
+
+            let (bucket_ws_id, bucket_slug, access_type): (Uuid, String, BucketAccessType) = sqlx::query_as(
+                "SELECT workspace_id, slug, access_type FROM storage_buckets WHERE id = $1"
+            )
+            .bind(object.bucket_id)
+            .fetch_one(&state.pool)
+            .await?;
+
+            if bucket_ws_id != ws_id {
+                return Err(AppError::Permission("You do not have permission to delete this file.".to_string()));
+            }
+
+            (ws_id, bucket_slug, access_type)
+        }
+        StorageAuth::BucketCredentials { bucket, ws_id } => {
+            (ws_id, bucket.slug, bucket.access_type)
+        }
+    };
 
     StorageEngine::delete_object_physical(
         &ws_id.to_string(),
@@ -986,26 +1327,11 @@ pub async fn serve_public_file(
     .await?
     .ok_or_else(|| AppError::NotFound("Storage bucket not found.".to_string()))?;
 
-    // All buckets are private. Access is granted either via a workspace JWT
-    // (?token=) or the bucket's own key pair (?app_id=&secret_key=) — the latter
-    // is how deployed apps connect using the vars published to the project pool.
+    // All buckets are private. Access is granted via the bucket's own key pair
+    // (?app_id=&secret_key=) — the vars published to the project pool that deployed
+    // apps connect with.
     {
-        if let Some(token) = params.get("token") {
-            let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "super_secret_key".to_string());
-            let token_data = jsonwebtoken::decode::<crate::middlewares::auth_middleware::Claims>(
-                token,
-                &jsonwebtoken::DecodingKey::from_secret(jwt_secret.as_bytes()),
-                &jsonwebtoken::Validation::default(),
-            )
-            .map_err(|_| AppError::Auth("Invalid or expired token".to_string()))?;
-
-            if token_data.claims.status == crate::models::user_model::UserStatus::Suspended {
-                return Err(AppError::Permission("This account has been suspended".to_string()));
-            }
-            if token_data.claims.current_workspace_id != Some(workspace_id) && !token_data.claims.is_super_admin {
-                return Err(AppError::Permission("You do not have permission to access this workspace's assets.".to_string()));
-            }
-        } else if let (Some(prov_app), Some(prov_secret)) = (params.get("app_id"), params.get("secret_key")) {
+        if let (Some(prov_app), Some(prov_secret)) = (params.get("app_id"), params.get("secret_key")) {
             let creds = sqlx::query!(
                 "SELECT app_id, secret_key_encrypted, secret_key_nonce FROM storage_buckets WHERE id = $1",
                 bucket_id
@@ -1024,7 +1350,7 @@ pub async fn serve_public_file(
             }
         } else {
             return Err(AppError::Permission(
-                "Access denied to private bucket. Provide ?token= or ?app_id=&secret_key=.".to_string(),
+                "Access denied to private bucket. Provide ?app_id=&secret_key=.".to_string(),
             ));
         }
     }
@@ -1147,48 +1473,6 @@ pub async fn update_bucket(
     }))
 }
 
-pub async fn generate_bucket_token(
-    State(state): State<AppState>,
-    AuthenticatedUser(claims): AuthenticatedUser,
-    Path(bucket_id): Path<Uuid>,
-) -> Result<Json<serde_json::Value>, AppError> {
-    let ws_id = claims.current_workspace_id.ok_or_else(|| {
-        AppError::Validation("No active workspace selected.".to_string())
-    })?;
-
-    let bucket_exists = sqlx::query!(
-        "SELECT id FROM storage_buckets WHERE id = $1 AND workspace_id = $2",
-        bucket_id, ws_id
-    )
-    .fetch_optional(&state.pool)
-    .await?
-    .is_some();
-
-    if !bucket_exists {
-        return Err(AppError::NotFound("Storage bucket not found.".to_string()));
-    }
-
-    let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "super_secret_key".to_string());
-    let expiration = chrono::Utc::now() + chrono::Duration::days(3650); // 10 years
-
-    let integration_claims = crate::middlewares::auth_middleware::Claims {
-        sub: claims.sub,
-        username: claims.username.clone(),
-        email: claims.email.clone(),
-        status: claims.status,
-        is_super_admin: claims.is_super_admin,
-        current_workspace_id: Some(ws_id),
-        exp: expiration.timestamp(),
-    };
-
-    let token = jsonwebtoken::encode(
-        &jsonwebtoken::Header::default(),
-        &integration_claims,
-        &jsonwebtoken::EncodingKey::from_secret(jwt_secret.as_bytes())
-    ).map_err(|e| AppError::Fatal(anyhow::anyhow!(e.to_string())))?;
-
-    Ok(Json(serde_json::json!({
-        "token": token,
-        "expiresAt": expiration,
-    })))
-}
+// Bucket access is via the per-bucket app_id/secret_key key pair (published to the
+// project env pool, rotatable). The old workspace-JWT `?token=` mechanism was removed
+// — it was a 10-year user-scoped token, redundant with and less safe than the key pair.

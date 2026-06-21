@@ -1,0 +1,23 @@
+# Persistent volumes for the control-plane pod: native object storage (buckets)
+# and database backup dumps. Both ReadWriteOnce on the k3s local-path default.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hermes-object-storage
+  namespace: hermes-system
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hermes-backups
+  namespace: hermes-system
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi

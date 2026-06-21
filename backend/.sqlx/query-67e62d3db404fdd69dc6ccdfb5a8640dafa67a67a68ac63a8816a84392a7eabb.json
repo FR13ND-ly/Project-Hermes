@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT u.id as user_id, u.email, u.username, r.name as role_name\n         FROM workspace_members wm\n         JOIN users u ON wm.user_id = u.id\n         JOIN roles r ON wm.role_id = r.id\n         WHERE wm.workspace_id = $1\n         ORDER BY u.email ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "username",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "role_name",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "67e62d3db404fdd69dc6ccdfb5a8640dafa67a67a68ac63a8816a84392a7eabb"
+}

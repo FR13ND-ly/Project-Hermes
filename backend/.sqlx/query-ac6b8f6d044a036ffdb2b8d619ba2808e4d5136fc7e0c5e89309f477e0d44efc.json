@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE cron_jobs\n         SET name = $1, app_id = $2, target_id = $3, schedule = $4, command = $5, status = $6::cron_status, next_run_at = $7, updated_at = NOW()\n         WHERE id = $8 AND workspace_id = $9",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Text",
+        {
+          "Custom": {
+            "name": "cron_status",
+            "kind": {
+              "Enum": [
+                "active",
+                "paused",
+                "failed"
+              ]
+            }
+          }
+        },
+        "Timestamptz",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ac6b8f6d044a036ffdb2b8d619ba2808e4d5136fc7e0c5e89309f477e0d44efc"
+}

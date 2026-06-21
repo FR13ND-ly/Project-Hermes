@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO app_env_links (app_instance_id, project_env_id) VALUES ($1, $2)\n                 ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c1fc964dd2d4293ae2616c10dabce73efd321a765693a8a2639106eca909c8bc"
+}

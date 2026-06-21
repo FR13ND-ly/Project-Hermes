@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(SUM(o.size_bytes), 0)::bigint\n             FROM storage_objects o JOIN storage_buckets b ON o.bucket_id = b.id\n             WHERE b.workspace_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "coalesce",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "77753a69a53944e1fcb234a639da28d624418eba2437591886104ebbc5f5679e"
+}

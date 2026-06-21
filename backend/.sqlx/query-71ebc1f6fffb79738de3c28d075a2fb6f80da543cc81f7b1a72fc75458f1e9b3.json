@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(SUM(ai.memory_limit_mb * ai.replicas_max), 0)::bigint\n                 FROM app_instances ai\n                 JOIN apps a ON ai.app_id = a.id\n                 WHERE a.workspace_id = $1 AND ai.status NOT IN ('stopped', 'failed')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "coalesce",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "71ebc1f6fffb79738de3c28d075a2fb6f80da543cc81f7b1a72fc75458f1e9b3"
+}

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT container_path, host_path FROM app_volumes WHERE app_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "container_path",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "host_path",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "82eb819f1e0baca7069af3153acb900cb27887d7c0c1236998178ea8c9de04b5"
+}

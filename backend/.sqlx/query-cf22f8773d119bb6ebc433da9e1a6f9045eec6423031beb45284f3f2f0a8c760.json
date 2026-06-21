@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE app_instances\n         SET cpu_limit = COALESCE($1, cpu_limit),\n             memory_limit_mb = COALESCE($2, memory_limit_mb),\n             internal_port = COALESCE($3, internal_port),\n             port_is_auto = CASE WHEN $3 IS NOT NULL THEN false ELSE port_is_auto END,\n             external_port = $4,\n             replicas_min = COALESCE($6, replicas_min),\n             replicas_max = COALESCE($7, replicas_max),\n             status = 'building',\n             updated_at = now()\n         WHERE id = $5",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int8",
+        "Int4",
+        "Int4",
+        "Uuid",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cf22f8773d119bb6ebc433da9e1a6f9045eec6423031beb45284f3f2f0a8c760"
+}

@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, slug, git_repository, build_command, workspace_id FROM apps",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "slug",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "git_repository",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "build_command",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "c5a3e034fd380d1b6b798ad2cc46f3a2de751c8892b162f038f43096ddd53ad2"
+}

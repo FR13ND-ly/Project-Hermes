@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO serverless_builds (id, instance_id, workspace_id, status) VALUES ($1, $2, $3, 'building')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "46d55053a82d1b6600d7c2717b762cdc1e4a04a7385b4c6d6b84b412e52e1a62"
+}

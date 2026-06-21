@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO storage_buckets (id, workspace_id, project_id, name, slug, access_type, is_public, max_bucket_size_bytes, max_file_size_bytes, allow_custom_processing, default_processing_rules, created_by, app_id, secret_key_encrypted, secret_key_nonce)\n         VALUES ($1, $2, $3, $4, $5, $6::bucket_access_type, $7, $8, $9, $10, $11, $12, $13, $14, $15)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        {
+          "Custom": {
+            "name": "bucket_access_type",
+            "kind": {
+              "Enum": [
+                "static_website",
+                "public_assets",
+                "private_storage",
+                "app_bounded"
+              ]
+            }
+          }
+        },
+        "Bool",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Jsonb",
+        "Uuid",
+        "Varchar",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e477c1e37b8f41940497f4d9b663d544faefa71b384d12833fd052662a60e741"
+}

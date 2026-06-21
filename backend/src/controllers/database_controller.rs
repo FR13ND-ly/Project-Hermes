@@ -24,6 +24,9 @@ pub async fn create_database(
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
+    // Serialize quota-sensitive mutations per workspace (atomic check + insert).
+    let _ws_guard = crate::utils::locks::acquire_workspace_lock(&state.pool, ws_id).await?;
+
     let db_id = Uuid::new_v4();
     let raw_password = string_gen::generate_secure_string(24);
     let (encrypted_password, password_nonce) = crypto::encrypt_env_value(&raw_password)?;
@@ -70,13 +73,17 @@ pub async fn create_database(
     };
 
     // --- Resource availability check BEFORE creating the DB record ---
-    let db_memory_needed_mb = payload.memory_limit_mb.filter(|&m| m > 0).unwrap_or(256) as i64;
-    crate::utils::limits::check_workspace_memory_limit(
-        &state.pool,
-        ws_id,
-        db_memory_needed_mb,
-        None
-    ).await?;
+    // 0 = unlimited (consistent with apps): only counted/checked when a real cap
+    // is set, and the exact same value is what gets persisted below.
+    let db_memory_needed_mb = payload.memory_limit_mb.unwrap_or(0) as i64;
+    if db_memory_needed_mb > 0 {
+        crate::utils::limits::check_workspace_memory_limit(
+            &state.pool,
+            ws_id,
+            db_memory_needed_mb,
+            None
+        ).await?;
+    }
     let db_cpu_needed = payload.cpu_limit.filter(|&c| c > 0).unwrap_or(0);
     if db_cpu_needed > 0 {
         crate::utils::limits::check_workspace_cpu_limit(&state.pool, ws_id, db_cpu_needed, None).await?;
@@ -86,7 +93,7 @@ pub async fn create_database(
     sqlx::query!(
         "INSERT INTO databases (id, workspace_id, project_id, app_instance_id, name, type, version, db_user, db_password, db_password_nonce, db_name, container_name, internal_port, is_external, external_port, status, cpu_limit, memory_limit_mb, storage_size_gb)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)",
-        db_id, ws_id, payload.project_id, payload.app_instance_id, payload.name, payload.r#type.clone() as DbType, full_image, db_user, encrypted_password, password_nonce, db_name, container_name, internal_port, is_external, ext_port, DbStatus::Provisioning as DbStatus, payload.cpu_limit.unwrap_or(0), payload.memory_limit_mb.unwrap_or(0), payload.storage_size_gb.filter(|&s| s > 0).unwrap_or(1)
+        db_id, ws_id, payload.project_id, payload.app_instance_id, payload.name, payload.r#type.clone() as DbType, full_image, db_user, encrypted_password, password_nonce, db_name, container_name, internal_port, is_external, ext_port, DbStatus::Provisioning as DbStatus, payload.cpu_limit.unwrap_or(0), db_memory_needed_mb, payload.storage_size_gb.filter(|&s| s > 0).unwrap_or(1)
     )
     .execute(&state.pool)
     .await?;
@@ -174,7 +181,7 @@ pub async fn create_database(
             .await;
         let (max_mem, max_storage, max_cpu) = match limits {
             Ok(r) => (r.max_memory_mb, r.max_storage_gb, r.max_cpu_millicores),
-            Err(_) => (2048, 10, 0),
+            Err(_) => (0, 0, 0), // unlimited fallback — never impose limits by default
         };
         if let Err(e) = crate::utils::k8s::K8sManager::create_namespace(&k8s_client, &namespace, max_mem, max_storage, max_cpu).await {
             tracing::warn!(db_id = %db_id, namespace = %namespace, "create_namespace warning: {}", e);
@@ -338,6 +345,12 @@ pub async fn delete_database(
     let _ = sqlx::query!("DELETE FROM cron_jobs WHERE target_type = 'database' AND target_id = $1", db_id)
         .execute(&state.pool).await;
 
+    // Tear down any DNS-only domains attached to this database (Cloudflare record + row).
+    crate::controllers::domain_controller::purge_domains_for_target(&state.pool, ws_id, "database", db_id).await;
+
+    // Remove physical backup files for this database on host disk.
+    let _ = std::fs::remove_dir_all(format!("/var/lib/hermes/backups/{}", db_id));
+
     sqlx::query!("DELETE FROM databases WHERE id = $1 AND workspace_id = $2", db_id, ws_id)
         .execute(&state.pool)
         .await?;
@@ -377,7 +390,7 @@ pub(crate) fn spawn_db_provisioning(
         let namespace = format!("hermes-ws-{}", ws_id);
         let (max_mem, max_storage, max_cpu) = match sqlx::query!("SELECT max_memory_mb, max_storage_gb, max_cpu_millicores FROM workspaces WHERE id = $1", ws_id).fetch_one(&pool).await {
             Ok(r) => (r.max_memory_mb, r.max_storage_gb, r.max_cpu_millicores),
-            Err(_) => (2048, 10, 0),
+            Err(_) => (0, 0, 0), // unlimited fallback — never impose limits by default
         };
         let _ = crate::utils::k8s::K8sManager::create_namespace(&k8s_client, &namespace, max_mem, max_storage, max_cpu).await;
 
@@ -586,53 +599,36 @@ pub async fn execute_database_query(
     };
 
     let namespace = format!("hermes-ws-{}", ws_id);
-    let pod_name = format!("{}-0", db_service.container_name);
 
-    let mut cmd = std::process::Command::new("kubectl");
-    cmd.arg("exec");
-    cmd.arg("-n");
-    cmd.arg(&namespace);
-    cmd.arg(&pod_name);
-    cmd.arg("--");
-
+    // Connect DIRECTLY to the in-cluster DB service (no pod exec).
+    let host = format!("{}.{}.svc.cluster.local", db_service.container_name, namespace);
+    let port_s = db_service.internal_port.to_string();
+    let mut cmd;
     match db_service.r#type {
         DbType::Postgres => {
-            cmd.arg("psql");
-            cmd.arg("-U");
-            cmd.arg(&db_service.db_user);
-            cmd.arg("-d");
-            cmd.arg(&db_service.db_name);
-            cmd.arg("-c");
-            cmd.arg(&payload.query);
+            cmd = std::process::Command::new("psql");
+            cmd.env("PGPASSWORD", &decrypted_password);
+            cmd.args(["-h", host.as_str(), "-p", port_s.as_str(), "-U", db_service.db_user.as_str(),
+                      "-d", db_service.db_name.as_str(), "-c", payload.query.as_str()]);
         }
         DbType::Mysql => {
-            cmd.arg("mysql");
-            cmd.arg("-u");
-            cmd.arg(&db_service.db_user);
-            cmd.arg(format!("-p{}", decrypted_password));
-            cmd.arg("-e");
-            cmd.arg(&payload.query);
-            cmd.arg(&db_service.db_name);
+            cmd = std::process::Command::new("mysql");
+            cmd.env("MYSQL_PWD", &decrypted_password);
+            cmd.args(["-h", host.as_str(), "-P", port_s.as_str(), "-u", db_service.db_user.as_str(),
+                      "-e", payload.query.as_str(), db_service.db_name.as_str()]);
         }
         DbType::Redis => {
-            cmd.arg("redis-cli");
-            cmd.arg("-a");
-            cmd.arg(&decrypted_password);
-            cmd.arg("--no-auth-warning");
-            let parts: Vec<&str> = payload.query.split_whitespace().collect();
-            for part in parts {
+            cmd = std::process::Command::new("redis-cli");
+            cmd.args(["-h", host.as_str(), "-p", port_s.as_str(), "-a", decrypted_password.as_str(), "--no-auth-warning"]);
+            for part in payload.query.split_whitespace() {
                 cmd.arg(part);
             }
         }
         DbType::Mongodb => {
-            cmd.arg("sh");
-            cmd.arg("-c");
-            let mongo_script = format!(
-                "mongosh -u '{}' -p '{}' --authenticationDatabase admin --quiet --eval '{}' || mongo -u '{}' -p '{}' --authenticationDatabase admin --quiet --eval '{}'",
-                db_service.db_user, decrypted_password, payload.query.replace('\'', "'\\''"),
-                db_service.db_user, decrypted_password, payload.query.replace('\'', "'\\''")
-            );
-            cmd.arg(mongo_script);
+            cmd = std::process::Command::new("mongosh");
+            cmd.args(["--host", host.as_str(), "--port", port_s.as_str(),
+                      "-u", db_service.db_user.as_str(), "-p", decrypted_password.as_str(),
+                      "--authenticationDatabase", "admin", "--quiet", "--eval", payload.query.as_str()]);
         }
     }
 
@@ -640,7 +636,7 @@ pub async fn execute_database_query(
         Ok(out) => out,
         Err(e) => {
             return Ok(Json(DatabaseQueryResponse {
-                output: format!("Failed to run kubectl command: {}", e),
+                output: format!("Failed to run query: {}", e),
                 is_error: true,
             }));
         }
@@ -728,6 +724,10 @@ pub async fn stream_database_logs(
             }
 
             let log_params = kube::api::LogParams {
+                // The DB pod now also runs a metrics-exporter sidecar, so the
+                // target container must be named explicitly (else k8s 400s with
+                // "a container name must be specified").
+                container: Some(container_name.clone()),
                 follow: !is_previous && (phase == "Running"),
                 previous: is_previous,
                 tail_lines: Some(100),
@@ -782,6 +782,9 @@ pub async fn update_database_settings(
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
+
+    // Serialize quota-sensitive mutations per workspace (atomic check + update).
+    let _ws_guard = crate::utils::locks::acquire_workspace_lock(&state.pool, ws_id).await?;
 
     // 1. Fetch the database service metadata (including container name and type)
     let db_service = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1 AND workspace_id = $2")
@@ -938,6 +941,164 @@ async fn get_actual_db_status(
     }
 }
 
+/// Magic header marking a Hermes protocol-level Redis dump (distinguishes it from
+/// a raw RDB so a stale RDB backup is rejected with a clear message on restore).
+const REDIS_DUMP_MAGIC: &[u8] = b"HRDS1\n";
+
+fn redis_url(host: &str, port: i32, password: &str) -> String {
+    if password.is_empty() {
+        format!("redis://{}:{}", host, port)
+    } else {
+        format!("redis://:{}@{}:{}", password, host, port)
+    }
+}
+
+/// Protocol-level Redis backup: SCAN every key, capture its serialized value (DUMP)
+/// + remaining TTL (PTTL), write a length-framed, binary-safe file. No RDB, no pod
+/// access. Frame: [u32 LE key_len][key][i64 LE ttl_ms][u32 LE val_len][val].
+async fn redis_dump_to_file(host: &str, port: i32, password: &str, path: &str) -> Result<(), AppError> {
+    use std::io::Write;
+    let client = redis::Client::open(redis_url(host, port, password))
+        .map_err(|e| AppError::Infrastructure(format!("Redis connection failed: {}", e)))?;
+    let mut con = client.get_multiplexed_async_connection().await
+        .map_err(|e| AppError::Infrastructure(format!("Redis connection failed: {}", e)))?;
+
+    let mut out = std::fs::File::create(path)
+        .map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to create backup file: {}", e)))?;
+    out.write_all(REDIS_DUMP_MAGIC).map_err(|e| AppError::Fatal(anyhow::anyhow!(e)))?;
+
+    let mut cursor: u64 = 0;
+    loop {
+        let (next, keys): (u64, Vec<Vec<u8>>) = redis::cmd("SCAN")
+            .arg(cursor).arg("COUNT").arg(500)
+            .query_async(&mut con).await
+            .map_err(|e| AppError::Infrastructure(format!("Redis SCAN failed: {}", e)))?;
+        for key in keys {
+            let pttl: i64 = redis::cmd("PTTL").arg(&key).query_async(&mut con).await.unwrap_or(-1);
+            let dump: Option<Vec<u8>> = redis::cmd("DUMP").arg(&key).query_async(&mut con).await.unwrap_or(None);
+            let Some(val) = dump else { continue }; // key expired between SCAN and DUMP
+            let ttl = if pttl < 0 { 0 } else { pttl };
+            let _ = out.write_all(&(key.len() as u32).to_le_bytes());
+            let _ = out.write_all(&key);
+            let _ = out.write_all(&ttl.to_le_bytes());
+            let _ = out.write_all(&(val.len() as u32).to_le_bytes());
+            let _ = out.write_all(&val);
+        }
+        if next == 0 { break; }
+        cursor = next;
+    }
+    out.flush().map_err(|e| AppError::Fatal(anyhow::anyhow!(e)))?;
+    Ok(())
+}
+
+/// Restore a Hermes Redis dump: FLUSHDB, then RESTORE each key (REPLACE) with its TTL.
+async fn redis_restore_from_file(host: &str, port: i32, password: &str, path: &str) -> Result<(), AppError> {
+    use std::io::Read;
+    let mut data = Vec::new();
+    std::fs::File::open(path)
+        .map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to open backup file: {}", e)))?
+        .read_to_end(&mut data)
+        .map_err(|e| AppError::Fatal(anyhow::anyhow!(e)))?;
+
+    if !data.starts_with(REDIS_DUMP_MAGIC) {
+        return Err(AppError::Validation(
+            "Acest backup Redis e în format RDB vechi și nu poate fi restaurat după migrarea la backup pe protocol. Creează un backup nou.".to_string(),
+        ));
+    }
+    let mut pos = REDIS_DUMP_MAGIC.len();
+
+    let client = redis::Client::open(redis_url(host, port, password))
+        .map_err(|e| AppError::Infrastructure(format!("Redis connection failed: {}", e)))?;
+    let mut con = client.get_multiplexed_async_connection().await
+        .map_err(|e| AppError::Infrastructure(format!("Redis connection failed: {}", e)))?;
+
+    let _: () = redis::cmd("FLUSHDB").query_async(&mut con).await
+        .map_err(|e| AppError::Infrastructure(format!("Redis FLUSHDB failed: {}", e)))?;
+
+    while pos + 4 <= data.len() {
+        let klen = u32::from_le_bytes([data[pos], data[pos + 1], data[pos + 2], data[pos + 3]]) as usize;
+        pos += 4;
+        if pos + klen > data.len() { break; }
+        let key = data[pos..pos + klen].to_vec();
+        pos += klen;
+        if pos + 8 > data.len() { break; }
+        let ttl = i64::from_le_bytes(data[pos..pos + 8].try_into().unwrap());
+        pos += 8;
+        if pos + 4 > data.len() { break; }
+        let vlen = u32::from_le_bytes([data[pos], data[pos + 1], data[pos + 2], data[pos + 3]]) as usize;
+        pos += 4;
+        if pos + vlen > data.len() { break; }
+        let val = data[pos..pos + vlen].to_vec();
+        pos += vlen;
+
+        let _: () = redis::cmd("RESTORE").arg(&key).arg(ttl).arg(&val).arg("REPLACE")
+            .query_async(&mut con).await
+            .map_err(|e| AppError::Infrastructure(format!("Redis RESTORE failed: {}", e)))?;
+    }
+    Ok(())
+}
+
+/// Dump a Postgres/MySQL database via a one-off in-cluster Job.
+///
+/// The Job runs in the control-plane namespace (where the RWO `hermes-backups` PVC
+/// lives), mounts that PVC, and writes the dump to `filepath` — the same path the
+/// control plane sees, so listing/download/restore are unchanged. It uses the
+/// database's own image (`db_service.version`), which already ships the matching
+/// `pg_dump`/`mysqldump`, and connects across namespaces via `host` (the DB service
+/// FQDN). The password is passed through a Secret, never on the command line.
+async fn backup_sql_via_job(
+    db_service: &DatabaseService,
+    host: &str,
+    password: &str,
+    db_id: Uuid,
+    backups_dir: &str,
+    filepath: &str,
+) -> Result<String, AppError> {
+    let client = crate::utils::k8s::K8sManager::get_client().await?;
+    let system_ns = crate::utils::k8s::K8sManager::system_namespace();
+    let job_name = format!("backup-{}-{}", &db_id.to_string()[..8], chrono::Utc::now().format("%H%M%S"));
+    let port = db_service.internal_port;
+
+    let (envs, dump): (Vec<(String, String)>, String) = match db_service.r#type {
+        DbType::Postgres => (
+            vec![("PGPASSWORD".to_string(), password.to_string())],
+            format!(
+                "mkdir -p '{dir}' && pg_dump --clean --if-exists -h {host} -p {port} -U {user} -d {db} > '{file}'",
+                dir = backups_dir, host = host, port = port,
+                user = db_service.db_user, db = db_service.db_name, file = filepath
+            ),
+        ),
+        DbType::Mysql => (
+            vec![("MYSQL_PWD".to_string(), password.to_string())],
+            format!(
+                "mkdir -p '{dir}' && mysqldump --add-drop-table -h {host} -P {port} -u {user} {db} > '{file}'",
+                dir = backups_dir, host = host, port = port,
+                user = db_service.db_user, db = db_service.db_name, file = filepath
+            ),
+        ),
+        _ => return Err(AppError::Fatal(anyhow::anyhow!(
+            "backup_sql_via_job called for a non-SQL engine"
+        ))),
+    };
+
+    let (logs, exit_code) = crate::utils::k8s::K8sManager::run_db_pvc_job(
+        &client, &system_ns, &job_name, &db_service.version, envs, &dump, "hermes-backups",
+    )
+    .await?;
+
+    if exit_code != 0 {
+        // Drop the partial/empty file the redirect may have created.
+        let _ = std::fs::remove_file(filepath);
+        let detail = logs.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("").trim();
+        return Err(AppError::Infrastructure(format!(
+            "Backup-ul a eșuat (cod {}). Detaliu: {}",
+            exit_code, detail
+        )));
+    }
+
+    Ok(logs.trim().to_string())
+}
+
 pub async fn perform_database_backup(pool: &sqlx::PgPool, db_id: Uuid, custom_command: Option<&str>) -> Result<BackupResponse, AppError> {
     let db_service = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1")
         .bind(db_id).fetch_optional(pool).await?
@@ -949,12 +1110,11 @@ pub async fn perform_database_backup(pool: &sqlx::PgPool, db_id: Uuid, custom_co
     };
 
     let namespace = format!("hermes-ws-{}", db_service.workspace_id);
-    let pod_name = format!("{}-0", db_service.container_name);
 
     let extension = match db_service.r#type {
         DbType::Postgres | DbType::Mysql => "sql",
         DbType::Mongodb => "archive",
-        DbType::Redis => "rdb",
+        DbType::Redis => "redisdump", // protocol-level per-key dump (not an RDB)
     };
     
     let backups_dir = format!("/var/lib/hermes/backups/{}", db_id);
@@ -962,76 +1122,77 @@ pub async fn perform_database_backup(pool: &sqlx::PgPool, db_id: Uuid, custom_co
     
     let filename = format!("{}.{}", chrono::Utc::now().format("%Y%m%d_%H%M%S"), extension);
     let filepath = format!("{}/{}", backups_dir, filename);
-    let file = std::fs::File::create(&filepath).map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to create backup file on host: {}", e)))?;
 
-    let mut cmd = std::process::Command::new("kubectl");
-    cmd.arg("exec");
-    cmd.arg("-n");
-    cmd.arg(&namespace);
-    cmd.arg(&pod_name);
-    cmd.arg("--");
+    // Everything connects DIRECTLY to the in-cluster DB service — no pod exec.
+    //  • Redis: protocol-level per-key DUMP (no RDB file in the pod).
+    //  • SQL/Mongo: the client's stdout streams to the backup file.
+    //  • Custom command: runs in the control plane with DB connection info exported
+    //    as env (DB_HOST/DB_PORT/DB_USER/DB_NAME + PGPASSWORD/MYSQL_PWD/DB_PASSWORD).
+    let host = format!("{}.{}.svc.cluster.local", db_service.container_name, namespace);
+    let port = db_service.internal_port;
+    let port_s = port.to_string();
+    let is_custom = custom_command.map(str::trim).filter(|s| !s.is_empty()).is_some();
 
-    // A custom command (from the editable backup cron) runs as a shell snippet inside
-    // the DB pod; otherwise fall back to the per-type default dump.
-    if let Some(custom) = custom_command.map(str::trim).filter(|s| !s.is_empty()) {
-        cmd.arg("/bin/sh");
-        cmd.arg("-c");
-        cmd.arg(custom);
+    let stderr_msg: String = if matches!(db_service.r#type, DbType::Redis) && !is_custom {
+        redis_dump_to_file(&host, port, &decrypted_password, &filepath).await?;
+        String::new()
+    } else if !is_custom && matches!(db_service.r#type, DbType::Postgres | DbType::Mysql) {
+        // Run the dump in an in-cluster Job (using the DB's own image) that writes
+        // straight to the backups PVC, instead of spawning pg_dump/mysqldump on the
+        // control plane. This removes the dependency on DB client binaries being
+        // installed alongside the backend (the "program not found" failure) and keeps
+        // the dump tool version-matched to the server.
+        backup_sql_via_job(&db_service, &host, &decrypted_password, db_id, &backups_dir, &filepath).await?
     } else {
-        match db_service.r#type {
-            DbType::Postgres => {
-                cmd.arg("pg_dump");
-                // --clean --if-exists make the dump drop each object before recreating it,
-                // so a restore replaces existing data instead of appending duplicate rows.
-                cmd.arg("--clean");
-                cmd.arg("--if-exists");
-                cmd.arg("-U");
-                cmd.arg(&db_service.db_user);
-                cmd.arg("-d");
-                cmd.arg(&db_service.db_name);
-            }
-            DbType::Mysql => {
-                cmd.arg("mysqldump");
-                // --add-drop-table (default on) emits DROP TABLE before each CREATE,
-                // making restores replace rather than append; set explicitly to be safe.
-                cmd.arg("--add-drop-table");
-                cmd.arg("-u");
-                cmd.arg(&db_service.db_user);
-                cmd.arg(format!("-p{}", decrypted_password));
-                cmd.arg(&db_service.db_name);
-            }
-            DbType::Mongodb => {
-                cmd.arg("mongodump");
-                cmd.arg("--username");
-                cmd.arg(&db_service.db_user);
-                cmd.arg("--password");
-                cmd.arg(&decrypted_password);
-                cmd.arg("--authenticationDatabase");
-                cmd.arg("admin");
-                cmd.arg("--archive");
-            }
-            DbType::Redis => {
-                cmd.arg("redis-cli");
-                cmd.arg("-a");
-                cmd.arg(&decrypted_password);
-                cmd.arg("--no-auth-warning");
-                cmd.arg("--rdb");
-                cmd.arg("-");
+        let file = std::fs::File::create(&filepath).map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to create backup file: {}", e)))?;
+        let mut cmd;
+        if let Some(custom) = custom_command.map(str::trim).filter(|s| !s.is_empty()) {
+            cmd = std::process::Command::new("/bin/sh");
+            cmd.arg("-c").arg(custom);
+            cmd.env("PGPASSWORD", &decrypted_password);
+            cmd.env("MYSQL_PWD", &decrypted_password);
+            cmd.env("DB_HOST", &host);
+            cmd.env("DB_PORT", &port_s);
+            cmd.env("DB_USER", &db_service.db_user);
+            cmd.env("DB_NAME", &db_service.db_name);
+            cmd.env("DB_PASSWORD", &decrypted_password);
+        } else {
+            match db_service.r#type {
+                DbType::Postgres => {
+                    cmd = std::process::Command::new("pg_dump");
+                    cmd.env("PGPASSWORD", &decrypted_password);
+                    cmd.args(["--clean", "--if-exists", "-h", host.as_str(), "-p", port_s.as_str(),
+                              "-U", db_service.db_user.as_str(), "-d", db_service.db_name.as_str()]);
+                }
+                DbType::Mysql => {
+                    cmd = std::process::Command::new("mysqldump");
+                    cmd.env("MYSQL_PWD", &decrypted_password);
+                    cmd.args(["--add-drop-table", "-h", host.as_str(), "-P", port_s.as_str(),
+                              "-u", db_service.db_user.as_str(), db_service.db_name.as_str()]);
+                }
+                DbType::Mongodb => {
+                    cmd = std::process::Command::new("mongodump");
+                    cmd.args(["--host", host.as_str(), "--port", port_s.as_str(),
+                              "--username", db_service.db_user.as_str(), "--password", decrypted_password.as_str(),
+                              "--authenticationDatabase", "admin", "--archive"]);
+                }
+                DbType::Redis => unreachable!("redis (non-custom) handled above"),
             }
         }
-    }
 
-    cmd.stdout(std::process::Stdio::from(file));
-    cmd.stderr(std::process::Stdio::piped());
+        cmd.stdout(std::process::Stdio::from(file));
+        cmd.stderr(std::process::Stdio::piped());
 
-    let mut child = cmd.spawn().map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to spawn backup process: {}", e)))?;
-    let output = child.wait_with_output().map_err(|e| AppError::Fatal(anyhow::anyhow!("Backup process execution failed: {}", e)))?;
+        let mut child = cmd.spawn().map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to spawn backup process: {}", e)))?;
+        let output = child.wait_with_output().map_err(|e| AppError::Fatal(anyhow::anyhow!("Backup process execution failed: {}", e)))?;
 
-    if !output.status.success() {
-        let err_msg = String::from_utf8_lossy(&output.stderr).to_string();
-        let _ = std::fs::remove_file(&filepath);
-        return Err(AppError::Fatal(anyhow::anyhow!("Backup command failed: {}", err_msg)));
-    }
+        if !output.status.success() {
+            let err_msg = String::from_utf8_lossy(&output.stderr).to_string();
+            let _ = std::fs::remove_file(&filepath);
+            return Err(AppError::Fatal(anyhow::anyhow!("Backup command failed: {}", err_msg)));
+        }
+        String::from_utf8_lossy(&output.stderr).trim().to_string()
+    };
 
     let file_size = std::fs::metadata(&filepath).map(|m| m.len() as i64).unwrap_or(0);
     let backup_id = Uuid::new_v4();
@@ -1072,9 +1233,6 @@ pub async fn perform_database_backup(pool: &sqlx::PgPool, db_id: Uuid, custom_co
             .await;
         }
     }
-
-    // Surface any stderr (e.g. the command's friendly echo) into the cron history.
-    let stderr_msg = String::from_utf8_lossy(&output.stderr).trim().to_string();
 
     Ok(BackupResponse {
         id: backup_id,
@@ -1238,6 +1396,63 @@ pub async fn delete_database_backup(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Restore a Postgres/MySQL dump via a one-off in-cluster Job that reads the dump
+/// file from the mounted backups PVC and feeds it to the engine's own client.
+///
+/// Mirrors `backup_sql_via_job`: the Job runs in the control-plane namespace, mounts
+/// the `hermes-backups` PVC, uses the DB's own image (`db_service.version`) and
+/// connects across namespaces via `host`. This removes the control plane's
+/// dependency on `psql`/`mysql` binaries. A best-effort "clean slate" prep runs
+/// first (matching the previous direct-connection behaviour), then the dump is piped
+/// into the client; the final exit code is the restore's.
+async fn restore_sql_via_job(
+    db_service: &DatabaseService,
+    host: &str,
+    password: &str,
+    db_id: Uuid,
+    filepath: &str,
+) -> Result<(), AppError> {
+    let client = crate::utils::k8s::K8sManager::get_client().await?;
+    let system_ns = crate::utils::k8s::K8sManager::system_namespace();
+    let job_name = format!("restore-{}-{}", &db_id.to_string()[..8], chrono::Utc::now().format("%H%M%S"));
+    let port = db_service.internal_port;
+
+    let (envs, command): (Vec<(String, String)>, String) = match db_service.r#type {
+        DbType::Postgres => (
+            vec![("PGPASSWORD".to_string(), password.to_string())],
+            format!(
+                "psql -h {host} -p {port} -U {user} -d {db} -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'; psql -h {host} -p {port} -U {user} -d {db} < '{file}'",
+                host = host, port = port, user = db_service.db_user, db = db_service.db_name, file = filepath
+            ),
+        ),
+        DbType::Mysql => (
+            vec![("MYSQL_PWD".to_string(), password.to_string())],
+            format!(
+                "mysql -h {host} -P {port} -u {user} -e 'DROP DATABASE IF EXISTS {db}; CREATE DATABASE {db};'; mysql -h {host} -P {port} -u {user} {db} < '{file}'",
+                host = host, port = port, user = db_service.db_user, db = db_service.db_name, file = filepath
+            ),
+        ),
+        _ => return Err(AppError::Fatal(anyhow::anyhow!(
+            "restore_sql_via_job called for a non-SQL engine"
+        ))),
+    };
+
+    let (logs, exit_code) = crate::utils::k8s::K8sManager::run_db_pvc_job(
+        &client, &system_ns, &job_name, &db_service.version, envs, &command, "hermes-backups",
+    )
+    .await?;
+
+    if exit_code != 0 {
+        let detail = logs.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("").trim();
+        return Err(AppError::Infrastructure(format!(
+            "Restore-ul a eșuat (cod {}). Detaliu: {}",
+            exit_code, detail
+        )));
+    }
+
+    Ok(())
+}
+
 pub async fn restore_database_backup(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -1270,90 +1485,57 @@ pub async fn restore_database_backup(
     };
 
     let namespace = format!("hermes-ws-{}", ws_id);
-    let pod_name = format!("{}-0", db_service.container_name);
+    let host = format!("{}.{}.svc.cluster.local", db_service.container_name, namespace);
+    let port = db_service.internal_port;
 
     if db_service.r#type == DbType::Redis {
-        // Special Restore logic for Redis
-        // Copy the backup file to a local relative path first to avoid Windows kubectl cp absolute path colon issues.
-        let temp_filename = format!("temp_restore_{}.rdb", db_id);
-        let temp_filepath = std::path::Path::new(&temp_filename);
-        std::fs::copy(&filepath, &temp_filepath).map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to copy backup to temp restore file: {}", e)))?;
-
-        let mut cp_cmd = std::process::Command::new("kubectl");
-        cp_cmd.arg("cp");
-        cp_cmd.arg(&temp_filename);
-        cp_cmd.arg(format!("{}/{}:/data/dump.rdb", namespace, pod_name));
-        
-        let cp_output = cp_cmd.output().map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to run kubectl cp: {}", e)))?;
-        
-        // Clean up temporary file
-        let _ = std::fs::remove_file(&temp_filepath);
-
-        let stderr_msg = String::from_utf8_lossy(&cp_output.stderr).to_string();
-        let stdout_msg = String::from_utf8_lossy(&cp_output.stdout).to_string();
-        if !cp_output.status.success() || stderr_msg.to_lowercase().contains("error") {
-            return Err(AppError::Fatal(anyhow::anyhow!("Failed to copy RDB backup file into Redis pod: status={:?}, stderr={}, stdout={}", cp_output.status, stderr_msg, stdout_msg)));
-        }
-
-        // Force shutdown Redis immediately without saving so it doesn't overwrite the copied dump.rdb.
-        // The container will exit and Kubernetes will automatically restart it, loading the restored file.
-        let mut shutdown_cmd = std::process::Command::new("kubectl");
-        shutdown_cmd.arg("exec");
-        shutdown_cmd.arg("-n");
-        shutdown_cmd.arg(&namespace);
-        shutdown_cmd.arg(&pod_name);
-        shutdown_cmd.arg("--");
-        shutdown_cmd.arg("redis-cli");
-        shutdown_cmd.arg("shutdown");
-        shutdown_cmd.arg("nosave");
-        let _ = shutdown_cmd.status();
+        // Protocol-level restore: FLUSHDB + RESTORE each key over the wire (no RDB
+        // file push, no pod access). Matches the new redis_dump_to_file format.
+        redis_restore_from_file(&host, port, &decrypted_password, &filepath).await?;
+    } else if matches!(db_service.r#type, DbType::Postgres | DbType::Mysql) {
+        // Restore via an in-cluster Job (DB's own image) that reads the dump from the
+        // mounted backups PVC — no psql/mysql client needed on the control plane.
+        restore_sql_via_job(&db_service, &host, &decrypted_password, db_id, &filepath).await?;
     } else {
-        // SQL and MongoDB stdin restore
+        // MongoDB restore over a DIRECT connection (no pod exec). Feeds the
+        // dump file to the client's stdin, connecting to the in-cluster DB service.
+        let host = format!("{}.{}.svc.cluster.local", db_service.container_name, namespace);
+        let port_s = db_service.internal_port.to_string();
         let file = std::fs::File::open(&filepath).map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to open backup file for restore: {}", e)))?;
-        
-        let mut cmd = std::process::Command::new("kubectl");
-        cmd.arg("exec");
-        cmd.arg("-i");
-        cmd.arg("-n");
-        cmd.arg(&namespace);
-        cmd.arg(&pod_name);
-        cmd.arg("--");
 
+        let mut cmd;
         match db_service.r#type {
             DbType::Postgres => {
-                // Drop and recreate schema public cascade to get a clean slate
-                let mut prep_cmd = std::process::Command::new("kubectl");
-                prep_cmd.args(&["exec", "-n", &namespace, &pod_name, "--", "psql", "-U", &db_service.db_user, "-d", &db_service.db_name, "-c", "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"]);
-                let _ = prep_cmd.status(); // Ignore failure, just try our best to clean
-                
-                cmd.arg("psql");
-                cmd.arg("-U");
-                cmd.arg(&db_service.db_user);
-                cmd.arg("-d");
-                cmd.arg(&db_service.db_name);
+                // Clean slate first (drop+recreate the public schema).
+                let mut prep = std::process::Command::new("psql");
+                prep.env("PGPASSWORD", &decrypted_password);
+                prep.args(["-h", host.as_str(), "-p", port_s.as_str(), "-U", db_service.db_user.as_str(),
+                           "-d", db_service.db_name.as_str(), "-c", "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"]);
+                let _ = prep.status(); // best-effort clean
+
+                cmd = std::process::Command::new("psql");
+                cmd.env("PGPASSWORD", &decrypted_password);
+                cmd.args(["-h", host.as_str(), "-p", port_s.as_str(), "-U", db_service.db_user.as_str(),
+                          "-d", db_service.db_name.as_str()]);
             }
             DbType::Mysql => {
-                // Drop and recreate database to get a clean slate
-                let mut prep_cmd = std::process::Command::new("kubectl");
-                prep_cmd.args(&["exec", "-n", &namespace, &pod_name, "--", "mysql", "-u", &db_service.db_user, &format!("-p{}", decrypted_password), "-e", &format!("DROP DATABASE IF EXISTS {}; CREATE DATABASE {};", db_service.db_name, db_service.db_name)]);
-                let _ = prep_cmd.status(); // Ignore failure, just try our best to clean
-                
-                cmd.arg("mysql");
-                cmd.arg("-u");
-                cmd.arg(&db_service.db_user);
-                cmd.arg(format!("-p{}", decrypted_password));
-                cmd.arg(&db_service.db_name);
+                let drop_sql = format!("DROP DATABASE IF EXISTS {db}; CREATE DATABASE {db};", db = db_service.db_name);
+                let mut prep = std::process::Command::new("mysql");
+                prep.env("MYSQL_PWD", &decrypted_password);
+                prep.args(["-h", host.as_str(), "-P", port_s.as_str(), "-u", db_service.db_user.as_str(),
+                           "-e", drop_sql.as_str()]);
+                let _ = prep.status(); // best-effort clean
+
+                cmd = std::process::Command::new("mysql");
+                cmd.env("MYSQL_PWD", &decrypted_password);
+                cmd.args(["-h", host.as_str(), "-P", port_s.as_str(), "-u", db_service.db_user.as_str(),
+                          db_service.db_name.as_str()]);
             }
             DbType::Mongodb => {
-                cmd.arg("mongorestore");
-                cmd.arg("--username");
-                cmd.arg(&db_service.db_user);
-                cmd.arg("--password");
-                cmd.arg(&decrypted_password);
-                cmd.arg("--authenticationDatabase");
-                cmd.arg("admin");
-                cmd.arg("--drop");
-                cmd.arg("--archive");
+                cmd = std::process::Command::new("mongorestore");
+                cmd.args(["--host", host.as_str(), "--port", port_s.as_str(),
+                          "--username", db_service.db_user.as_str(), "--password", decrypted_password.as_str(),
+                          "--authenticationDatabase", "admin", "--drop", "--archive"]);
             }
             DbType::Redis => unreachable!(),
         }
@@ -1452,7 +1634,6 @@ pub async fn rotate_database_password(
 
     let k8s_client = crate::utils::k8s::K8sManager::get_client().await?;
     let namespace = format!("hermes-ws-{}", ws_id);
-    let pod = crate::utils::k8s::K8sManager::pod_name_for_app(&k8s_client, &namespace, &db_service.container_name).await?;
 
     if matches!(db_service.r#type, DbType::Redis) {
         // Redis' password is config (a server arg), not stored data — so an in-place
@@ -1479,34 +1660,63 @@ pub async fn rotate_database_password(
             db_service.storage_size_gb,
         )
         .await?;
+        let pod = crate::utils::k8s::K8sManager::pod_name_for_app(&k8s_client, &namespace, &db_service.container_name).await?;
         crate::utils::k8s::K8sManager::delete_pod(&k8s_client, &namespace, &pod).await?;
     } else {
-        let command: Vec<String> = match db_service.r#type {
-            DbType::Postgres => vec![
-                "psql".into(), "-U".into(), db_service.db_user.clone(), "-d".into(), db_service.db_name.clone(),
-                "-c".into(), format!("ALTER USER \"{}\" WITH PASSWORD '{}';", db_service.db_user, new_password),
-            ],
-            DbType::Mysql => vec![
-                "mysql".into(), "-uroot".into(), format!("-p{}", old_password), "-e".into(),
+        // Rotate via a one-off Job that runs the engine's own client *inside the
+        // cluster*. This sidesteps both failure modes we hit: pod exec over
+        // WebSocket isn't supported on every cluster (older k8s/k3s only do SPDY →
+        // "failed to switch protocol: 400"), and a direct connection only works
+        // when the backend itself can reach the DB service network. A Job is
+        // created over plain HTTP and runs next to the DB, so it works regardless
+        // of cluster version or where the backend runs. `db_service.version` is the
+        // full DB image, which already ships the right client (psql/mysql/mongosh).
+        let job_name = format!("rotate-{}", &db_id.to_string()[..8]);
+        let host = db_service.container_name.clone();
+        let port = db_service.internal_port;
+
+        let (envs, command): (Vec<(String, String)>, String) = match db_service.r#type {
+            DbType::Postgres => (
+                vec![("PGPASSWORD".to_string(), old_password.clone())],
                 format!(
-                    "ALTER USER '{}'@'%' IDENTIFIED BY '{}'; ALTER USER 'root'@'%' IDENTIFIED BY '{}'; FLUSH PRIVILEGES;",
-                    db_service.db_user, new_password, new_password
+                    "psql -h {host} -p {port} -U {user} -d {db} -v ON_ERROR_STOP=1 -c \"ALTER USER \\\"{user}\\\" WITH PASSWORD '{pw}';\"",
+                    host = host, port = port, user = db_service.db_user, db = db_service.db_name, pw = new_password
                 ),
-            ],
-            // The root user lives in the `admin` db, so target it explicitly via
-            // getSiblingDB (the eval otherwise runs against the default `test` db).
-            // mongo:6.0 (the Hermes default) ships `mongosh`.
-            DbType::Mongodb => vec![
-                "mongosh".into(), "-u".into(), db_service.db_user.clone(), "-p".into(), old_password.clone(),
-                "--authenticationDatabase".into(), "admin".into(), "--quiet".into(),
-                "--eval".into(),
-                format!("db.getSiblingDB('admin').changeUserPassword('{}','{}')", db_service.db_user, new_password),
-            ],
-            DbType::Redis => unreachable!("redis handled above"),
+            ),
+            DbType::Mysql => (
+                vec![("MYSQL_PWD".to_string(), old_password.clone())],
+                format!(
+                    "mysql -h {host} -P {port} -uroot -e \"ALTER USER '{user}'@'%' IDENTIFIED BY '{pw}'; ALTER USER 'root'@'%' IDENTIFIED BY '{pw}'; FLUSH PRIVILEGES;\"",
+                    host = host, port = port, user = db_service.db_user, pw = new_password
+                ),
+            ),
+            // Root user lives in the `admin` db; passwords come from env so they
+            // never appear in the Job command/logs.
+            DbType::Mongodb => (
+                vec![
+                    ("OLDPASS".to_string(), old_password.clone()),
+                    ("NEWPASS".to_string(), new_password.clone()),
+                ],
+                format!(
+                    "mongosh \"mongodb://{user}:$OLDPASS@{host}:{port}/admin\" --quiet --eval \"db.getSiblingDB('admin').changeUserPassword('{user}', process.env.NEWPASS)\"",
+                    user = db_service.db_user, host = host, port = port
+                ),
+            ),
+            _ => unreachable!("redis handled above"),
         };
 
-        // Live password change (errors out cleanly if the pod isn't reachable).
-        crate::utils::k8s::K8sManager::exec_in_pod(&k8s_client, &namespace, &pod, command).await?;
+        let (logs, exit_code) = crate::utils::k8s::K8sManager::run_job_and_get_logs(
+            &k8s_client, &namespace, &job_name, &db_service.version, envs, &command,
+        )
+        .await?;
+
+        if exit_code != 0 {
+            let detail = logs.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("").trim();
+            return Err(AppError::Infrastructure(format!(
+                "Rotația parolei a eșuat (cod {}). Detaliu: {}",
+                exit_code, detail
+            )));
+        }
 
         // Engine changed — now persist the new encrypted password.
         let (enc, nonce) = crypto::encrypt_env_value(&new_password)?;
@@ -1526,6 +1736,27 @@ pub async fn rotate_database_password(
         DbType::Redis => format!("redis://:{}@{}:{}", new_password, db_service.container_name, db_service.internal_port),
     };
 
+    // 1) Refresh the PUBLISHED pool var (source='database') so every app linked to
+    //    it — not just the directly-bound one — gets the new credentials. Only if it
+    //    was published in the first place (respects publish_to_env=false). The key
+    //    name is preserved (publish_project_env refreshes in place by source).
+    let already_published = sqlx::query_scalar!(
+        "SELECT EXISTS(SELECT 1 FROM project_env_variables WHERE source = 'database' AND source_id = $1)",
+        db_id
+    )
+    .fetch_one(&state.pool)
+    .await
+    .ok()
+    .flatten()
+    .unwrap_or(false);
+    if already_published {
+        let _ = crate::utils::app_env::publish_project_env(
+            &state.pool, ws_id, db_service.project_id, "DATABASE_URL", &new_connection_url, true, "database", db_id,
+        )
+        .await;
+    }
+
+    // 2) Keep the directly-bound instance's own DATABASE_URL var in sync (bind UX).
     if let Some(instance_id) = db_service.app_instance_id {
         let (enc_url, nonce_url) = crypto::encrypt_env_value(&new_connection_url)?;
         sqlx::query!(
@@ -1536,13 +1767,25 @@ pub async fn rotate_database_password(
         )
         .execute(&state.pool)
         .await?;
+    }
 
-        // Auto-reload the consumer so it reconnects with the new credentials.
-        let pool_clone = state.pool.clone();
-        tokio::spawn(async move {
-            let tag = crate::utils::builder::resolve_instance_image_tag(&pool_clone, instance_id).await;
-            crate::utils::builder::deploy_compiled_app(pool_clone, instance_id, tag).await;
-        });
+    // 3) Reload every consumer (pool-linked + directly bound) so they reconnect.
+    let mut to_reload: Vec<Uuid> = sqlx::query_scalar!(
+        "SELECT ael.app_instance_id FROM app_env_links ael
+         JOIN project_env_variables pev ON pev.id = ael.project_env_id
+         WHERE pev.source = 'database' AND pev.source_id = $1",
+        db_id
+    )
+    .fetch_all(&state.pool)
+    .await
+    .unwrap_or_default();
+    if let Some(bound) = db_service.app_instance_id {
+        if !to_reload.contains(&bound) {
+            to_reload.push(bound);
+        }
+    }
+    for inst in to_reload {
+        crate::controllers::env_variable_controller::hot_reload_if_running(&state.pool, inst);
     }
 
     tracing::info!(db_id = %db_id, engine = ?db_service.r#type, reloaded_instance = ?db_service.app_instance_id, "Database password rotated");

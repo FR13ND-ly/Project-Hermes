@@ -382,7 +382,6 @@ export class CronComponent implements OnInit, OnDestroy {
         const currentProjId = this.parent.projectId();
         
         if (job && job.project_id === currentProjId) {
-          console.log('[Cron] Job updated in WS:', job);
           
           this.cronJobs.update(jobs => {
             const idx = jobs.findIndex(j => j.id === job.id);
@@ -415,7 +414,6 @@ export class CronComponent implements OnInit, OnDestroy {
     this.wsSubscriptions.add(
       this.wsService.onEvent<any>('cron_job_deleted').subscribe(payload => {
         const jobId = payload.job_id;
-        console.log('[Cron] Job deleted in WS:', jobId);
         
         this.cronJobs.update(jobs => jobs.filter(j => j.id !== jobId));
 
@@ -432,7 +430,6 @@ export class CronComponent implements OnInit, OnDestroy {
         const jobId = payload.job_id;
         const log: CronJobLog = payload.log;
 
-        console.log('[Cron] Log created in WS for job:', jobId, log);
         
         const selected = this.selectedCronJob();
         if (selected && selected.id === jobId) {

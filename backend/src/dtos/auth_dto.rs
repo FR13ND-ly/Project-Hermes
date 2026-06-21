@@ -8,17 +8,12 @@ pub struct ProvisionUserRequest {
     pub username: String,
     pub email: String,
     pub is_super_admin: bool,
-    pub initial_workspace_name: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct LoginRequest {
     pub login_identity: String,
     pub password: String,
-    #[serde(skip_deserializing)]
-    pub client_ip: Option<String>,
-    #[serde(skip_deserializing)]
-    pub user_agent: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -55,16 +50,6 @@ pub struct UserResponse {
     pub github_username: Option<String>,
     pub last_login_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ProvisionUserResponse {
-    pub id: Uuid,
-    pub username: String,
-    pub email: String,
-    pub temporary_password: String,
-    pub is_super_admin: bool,
-    pub status: UserStatus,
 }
 
 #[derive(Debug, Serialize)]

@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO serverless_env_variables (id, workspace_id, instance_id, key, encrypted_value, nonce, is_secret)\n         VALUES ($1, $2, $3, $4, $5, $6, $7)\n         ON CONFLICT (instance_id, key) DO UPDATE SET encrypted_value = $5, nonce = $6, is_secret = $7, updated_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "56532cfe591f89fd70d350676637656070cdef41333a720500ff5aac492cc0dc"
+}

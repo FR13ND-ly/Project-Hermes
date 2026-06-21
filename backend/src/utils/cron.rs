@@ -17,24 +17,32 @@ use crate::utils::event_broadcaster::{broadcast_event, SystemEvent};
 /// Full column list for `cron_jobs` selects (mirrors the CronJob model).
 const CRON_COLS: &str = "id, workspace_id, project_id, app_id, target_type, target_id, is_backup, name, schedule, command, status, next_run_at, created_at, updated_at";
 
+#[derive(sqlx::FromRow)]
+struct SleepCandidate {
+    id: uuid::Uuid,
+    container_name: String,
+    workspace_id: uuid::Uuid,
+}
+
 pub fn start_auto_sleep_worker(pool: PgPool) {
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(300));
 
         loop {
             interval.tick().await;
+            if !crate::utils::leader::is_leader() { continue; }
 
             let k8s_client = match crate::utils::k8s::K8sManager::get_client().await {
                 Ok(c) => c,
                 Err(_) => continue,
             };
 
-            let inactive_instances = sqlx::query!(
+            let inactive_instances = sqlx::query_as::<_, SleepCandidate>(
                 "SELECT ai.id, ai.container_name, a.workspace_id FROM app_instances ai
                  JOIN apps a ON ai.app_id = a.id
-                 WHERE ai.instance_type != 'production'
+                 WHERE ai.auto_sleep_enabled = true
                    AND ai.status = 'running'
-                   AND ai.updated_at < now() - interval '30 minutes'"
+                   AND ai.updated_at < now() - (ai.auto_sleep_after_minutes * interval '1 minute')"
             )
             .fetch_all(&pool)
             .await;
@@ -91,6 +99,7 @@ pub fn start_cron_scheduler_engine(pool: PgPool) {
 
         loop {
             interval.tick().await;
+            if !crate::utils::leader::is_leader() { continue; }
 
             let now = Utc::now();
             let executable_jobs = sqlx::query!(

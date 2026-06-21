@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE storage_objects SET processing_stage = $1 WHERE id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7a1a2b85d2f164330691dcfa72c7e7dee3935d57d7bfff84fad2b1fc72ab526c"
+}

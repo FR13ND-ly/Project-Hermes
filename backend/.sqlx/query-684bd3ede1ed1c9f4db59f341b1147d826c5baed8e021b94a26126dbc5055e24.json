@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE domains\n         SET status = 'active'::domain_status, cloudflare_zone_id = $1, cloudflare_record_id = $2, nginx_config_content = $3, updated_at = now()\n         WHERE id = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "684bd3ede1ed1c9f4db59f341b1147d826c5baed8e021b94a26126dbc5055e24"
+}

@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ai.id AS instance_id, a.id AS app_id, a.name AS app_name, a.project_id, p.name AS project_name,\n                  a.workspace_id, w.name AS workspace_name, ai.branch_name,\n                  lb.status AS latest_build_status,\n                  COALESCE(lb.created_at, ai.updated_at) AS \"started_at!\"\n           FROM app_instances ai\n           JOIN apps a ON ai.app_id = a.id\n           JOIN projects p ON a.project_id = p.id\n           JOIN workspaces w ON a.workspace_id = w.id\n           LEFT JOIN LATERAL (\n               SELECT status, created_at FROM app_builds ab\n               WHERE ab.app_instance_id = ai.id ORDER BY ab.created_at DESC LIMIT 1\n           ) lb ON true\n           WHERE ai.status = 'building'\n             AND ($1::uuid IS NULL OR a.workspace_id = $1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "instance_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "app_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "app_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "project_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "project_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "workspace_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "branch_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "latest_build_status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "started_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "b4db3ae20b61d5f699c22f4a620a97e567ea30beef62044e1b89d33e3ddc31bd"
+}

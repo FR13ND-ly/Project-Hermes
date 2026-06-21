@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT max_memory_mb, max_storage_gb, max_cpu_millicores FROM workspaces WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max_memory_mb",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "max_storage_gb",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "max_cpu_millicores",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "82a9cb55af76d6348ebc346055157b8e85b16ad0a6968179cebaf7acbbc30fa7"
+}

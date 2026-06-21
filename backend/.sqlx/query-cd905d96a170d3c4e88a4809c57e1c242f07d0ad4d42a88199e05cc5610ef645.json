@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (\n            COALESCE((SELECT SUM(ai.cpu_limit * ai.replicas_max) FROM app_instances ai JOIN apps a ON ai.app_id = a.id\n                      WHERE a.workspace_id = $1 AND ai.id != $2 AND ai.status NOT IN ('stopped','failed')), 0)\n          + COALESCE((SELECT SUM(d.cpu_limit) FROM databases d\n                      WHERE d.workspace_id = $1 AND d.id != $2 AND d.status NOT IN ('stopped','failed')), 0)\n        )::bigint",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "int8",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "cd905d96a170d3c4e88a4809c57e1c242f07d0ad4d42a88199e05cc5610ef645"
+}

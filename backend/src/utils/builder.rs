@@ -3,31 +3,28 @@ use sqlx::PgPool;
 use kube::{Api, api::{PostParams, DeleteParams, PatchParams, Patch}};
 use serde_json::json;
 use base64::Engine as _;
-use std::sync::OnceLock;
-use tokio::sync::Semaphore;
-
 use crate::models::app_model::AppStatus;
 
-/// Cluster-wide cap on simultaneous image builds. Builds beyond the cap stay in
-/// the 'queued' phase until a slot frees up, preventing the cluster from being
-/// overwhelmed by many concurrent Kaniko pods. Configurable via env.
-static BUILD_SEMAPHORE: OnceLock<Semaphore> = OnceLock::new();
-
-fn build_semaphore() -> &'static Semaphore {
-    BUILD_SEMAPHORE.get_or_init(|| {
-        let permits = std::env::var("HERMES_MAX_CONCURRENT_BUILDS")
-            .ok()
-            .and_then(|v| v.parse::<usize>().ok())
-            .filter(|n| *n > 0)
-            .unwrap_or(3);
-        Semaphore::new(permits)
-    })
+/// Default cluster-wide cap on simultaneous image builds (override with
+/// `HERMES_MAX_CONCURRENT_BUILDS`). Enforced GLOBALLY across replicas via Postgres
+/// advisory-lock slots (see `utils::locks::acquire_build_slot`), so the cap holds
+/// regardless of how many control-plane replicas are running.
+fn max_concurrent_builds() -> i32 {
+    std::env::var("HERMES_MAX_CONCURRENT_BUILDS")
+        .ok()
+        .and_then(|v| v.parse::<i32>().ok())
+        .filter(|n| *n > 0)
+        .unwrap_or(3)
 }
 
-/// Number of build-concurrency permits currently free (0 = builds saturated).
-/// Sampled by the metrics gauge sampler.
-pub fn available_build_permits() -> usize {
-    build_semaphore().available_permits()
+/// Build-concurrency permits currently free across the cluster (0 = saturated). Sampled
+/// by the metrics gauge sampler; derived from the count of builds in the 'building' phase.
+pub async fn available_build_permits(pool: &sqlx::PgPool) -> i64 {
+    let running: i64 = sqlx::query_scalar("SELECT count(*) FROM app_builds WHERE phase = 'building'")
+        .fetch_one(pool)
+        .await
+        .unwrap_or(0);
+    (max_concurrent_builds() as i64 - running).max(0)
 }
 
 /// Read a build's current phase from the database (used to detect cancellation
@@ -41,6 +38,209 @@ async fn build_phase_db(pool: &sqlx::PgPool, build_id: Uuid) -> Option<String> {
 }
 
 #[tracing::instrument(skip_all, fields(instance_id = %instance_id, branch = %branch_name))]
+/// kpack-based build path (strangler; selected by `HERMES_BUILDER=kpack`). Creates/
+/// updates a kpack `Image` custom resource and waits for kpack to build + push the OCI
+/// image via Cloud Native Buildpacks, then hands off to the same deploy step as the
+/// kaniko path. Replaces the generated-Dockerfile + clone + kaniko mechanism.
+///
+/// Requires Stage-2 cluster infra: kpack installed, a `hermes-builder` ClusterBuilder,
+/// and a `hermes-kpack` ServiceAccount carrying the git + registry secrets. Not yet
+/// validated against a live cluster — registry addressing and kpack status semantics
+/// need in-cluster verification before flipping `HERMES_BUILDER`.
+pub async fn run_kpack_build(
+    pool: PgPool,
+    instance_id: Uuid,
+    git_repo: String,
+    branch_name: String,
+    _build_cmd: Option<String>,
+) {
+    use kube::core::{DynamicObject, ApiResource, GroupVersionKind};
+
+    let start_instant = std::time::Instant::now();
+    let k8s_client = match crate::utils::k8s::K8sManager::get_client().await {
+        Ok(c) => c,
+        Err(_) => { let _ = update_status(&pool, instance_id, AppStatus::Failed).await; return; }
+    };
+
+    #[derive(sqlx::FromRow)]
+    struct KMeta { app_id: Uuid, workspace_id: Uuid }
+    let meta = match sqlx::query_as::<_, KMeta>(
+        "SELECT a.id AS app_id, a.workspace_id AS workspace_id
+         FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE ai.id = $1",
+    )
+    .bind(instance_id)
+    .fetch_optional(&pool)
+    .await
+    {
+        Ok(Some(m)) => m,
+        _ => { let _ = update_status(&pool, instance_id, AppStatus::Failed).await; return; }
+    };
+
+    let namespace = format!("hermes-ws-{}", meta.workspace_id);
+    if let Ok(r) = sqlx::query!("SELECT max_memory_mb, max_storage_gb, max_cpu_millicores FROM workspaces WHERE id = $1", meta.workspace_id)
+        .fetch_one(&pool)
+        .await
+    {
+        let _ = crate::utils::k8s::K8sManager::create_namespace(&k8s_client, &namespace, r.max_memory_mb, r.max_storage_gb, r.max_cpu_millicores).await;
+    }
+
+    let build_id = Uuid::new_v4();
+
+    // Stable per-instance repo; kpack publishes digests here and reports the pinned ref.
+    let registry_url = std::env::var("HERMES_REGISTRY_URL").unwrap_or_else(|_| "localhost:5000".to_string());
+    let registry_host = if registry_url.contains("localhost") || registry_url.contains("127.0.0.1") {
+        "registry.kube-system.svc.cluster.local:80".to_string()
+    } else {
+        registry_url
+    };
+    let dest_tag = format!("{}/hermes-app/{}", registry_host, instance_id);
+
+    let _ = sqlx::query!(
+        "INSERT INTO app_builds (id, app_id, app_instance_id, status, phase, logs, commit_message, commit_sha, image_tag) VALUES ($1, $2, $3, 'queued', 'queued', '', NULL, NULL, $4)",
+        build_id, meta.app_id, instance_id, dest_tag
+    )
+    .execute(&pool)
+    .await;
+
+    set_build_phase(&pool, build_id, meta.workspace_id, meta.app_id, "building").await;
+
+    // Non-secret build env → kpack build.env (single-line only).
+    let mut env_list: Vec<serde_json::Value> = Vec::new();
+    for (k, v) in crate::utils::app_env::resolve_instance_build_env(&pool, instance_id).await {
+        if v.contains('\n') || v.contains('\r') { continue; }
+        env_list.push(json!({ "name": k, "value": v }));
+    }
+
+    let image_name = format!("hermes-{}", &instance_id.to_string()[..8]);
+    let manifest = json!({
+        "apiVersion": "kpack.io/v1alpha2",
+        "kind": "Image",
+        "metadata": {
+            "name": image_name,
+            "namespace": namespace,
+            "labels": { "app": "hermes", "instance-id": instance_id.to_string() }
+        },
+        "spec": {
+            "tag": dest_tag,
+            "serviceAccountName": "hermes-kpack",
+            "builder": { "kind": "ClusterBuilder", "name": "hermes-builder" },
+            "source": { "git": { "url": git_repo, "revision": branch_name } },
+            "build": { "env": env_list }
+        }
+    });
+
+    let gvk = GroupVersionKind::gvk("kpack.io", "v1alpha2", "Image");
+    let ar = ApiResource::from_gvk(&gvk);
+    let images: kube::Api<DynamicObject> = kube::Api::namespaced_with(k8s_client.clone(), &namespace, &ar);
+
+    let obj: DynamicObject = match serde_json::from_value(manifest) {
+        Ok(o) => o,
+        Err(e) => { fail_kpack_build(&pool, instance_id, build_id, meta.workspace_id, meta.app_id, &format!("kpack manifest invalid: {}", e), start_instant).await; return; }
+    };
+
+    let applied = match images.patch(&image_name, &PatchParams::apply("hermes-orchestrator").force(), &Patch::Apply(&obj)).await {
+        Ok(o) => o,
+        Err(e) => { fail_kpack_build(&pool, instance_id, build_id, meta.workspace_id, meta.app_id, &format!("Failed to apply kpack Image (is kpack installed?): {}", e), start_instant).await; return; }
+    };
+    let desired_gen = applied.metadata.generation.unwrap_or(0);
+
+    // Poll the Image status until kpack has reconciled OUR generation to a terminal state.
+    let timeout = std::time::Duration::from_secs(900);
+    let mut latest_image: Option<String> = None;
+    let mut fail_msg: Option<String> = None;
+    loop {
+        if start_instant.elapsed() >= timeout {
+            fail_msg = Some("kpack build timed out (15m).".to_string());
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+
+        let got = match images.get(&image_name).await { Ok(g) => g, Err(_) => continue };
+        let Some(status) = got.data.get("status") else { continue };
+        // Ignore stale status from a previous spec generation.
+        if status.get("observedGeneration").and_then(|v| v.as_i64()).unwrap_or(-1) != desired_gen {
+            continue;
+        }
+        let ready = status.get("conditions").and_then(|c| c.as_array()).and_then(|arr| {
+            arr.iter().find(|c| c.get("type").and_then(|t| t.as_str()) == Some("Ready"))
+        });
+        match ready.and_then(|c| c.get("status").and_then(|s| s.as_str())) {
+            Some("True") => {
+                latest_image = status.get("latestImage").and_then(|v| v.as_str()).map(String::from);
+                break;
+            }
+            Some("False") => {
+                fail_msg = Some(ready.and_then(|c| c.get("message").and_then(|m| m.as_str())).unwrap_or("kpack build failed").to_string());
+                break;
+            }
+            _ => continue,
+        }
+    }
+
+    let image_ref = match latest_image {
+        Some(img) if !img.is_empty() => img,
+        _ => {
+            fail_kpack_build(&pool, instance_id, build_id, meta.workspace_id, meta.app_id, &fail_msg.unwrap_or_else(|| "kpack build produced no image".to_string()), start_instant).await;
+            return;
+        }
+    };
+
+    // Success: record the digest-pinned image and hand off to the existing deploy step.
+    let duration_sec = start_instant.elapsed().as_secs() as i32;
+    crate::utils::metrics::record_build_finished("succeeded", duration_sec as f64);
+    let _ = sqlx::query!(
+        "UPDATE app_builds SET status = $1, logs = $2, duration_sec = $3, failure_reason = $4, failure_category = $5, phase = $6 WHERE id = $7",
+        "succeeded", format!("kpack build succeeded.\nImage: {}\n", image_ref), duration_sec, Option::<String>::None, Option::<String>::None, "deploying", build_id
+    )
+    .execute(&pool)
+    .await;
+    let _ = sqlx::query!("UPDATE app_instances SET current_image_tag = $1 WHERE id = $2", image_ref, instance_id)
+        .execute(&pool)
+        .await;
+
+    crate::utils::event_broadcaster::broadcast_event(
+        crate::utils::event_broadcaster::SystemEvent::BuildStatusChanged {
+            workspace_id: meta.workspace_id,
+            build_id,
+            app_id: meta.app_id,
+            status: "succeeded".to_string(),
+            phase: Some("deploying".to_string()),
+        }
+    );
+
+    let _ = crate::utils::job_queue::enqueue_deploy(&pool, instance_id, None).await;
+}
+
+/// Mark a kpack build failed: persist the reason, fail the instance, broadcast.
+async fn fail_kpack_build(
+    pool: &sqlx::PgPool,
+    instance_id: Uuid,
+    build_id: Uuid,
+    workspace_id: Uuid,
+    app_id: Uuid,
+    msg: &str,
+    start_instant: std::time::Instant,
+) {
+    let duration_sec = start_instant.elapsed().as_secs() as i32;
+    crate::utils::metrics::record_build_finished("failed", duration_sec as f64);
+    let _ = sqlx::query!(
+        "UPDATE app_builds SET status = $1, logs = $2, duration_sec = $3, failure_reason = $4, failure_category = $5, phase = $6 WHERE id = $7",
+        "failed", format!("kpack build failed.\n{}\n", msg), duration_sec, Some(msg.to_string()), Some("KPACK".to_string()), "failed", build_id
+    )
+    .execute(pool)
+    .await;
+    let _ = update_status(pool, instance_id, AppStatus::Failed).await;
+    crate::utils::event_broadcaster::broadcast_event(
+        crate::utils::event_broadcaster::SystemEvent::BuildStatusChanged {
+            workspace_id,
+            build_id,
+            app_id,
+            status: "failed".to_string(),
+            phase: Some("failed".to_string()),
+        }
+    );
+}
+
 pub async fn run_ephemeral_build(
     pool: PgPool,
     instance_id: Uuid,
@@ -82,7 +282,7 @@ pub async fn run_ephemeral_build(
         .await;
     let (max_mem, max_storage, max_cpu) = match limits {
         Ok(r) => (r.max_memory_mb, r.max_storage_gb, r.max_cpu_millicores),
-        Err(_) => (2048, 10, 0),
+        Err(_) => (0, 0, 0), // unlimited fallback — never impose limits by default
     };
     let namespace = format!("hermes-ws-{}", meta.workspace_id);
     let _ = crate::utils::k8s::K8sManager::create_namespace(&k8s_client, &namespace, max_mem, max_storage, max_cpu).await;
@@ -111,14 +311,37 @@ pub async fn run_ephemeral_build(
         }
     }
 
-    let free_mem = if max_mem <= 0 {
-        8192
+    // Build resource limits follow the workspace's own policy. An UNLIMITED
+    // workspace (the default, max_mem <= 0) imposes NO memory limit on the build —
+    // only the node bounds it — matching the platform's "no limits unless set"
+    // rule. A capped workspace lets the build use its remaining headroom; if the
+    // workspace is already full we still don't pin a 0Mi limit (that would make
+    // every build fail instantly), we just leave the ephemeral build uncapped.
+    let builder_mem_limit_mb: Option<i32> = if max_mem <= 0 {
+        None
     } else {
-        std::cmp::max(0, max_mem - total_used_mem)
+        let free = max_mem - total_used_mem;
+        if free > 0 { Some(free) } else { None }
     };
+    // Small request so the pod schedules / gets a memory reservation; not a cap.
+    let builder_mem_request = builder_mem_limit_mb.map(|l| std::cmp::min(512, l)).unwrap_or(512);
 
-    let builder_mem_limit = free_mem;
-    let builder_mem_request = std::cmp::min(512, builder_mem_limit);
+    // Only impose limits the workspace actually asks for: CPU is capped only when
+    // the workspace caps CPU, memory only when it caps memory. Otherwise the build
+    // bursts up to node capacity.
+    let mut kaniko_limits = serde_json::Map::new();
+    if max_cpu > 0 {
+        kaniko_limits.insert("cpu".to_string(), json!("2000m"));
+    }
+    if let Some(mem) = builder_mem_limit_mb {
+        kaniko_limits.insert("memory".to_string(), json!(format!("{}Mi", mem)));
+    }
+    let mut kaniko_resources = json!({
+        "requests": { "cpu": "200m", "memory": format!("{}Mi", builder_mem_request) }
+    });
+    if !kaniko_limits.is_empty() {
+        kaniko_resources["limits"] = serde_json::Value::Object(kaniko_limits);
+    }
 
     let build_id = Uuid::new_v4();
 
@@ -222,9 +445,9 @@ pub async fn run_ephemeral_build(
     .execute(&pool)
     .await;
 
-    // Wait for a build slot (stays 'queued' meanwhile). The permit is held for
+    // Wait for a GLOBAL build slot (stays 'queued' meanwhile). The slot is held for
     // the rest of the function, releasing automatically when the build ends.
-    let _build_permit = build_semaphore().acquire().await;
+    let _build_permit = crate::utils::locks::acquire_build_slot(&pool, max_concurrent_builds()).await;
     // Track this build in the in-progress gauge until it returns (any path).
     let _in_progress = crate::utils::metrics::BuildInProgressGuard::new();
 
@@ -732,16 +955,7 @@ fi"#,
                     "name": "workspace",
                     "mountPath": "/workspace"
                 }],
-                "resources": {
-                    "requests": {
-                        "cpu": "200m",
-                        "memory": format!("{}Mi", builder_mem_request)
-                    },
-                    "limits": {
-                        "cpu": "2000m",
-                        "memory": format!("{}Mi", builder_mem_limit)
-                    }
-                }
+                "resources": kaniko_resources
             }],
             "volumes": [{
                 "name": "workspace",
@@ -1276,7 +1490,7 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
     }
 
     let instance_meta = sqlx::query!(
-        "SELECT ai.container_name, ai.internal_port, ai.external_port, ai.assigned_domain, a.id as app_id, a.project_id, a.workspace_id, ai.cpu_limit, ai.memory_limit_mb, a.tcp_udp_ports, ai.meta_data 
+        "SELECT ai.container_name, ai.internal_port, ai.external_port, ai.assigned_domain, a.id as app_id, a.project_id, a.workspace_id, ai.cpu_limit, ai.memory_limit_mb, ai.replicas_min, ai.replicas_max, a.tcp_udp_ports, ai.meta_data
          FROM app_instances ai
          JOIN apps a ON ai.app_id = a.id
          WHERE ai.id = $1", 
@@ -1299,7 +1513,7 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
             .await;
         let (max_mem, max_storage, max_cpu) = match limits {
             Ok(r) => (r.max_memory_mb, r.max_storage_gb, r.max_cpu_millicores),
-            Err(_) => (2048, 10, 0),
+            Err(_) => (0, 0, 0), // unlimited fallback — never impose limits by default
         };
         let namespace = format!("hermes-ws-{}", meta.workspace_id);
         let _ = crate::utils::k8s::K8sManager::create_namespace(&k8s_client, &namespace, max_mem, max_storage, max_cpu).await;
@@ -1400,6 +1614,16 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
             // Cleanup Knative service if transitioning back to standard
             let _ = crate::utils::k8s::K8sManager::delete_knative_service(&k8s_client, &namespace, app_name).await;
 
+            // Autoscale CPU target lives outside the `meta` query (kept stable for the
+            // offline query cache); fetch it directly.
+            let autoscale_cpu_percent = sqlx::query_scalar::<_, i32>(
+                "SELECT autoscale_cpu_percent FROM app_instances WHERE id = $1",
+            )
+            .bind(instance_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap_or(80);
+
             match crate::utils::k8s::K8sManager::deploy_app(
                 &k8s_client,
                 &namespace,
@@ -1409,7 +1633,10 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
                 envs,
                 binds,
                 cpu_limit,
-                memory_limit_mb
+                memory_limit_mb,
+                meta.replicas_min,
+                meta.replicas_max,
+                autoscale_cpu_percent
             ).await {
                 Ok(_) => {
                     match crate::utils::k8s::K8sManager::deploy_service(
@@ -1606,17 +1833,32 @@ fn classify_build_failure(
         return ("BUILD_EVICTED", format!("Pod-ul de build a fost evacuat (Evicted) de Kubernetes. Detaliu: {}", msg));
     }
 
+    // Inner build process killed (SIGKILL / exit 137). Kaniko's *container* exits 1
+    // on a failed RUN, so the container-level 137 check above misses it — but its log
+    // records the killed command. This is almost always OOM during a heavy compile.
+    if kaniko_lower.contains("signal: killed")
+        || kaniko_lower.contains("exit status 137")
+        || kaniko_lower.contains("exit code 137")
+        || kaniko_lower.contains("oomkilled")
+    {
+        return ("BUILD_OOM", "Procesul de build a fost ucis (semnal KILL / cod 137) — aproape sigur lipsă de memorie în timpul compilării. Mărește limita de memorie a workspace-ului (build-urile Angular/webpack au nevoie de obicei de 1.5–2 GB).".to_string());
+    }
+
     // Kaniko duration N/A = containerul nu a înregistrat un timestamp de terminare,
     // semn că podul a fost ucis forțat (OOM la nivel de nod, evicție silențioasă etc.)
-    // în timp ce rula o comandă de compilare intensivă.
-    if kaniko_exit_code.is_none() && kaniko_reason.is_none() {
+    // în timp ce rula o comandă de compilare intensivă. Doar dacă CLONE-ul a reușit —
+    // altfel kaniko n-a pornit niciodată, iar cauza reală e în etapa de clonare (mai jos).
+    if kaniko_exit_code.is_none() && kaniko_reason.is_none() && cloner_exit_code.unwrap_or(0) == 0 {
         let compiling = kaniko_lower.contains("npm run build")
             || kaniko_lower.contains("ng build")
             || kaniko_lower.contains("cargo build")
             || kaniko_lower.contains("go build")
             || kaniko_lower.contains("webpack")
             || kaniko_lower.contains("vite build");
-        let not_done = !kaniko_lower.contains("pushed") && !kaniko_lower.contains("complete");
+        // "Done" means we reached the FINAL image push (to hermes-app-image).
+        // Intermediate cache-layer pushes (hermes-build-cache) during the build do
+        // NOT count — they previously masked a compile that was killed mid-way.
+        let not_done = !kaniko_lower.contains("hermes-app-image");
         if compiling && not_done {
             return ("BUILD_OOM", concat!(
                 "Build-ul s-a oprit brusc în timpul compilării (posibil depășire de memorie/OOM la nivel de nod). ",
@@ -1676,7 +1918,11 @@ fn classify_build_failure(
         || kaniko_lower.contains("syntaxerror")
         || kaniko_lower.contains("compilation failed")
         || kaniko_lower.contains("returned a non-zero code")
-        || kaniko_lower.contains("exit code: 1")
+        || kaniko_lower.contains("exit code")
+        || kaniko_lower.contains("exit status")
+        || kaniko_lower.contains("error building image")
+        || kaniko_lower.contains("build failed")
+        || kaniko_lower.contains("fatal")
     {
         // Pull the last meaningful error lines so the UI can show the cause directly.
         let snippet: Vec<&str> = kaniko_logs
@@ -1696,7 +1942,44 @@ fn classify_build_failure(
         return ("BUILD_COMMAND", format!("Comanda de build a eșuat în interiorul imaginii.{}", suffix));
     }
 
-    ("UNKNOWN", "Construirea imaginii a eșuat dintr-o cauză neclasificată. Consultă log-urile complete pentru detalii.".to_string())
+    // Still unclassified. If a known compiler ran but the image never reached the
+    // final push, it was most likely killed mid-compile (OOM / node pressure).
+    let compiling = kaniko_lower.contains("npm run build")
+        || kaniko_lower.contains("ng build")
+        || kaniko_lower.contains("cargo build")
+        || kaniko_lower.contains("go build")
+        || kaniko_lower.contains("webpack")
+        || kaniko_lower.contains("vite build");
+    if compiling && !kaniko_lower.contains("hermes-app-image") {
+        return ("BUILD_OOM", "Build-ul s-a oprit în timpul compilării fără să producă o eroare — semn tipic de lipsă de memorie (procesul a fost ucis). Mărește limita de memorie a workspace-ului (Angular/webpack au nevoie de obicei de 1.5–2 GB).".to_string());
+    }
+
+    // Last resort: surface the actual tail of the build log + exit info so the
+    // failure is never opaque ("UNKNOWN" with no detail was the complaint).
+    let tail: Vec<&str> = kaniko_logs
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .rev()
+        .take(12)
+        .collect();
+    let tail_str = tail.into_iter().rev().collect::<Vec<_>>().join("\n");
+    let mut info = String::new();
+    if let Some(code) = kaniko_exit_code {
+        info.push_str(&format!("cod ieșire build: {}; ", code));
+    }
+    if let Some(r) = kaniko_reason {
+        info.push_str(&format!("motiv terminare: {}; ", r));
+    }
+    if let Some(r) = pod_reason {
+        info.push_str(&format!("motiv pod: {}; ", r));
+    }
+    (
+        "UNKNOWN",
+        format!(
+            "Build-ul a eșuat fără o eroare clasificabilă. {}Ultimele linii din log:\n{}",
+            info, tail_str
+        ),
+    )
 }
 
 /// Run a one-off Trivy pod that scans the freshly pushed image for HIGH/CRITICAL
@@ -1970,4 +2253,332 @@ async fn update_status(pool: &sqlx::PgPool, id: Uuid, status: AppStatus) -> Resu
     }
 
     Ok(())
+}
+
+/// On startup, reconcile app instances left in the transient `building` state by a
+/// previous process exit. Build/deploy monitoring runs in tokio tasks that die
+/// with the process, so an interrupted deploy would otherwise leave the instance
+/// `building` forever — showing as "deploying" in the build queue even when its
+/// pod is actually Ready. We decide per instance from real cluster state: if a
+/// workload exists (standard Deployment or Knative Service) the image deployed →
+/// `running` (the health-check worker demotes it if it's not actually reachable);
+/// if nothing was deployed the build/deploy was interrupted → `failed`.
+pub async fn reconcile_stuck_deploys(pool: &sqlx::PgPool) {
+    // On startup every in-flight build/deploy task is dead, so any instance still
+    // 'building' is orphaned — reconcile them all.
+    let stuck = match sqlx::query!(
+        "SELECT ai.id, ai.container_name, a.workspace_id
+         FROM app_instances ai JOIN apps a ON ai.app_id = a.id
+         WHERE ai.status = 'building'"
+    )
+    .fetch_all(pool)
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            tracing::warn!("reconcile_stuck_deploys: query failed: {}", e);
+            return;
+        }
+    };
+    if stuck.is_empty() {
+        return;
+    }
+
+    let client = match crate::utils::k8s::K8sManager::get_client().await {
+        Ok(c) => c,
+        Err(e) => {
+            tracing::warn!("reconcile_stuck_deploys: no k8s client, skipping: {}", e);
+            return;
+        }
+    };
+
+    for inst in stuck {
+        reconcile_one_stuck_instance(pool, &client, inst.id, &inst.container_name, inst.workspace_id).await;
+    }
+}
+
+/// Periodic safety net (no restart required). While the process is alive an
+/// instance only stays 'building' for its build duration + the ≤120s deploy
+/// health-gate. If its latest build SUCCEEDED yet it's still 'building' well past
+/// that window, its deploy monitor died mid-flight (a transient k8s error, a node
+/// blip, etc.) — reconcile it against the cluster so it doesn't sit at "deploying"
+/// forever in the build queue.
+pub fn start_stuck_deploy_reconciler(pool: sqlx::PgPool) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
+        loop {
+            interval.tick().await;
+            if !crate::utils::leader::is_leader() { continue; }
+
+            let stuck = match sqlx::query!(
+                r#"SELECT ai.id, ai.container_name, a.workspace_id
+                   FROM app_instances ai
+                   JOIN apps a ON ai.app_id = a.id
+                   JOIN LATERAL (
+                       SELECT status, created_at, COALESCE(duration_sec, 0) AS dur
+                       FROM app_builds ab WHERE ab.app_instance_id = ai.id
+                       ORDER BY ab.created_at DESC LIMIT 1
+                   ) lb ON true
+                   WHERE ai.status = 'building'
+                     AND lb.status = 'succeeded'
+                     AND lb.created_at + make_interval(secs => lb.dur) < now() - interval '5 minutes'"#
+            )
+            .fetch_all(&pool)
+            .await
+            {
+                Ok(r) => r,
+                Err(_) => continue,
+            };
+            if stuck.is_empty() {
+                continue;
+            }
+
+            let client = match crate::utils::k8s::K8sManager::get_client().await {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
+            for inst in stuck {
+                reconcile_one_stuck_instance(&pool, &client, inst.id, &inst.container_name, inst.workspace_id).await;
+            }
+        }
+    });
+}
+
+/// Idempotent "ensure desired state" for a single app instance — Stage 1 of the
+/// reconcile model (ensure-exists). The desired state lives in Postgres; here we only
+/// enforce that a `running` standard-Deployment instance still HAS its Deployment, and
+/// recreate it via the normal deploy path if it drifted away (deleted, lost on a crash).
+///
+/// Deliberately conservative for now: it does NOT re-apply the full spec (that would
+/// fight the HPA — `deploy_app` always pins `replicas = replicas_min`, a latent bug to
+/// fix before continuous spec-convergence). `stopped`/in-flight instances are skipped
+/// (their desired state is 0 / a deploy is already running); Knative instances are
+/// skipped (Knative self-reconciles).
+pub async fn reconcile_instance(pool: &PgPool, instance_id: Uuid) {
+    #[derive(sqlx::FromRow)]
+    struct ReconcileRow {
+        app_id: Uuid,
+        workspace_id: Uuid,
+        container_name: String,
+        internal_port: i32,
+        cpu_limit: i32,
+        memory_limit_mb: i64,
+        replicas_min: i32,
+        replicas_max: i32,
+        autoscale_cpu_percent: i32,
+        status: String,
+        meta_data: serde_json::Value,
+        current_image_tag: Option<String>,
+    }
+    let r = match sqlx::query_as::<_, ReconcileRow>(
+        "SELECT a.id AS app_id, a.workspace_id, ai.container_name, ai.internal_port,
+                ai.cpu_limit, ai.memory_limit_mb, ai.replicas_min, ai.replicas_max,
+                ai.autoscale_cpu_percent, ai.status::text AS status, ai.meta_data, ai.current_image_tag
+         FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE ai.id = $1",
+    )
+    .bind(instance_id)
+    .fetch_optional(pool)
+    .await
+    {
+        Ok(Some(r)) => r,
+        _ => return,
+    };
+
+    // Only enforce running, non-Knative instances. A `stopped`/in-flight instance's
+    // desired state is 0 replicas / a deploy already in progress; Knative self-reconciles.
+    if r.status != "running" {
+        return;
+    }
+    if r.meta_data.get("knative_enabled").and_then(|v| v.as_bool()).unwrap_or(false) {
+        return;
+    }
+
+    let image_tag = match r.current_image_tag {
+        Some(ref t) if !t.is_empty() => t.clone(),
+        _ => return, // never built — nothing to converge to
+    };
+    // Match the node-pull registry rewrite the deploy path uses.
+    let mut deployment_image = image_tag;
+    if let Ok(reg_url) = std::env::var("HERMES_REGISTRY_URL") {
+        if deployment_image.starts_with(&reg_url)
+            && (reg_url.contains("192.168.") || reg_url.contains("127.0.0.1") || reg_url.contains("localhost"))
+        {
+            deployment_image = deployment_image.replace(&reg_url, "localhost:5000");
+        }
+    }
+
+    let client = match crate::utils::k8s::K8sManager::get_client().await {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+    let namespace = format!("hermes-ws-{}", r.workspace_id);
+
+    // Desired runtime env + volume binds (the same sources the deploy path uses).
+    let envs = crate::utils::app_env::resolve_instance_env(pool, instance_id).await;
+    let mut binds: Vec<(String, String)> = Vec::new();
+    if let Ok(vols) = sqlx::query_as::<_, (String, String)>(
+        "SELECT host_path, container_path FROM app_volumes WHERE app_id = $1",
+    )
+    .bind(r.app_id)
+    .fetch_all(pool)
+    .await
+    {
+        binds = vols;
+    }
+
+    // Idempotent server-side apply of the full Deployment + HPA: identical desired state →
+    // no pod-template change → no rollout; drift (deleted, wrong image, scaled, …) → fixed.
+    // (deploy_app now omits `replicas` when an HPA is active, so this never fights the HPA.)
+    let _ = crate::utils::k8s::K8sManager::deploy_app(
+        &client,
+        &namespace,
+        &r.container_name,
+        &deployment_image,
+        r.internal_port,
+        envs,
+        binds,
+        r.cpu_limit,
+        r.memory_limit_mb,
+        r.replicas_min,
+        r.replicas_max,
+        r.autoscale_cpu_percent,
+    )
+    .await;
+}
+
+/// Periodic resync: reconcile every `running` instance so drift (a deleted/lost
+/// Deployment) self-heals. Opt-in via `HERMES_RECONCILE=on` while the model is
+/// validated (strangler) — off by default, so behaviour is unchanged until enabled.
+pub fn start_reconcile_worker(pool: PgPool) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(180));
+        loop {
+            interval.tick().await;
+            if !crate::utils::leader::is_leader() { continue; }
+            let ids = sqlx::query_scalar::<_, Uuid>("SELECT id FROM app_instances WHERE status = 'running'")
+                .fetch_all(&pool)
+                .await
+                .unwrap_or_default();
+            for id in ids {
+                reconcile_instance(&pool, id).await;
+            }
+        }
+    });
+}
+
+/// Reconcile one instance stuck in `building` against real cluster state: if a
+/// workload exists (standard Deployment or Knative Service) the image deployed →
+/// `running` (the health-check worker demotes it if it isn't actually reachable);
+/// otherwise nothing deployed → `failed`. Also settles the latest build row.
+async fn reconcile_one_stuck_instance(
+    pool: &sqlx::PgPool,
+    client: &kube::Client,
+    instance_id: Uuid,
+    container_name: &str,
+    workspace_id: Uuid,
+) {
+    let ns = format!("hermes-ws-{}", workspace_id);
+    let deployments: kube::Api<k8s_openapi::api::apps::v1::Deployment> =
+        kube::Api::namespaced(client.clone(), &ns);
+    let knative_gvk = kube::api::GroupVersionKind::gvk("serving.knative.dev", "v1", "Service");
+    let knative_res = kube::api::ApiResource::from_gvk_with_plural(&knative_gvk, "services");
+    let knative: kube::Api<kube::core::DynamicObject> =
+        kube::Api::namespaced_with(client.clone(), &ns, &knative_res);
+
+    let deployed = deployments.get(container_name).await.is_ok()
+        || knative.get(container_name).await.is_ok();
+
+    let new_status = if deployed { AppStatus::Running } else { AppStatus::Failed };
+    let _ = update_status(pool, instance_id, new_status).await;
+
+    // Settle the latest in-flight build row so it isn't stuck mid-state.
+    if let Ok(Some(b)) = sqlx::query!(
+        "SELECT id, status FROM app_builds WHERE app_instance_id = $1 ORDER BY created_at DESC LIMIT 1",
+        instance_id
+    )
+    .fetch_optional(pool)
+    .await
+    {
+        if b.status == "queued" || b.status == "building" {
+            if deployed {
+                let _ = sqlx::query!(
+                    "UPDATE app_builds SET status='succeeded', phase='deployed' WHERE id=$1",
+                    b.id
+                )
+                .execute(pool)
+                .await;
+            } else {
+                let _ = sqlx::query!(
+                    "UPDATE app_builds SET status='failed', phase='failed',
+                     failure_reason=COALESCE(failure_reason,'Build/deploy interrupted'),
+                     failure_category=COALESCE(failure_category,'INTERRUPTED') WHERE id=$1",
+                    b.id
+                )
+                .execute(pool)
+                .await;
+            }
+        }
+    }
+
+    tracing::info!(instance_id = %instance_id, deployed, "Reconciled stuck 'building' instance");
+}
+#[cfg(test)]
+mod classify_tests {
+    use super::classify_build_failure;
+
+    #[test]
+    fn oom_by_reason_and_exit_code() {
+        let (cat, _) = classify_build_failure("", "", Some(0), None, None, None, Some("OOMKilled"));
+        assert_eq!(cat, "BUILD_OOM");
+        let (cat, _) = classify_build_failure("", "", Some(0), Some(137), None, None, None);
+        assert_eq!(cat, "BUILD_OOM");
+    }
+
+    #[test]
+    fn oom_by_inner_kill_in_logs() {
+        // Kaniko container exits 1, but its log shows the RUN command was killed.
+        let logs = "RUN npm run build\nerror building image: ... exit status 137";
+        let (cat, _) = classify_build_failure("", logs, Some(0), Some(1), None, None, None);
+        assert_eq!(cat, "BUILD_OOM");
+    }
+
+    #[test]
+    fn killed_mid_compile_without_final_push() {
+        // A compiler ran, no exit info, never reached the final image push.
+        let logs = "RUN ng build --configuration=production\n> Building...";
+        let (cat, _) = classify_build_failure("", logs, Some(0), None, None, None, None);
+        assert_eq!(cat, "BUILD_OOM");
+    }
+
+    #[test]
+    fn git_auth_failure() {
+        let cloner = "Cloning into '/workspace'...\nremote: Authentication failed for 'https://...'";
+        let (cat, _) = classify_build_failure(cloner, "", Some(128), None, None, None, None);
+        assert_eq!(cat, "GIT_AUTH");
+    }
+
+    #[test]
+    fn missing_dockerfile() {
+        let logs = "error resolving dockerfile path: please provide a valid path to a Dockerfile";
+        let (cat, _) = classify_build_failure("", logs, Some(0), Some(1), None, None, None);
+        assert_eq!(cat, "NO_DOCKERFILE");
+    }
+
+    #[test]
+    fn build_command_failure() {
+        let logs = "RUN npm ci\nnpm err! code ELIFECYCLE\nregistry.kube-system.../hermes-app-image";
+        let (cat, reason) = classify_build_failure("", logs, Some(0), Some(1), None, None, None);
+        assert_eq!(cat, "BUILD_COMMAND");
+        assert!(reason.to_lowercase().contains("err"));
+    }
+
+    #[test]
+    fn unknown_surfaces_log_tail() {
+        let logs = "line one\nsome opaque output\nfinal line";
+        let (cat, reason) = classify_build_failure("", logs, Some(0), Some(2), None, None, None);
+        assert_eq!(cat, "UNKNOWN");
+        // The diagnostic is no longer opaque: it carries the tail + exit code.
+        assert!(reason.contains("final line"));
+        assert!(reason.contains("cod ieșire build: 2"));
+    }
 }

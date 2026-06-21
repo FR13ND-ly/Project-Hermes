@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE domains SET client_max_body_size = $1, is_ssl = $2, updated_at = now() WHERE id = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ce4e4cd56d722ee67f308421c8780e430893239c36a6949b16b5921325898043"
+}

@@ -529,38 +529,38 @@
         <div class="space-y-2">
           <div class="flex items-center justify-between text-xs text-zinc-450">
             <span class="uppercase tracking-wider font-semibold text-[10px]">CPU Limit</span>
-            <span class="text-white font-mono font-bold">{{ cpuLimit() }}m</span>
+            <span class="text-white font-mono font-bold">{{ cpuLimit() === 0 ? 'Nelimitat' : cpuLimit() + 'm' }}</span>
           </div>
-          <input 
-            type="range" 
-            min="100" 
-            max="2000" 
+          <input
+            type="range"
+            min="0"
+            max="2000"
             step="50"
             [ngModel]="cpuLimit()"
             (ngModelChange)="cpuLimit.set($event)"
             [disabled]="savingSettings()"
             class="w-full h-1 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-white"
           />
-          <p class="text-[9px] text-zinc-550 font-mono">Setare curentă: {{ db()?.cpuLimit }}m (millicores)</p>
+          <p class="text-[9px] text-zinc-550 font-mono">Setare curentă: {{ db()?.cpuLimit === 0 ? 'Nelimitat' : db()?.cpuLimit + 'm (millicores)' }} · 0 = nelimitat</p>
         </div>
 
         <!-- RAM Limit -->
         <div class="space-y-2">
           <div class="flex items-center justify-between text-xs text-zinc-450">
             <span class="uppercase tracking-wider font-semibold text-[10px]">RAM Limit</span>
-            <span class="text-white font-mono font-bold">{{ memLimit() }} MB</span>
+            <span class="text-white font-mono font-bold">{{ memLimit() === 0 ? 'Nelimitat' : memLimit() + ' MB' }}</span>
           </div>
-          <input 
-            type="range" 
-            min="128" 
-            max="4096" 
+          <input
+            type="range"
+            min="0"
+            max="4096"
             step="128"
             [ngModel]="memLimit()"
             (ngModelChange)="memLimit.set($event)"
             [disabled]="savingSettings()"
             class="w-full h-1 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-white"
           />
-          <p class="text-[9px] text-zinc-550 font-mono">Setare curentă: {{ db()?.memoryLimitMb }} MB</p>
+          <p class="text-[9px] text-zinc-550 font-mono">Setare curentă: {{ db()?.memoryLimitMb === 0 ? 'Nelimitat' : db()?.memoryLimitMb + ' MB' }} · 0 = nelimitat</p>
         </div>
       </div>
 

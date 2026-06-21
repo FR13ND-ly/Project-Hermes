@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT container_name, assigned_domain FROM app_instances WHERE app_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "container_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "assigned_domain",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "b850da4800cdccacbcf92869ecb76df56711ec04d1f9207593c6bf055ad4ab58"
+}

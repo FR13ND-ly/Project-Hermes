@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ai.container_name, ai.internal_port, a.name\n                 FROM app_instances ai JOIN apps a ON ai.app_id = a.id\n                 WHERE ai.id = $1 AND a.workspace_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "container_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "internal_port",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9da96e356c51d5e714b368161798c190a8c72189c307234972a32787ceb3e5cd"
+}

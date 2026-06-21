@@ -1,0 +1,102 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ab.id, ab.app_id, ab.app_instance_id, ab.status, ab.phase, ab.failure_reason, ab.failure_category, ab.created_at, ai.branch_name, ab.commit_message, ab.commit_sha, ab.duration_sec, ab.image_tag, ai.current_image_tag\n         FROM app_builds ab\n         JOIN app_instances ai ON ab.app_instance_id = ai.id\n         WHERE ab.app_id = $1\n         ORDER BY ab.created_at DESC\n         LIMIT $2 OFFSET $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "app_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "app_instance_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "phase",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "failure_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "failure_category",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "branch_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "commit_message",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "commit_sha",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "duration_sec",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "image_tag",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "current_image_tag",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "260aa132ac0109dbd000f93bec7034f01ab09fc729bfa2c2d3ad695e64405163"
+}

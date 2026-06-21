@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (\n            COALESCE((SELECT SUM(ai.cpu_limit) FROM app_instances ai JOIN apps a ON ai.app_id = a.id\n                      WHERE a.workspace_id = $1 AND ai.status = 'running'), 0)\n          + COALESCE((SELECT SUM(d.cpu_limit) FROM databases d\n                      WHERE d.workspace_id = $1 AND d.status = 'running'), 0)\n        )::bigint",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "int8",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "f374d0fb02a73462d57c6f3d568fad0fb89e0247d134e38fe098836d51d45b94"
+}

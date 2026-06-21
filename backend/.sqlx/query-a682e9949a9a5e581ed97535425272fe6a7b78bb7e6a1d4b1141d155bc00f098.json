@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n            w.id, \n            w.name, \n            w.slug, \n            w.max_memory_mb, \n            w.max_storage_gb, \n            w.created_at, \n            (SELECT username FROM users WHERE id = w.created_by) as creator,\n            (SELECT COUNT(*) FROM workspace_members WHERE workspace_id = w.id) as \"member_count!\",\n            (SELECT COUNT(*) FROM apps WHERE workspace_id = w.id) as \"app_count!\",\n            (SELECT COUNT(*) FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE a.workspace_id = w.id AND ai.status = 'running') as \"active_app_count!\",\n            (SELECT COUNT(*) FROM databases WHERE workspace_id = w.id) as \"database_count!\",\n            COALESCE((SELECT SUM(ai.memory_limit_mb) FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE a.workspace_id = w.id), 0)::bigint as \"app_mem!\",\n            COALESCE((SELECT SUM(d.memory_limit_mb) FROM databases d WHERE d.workspace_id = w.id), 0)::bigint as \"db_mem!\",\n            (\n                (SELECT COALESCE(COUNT(*), 0) FROM databases d WHERE d.workspace_id = w.id)\n                +\n                (SELECT COALESCE(COUNT(*), 0) FROM app_volumes av WHERE av.workspace_id = w.id)\n            )::bigint as \"allocated_storage!\"\n         FROM workspaces w\n         ORDER BY w.name ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "slug",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_memory_mb",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "max_storage_gb",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "creator",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "member_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "app_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "active_app_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "database_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "app_mem!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "db_mem!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "allocated_storage!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "a682e9949a9a5e581ed97535425272fe6a7b78bb7e6a1d4b1141d155bc00f098"
+}

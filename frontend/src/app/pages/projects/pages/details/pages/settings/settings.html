@@ -47,38 +47,38 @@
       <div class="space-y-1.5">
         <div class="flex items-center justify-between text-xs text-zinc-400">
           <span class="uppercase tracking-wider font-semibold text-[10px]">Limită CPU</span>
-          <span class="text-white font-mono font-bold">{{ cpuLimit() }}m (cores)</span>
+          <span class="text-white font-mono font-bold">{{ cpuLimit() === 0 ? 'Nelimitat' : cpuLimit() + 'm (cores)' }}</span>
         </div>
-        <input 
-          type="range" 
-          min="100" 
-          max="4000" 
+        <input
+          type="range"
+          min="0"
+          max="4000"
           step="100"
           [ngModel]="cpuLimit()"
           (ngModelChange)="cpuLimit.set($event)"
           [disabled]="saving()"
           class="w-full h-1 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-white"
         />
-        <p class="text-[10px] text-zinc-650">Reprezintă timpul de procesare acordat containerului (1000m = 1 Core CPU dedicat).</p>
+        <p class="text-[10px] text-zinc-650">Timpul de procesare acordat containerului (1000m = 1 Core dedicat). <span class="text-zinc-400">0 = nelimitat.</span></p>
       </div>
   
       <!-- RAM Slider -->
       <div class="space-y-1.5 pt-2">
         <div class="flex items-center justify-between text-xs text-zinc-400">
           <span class="uppercase tracking-wider font-semibold text-[10px]">Limită Memorie RAM</span>
-          <span class="text-white font-mono font-bold">{{ memLimit() }} MB</span>
+          <span class="text-white font-mono font-bold">{{ memLimit() === 0 ? 'Nelimitat' : memLimit() + ' MB' }}</span>
         </div>
-        <input 
-          type="range" 
-          min="128" 
-          max="8192" 
+        <input
+          type="range"
+          min="0"
+          max="8192"
           step="128"
           [ngModel]="memLimit()"
           (ngModelChange)="memLimit.set($event)"
           [disabled]="saving()"
           class="w-full h-1 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-white"
         />
-        <p class="text-[10px] text-zinc-650">Dacă aplicația depășește limita configurată, containerul va fi repornit automat de cluster (OOMKilled).</p>
+        <p class="text-[10px] text-zinc-650">Dacă aplicația depășește limita, containerul e repornit de cluster (OOMKilled). <span class="text-zinc-400">0 = nelimitat.</span></p>
       </div>
   
       <!-- Internal Port Input -->
@@ -127,7 +127,52 @@
           />
         </div>
       </div>
-  
+
+      <!-- Autoscale CPU target -->
+      <div class="space-y-1.5 border-t border-zinc-900 pt-4">
+        <label for="autoscale-cpu-input" class="text-[10px] text-zinc-400 uppercase tracking-wider font-semibold block">Autoscale la CPU (%)</label>
+        <input
+          id="autoscale-cpu-input"
+          type="number"
+          min="1"
+          max="100"
+          [ngModel]="autoscaleCpuPercent()"
+          (ngModelChange)="autoscaleCpuPercent.set($event)"
+          [disabled]="saving()"
+          class="block w-full px-3 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+        />
+        <p class="text-[10px] text-zinc-650 leading-relaxed">Rulează mereu <span class="text-zinc-400">Min</span> pod-uri. Dacă <span class="text-zinc-400">Max &gt; Min</span>, autoscaler-ul adaugă pod-uri (până la Max) când CPU-ul mediu depășește acest prag. Se aplică la următorul deploy.</p>
+      </div>
+
+      <!-- Auto-sleep -->
+      <div class="space-y-2 border-t border-zinc-900 pt-4">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            [ngModel]="autoSleepEnabled()"
+            (ngModelChange)="autoSleepEnabled.set($event)"
+            [disabled]="saving()"
+            class="accent-white w-3.5 h-3.5 cursor-pointer"
+          />
+          <span class="text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">Auto-sleep (oprește la inactivitate)</span>
+        </label>
+        @if (autoSleepEnabled()) {
+          <div class="space-y-1.5 pl-5">
+            <label for="auto-sleep-min-input" class="text-[10px] text-zinc-400 uppercase tracking-wider font-semibold block">Inactiv (minute) → scale 0</label>
+            <input
+              id="auto-sleep-min-input"
+              type="number"
+              min="1"
+              [ngModel]="autoSleepAfterMinutes()"
+              (ngModelChange)="autoSleepAfterMinutes.set($event)"
+              [disabled]="saving()"
+              class="block w-full max-w-[200px] px-3 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+            />
+          </div>
+        }
+        <p class="text-[10px] text-zinc-650 leading-relaxed">Când e activ, instanța e oprită (scale 0) după atâtea minute fără activitate. <span class="text-amber-500/80">Nu se trezește singură la trafic</span> — revine prin Start sau redeploy. Implicit: pornit pentru non-production, oprit pentru production.</p>
+      </div>
+
       <!-- Save Action -->
       <div class="pt-4 border-t border-zinc-900 flex justify-end">
         <button 

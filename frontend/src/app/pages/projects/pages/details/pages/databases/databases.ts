@@ -85,7 +85,6 @@ export class Databases implements OnInit, OnDestroy {
       this.wsSubscription.unsubscribe();
     }
     this.wsSubscription = this.wsService.onEvent<any>('database_status_changed').subscribe(payload => {
-      console.log('[Databases] Database status changed in WS, reloading list silently:', payload);
       this.loadDatabases(true);
     });
   }

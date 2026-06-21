@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT key, encrypted_value, nonce FROM environment_variables WHERE app_instance_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "key",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "encrypted_value",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "nonce",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "55a0e2ee659153519348ced5ab65ee614d57a44df653230d29dea265329d8341"
+}

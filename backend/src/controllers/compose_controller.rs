@@ -115,6 +115,7 @@ fn plan_from_compose(yaml: &str) -> Result<ComposePlan, AppError> {
             depends_on,
             // image-only non-DB services can't be built by Hermes → default off.
             include: buildable,
+            enable_baas: false,
         });
     }
 
@@ -214,14 +215,15 @@ pub async fn apply_compose_plan(
         );
     }
 
-    // 2. Apps + their env/volumes, then collect depends_on links.
+    // 2. Pass 1: Create apps in DB + conditionally generate BaaS auth secrets.
+    let mut app_identities: HashMap<String, (Uuid, Uuid)> = HashMap::new();
     for app in payload.plan.apps.iter().filter(|a| a.include) {
         let app_id = Uuid::new_v4();
         let instance_id = Uuid::new_v4();
+        app_identities.insert(app.service.clone(), (app_id, instance_id));
+
         let slug = app.name.trim().to_lowercase().replace([' ', '_'], "-");
-        let container_name = crate::utils::string_gen::sanitize_k8s_name(&format!("hermes-app-{}-{}-{}", slug, branch, &instance_id.to_string()[..8]));
         let git_repository = payload.git_repository.clone().unwrap_or_else(|| app.image.clone().unwrap_or_else(|| "compose".to_string()));
-        let can_build = app.buildable && payload.git_repository.is_some();
 
         sqlx::query!(
             "INSERT INTO apps (id, workspace_id, project_id, name, slug, git_repository, git_subpath, git_credential_id)
@@ -230,6 +232,27 @@ pub async fn apply_compose_plan(
         )
         .execute(&state.pool)
         .await?;
+
+        if app.enable_baas {
+            if let Err(e) = crate::utils::app_auth::get_or_create_app_auth_secret(
+                &state.pool, app_id, ws_id, payload.project_id,
+            ).await {
+                tracing::warn!(app_id = %app_id, "Failed to provision BaaS auth secret in compose Pass 1: {}", e);
+            }
+        }
+    }
+
+    // 3. Pass 2: Create app instances, map env vars (links & local), volumes, database links, and trigger builds.
+    for app in payload.plan.apps.iter().filter(|a| a.include) {
+        let (app_id, instance_id) = match app_identities.get(&app.service) {
+            Some(&ids) => ids,
+            None => continue,
+        };
+
+        let slug = app.name.trim().to_lowercase().replace([' ', '_'], "-");
+        let container_name = crate::utils::string_gen::sanitize_k8s_name(&format!("hermes-app-{}-{}-{}", slug, branch, &instance_id.to_string()[..8]));
+        let git_repository = payload.git_repository.clone().unwrap_or_else(|| app.image.clone().unwrap_or_else(|| "compose".to_string()));
+        let can_build = app.buildable && payload.git_repository.is_some();
 
         let status_str = if can_build { "building" } else { "stopped" };
         let ext_port = if let Some(p) = app.external_port {
@@ -262,6 +285,15 @@ pub async fn apply_compose_plan(
         )
         .execute(&state.pool)
         .await?;
+
+        // Link to BaaS Auth secret if enabled for this app. This idempotent call ensures the new instance is linked.
+        if app.enable_baas {
+            if let Err(e) = crate::utils::app_auth::get_or_create_app_auth_secret(
+                &state.pool, app_id, ws_id, payload.project_id,
+            ).await {
+                tracing::warn!(app_id = %app_id, "Failed to link BaaS auth secret in compose Pass 2: {}", e);
+            }
+        }
 
         for e in &app.env {
             let key = e.key.trim().to_uppercase().replace(' ', "_");
@@ -312,12 +344,9 @@ pub async fn apply_compose_plan(
         }
 
         if can_build {
-            let pool = state.pool.clone();
-            let repo = git_repository.clone();
-            let br = branch.clone();
-            tokio::spawn(async move {
-                crate::utils::builder::run_ephemeral_build(pool, instance_id, repo, br, None).await;
-            });
+            let _ = crate::utils::job_queue::enqueue_build(
+                &state.pool, instance_id, git_repository.clone(), branch.clone(), None,
+            ).await;
         }
     }
 

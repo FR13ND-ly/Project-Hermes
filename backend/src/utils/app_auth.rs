@@ -33,25 +33,50 @@ pub async fn get_or_create_app_auth_secret(
     ws_id: Uuid,
     project_id: Uuid,
 ) -> Result<String, AppError> {
+    // Read by key — multiple baas_auth vars (secret/app_id/api_url) now share the
+    // same source_id=app_id, so we must pin the secret's key specifically.
     let row = sqlx::query!(
-        "SELECT auth_secret, auth_secret_nonce FROM apps WHERE id = $1",
-        app_id
+        "SELECT encrypted_value, nonce FROM project_env_variables WHERE source = 'baas_auth' AND source_id = $1 AND key = $2",
+        app_id, AUTH_SECRET_ENV_KEY
     )
     .fetch_optional(pool)
-    .await?
-    .ok_or_else(|| AppError::NotFound("Application not found.".to_string()))?;
+    .await?;
 
-    if let (Some(enc), Some(nonce)) = (row.auth_secret, row.auth_secret_nonce) {
-        return crypto::decrypt_env_value(&enc, &nonce);
+    if let Some(r) = row {
+        return crypto::decrypt_env_value(&r.encrypted_value, &r.nonce);
     }
 
-    // First use: generate + publish (same path as an explicit rotation).
     rotate_app_auth_secret(pool, app_id, ws_id, project_id).await
 }
 
+/// Upsert a single BaaS integration var into the project env pool under
+/// (source='baas_auth', source_id=app_id), keyed by `key`. Unlike `publish_project_env`
+/// (one var per source_id), this keys on (project_id, key) so the secret, app_id and
+/// api_url can coexist for one app while still being cleaned up together by source_id.
+pub async fn publish_baas_var(
+    pool: &PgPool,
+    ws_id: Uuid,
+    project_id: Uuid,
+    app_id: Uuid,
+    key: &str,
+    value: &str,
+    is_secret: bool,
+) -> Result<(), AppError> {
+    let (enc, nonce) = crypto::encrypt_env_value(value)?;
+    sqlx::query!(
+        "INSERT INTO project_env_variables (id, workspace_id, project_id, key, encrypted_value, nonce, is_secret, source, source_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'baas_auth', $8)
+         ON CONFLICT (project_id, key)
+         DO UPDATE SET encrypted_value = $5, nonce = $6, is_secret = $7, source = 'baas_auth', source_id = $8, updated_at = now()",
+        Uuid::new_v4(), ws_id, project_id, key, enc, nonce, is_secret, app_id
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 /// Force-rotate the app's signing secret: generate a fresh one, persist encrypted,
-/// republish to the project pool (upsert on the same key) and ensure the app's
-/// instances are linked so it lands in their env. Returns the new secret.
+/// republish to the project pool (upsert on the same key). Returns the new secret.
 ///
 /// Side effect: every end-user JWT signed with the previous secret stops verifying,
 /// so existing end-user sessions must re-authenticate. Apps pick up the new
@@ -63,45 +88,7 @@ pub async fn rotate_app_auth_secret(
     project_id: Uuid,
 ) -> Result<String, AppError> {
     let secret = generate_secret();
-    let (enc, nonce) = crypto::encrypt_env_value(&secret)?;
-    sqlx::query!(
-        "UPDATE apps SET auth_secret = $1, auth_secret_nonce = $2, updated_at = now() WHERE id = $3",
-        enc,
-        nonce,
-        app_id
-    )
-    .execute(pool)
-    .await?;
-
-    let project_env_id = crate::utils::app_env::publish_project_env(
-        pool,
-        ws_id,
-        project_id,
-        AUTH_SECRET_ENV_KEY,
-        &secret,
-        true,
-        "baas_auth",
-        app_id,
-    )
-    .await?;
-
-    if let Ok(instances) =
-        sqlx::query_scalar!("SELECT id FROM app_instances WHERE app_id = $1", app_id)
-            .fetch_all(pool)
-            .await
-    {
-        for inst in instances {
-            let _ = sqlx::query!(
-                "INSERT INTO app_env_links (app_instance_id, project_env_id) VALUES ($1, $2)
-                 ON CONFLICT DO NOTHING",
-                inst,
-                project_env_id
-            )
-            .execute(pool)
-            .await;
-        }
-    }
-
+    publish_baas_var(pool, ws_id, project_id, app_id, AUTH_SECRET_ENV_KEY, &secret, true).await?;
     Ok(secret)
 }
 

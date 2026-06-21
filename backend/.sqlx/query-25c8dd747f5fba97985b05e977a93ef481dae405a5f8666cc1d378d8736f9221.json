@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ai.container_name, a.workspace_id FROM app_instances ai\n         JOIN apps a ON ai.app_id = a.id\n         WHERE ai.id = $1 AND a.workspace_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "container_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "25c8dd747f5fba97985b05e977a93ef481dae405a5f8666cc1d378d8736f9221"
+}

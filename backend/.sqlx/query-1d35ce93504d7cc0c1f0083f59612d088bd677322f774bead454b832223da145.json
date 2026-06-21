@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users u \n         SET current_workspace_id = (SELECT workspace_id FROM workspace_members WHERE user_id = u.id LIMIT 1)\n         WHERE u.current_workspace_id IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "1d35ce93504d7cc0c1f0083f59612d088bd677322f774bead454b832223da145"
+}

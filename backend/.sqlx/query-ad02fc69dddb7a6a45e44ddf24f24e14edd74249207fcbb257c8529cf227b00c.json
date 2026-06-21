@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE storage_objects\n             SET status = $1::storage_status,\n                 compression = $2::compression_type,\n                 original_size_bytes = $3,\n                 is_optimized = $4,\n                 image_dimensions = $5,\n                 meta_data = $6,\n                 file_path = $7,\n                 mime_type = $8,\n                 size_bytes = $9,\n                 processing_stage = NULL,\n                 updated_at = now()\n             WHERE id = $10",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "storage_status",
+            "kind": {
+              "Enum": [
+                "pending_upload",
+                "ready",
+                "processing",
+                "failed"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "compression_type",
+            "kind": {
+              "Enum": [
+                "none",
+                "gzip",
+                "brotli"
+              ]
+            }
+          }
+        },
+        "Int8",
+        "Bool",
+        "Varchar",
+        "Jsonb",
+        "Text",
+        "Varchar",
+        "Int8",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ad02fc69dddb7a6a45e44ddf24f24e14edd74249207fcbb257c8529cf227b00c"
+}

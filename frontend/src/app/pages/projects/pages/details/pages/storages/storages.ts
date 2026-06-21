@@ -124,10 +124,8 @@ export class Storages implements OnInit, OnDestroy {
   readonly compressBrotli = signal<boolean>(false);
   readonly compressGzip = signal<boolean>(false);
 
-  // Integration API Token
-  readonly integrationToken = signal<string | null>(null);
-  readonly integrationTokenExpiry = signal<string | null>(null);
-  readonly generatingToken = signal(false);
+  // Bucket access uses the app_id/secret_key key pair (published to the project env
+  // pool, rotatable in Settings). The old long-lived JWT token was removed.
 
   // Allowed file types checkboxes
   readonly allowImages = signal<boolean>(true);
@@ -1038,25 +1036,6 @@ export class Storages implements OnInit, OnDestroy {
     });
   }
 
-  generateToken(): void {
-    const bucket = this.selectedBucket();
-    if (!bucket) return;
-
-    this.generatingToken.set(true);
-    this.storageService.generateBucketToken(bucket.id).subscribe({
-      next: (res) => {
-        this.integrationToken.set(res.token);
-        this.integrationTokenExpiry.set(res.expiresAt);
-        this.generatingToken.set(false);
-        this.toast.success('Tokenul de integrare a fost generat cu succes.');
-      },
-      error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la generarea token-ului.');
-        this.generatingToken.set(false);
-      }
-    });
-  }
-
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text).then(() => {
       this.toast.success('Copiat în clipboard!');
@@ -1078,8 +1057,9 @@ export class Storages implements OnInit, OnDestroy {
   }
 
   getEnvSnippet(): string {
-    const token = this.integrationToken() || '';
-    return `# Configurare Hermes Storage\nHERMES_STORAGE_URL=${environment.apiOrigin}/storage\nHERMES_STORAGE_TOKEN=${token}`;
+    // Credentials are published to the project env pool as BUCKET_<slug>_APP_ID /
+    // BUCKET_<slug>_SECRET_KEY (rotate them in the bucket's Settings tab).
+    return `# Hermes Storage — credentials come from your project's env pool\n# BUCKET_<slug>_APP_ID, BUCKET_<slug>_SECRET_KEY (rotate in Settings)\nHERMES_STORAGE_URL=${environment.apiOrigin}/storage`;
   }
 
   getUploadSnippet(): string {

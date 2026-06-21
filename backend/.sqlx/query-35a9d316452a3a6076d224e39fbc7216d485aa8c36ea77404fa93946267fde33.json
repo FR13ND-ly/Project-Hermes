@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT fqdn, target_type FROM domains WHERE id = $1 AND workspace_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "fqdn",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "target_type",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "35a9d316452a3a6076d224e39fbc7216d485aa8c36ea77404fa93946267fde33"
+}

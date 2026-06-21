@@ -56,7 +56,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
   readonly creating = signal(false);
   readonly newName = signal('');
   readonly newRuntime = signal('nodejs-cjs');
-  readonly newMemory = signal(128);
+  readonly newMemory = signal(0); // 0 = unlimited (no forced initial limit)
 
   // Register domain modal
   readonly showAddDomainModal = signal(false);
@@ -195,7 +195,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
   openCreateModal(): void {
     this.newName.set('');
     this.newRuntime.set('nodejs-cjs');
-    this.newMemory.set(128);
+    this.newMemory.set(0);
     this.showCreateModal.set(true);
   }
 

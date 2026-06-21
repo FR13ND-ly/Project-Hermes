@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ai.id, ai.container_name, ai.memory_limit_mb, a.workspace_id\n                 FROM app_instances ai JOIN apps a ON ai.app_id = a.id\n                 WHERE ai.status = 'running' AND ai.memory_limit_mb > 0",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "container_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "memory_limit_mb",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "7910506d1c2de80a3c04e3be3f725b9f489f180a7f9c84434c1ea973203276e5"
+}

@@ -26,9 +26,9 @@ pub async fn check_workspace_memory_limit(
     let app_mem = match exclude_resource_id {
         Some(exclude_id) => {
             sqlx::query_scalar!(
-                "SELECT COALESCE(SUM(ai.memory_limit_mb), 0)::bigint 
-                 FROM app_instances ai 
-                 JOIN apps a ON ai.app_id = a.id 
+                "SELECT COALESCE(SUM(ai.memory_limit_mb * ai.replicas_max), 0)::bigint
+                 FROM app_instances ai
+                 JOIN apps a ON ai.app_id = a.id
                  WHERE a.workspace_id = $1 AND ai.id != $2 AND ai.status NOT IN ('stopped', 'failed')",
                 workspace_id,
                 exclude_id
@@ -39,9 +39,9 @@ pub async fn check_workspace_memory_limit(
         }
         None => {
             sqlx::query_scalar!(
-                "SELECT COALESCE(SUM(ai.memory_limit_mb), 0)::bigint 
-                 FROM app_instances ai 
-                 JOIN apps a ON ai.app_id = a.id 
+                "SELECT COALESCE(SUM(ai.memory_limit_mb * ai.replicas_max), 0)::bigint
+                 FROM app_instances ai
+                 JOIN apps a ON ai.app_id = a.id
                  WHERE a.workspace_id = $1 AND ai.status NOT IN ('stopped', 'failed')",
                 workspace_id
             )
@@ -145,7 +145,7 @@ pub async fn check_workspace_cpu_limit(
     // CPU itself), so it's not counted here.
     let total_used = sqlx::query_scalar!(
         r#"SELECT (
-            COALESCE((SELECT SUM(ai.cpu_limit) FROM app_instances ai JOIN apps a ON ai.app_id = a.id
+            COALESCE((SELECT SUM(ai.cpu_limit * ai.replicas_max) FROM app_instances ai JOIN apps a ON ai.app_id = a.id
                       WHERE a.workspace_id = $1 AND ai.id != $2 AND ai.status NOT IN ('stopped','failed')), 0)
           + COALESCE((SELECT SUM(d.cpu_limit) FROM databases d
                       WHERE d.workspace_id = $1 AND d.id != $2 AND d.status NOT IN ('stopped','failed')), 0)

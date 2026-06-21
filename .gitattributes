@@ -1,0 +1,5 @@
+# sqlx checksums migration files by their raw bytes, so CRLF/LF drift breaks
+# startup with "migration ... was previously applied but has been modified".
+# Force LF for SQL (and keep shell scripts LF too) regardless of core.autocrlf.
+*.sql text eol=lf
+*.sh text eol=lf

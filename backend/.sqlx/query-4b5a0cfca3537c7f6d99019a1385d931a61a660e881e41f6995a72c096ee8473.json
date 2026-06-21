@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO domains (id, workspace_id, fqdn, target_type, target_id, routing_type, client_max_body_size, is_ssl, nginx_target_host, nginx_root_path, nginx_config_content, created_by, status, cloudflare_zone_id, cloudflare_record_id)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'active'::domain_status, $13, $14)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Uuid",
+        {
+          "Custom": {
+            "name": "domain_routing_type",
+            "kind": {
+              "Enum": [
+                "reverse_proxy",
+                "static_host",
+                "custom"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Bool",
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Uuid",
+        "Varchar",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4b5a0cfca3537c7f6d99019a1385d931a61a660e881e41f6995a72c096ee8473"
+}

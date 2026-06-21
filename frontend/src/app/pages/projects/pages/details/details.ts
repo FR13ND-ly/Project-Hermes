@@ -1,7 +1,6 @@
 import { Component, inject, signal, OnInit, OnDestroy, computed } from '@angular/core';
 import { ActivatedRoute, RouterLink, RouterOutlet, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { DatePipe } from '@angular/common';
 import { forkJoin, Subscription } from 'rxjs';
 import { ProjectService, AppDetail, Project, EnvVarInput, ProjectEnvResponse, ComposePlan } from '../../../../core/services/project.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -12,7 +11,7 @@ import { WebSocketService } from '../../../../core/services/websocket.service';
 
 @Component({
   selector: 'app-details',
-  imports: [RouterLink, RouterOutlet, FormsModule, DatePipe, EnvLinkModal],
+  imports: [RouterLink, RouterOutlet, FormsModule, EnvLinkModal],
   templateUrl: './details.html',
   styleUrl: './details.css',
 })
@@ -50,6 +49,7 @@ export class Details implements OnInit, OnDestroy {
   readonly internalPort = signal<number>(8080);
   readonly externalPort = signal<number | null>(null);
   readonly gitSubpath = signal('');
+  readonly enableBaas = signal(false);
   readonly detectedSubdirectories = signal<string[]>([]);
   readonly subpathSelectionMode = signal<'select' | 'custom'>('select');
   readonly selectedSubpathOption = signal('');
@@ -321,6 +321,14 @@ export class Details implements OnInit, OnDestroy {
     });
   }
 
+  toggleComposeAppBaas(index: number): void {
+    this.composePlan.update(p => {
+      if (!p) return p;
+      const apps = p.apps.map((a, i) => i === index ? { ...a, enableBaas: !a.enableBaas } : a);
+      return { ...p, apps };
+    });
+  }
+
   toggleComposeDb(index: number): void {
     this.composePlan.update(p => {
       if (!p) return p;
@@ -539,7 +547,8 @@ export class Details implements OnInit, OnDestroy {
       gitSubpath: this.gitSubpath() || undefined,
       gitCredentialId: this.selectedCredentialId() || undefined,
       envVariables: envVariables.length > 0 ? envVariables : undefined,
-      linkedProjectEnvIds: this.selectedProjectEnvIds().length > 0 ? this.selectedProjectEnvIds() : undefined
+      linkedProjectEnvIds: this.selectedProjectEnvIds().length > 0 ? this.selectedProjectEnvIds() : undefined,
+      enableBaas: this.enableBaas()
     }).subscribe({
       next: (res) => {
         this.deployingApp.set(false);
@@ -555,6 +564,7 @@ export class Details implements OnInit, OnDestroy {
         this.newAppEnvRows.set([]);
         this.selectedProjectEnvIds.set([]);
         this.newAppEnvJsonMode.set(false);
+        this.enableBaas.set(false);
         this.selectedImportRepo.set(null);
         this.isCustomGitUrl.set(false);
         this.toast.success('Aplicația a fost înregistrată pentru deployment cu succes!');
@@ -722,5 +732,22 @@ export class Details implements OnInit, OnDestroy {
   get activeTab(): string {
     const urlParts = this.router.url.split('/');
     return urlParts[3] || 'overview';
+  }
+
+  /** Whether the given sidebar tab is the active one (overview also matches ''). */
+  isTabActive(tab: string): boolean {
+    const active = this.activeTab;
+    if (tab === 'overview') {
+      return active === 'overview' || active === '';
+    }
+    return active === tab;
+  }
+
+  /** Class string for a sidebar tab link (active vs inactive variant). */
+  tabClass(tab: string): string {
+    const base = 'px-3 py-2.5 rounded-md text-xs flex items-center gap-2.5 transition-colors cursor-pointer';
+    return this.isTabActive(tab)
+      ? `${base} font-semibold text-white bg-zinc-900 border border-zinc-850`
+      : `${base} text-zinc-400 hover:text-zinc-200 hover:bg-zinc-950/40`;
   }
 }

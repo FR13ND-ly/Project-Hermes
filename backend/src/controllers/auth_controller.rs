@@ -1,4 +1,4 @@
-use axum::{extract::{State, Path}, http::StatusCode, Json};
+use axum::{extract::{State, Path}, http::{HeaderMap, StatusCode}, Json};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 use chrono::Utc;
@@ -11,10 +11,43 @@ use crate::dtos::auth_dto::{
 use crate::models::user_model::{User, UserStatus};
 use crate::utils::{crypto, jwt, error::AppError};
 
+/// Extracts the real client IP, honouring the reverse proxy's forwarding headers.
+fn extract_client_ip(headers: &HeaderMap) -> Option<String> {
+    headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.split(',').next())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .or_else(|| {
+            headers
+                .get("x-real-ip")
+                .and_then(|v| v.to_str().ok())
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+        })
+}
+
 pub async fn login(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(payload): Json<LoginRequest>,
 ) -> Result<Json<AuthTokenResponse>, AppError> {
+    let client_ip = extract_client_ip(&headers);
+    let user_agent = headers
+        .get(axum::http::header::USER_AGENT)
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+
+    // Brute-force throttle, keyed by client IP (falls back to a shared bucket if
+    // the proxy didn't forward an IP).
+    let rate_key = client_ip.clone().unwrap_or_else(|| "unknown".to_string());
+    if !crate::utils::locks::check_rate_limit(&state.pool, &format!("login:{}", rate_key), 10, 300).await {
+        return Err(AppError::RateLimited(
+            "Too many login attempts. Please try again in a few minutes.".to_string(),
+        ));
+    }
+
     let user = sqlx::query_as::<_, User>(
         "SELECT * FROM users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($1)"
     )
@@ -53,7 +86,7 @@ pub async fn login(
 
     sqlx::query!(
         "UPDATE users SET last_login_at = now(), last_login_ip = $1, last_login_user_agent = $2 WHERE id = $3",
-        payload.client_ip, payload.user_agent, user.id
+        client_ip, user_agent, user.id
     )
     .execute(&state.pool)
     .await?;

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE app_instances SET consecutive_health_failures = 0\n         WHERE id = $1 AND consecutive_health_failures <> 0",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f9d2c6f9f0895f741d8e9485d34387d5a657f83cbc31422b150172f59e67f660"
+}

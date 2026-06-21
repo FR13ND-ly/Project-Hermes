@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM app_env_links WHERE app_instance_id = $1 AND project_env_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e57a73ec60d646c777b03a873e52b659294ae0394bbd7a64532f6f6d1f38992f"
+}

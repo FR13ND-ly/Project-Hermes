@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE domains SET target_type = 'serverless', target_id = $1, routing_type = 'reverse_proxy', nginx_target_host = $2, nginx_root_path = NULL, nginx_config_content = NULL\n                     WHERE workspace_id = $3 AND fqdn = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f228a29efed14cf6ef7968cf28b6aaef8a621186a0a664e7cfddd61a0086f2e8"
+}

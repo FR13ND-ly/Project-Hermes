@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT host, encrypted_private_key, nonce FROM project_ssh_keys WHERE project_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "host",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "encrypted_private_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "nonce",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "101c2a0d296e8822b19399e199778a717dfd1f1d9f9216b2e12b7d87ed6c7d7e"
+}

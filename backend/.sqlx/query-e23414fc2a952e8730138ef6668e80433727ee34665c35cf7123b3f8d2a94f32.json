@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE domains\n         SET routing_type = $1, client_max_body_size = $2, is_ssl = $3, nginx_target_host = $4, nginx_root_path = $5, nginx_config_content = $6, updated_at = now()\n         WHERE id = $7",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "domain_routing_type",
+            "kind": {
+              "Enum": [
+                "reverse_proxy",
+                "static_host",
+                "custom"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Bool",
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e23414fc2a952e8730138ef6668e80433727ee34665c35cf7123b3f8d2a94f32"
+}

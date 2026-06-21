@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS(\n                    SELECT 1 FROM app_instances WHERE external_port = $1\n                    UNION\n                    SELECT 1 FROM databases WHERE external_port = $1 AND is_external = true\n                    UNION\n                    SELECT 1 FROM serverless_instances WHERE external_port = $1\n                )",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "e686dea49d9d5a1b8f905b432a7081ed72b9e368fed9fe1980bb6d4384d3d3d8"
+}

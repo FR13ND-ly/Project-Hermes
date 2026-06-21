@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE app_builds SET status = 'superseded', phase = 'superseded'\n         WHERE app_instance_id = $1 AND id <> $2 AND status IN ('queued', 'building')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d3b6bdc67468451e8287ad11d6b5b0304e0f5dc3d94cb08e7dc89ca990e15993"
+}

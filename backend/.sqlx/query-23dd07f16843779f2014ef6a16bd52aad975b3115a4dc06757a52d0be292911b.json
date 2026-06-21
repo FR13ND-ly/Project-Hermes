@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.name FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE ai.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "23dd07f16843779f2014ef6a16bd52aad975b3115a4dc06757a52d0be292911b"
+}

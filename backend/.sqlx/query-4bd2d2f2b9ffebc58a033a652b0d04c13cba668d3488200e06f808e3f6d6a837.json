@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO project_env_variables (id, workspace_id, project_id, key, encrypted_value, nonce, is_secret, source, source_id)\n                 VALUES ($1, $2, $3, $4, $5, $6, $7, 'storage', $8)\n                 ON CONFLICT (project_id, key)\n                 DO UPDATE SET encrypted_value = $5, nonce = $6, is_secret = $7, source = 'storage', source_id = $8, updated_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Text",
+        "Varchar",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4bd2d2f2b9ffebc58a033a652b0d04c13cba668d3488200e06f808e3f6d6a837"
+}

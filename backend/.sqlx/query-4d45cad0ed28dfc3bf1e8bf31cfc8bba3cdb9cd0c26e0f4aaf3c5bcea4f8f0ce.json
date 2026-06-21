@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n                (SELECT COALESCE(SUM(ai.memory_limit_mb), 0)::bigint \n                 FROM app_instances ai \n                 JOIN apps a ON ai.app_id = a.id \n                 WHERE a.workspace_id = $1 AND ai.status = 'running') as \"app_mem!\",\n                (SELECT COALESCE(SUM(d.memory_limit_mb), 0)::bigint \n                 FROM databases d \n                 WHERE d.workspace_id = $1 AND d.status = 'running') as \"db_mem!\",\n                (\n                    (SELECT COALESCE(COUNT(*), 0) \n                     FROM databases d \n                     WHERE d.workspace_id = $1 AND d.status = 'running')\n                    +\n                    (SELECT COALESCE(COUNT(*), 0) \n                     FROM app_volumes av\n                     JOIN app_instances ai ON av.app_id = ai.app_id\n                     WHERE av.workspace_id = $1 AND ai.status = 'running')\n                ) as \"db_storage!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "app_mem!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "db_mem!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "db_storage!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "4d45cad0ed28dfc3bf1e8bf31cfc8bba3cdb9cd0c26e0f4aaf3c5bcea4f8f0ce"
+}

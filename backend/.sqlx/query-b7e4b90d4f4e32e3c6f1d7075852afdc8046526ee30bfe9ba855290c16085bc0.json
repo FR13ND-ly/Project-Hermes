@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(*)\n         FROM app_incident_logs il\n         JOIN app_instances ai ON il.app_instance_id = ai.id\n         JOIN apps a ON ai.app_id = a.id\n         WHERE a.project_id = $1 AND il.workspace_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "b7e4b90d4f4e32e3c6f1d7075852afdc8046526ee30bfe9ba855290c16085bc0"
+}

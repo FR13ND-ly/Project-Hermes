@@ -149,12 +149,15 @@ pub async fn create_instance(
 ) -> Result<(StatusCode, Json<InstanceResponse>), AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| AppError::Validation("No active workspace selected.".to_string()))?;
 
+    // Serialize quota-sensitive mutations per workspace (atomic check + insert).
+    let _ws_guard = crate::utils::locks::acquire_workspace_lock(&state.pool, ws_id).await?;
+
     let name = payload.name.trim().to_string();
     if slugify(&name).is_empty() {
         return Err(AppError::Validation("Numele instanței este invalid.".to_string()));
     }
     let runtime = payload.runtime.clone().unwrap_or_else(|| "nodejs-cjs".to_string());
-    let memory = payload.memory_limit_mb.unwrap_or(128);
+    let memory = payload.memory_limit_mb.unwrap_or(0); // 0 = unlimited (no forced default)
 
     crate::utils::limits::check_workspace_memory_limit(&state.pool, ws_id, memory as i64, None).await?;
 
@@ -192,6 +195,9 @@ pub async fn update_instance(
     Json(payload): Json<UpdateInstanceRequest>,
 ) -> Result<Json<InstanceResponse>, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| AppError::Validation("No active workspace selected.".to_string()))?;
+
+    // Serialize quota-sensitive mutations per workspace (atomic check + update).
+    let _ws_guard = crate::utils::locks::acquire_workspace_lock(&state.pool, ws_id).await?;
 
     let inst = sqlx::query_as::<_, ServerlessInstance>("SELECT * FROM serverless_instances WHERE id = $1 AND workspace_id = $2")
         .bind(id).bind(ws_id).fetch_optional(&state.pool).await?
@@ -299,6 +305,9 @@ pub async fn delete_instance(
     for inst_id in linked {
         crate::controllers::env_variable_controller::hot_reload_if_running(&state.pool, inst_id);
     }
+
+    // Tear down any custom domains attached to this function (DNS, nginx, ingress + row).
+    crate::controllers::domain_controller::purge_domains_for_target(&state.pool, ws_id, "serverless", id).await;
 
     sqlx::query!("DELETE FROM serverless_instances WHERE id = $1", id).execute(&state.pool).await?;
 
@@ -595,7 +604,7 @@ pub async fn deploy_instance(
         };
 
         let limits = sqlx::query!("SELECT max_memory_mb, max_storage_gb, max_cpu_millicores FROM workspaces WHERE id = $1", ws_id).fetch_one(&pool).await;
-        let (max_mem, max_storage, max_cpu) = match limits { Ok(r) => (r.max_memory_mb, r.max_storage_gb, r.max_cpu_millicores), Err(_) => (2048, 10, 0) };
+        let (max_mem, max_storage, max_cpu) = match limits { Ok(r) => (r.max_memory_mb, r.max_storage_gb, r.max_cpu_millicores), Err(_) => (0, 0, 0) };
         let namespace = format!("hermes-ws-{}", ws_id);
         let _ = K8sManager::create_namespace(&k8s_client, &namespace, max_mem, max_storage, max_cpu).await;
 

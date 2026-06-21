@@ -55,4 +55,9 @@ pub struct AppInstance {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub external_port: Option<i32>,
+    pub replicas_min: i32,
+    pub replicas_max: i32,
+    pub autoscale_cpu_percent: i32,
+    pub auto_sleep_enabled: bool,
+    pub auto_sleep_after_minutes: i32,
 }

@@ -5,7 +5,8 @@ use chrono::{DateTime, Utc};
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AssignRoleRequest {
-    pub email: String,
+    /// The end user's per-app unique identifier.
+    pub identifier: String,
     pub role: String,
 }
 
@@ -20,8 +21,7 @@ pub struct RemoveRoleRequest {
 #[serde(rename_all = "camelCase")]
 pub struct AppUserWithRolesResponse {
     pub app_user_id: Uuid,
-    pub email: String,
-    pub full_name: String,
+    pub identifier: String,
     pub status: String,
     pub last_login: Option<DateTime<Utc>>,
     pub roles: Vec<String>,
@@ -30,29 +30,48 @@ pub struct AppUserWithRolesResponse {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppUserRegisterRequest {
-    pub email: String,
-    /// The plaintext password. `passwordHash` accepted as a legacy alias.
-    #[serde(alias = "passwordHash")]
+    /// Whatever the app uses as a unique handle (email, username, phone, …). Opaque.
+    pub identifier: String,
     pub password: String,
-    pub full_name: String,
+    /// Extra claims to embed in the access token. Only honoured for server-to-server
+    /// calls that prove they are the app backend via the `X-Hermes-Auth-Secret`
+    /// header; ignored otherwise. Reserved claim names are stripped.
+    #[serde(default)]
+    pub additional_claims: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppUserLoginRequest {
-    pub email: String,
-    /// The plaintext password. `passwordHash` accepted as a legacy alias.
-    #[serde(alias = "passwordHash")]
+    pub identifier: String,
     pub password: String,
+    #[serde(default)]
+    pub additional_claims: Option<serde_json::Value>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RefreshTokenRequest {
+    pub refresh_token: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LogoutRequest {
+    pub refresh_token: String,
+}
+
+/// Access + refresh token pair, OAuth2-style.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppUserAuthResponse {
-    pub token: String,
+    pub access_token: String,
+    pub refresh_token: String,
+    pub token_type: String,
+    /// Access-token lifetime in seconds.
+    pub expires_in: i64,
     pub app_user_id: Uuid,
-    pub email: String,
-    pub full_name: String,
+    pub identifier: String,
     pub roles: Vec<String>,
     pub permissions: Vec<String>,
 }
@@ -119,7 +138,7 @@ pub struct VerifyTokenResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub app_user_id: Option<Uuid>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub email: Option<String>,
+    pub identifier: Option<String>,
     pub roles: Vec<String>,
     pub permissions: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -150,6 +169,8 @@ pub struct AuthIntegrationResponse {
     pub auth_secret: String,
     pub register_endpoint: String,
     pub login_endpoint: String,
+    pub refresh_endpoint: String,
+    pub logout_endpoint: String,
     pub verify_token_endpoint: String,
     pub verify_key_endpoint: String,
 }

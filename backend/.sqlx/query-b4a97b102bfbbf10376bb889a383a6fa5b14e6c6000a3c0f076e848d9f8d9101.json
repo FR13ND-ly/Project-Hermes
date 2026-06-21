@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ab.id, ab.status, ab.logs, ab.app_instance_id\n         FROM app_builds ab\n         JOIN apps a ON ab.app_id = a.id\n         WHERE ab.id = $1 AND ab.app_id = $2 AND a.workspace_id = $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "logs",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "app_instance_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b4a97b102bfbbf10376bb889a383a6fa5b14e6c6000a3c0f076e848d9f8d9101"
+}

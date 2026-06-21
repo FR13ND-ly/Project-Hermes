@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT w.id AS workspace_id, w.created_by, u.github_token, u.github_username\n         FROM workspaces w\n         JOIN users u ON w.created_by = u.id\n         WHERE u.github_token IS NOT NULL AND u.github_token <> ''\n           AND NOT EXISTS (\n             SELECT 1 FROM git_credentials gc\n             WHERE gc.workspace_id = w.id AND gc.provider = 'github'\n           )",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "created_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "github_token",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "github_username",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "79d424c058d4619e96f27588e7eb0bb6bd3a9ea7ff29b5e35efece27e8157239"
+}

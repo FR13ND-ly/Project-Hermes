@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT f.id, f.name, f.runtime, f.project_id, p.name AS project_name,\n                  f.workspace_id, w.name AS workspace_name, f.updated_at\n           FROM serverless_instances f\n           JOIN projects p ON f.project_id = p.id\n           JOIN workspaces w ON f.workspace_id = w.id\n           WHERE f.status = 'building'\n             AND ($1::uuid IS NULL OR f.workspace_id = $1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "runtime",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "project_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "project_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "workspace_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "01a3f177d9644398fda4a30de5aced2bbe733980c6564be1d10964a1ca10f16e"
+}

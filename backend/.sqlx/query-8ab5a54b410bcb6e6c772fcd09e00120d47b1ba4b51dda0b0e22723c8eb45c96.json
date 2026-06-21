@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE project_env_variables\n             SET encrypted_value = $1, nonce = $2, is_secret = $3, updated_at = now()\n             WHERE id = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Varchar",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8ab5a54b410bcb6e6c772fcd09e00120d47b1ba4b51dda0b0e22723c8eb45c96"
+}

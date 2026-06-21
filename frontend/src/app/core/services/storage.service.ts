@@ -169,10 +169,6 @@ export class StorageService {
     return this.api.getStreamUrl(`/storage/upload/${fileId}/progress`);
   }
 
-  generateBucketToken(bucketId: string): Observable<{ token: string, expiresAt: string }> {
-    return this.api.post<{ token: string, expiresAt: string }>(`/storage/buckets/${bucketId}/token`, {});
-  }
-
   rotateCredentials(bucketId: string): Observable<{ app_id: string; secret_key: string }> {
     return this.api.post<{ app_id: string; secret_key: string }>(`/storage/buckets/${bucketId}/rotate-credentials`, {});
   }

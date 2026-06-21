@@ -81,6 +81,8 @@ pub struct PlanApp {
     pub depends_on: Vec<String>,
     /// Default selection state for the preview.
     pub include: bool,
+    #[serde(default)]
+    pub enable_baas: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

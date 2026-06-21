@@ -55,6 +55,9 @@ base64 = "0.21"
 bollard = "0.15"
 rand = "0.10.1"
 nanoid = "0.4"
+
+# Protocol-level Redis backup/restore (per-key DUMP/RESTORE) — no RDB file in the pod.
+redis = { version = "0.27", features = ["tokio-comp"] }
 rust-s3 = { version = "0.33.0", default-features = false, features = ["tokio-rustls-tls"] }
 percent-encoding = "2.3"
 zenwebp = "0.4.4"
@@ -63,7 +66,14 @@ winapi = { version = "0.3", features = ["winerror"] }
 
 cron = "0.12"
 
+# Fast dev iteration: our own crate at opt-level 0 (recompiled constantly), deps at
+# opt-level 1 (compiled once + cached, keeps runtime decent), image codecs at 3.
+# line-tables-only debuginfo keeps panic line numbers but compiles/links much faster.
 [profile.dev]
+opt-level = 0
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
 opt-level = 1
 
 [profile.dev.package.image]

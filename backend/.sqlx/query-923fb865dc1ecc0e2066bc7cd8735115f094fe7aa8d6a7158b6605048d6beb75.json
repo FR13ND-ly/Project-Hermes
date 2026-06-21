@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE serverless_builds SET status = 'failed', logs = $1, updated_at = now() WHERE id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "923fb865dc1ecc0e2066bc7cd8735115f094fe7aa8d6a7158b6605048d6beb75"
+}

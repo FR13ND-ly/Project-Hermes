@@ -17,11 +17,10 @@ pub struct TokenBundle {
 
 pub fn generate_token_bundle(user: &User, _old_secret_param: &str) -> Result<TokenBundle, AppError> {
     let now = Utc::now();
-    
-    // Extragem dinamic secretele și expirările direct din .env
-    let jwt_secret = std::env::var("JWT_SECRET")
-        .unwrap_or_else(|_| "hermes_default_secret_fallback_key_32_bytes_long!!".to_string());
-        
+
+    // Single source of truth for the signing secret (validated at startup).
+    let jwt_secret = crate::config::secrets::jwt_secret();
+
     let access_expiry_secs: i64 = std::env::var("JWT_ACCESS_EXPIRY")
         .unwrap_or_else(|_| "900".to_string())
         .parse()

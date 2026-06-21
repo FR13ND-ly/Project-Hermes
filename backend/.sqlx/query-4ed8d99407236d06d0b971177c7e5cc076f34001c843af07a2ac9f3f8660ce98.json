@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO workspaces (id, name, slug, created_by, max_memory_mb, max_storage_gb) VALUES ($1, 'Hermes System', 'hermes-system', $2, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4ed8d99407236d06d0b971177c7e5cc076f34001c843af07a2ac9f3f8660ce98"
+}

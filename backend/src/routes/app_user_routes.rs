@@ -12,6 +12,8 @@ pub fn routes(state: AppState) -> Router {
     let public_routes = Router::new()
         .route("/apps/:id/auth/register", post(app_user_controller::register_public_user))
         .route("/apps/:id/auth/login", post(app_user_controller::login_public_user))
+        .route("/apps/:id/auth/refresh", post(app_user_controller::refresh_app_token))
+        .route("/apps/:id/auth/logout", post(app_user_controller::logout_app_user))
         .route("/apps/:id/auth/verify-token", post(app_user_controller::verify_app_token))
         .route("/apps/:id/auth/verify-key", post(app_user_controller::verify_app_key));
 

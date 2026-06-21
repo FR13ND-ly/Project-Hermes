@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE app_builds SET status = 'cancelled', phase = 'cancelled', failure_reason = $2, failure_category = 'CANCELLED' WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6d3bebf375c1f1ed4aada9c0c483bf27a9aa298440eaebf2139c6cab492bd1bc"
+}

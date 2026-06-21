@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM cron_jobs WHERE target_type = 'storage' AND target_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1ffa099578341240b47fd7e05da6ed5f270aeb83e32174fc4762a180b5d9006f"
+}

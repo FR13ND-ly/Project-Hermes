@@ -1,0 +1,48 @@
+# Static dashboard (Angular bundle served by nginx:alpine). Built & pushed by
+# scripts/hermes.sh. TLS + routing are handled by the platform Ingress (80-ingress).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hermes-frontend
+  namespace: hermes-system
+  labels:
+    app: hermes-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hermes-frontend
+  template:
+    metadata:
+      labels:
+        app: hermes-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: hermes-frontend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "20m"
+              memory: "32Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hermes-frontend
+  namespace: hermes-system
+spec:
+  selector:
+    app: hermes-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80

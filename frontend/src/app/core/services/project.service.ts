@@ -37,6 +37,11 @@ export interface AppInstance {
   externalPort?: number;
   cpuLimit?: number;
   memoryLimitMb?: number;
+  replicasMin?: number;
+  replicasMax?: number;
+  autoscaleCpuPercent?: number;
+  autoSleepEnabled?: boolean;
+  autoSleepAfterMinutes?: number;
   createdAt?: string;
   metaData?: any;
 }
@@ -52,6 +57,7 @@ export interface AppDetail {
   instances: AppInstance[];
   buildCommand?: string | null;
   startCommand?: string | null;
+  enableBaas?: boolean;
 }
 
 export interface AppBuild {
@@ -100,6 +106,7 @@ export interface PlanApp {
   volumes: PlanVolume[];
   dependsOn: string[];
   include: boolean;
+  enableBaas: boolean;
 }
 export interface PlanDatabase {
   service: string;
@@ -163,6 +170,7 @@ export class ProjectService {
     gitCredentialId?: string;
     envVariables?: EnvVarInput[];
     linkedProjectEnvIds?: string[];
+    enableBaas?: boolean;
   }): Observable<any> {
     return this.api.post<any>('/apps', payload);
   }
@@ -366,6 +374,12 @@ export class ProjectService {
     externalPort?: number | null;
     buildCommand?: string | null;
     startCommand?: string | null;
+    enableBaas?: boolean;
+    replicasMin?: number;
+    replicasMax?: number;
+    autoscaleCpuPercent?: number;
+    autoSleepEnabled?: boolean;
+    autoSleepAfterMinutes?: number;
   }): Observable<any> {
     return this.api.patch<any>(`/apps/${appId}/instances/${instanceId}/settings`, payload);
   }

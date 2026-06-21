@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT pev.id, pev.project_id, pev.key, pev.encrypted_value, pev.nonce, pev.is_secret, pev.source,\n                (ael.app_instance_id IS NOT NULL) AS \"linked!\"\n         FROM project_env_variables pev\n         LEFT JOIN app_env_links ael\n           ON ael.project_env_id = pev.id AND ael.app_instance_id = $1\n         WHERE pev.project_id = $2\n         ORDER BY pev.key ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "project_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "key",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "encrypted_value",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "nonce",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "is_secret",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "source",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "linked!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "292a4ecafbd9960a2a9bae02263e92c5c6d45b930b1981c3f83baa19b90d99f6"
+}

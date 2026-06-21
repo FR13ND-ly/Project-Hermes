@@ -1,0 +1,40 @@
+# Automatic TLS for custom domains. cert-manager must be installed first:
+#   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+#
+# Then apply this file. Set the backend env HERMES_SSL_ISSUER=letsencrypt-prod
+# (deploy_ingress already adds the `cert-manager.io/cluster-issuer` annotation,
+# so every domain Ingress gets a cert automatically). Use letsencrypt-staging
+# while testing to avoid Let's Encrypt rate limits, then switch to prod.
+#
+# HTTP-01 solver routes the ACME challenge through Traefik (k3s' default ingress,
+# class name "traefik").
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: CHANGE_ME@example.com          # <-- set a real address
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+    solvers:
+      - http01:
+          ingress:
+            class: traefik
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: CHANGE_ME@example.com          # <-- set a real address
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+    solvers:
+      - http01:
+          ingress:
+            class: traefik

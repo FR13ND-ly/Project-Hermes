@@ -31,9 +31,8 @@ pub fn verify_password(password: &str, hash: &str) -> Result<bool, AppError> {
 }
 
 fn get_encryption_key() -> Result<Vec<u8>, AppError> {
-    let key_str = std::env::var("HERMES_ENCRYPTION_KEY")
-        .unwrap_or_else(|_| "0123456789abcdef0123456789abcdef".to_string());
-    Ok(key_str.as_bytes().to_vec())
+    // Validated at startup (32 bytes, no insecure fallback) — see config::secrets.
+    Ok(crate::config::secrets::encryption_key())
 }
 
 pub fn encrypt_env_value(plain_text: &str) -> Result<(String, String), AppError> {

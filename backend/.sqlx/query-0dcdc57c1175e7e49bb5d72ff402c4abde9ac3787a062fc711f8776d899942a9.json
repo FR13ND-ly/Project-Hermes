@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE storage_buckets SET app_id = $1, secret_key_encrypted = $2, secret_key_nonce = $3, updated_at = now() WHERE id = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0dcdc57c1175e7e49bb5d72ff402c4abde9ac3787a062fc711f8776d899942a9"
+}

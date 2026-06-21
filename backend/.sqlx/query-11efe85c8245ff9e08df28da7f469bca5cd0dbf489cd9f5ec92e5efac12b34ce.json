@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT app_id, secret_key_encrypted, secret_key_nonce FROM storage_buckets WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "app_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "secret_key_encrypted",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "secret_key_nonce",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "11efe85c8245ff9e08df28da7f469bca5cd0dbf489cd9f5ec92e5efac12b34ce"
+}

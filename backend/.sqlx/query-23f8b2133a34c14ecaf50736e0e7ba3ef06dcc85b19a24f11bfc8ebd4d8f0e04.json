@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM storage_buckets WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "23f8b2133a34c14ecaf50736e0e7ba3ef06dcc85b19a24f11bfc8ebd4d8f0e04"
+}

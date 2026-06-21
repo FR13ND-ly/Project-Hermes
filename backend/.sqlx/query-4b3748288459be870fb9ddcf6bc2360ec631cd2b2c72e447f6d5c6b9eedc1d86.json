@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE apps SET git_credential_id = $1\n                 WHERE workspace_id = $2 AND git_credential_id IS NULL AND git_repository ILIKE '%github.com%'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4b3748288459be870fb9ddcf6bc2360ec631cd2b2c72e447f6d5c6b9eedc1d86"
+}

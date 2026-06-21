@@ -86,14 +86,12 @@ export class WebSocketService {
 
     const wsUrl = `${environment.wsBaseUrl}/ws?token=${encodeURIComponent(token)}`;
 
-    console.log('[WebSocket] Connecting...');
     this.isConnecting = true;
 
     try {
       this.socket = new WebSocket(wsUrl);
 
       this.socket.onopen = () => {
-        console.log('[WebSocket] Connected successfully');
         this.isConnecting = false;
         this.reconnectDelay = 2000;
       };
@@ -101,7 +99,6 @@ export class WebSocketService {
       this.socket.onmessage = (event) => {
         try {
           const parsed = JSON.parse(event.data) as SystemEvent<any>;
-          console.log('[WebSocket] Event received:', parsed);
           this.eventSubject.next(parsed);
         } catch (e) {
           console.error('[WebSocket] Failed to parse message:', e);
@@ -113,7 +110,6 @@ export class WebSocketService {
       };
 
       this.socket.onclose = (event) => {
-        console.log('[WebSocket] Closed:', event);
         this.socket = null;
         this.isConnecting = false;
         if (!this.intentionalDisconnect) {
@@ -142,7 +138,6 @@ export class WebSocketService {
     if (this.reconnectTimeout || this.intentionalDisconnect) {
       return;
     }
-    console.log(`[WebSocket] Reconnecting in ${this.reconnectDelay}ms...`);
     this.reconnectTimeout = setTimeout(() => {
       this.connect();
       this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000);

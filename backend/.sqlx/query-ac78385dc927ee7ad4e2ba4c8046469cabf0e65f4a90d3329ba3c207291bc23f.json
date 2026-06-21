@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE projects SET\n            cloudflare_api_token = COALESCE($1, cloudflare_api_token),\n            cloudflare_zone_id = $2,\n            ingress_ip = $3,\n            base_domain = $4\n         WHERE id = $5 AND workspace_id = $6",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ac78385dc927ee7ad4e2ba4c8046469cabf0e65f4a90d3329ba3c207291bc23f"
+}

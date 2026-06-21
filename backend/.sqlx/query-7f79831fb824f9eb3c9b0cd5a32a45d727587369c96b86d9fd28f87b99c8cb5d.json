@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM environment_variables WHERE app_instance_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7f79831fb824f9eb3c9b0cd5a32a45d727587369c96b86d9fd28f87b99c8cb5d"
+}

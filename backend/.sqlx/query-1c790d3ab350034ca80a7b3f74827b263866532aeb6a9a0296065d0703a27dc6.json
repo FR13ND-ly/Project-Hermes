@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT pev.key, pev.encrypted_value, pev.nonce\n         FROM app_env_links ael\n         JOIN project_env_variables pev ON pev.id = ael.project_env_id\n         WHERE ael.app_instance_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "key",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "encrypted_value",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "nonce",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1c790d3ab350034ca80a7b3f74827b263866532aeb6a9a0296065d0703a27dc6"
+}

@@ -3,13 +3,16 @@ use sqlx::FromRow;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 
+/// A BaaS end user. Identity is a per-app unique `identifier` + password; nothing
+/// else is stored on the account (any extra data the app wants on the token is
+/// supplied per-request as custom claims, not persisted here).
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct AppUser {
     pub id: Uuid,
-    pub email: String,
+    pub app_id: Uuid,
+    pub identifier: String,
     #[serde(skip_serializing)]
     pub password_hash: String,
-    pub full_name: String,
     pub status: String,
     pub last_login: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,

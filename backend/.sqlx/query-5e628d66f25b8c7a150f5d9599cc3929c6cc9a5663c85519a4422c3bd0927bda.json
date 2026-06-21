@@ -1,0 +1,60 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE project_env_variables SET key = $1, updated_at = now()\n         WHERE id = $2 AND project_id = $3\n         RETURNING id, project_id, key, encrypted_value, nonce, is_secret, source",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "project_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "key",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "encrypted_value",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "nonce",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "is_secret",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "source",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5e628d66f25b8c7a150f5d9599cc3929c6cc9a5663c85519a4422c3bd0927bda"
+}

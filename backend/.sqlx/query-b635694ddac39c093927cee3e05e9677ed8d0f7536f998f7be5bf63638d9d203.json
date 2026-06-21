@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT w.url, w.webhook_type\n         FROM project_webhooks w\n         JOIN apps a ON w.project_id = a.project_id\n         JOIN app_instances ai ON a.id = ai.app_id\n         WHERE ai.id = $1 AND w.is_active = true",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "webhook_type",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "b635694ddac39c093927cee3e05e9677ed8d0f7536f998f7be5bf63638d9d203"
+}

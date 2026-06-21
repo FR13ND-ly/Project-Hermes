@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM environment_variables\n         WHERE id = $1 AND workspace_id = $2\n         RETURNING app_instance_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "app_instance_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e028925bc630b43213d7e257e6713bf7dbb24da4936efaf1a06a3b4e6be92733"
+}

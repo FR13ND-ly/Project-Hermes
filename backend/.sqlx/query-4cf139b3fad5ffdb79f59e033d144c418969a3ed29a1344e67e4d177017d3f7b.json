@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO git_credentials (id, workspace_id, provider, host, label, username, encrypted_token, nonce, created_by)\n             VALUES ($1, $2, 'github', 'github.com', 'GitHub (migrat)', $3, $4, $5, $6)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4cf139b3fad5ffdb79f59e033d144c418969a3ed29a1344e67e4d177017d3f7b"
+}

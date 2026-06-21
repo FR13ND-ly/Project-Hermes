@@ -45,6 +45,12 @@ pub struct UpdateInstanceSettingsRequest {
     pub external_port: Option<i32>,
     pub build_command: Option<String>,
     pub start_command: Option<String>,
+    pub enable_baas: Option<bool>,
+    pub replicas_min: Option<i32>,
+    pub replicas_max: Option<i32>,
+    pub autoscale_cpu_percent: Option<i32>,
+    pub auto_sleep_enabled: Option<bool>,
+    pub auto_sleep_after_minutes: Option<i32>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -171,6 +177,13 @@ pub async fn create_app(
     .execute(&state.pool)
     .await?;
 
+    // Production instances do not auto-sleep by default (the column default is for
+    // non-production); set it explicitly so a new production app stays up.
+    sqlx::query("UPDATE app_instances SET auto_sleep_enabled = false WHERE id = $1")
+        .bind(instance_id)
+        .execute(&state.pool)
+        .await?;
+
     // Provision any environment variables supplied at creation time.
     if let Some(vars) = &payload.env_variables {
         for var in vars {
@@ -239,27 +252,22 @@ pub async fn create_app(
     }
 
     // Generate the app's BaaS signing secret up front so it's published to the
-    // project pool and linked to the new instance from the start.
-    if let Err(e) = crate::utils::app_auth::get_or_create_app_auth_secret(
-        &state.pool, app_id, ws_id, payload.project_id,
-    ).await {
-        tracing::warn!(app_id = %app_id, "Failed to provision BaaS auth secret: {}", e);
+    // project pool if requested.
+    if payload.enable_baas.unwrap_or(false) {
+        if let Err(e) = crate::utils::app_auth::get_or_create_app_auth_secret(
+            &state.pool, app_id, ws_id, payload.project_id,
+        ).await {
+            tracing::warn!(app_id = %app_id, "Failed to provision BaaS auth secret: {}", e);
+        }
     }
 
-    let pool_clone = state.pool.clone();
-    let git_repo = payload.git_repository.clone();
-    let branch_clone = branch.clone();
-    let build_cmd = payload.build_command.clone();
-
-    tokio::spawn(async move {
-        crate::utils::builder::run_ephemeral_build(
-            pool_clone,
-            instance_id,
-            git_repo,
-            branch_clone,
-            build_cmd,
-        ).await;
-    });
+    let _ = crate::utils::job_queue::enqueue_build(
+        &state.pool,
+        instance_id,
+        payload.git_repository.clone(),
+        branch.clone(),
+        payload.build_command.clone(),
+    ).await;
 
     // Try to retrieve user's github token and auto-register webhook
     let user_token = sqlx::query!("SELECT github_token FROM users WHERE id = $1", claims.sub)
@@ -336,6 +344,13 @@ pub async fn create_app(
         container_name,
         external_port: Some(external_port),
         meta_data: serde_json::json!({}),
+        cpu_limit: 0,
+        memory_limit_mb: 0,
+        replicas_min: 1,
+        replicas_max: 1,
+        autoscale_cpu_percent: 80,
+        auto_sleep_enabled: false,
+        auto_sleep_after_minutes: 30,
     }];
 
     Ok((
@@ -352,6 +367,7 @@ pub async fn create_app(
             build_command: payload.build_command,
             start_command: payload.start_command,
             created_at: chrono::Utc::now(),
+            enable_baas: payload.enable_baas.unwrap_or(false),
         }),
     ))
 }
@@ -366,6 +382,9 @@ pub async fn create_branch_instance(
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
+    // Serialize quota-sensitive mutations per workspace (atomic check + insert).
+    let _ws_guard = crate::utils::locks::acquire_workspace_lock(&state.pool, ws_id).await?;
+
     let app = sqlx::query_as::<_, App>("SELECT * FROM apps WHERE id = $1 AND workspace_id = $2")
         .bind(app_id).bind(ws_id).fetch_optional(&state.pool).await?
         .ok_or_else(|| AppError::NotFound("Parent application not found.".to_string()))?;
@@ -379,52 +398,69 @@ pub async fn create_branch_instance(
         _ => get_random_available_port(&state.pool).await?,
     };
 
+    // Replica range: min >= 1, max >= min. min == max → fixed count; max > min → HPA.
+    let replicas_min = payload.replicas_min.unwrap_or(1).max(1);
+    let replicas_max = payload.replicas_max.unwrap_or(replicas_min).max(replicas_min);
+    let autoscale_cpu_percent = payload.autoscale_cpu_percent.unwrap_or(80).clamp(1, 100);
+    // Auto-sleep defaults on for non-production instances (preserves prior behaviour).
+    let auto_sleep_enabled = payload.auto_sleep_enabled
+        .unwrap_or(!matches!(payload.instance_type, crate::models::app_model::AppInstanceType::Production));
+    let auto_sleep_after_minutes = payload.auto_sleep_after_minutes.unwrap_or(30).clamp(1, 10080);
+
+    // Quota checks account for full scale-out (per-replica limit × max replicas).
     let requested_mem = payload.memory_limit_mb.unwrap_or(0);
     if requested_mem > 0 {
         crate::utils::limits::check_workspace_memory_limit(
             &state.pool,
             ws_id,
-            requested_mem,
+            requested_mem * replicas_max as i64,
             None
         ).await?;
     }
     let requested_cpu = payload.cpu_limit.unwrap_or(0);
     if requested_cpu > 0 {
-        crate::utils::limits::check_workspace_cpu_limit(&state.pool, ws_id, requested_cpu, None).await?;
+        crate::utils::limits::check_workspace_cpu_limit(&state.pool, ws_id, requested_cpu * replicas_max, None).await?;
     }
 
     sqlx::query!(
-        "INSERT INTO app_instances (id, app_id, branch_name, instance_type, status, internal_port, assigned_domain, container_name, cpu_limit, memory_limit_mb, external_port)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
-        instance_id, 
-        app_id, 
-        payload.branch_name, 
-        payload.instance_type.clone() as AppInstanceType, 
-        AppStatus::Building as AppStatus, 
-        internal_port, 
-        assigned_domain, 
-        container_name, 
-        payload.cpu_limit.unwrap_or(0), 
+        "INSERT INTO app_instances (id, app_id, branch_name, instance_type, status, internal_port, assigned_domain, container_name, cpu_limit, memory_limit_mb, external_port, replicas_min, replicas_max)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
+        instance_id,
+        app_id,
+        payload.branch_name,
+        payload.instance_type.clone() as AppInstanceType,
+        AppStatus::Building as AppStatus,
+        internal_port,
+        assigned_domain,
+        container_name,
+        payload.cpu_limit.unwrap_or(0),
         payload.memory_limit_mb.unwrap_or(0),
-        external_port
+        external_port,
+        replicas_min,
+        replicas_max
     )
     .execute(&state.pool)
     .await?;
 
-    let pool_clone = state.pool.clone();
-    let git_repo = app.git_repository.clone();
-    let branch_clone = payload.branch_name.clone();
-    let build_cmd = app.build_command.clone();
+    // The INSERT above leaves the scaling/auto-sleep columns at their defaults; set the
+    // requested values separately (keeps the cached INSERT query untouched).
+    sqlx::query(
+        "UPDATE app_instances SET autoscale_cpu_percent = $1, auto_sleep_enabled = $2, auto_sleep_after_minutes = $3 WHERE id = $4",
+    )
+        .bind(autoscale_cpu_percent)
+        .bind(auto_sleep_enabled)
+        .bind(auto_sleep_after_minutes)
+        .bind(instance_id)
+        .execute(&state.pool)
+        .await?;
 
-    tokio::spawn(async move {
-        crate::utils::builder::run_ephemeral_build(
-            pool_clone,
-            instance_id,
-            git_repo,
-            branch_clone,
-            build_cmd,
-        ).await;
-    });
+    let _ = crate::utils::job_queue::enqueue_build(
+        &state.pool,
+        instance_id,
+        app.git_repository.clone(),
+        payload.branch_name.clone(),
+        app.build_command.clone(),
+    ).await;
 
     Ok((
         StatusCode::CREATED,
@@ -438,6 +474,13 @@ pub async fn create_branch_instance(
             container_name,
             external_port: Some(external_port),
             meta_data: serde_json::json!({}),
+            cpu_limit: requested_cpu,
+            memory_limit_mb: requested_mem,
+            replicas_min,
+            replicas_max,
+            autoscale_cpu_percent,
+            auto_sleep_enabled,
+            auto_sleep_after_minutes,
         }),
     ))
 }
@@ -468,7 +511,22 @@ pub async fn get_app_details(
         container_name: inst.container_name,
         external_port: inst.external_port,
         meta_data: inst.meta_data,
+        cpu_limit: inst.cpu_limit,
+        memory_limit_mb: inst.memory_limit_mb,
+        replicas_min: inst.replicas_min,
+        replicas_max: inst.replicas_max,
+        autoscale_cpu_percent: inst.autoscale_cpu_percent,
+        auto_sleep_enabled: inst.auto_sleep_enabled,
+        auto_sleep_after_minutes: inst.auto_sleep_after_minutes,
     }).collect();
+
+    let enable_baas = sqlx::query_scalar!(
+        "SELECT EXISTS(SELECT 1 FROM project_env_variables WHERE source = 'baas_auth' AND source_id = $1)",
+        app.id
+    )
+    .fetch_one(&state.pool)
+    .await?
+    .unwrap_or(false);
 
     Ok(Json(AppDetailedResponse {
         id: app.id,
@@ -482,6 +540,7 @@ pub async fn get_app_details(
         build_command: app.build_command,
         start_command: app.start_command,
         created_at: app.created_at,
+        enable_baas,
     }))
 }
 
@@ -519,6 +578,9 @@ pub async fn delete_app_instance(
     sqlx::query!("DELETE FROM environment_variables WHERE app_instance_id = $1", instance_id)
         .execute(&state.pool)
         .await?;
+
+    // Tear down any custom domains attached to this instance (DNS, nginx, ingress + row).
+    crate::controllers::domain_controller::purge_domains_for_target(&state.pool, ws_id, "app", instance_id).await;
 
     sqlx::query!("DELETE FROM app_instances WHERE id = $1", instance_id)
         .execute(&state.pool)
@@ -594,7 +656,14 @@ pub async fn start_app_instance(
     let container_name = instance.container_name.clone();
 
     let k8s_client = crate::utils::k8s::K8sManager::get_client().await?;
-    crate::utils::k8s::K8sManager::scale_deployment(&k8s_client, &namespace, &container_name, 1).await?;
+    // Restore the configured baseline, not a hard-coded 1 (a min-2 app must come back at 2).
+    let replicas_min = sqlx::query_scalar::<_, i32>("SELECT replicas_min FROM app_instances WHERE id = $1")
+        .bind(instance_id)
+        .fetch_one(&state.pool)
+        .await
+        .unwrap_or(1)
+        .max(1);
+    crate::utils::k8s::K8sManager::scale_deployment(&k8s_client, &namespace, &container_name, replicas_min).await?;
 
     sqlx::query!(
         "UPDATE app_instances SET status = $1, updated_at = now() WHERE id = $2",
@@ -656,14 +725,13 @@ pub async fn redeploy_app_instance(
     .execute(&state.pool)
     .await?;
 
-    let pool_clone = state.pool.clone();
-    let git_repo = meta.git_repository.clone();
-    let branch = meta.branch_name.clone();
-    let build_cmd = meta.build_command.clone();
-    let iid = meta.id;
-    tokio::spawn(async move {
-        crate::utils::builder::run_ephemeral_build(pool_clone, iid, git_repo, branch, build_cmd).await;
-    });
+    let _ = crate::utils::job_queue::enqueue_build(
+        &state.pool,
+        meta.id,
+        meta.git_repository.clone(),
+        meta.branch_name.clone(),
+        meta.build_command.clone(),
+    ).await;
 
     Ok(StatusCode::ACCEPTED)
 }
@@ -689,13 +757,7 @@ pub async fn reload_app_instance(
     .await?
     .ok_or_else(|| AppError::NotFound("Application branch instance not found.".to_string()))?;
 
-    let pool_clone = state.pool.clone();
-    let instance_id_clone = instance.id;
-
-    tokio::spawn(async move {
-        let full_image_tag = crate::utils::builder::resolve_instance_image_tag(&pool_clone, instance_id_clone).await;
-        crate::utils::builder::deploy_compiled_app(pool_clone, instance_id_clone, full_image_tag).await;
-    });
+    let _ = crate::utils::job_queue::enqueue_deploy(&state.pool, instance.id, None).await;
 
     Ok(StatusCode::OK)
 }
@@ -739,11 +801,7 @@ pub async fn configure_serverless(
     .execute(&state.pool)
     .await?;
 
-    let pool_clone = state.pool.clone();
-    tokio::spawn(async move {
-        let full_image_tag = crate::utils::builder::resolve_instance_image_tag(&pool_clone, instance_id).await;
-        crate::utils::builder::deploy_compiled_app(pool_clone, instance_id, full_image_tag).await;
-    });
+    let _ = crate::utils::job_queue::enqueue_deploy(&state.pool, instance_id, None).await;
 
     Ok(StatusCode::OK)
 }
@@ -1021,19 +1079,13 @@ pub async fn handle_github_webhook(
                     }
                 );
 
-                let pool_clone = state.pool.clone();
-                let git_repo = app.git_repository.clone();
-                let branch_clone = branch_name.clone();
-                let build_cmd = app.build_command.clone();
-                tokio::spawn(async move {
-                    crate::utils::builder::run_ephemeral_build(
-                        pool_clone,
-                        instance_id,
-                        git_repo,
-                        branch_clone,
-                        build_cmd,
-                    ).await;
-                });
+                let _ = crate::utils::job_queue::enqueue_build(
+                    &state.pool,
+                    instance_id,
+                    app.git_repository.clone(),
+                    branch_name.clone(),
+                    app.build_command.clone(),
+                ).await;
             }
         }
     }
@@ -1068,7 +1120,6 @@ pub async fn handle_github_webhook(
                             || db_repo.replace(".git", "") == clean_clone.replace(".git", "");
 
                         if is_match {
-                            let pool_clone = state.pool.clone();
                             let inst_id = record.id;
                             let git_repo = record.git_repository;
                             let branch_clone = branch_name.clone();
@@ -1091,16 +1142,10 @@ pub async fn handle_github_webhook(
                                 }
                             );
 
-                            // Trigger rebuild
-                            tokio::spawn(async move {
-                                crate::utils::builder::run_ephemeral_build(
-                                    pool_clone,
-                                    inst_id,
-                                    git_repo,
-                                    branch_clone,
-                                    build_cmd,
-                                ).await;
-                            });
+                            // Trigger rebuild (durable queue)
+                            let _ = crate::utils::job_queue::enqueue_build(
+                                &state.pool, inst_id, git_repo, branch_clone, build_cmd,
+                            ).await;
                         }
                     }
                 }
@@ -1128,24 +1173,41 @@ pub async fn list_build_queue(
 
     let mut items: Vec<BuildQueueItem> = Vec::new();
 
-    // App builds.
+    // App instances that aren't available yet. We key off the *instance* status
+    // ('building') rather than the build-row status, because an instance stays
+    // 'building' through the whole lifecycle — image build AND the post-build
+    // deploy + readiness gate (monitor_deploy_health flips it to 'running' only
+    // once the pod is actually Ready). Keying off app_builds.status dropped the
+    // item the instant the image finished, well before the app was available.
     let app_rows = sqlx::query!(
-        r#"SELECT ab.id, ab.app_id, a.name AS app_name, a.project_id, p.name AS project_name,
-                  a.workspace_id, w.name AS workspace_name, ai.branch_name, ab.status, ab.created_at
-           FROM app_builds ab
-           JOIN apps a ON ab.app_id = a.id
+        r#"SELECT ai.id AS instance_id, a.id AS app_id, a.name AS app_name, a.project_id, p.name AS project_name,
+                  a.workspace_id, w.name AS workspace_name, ai.branch_name,
+                  lb.status AS latest_build_status,
+                  COALESCE(lb.created_at, ai.updated_at) AS "started_at!"
+           FROM app_instances ai
+           JOIN apps a ON ai.app_id = a.id
            JOIN projects p ON a.project_id = p.id
            JOIN workspaces w ON a.workspace_id = w.id
-           JOIN app_instances ai ON ab.app_instance_id = ai.id
-           WHERE ab.status IN ('queued', 'building')
+           LEFT JOIN LATERAL (
+               SELECT status, created_at FROM app_builds ab
+               WHERE ab.app_instance_id = ai.id ORDER BY ab.created_at DESC LIMIT 1
+           ) lb ON true
+           WHERE ai.status = 'building'
              AND ($1::uuid IS NULL OR a.workspace_id = $1)"#,
         filter_ws
     )
     .fetch_all(&state.pool)
     .await?;
     for r in app_rows {
+        // queued → waiting for a build slot; building → image building;
+        // anything else (success / none) → image done, now deploying + warming up.
+        let status = match r.latest_build_status.as_deref() {
+            Some("queued") => "queued",
+            Some("building") => "building",
+            _ => "deploying",
+        };
         items.push(BuildQueueItem {
-            id: r.id,
+            id: r.instance_id,
             kind: "app".to_string(),
             resource_id: r.app_id,
             name: r.app_name,
@@ -1154,8 +1216,10 @@ pub async fn list_build_queue(
             project_name: r.project_name,
             workspace_id: r.workspace_id,
             workspace_name: r.workspace_name,
-            status: r.status,
-            created_at: r.created_at,
+            status: status.to_string(),
+            // Elapsed since the current build/deploy started (not instance creation,
+            // which would show days for a rebuild of an old instance).
+            created_at: r.started_at,
         });
     }
 
@@ -1482,11 +1546,7 @@ pub async fn rollback_build(
     .execute(&state.pool)
     .await?;
 
-    let pool_clone = state.pool.clone();
-    let instance_id = build.app_instance_id;
-    tokio::spawn(async move {
-        crate::utils::builder::deploy_compiled_app(pool_clone, instance_id, image_tag).await;
-    });
+    let _ = crate::utils::job_queue::enqueue_deploy(&state.pool, build.app_instance_id, Some(image_tag)).await;
 
     Ok(StatusCode::ACCEPTED)
 }
@@ -1532,16 +1592,13 @@ pub async fn retry_build(
     .execute(&state.pool)
     .await?;
 
-    let pool_clone = state.pool.clone();
-    tokio::spawn(async move {
-        crate::utils::builder::run_ephemeral_build(
-            pool_clone,
-            meta.app_instance_id,
-            meta.git_repository,
-            meta.branch_name,
-            meta.build_command,
-        ).await;
-    });
+    let _ = crate::utils::job_queue::enqueue_build(
+        &state.pool,
+        meta.app_instance_id,
+        meta.git_repository,
+        meta.branch_name,
+        meta.build_command,
+    ).await;
 
     Ok(StatusCode::ACCEPTED)
 }
@@ -1653,7 +1710,22 @@ pub async fn list_project_apps(
             container_name: inst.container_name,
             external_port: inst.external_port,
             meta_data: inst.meta_data,
+            cpu_limit: inst.cpu_limit,
+            memory_limit_mb: inst.memory_limit_mb,
+            replicas_min: inst.replicas_min,
+            replicas_max: inst.replicas_max,
+            autoscale_cpu_percent: inst.autoscale_cpu_percent,
+            auto_sleep_enabled: inst.auto_sleep_enabled,
+            auto_sleep_after_minutes: inst.auto_sleep_after_minutes,
         }).collect();
+
+        let enable_baas = sqlx::query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM project_env_variables WHERE source = 'baas_auth' AND source_id = $1)",
+            app.id
+        )
+        .fetch_one(&state.pool)
+        .await?
+        .unwrap_or(false);
 
         items.push(AppDetailedResponse {
             id: app.id,
@@ -1667,6 +1739,7 @@ pub async fn list_project_apps(
             build_command: app.build_command,
             start_command: app.start_command,
             created_at: app.created_at,
+            enable_baas,
         });
     }
 
@@ -1683,16 +1756,29 @@ pub async fn update_instance_settings(
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
+    // Serialize quota-sensitive mutations per workspace (atomic check + update).
+    let _ws_guard = crate::utils::locks::acquire_workspace_lock(&state.pool, ws_id).await?;
+
     // Verify application belongs to this workspace
-    let app_exists = sqlx::query!(
-        "SELECT id FROM apps WHERE id = $1 AND workspace_id = $2",
+    let app_meta = sqlx::query!(
+        "SELECT id, project_id FROM apps WHERE id = $1 AND workspace_id = $2",
         app_id, ws_id
     )
     .fetch_optional(&state.pool)
-    .await?;
+    .await?
+    .ok_or_else(|| AppError::NotFound("Application not found in this workspace.".to_string()))?;
 
-    if app_exists.is_none() {
-        return Err(AppError::NotFound("Application not found in this workspace.".to_string()));
+    // Handle BaaS integration update if provided
+    if let Some(enable) = payload.enable_baas {
+        if enable {
+            if let Err(e) = crate::utils::app_auth::get_or_create_app_auth_secret(
+                &state.pool, app_id, ws_id, app_meta.project_id
+            ).await {
+                tracing::warn!(app_id = %app_id, "Failed to enable BaaS auth in update settings: {}", e);
+            }
+        } else {
+            crate::utils::app_env::unpublish_project_env(&state.pool, "baas_auth", app_id).await;
+        }
     }
 
     // Verify instance belongs to this app
@@ -1752,6 +1838,15 @@ pub async fn update_instance_settings(
         .await?;
     }
 
+    // Replica range validation (only when both bounds are supplied).
+    if let (Some(mn), Some(mx)) = (payload.replicas_min, payload.replicas_max) {
+        if mn < 1 || mx < mn {
+            return Err(AppError::Validation(
+                "Replica range invalid: min must be >= 1 and max >= min.".to_string(),
+            ));
+        }
+    }
+
     // Update settings in database
     sqlx::query!(
         "UPDATE app_instances
@@ -1760,6 +1855,8 @@ pub async fn update_instance_settings(
              internal_port = COALESCE($3, internal_port),
              port_is_auto = CASE WHEN $3 IS NOT NULL THEN false ELSE port_is_auto END,
              external_port = $4,
+             replicas_min = COALESCE($6, replicas_min),
+             replicas_max = COALESCE($7, replicas_max),
              status = 'building',
              updated_at = now()
          WHERE id = $5",
@@ -1767,43 +1864,57 @@ pub async fn update_instance_settings(
         payload.memory_limit_mb,
         payload.internal_port,
         external_port,
-        instance_id
+        instance_id,
+        payload.replicas_min,
+        payload.replicas_max
     )
     .execute(&state.pool)
     .await?;
 
-    // Trigger redeployment asynchronously
-    let pool_clone = state.pool.clone();
+    // Scaling/auto-sleep columns are updated separately to keep the cached query intact.
+    if let Some(pct) = payload.autoscale_cpu_percent {
+        sqlx::query("UPDATE app_instances SET autoscale_cpu_percent = $1 WHERE id = $2")
+            .bind(pct.clamp(1, 100))
+            .bind(instance_id)
+            .execute(&state.pool)
+            .await?;
+    }
+    if let Some(enabled) = payload.auto_sleep_enabled {
+        sqlx::query("UPDATE app_instances SET auto_sleep_enabled = $1 WHERE id = $2")
+            .bind(enabled)
+            .bind(instance_id)
+            .execute(&state.pool)
+            .await?;
+    }
+    if let Some(mins) = payload.auto_sleep_after_minutes {
+        sqlx::query("UPDATE app_instances SET auto_sleep_after_minutes = $1 WHERE id = $2")
+            .bind(mins.clamp(1, 10080))
+            .bind(instance_id)
+            .execute(&state.pool)
+            .await?;
+    }
 
-    tokio::spawn(async move {
-        if rebuild_needed {
-            let app_meta = sqlx::query!(
-                "SELECT git_repository, branch_name FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE ai.id = $1",
-                instance_id
-            )
-            .fetch_one(&pool_clone)
-            .await;
-            if let Ok(meta) = app_meta {
-                let git_repo = meta.git_repository;
-                let branch_name = meta.branch_name;
-                let build_command = sqlx::query_scalar!("SELECT build_command FROM apps WHERE id = $1", app_id)
-                    .fetch_one(&pool_clone)
-                    .await
-                    .unwrap_or(None);
-                crate::utils::builder::run_ephemeral_build(
-                    pool_clone,
-                    instance_id,
-                    git_repo,
-                    branch_name,
-                    build_command,
-                ).await;
-            }
-        } else {
-            // Redeploy the existing container image with the updated limits & ports
-            let image_tag = crate::utils::builder::resolve_instance_image_tag(&pool_clone, instance_id).await;
-            crate::utils::builder::deploy_compiled_app(pool_clone, instance_id, image_tag).await;
+    // Trigger rebuild or redeploy via the durable queue (survives restarts).
+    if rebuild_needed {
+        if let Ok(meta) = sqlx::query!(
+            "SELECT git_repository, branch_name FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE ai.id = $1",
+            instance_id
+        )
+        .fetch_one(&state.pool)
+        .await
+        {
+            let build_command = sqlx::query_scalar!("SELECT build_command FROM apps WHERE id = $1", app_id)
+                .fetch_one(&state.pool)
+                .await
+                .unwrap_or(None);
+            let _ = crate::utils::job_queue::enqueue_build(
+                &state.pool, instance_id, meta.git_repository, meta.branch_name, build_command,
+            ).await;
         }
-    });
+    } else {
+        // Redeploy the existing image with the updated limits & ports.
+        let _ = crate::utils::job_queue::enqueue_deploy(&state.pool, instance_id, None).await;
+    }
 
     Ok(StatusCode::OK)
 }
@@ -1860,6 +1971,11 @@ pub async fn delete_app(
     )
     .execute(&state.pool)
     .await?;
+
+    // Tear down custom domains attached to any of this app's instances (DNS, nginx, ingress + rows).
+    for inst in &instances {
+        crate::controllers::domain_controller::purge_domains_for_target(&state.pool, ws_id, "app", inst.id).await;
+    }
 
     // Clean up project-pool vars published by this app's BaaS resources (no FK
     // cascade reaches project_env_variables): the auth secret and any API keys.

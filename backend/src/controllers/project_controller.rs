@@ -182,6 +182,20 @@ pub async fn delete_project(
     .map(|f| f.name)
     .collect::<Vec<_>>();
 
+    // Collect every domain attached to this project's resources (apps, serverless
+    // functions, databases) so their external resources can be torn down too.
+    let project_domains = sqlx::query_as::<_, crate::models::domain_model::Domain>(
+        "SELECT * FROM domains WHERE workspace_id = $1 AND (
+            target_id IN (SELECT id FROM app_instances WHERE app_id IN (SELECT id FROM apps WHERE project_id = $2))
+            OR target_id IN (SELECT id FROM serverless_instances WHERE project_id = $2)
+            OR target_id IN (SELECT id FROM databases WHERE project_id = $2)
+        )"
+    )
+    .bind(ws_id)
+    .bind(project.id)
+    .fetch_all(&state.pool)
+    .await?;
+
     // Delete Kubernetes resources asynchronously
     tokio::spawn(async move {
         if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
@@ -223,8 +237,52 @@ pub async fn delete_project(
         let _ = std::fs::remove_dir_all(db_backup_path);
     }
 
+    // Remove physical storage bucket files for this project (objects + bucket dirs).
+    crate::controllers::storage_controller::purge_project_buckets_physical(&state.pool, ws_id, project.id).await;
+
+    // Tear down each domain's external resources (Cloudflare DNS, nginx, ingress).
+    for domain in &project_domains {
+        crate::controllers::domain_controller::teardown_domain_resources(&state.pool, ws_id, domain).await;
+    }
+
     // Delete all dependent rows manually since there are no foreign key ON DELETE CASCADE on apps/databases
     let mut tx = state.pool.begin().await?;
+
+    // 0. Delete domains pointing at this project's resources, and the project's
+    //    storage buckets (+ their objects and any cron jobs targeting them).
+    //    storage_buckets.project_id is ON DELETE SET NULL, so they must be removed
+    //    explicitly or they would be orphaned in the workspace.
+    sqlx::query!(
+        "DELETE FROM domains WHERE workspace_id = $1 AND (
+            target_id IN (SELECT id FROM app_instances WHERE app_id IN (SELECT id FROM apps WHERE project_id = $2))
+            OR target_id IN (SELECT id FROM serverless_instances WHERE project_id = $2)
+            OR target_id IN (SELECT id FROM databases WHERE project_id = $2)
+        )",
+        ws_id, project.id
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    sqlx::query!(
+        "DELETE FROM cron_jobs WHERE target_type = 'storage' AND target_id IN (SELECT id FROM storage_buckets WHERE project_id = $1)",
+        project.id
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    sqlx::query!(
+        "DELETE FROM storage_objects WHERE bucket_id IN (SELECT id FROM storage_buckets WHERE project_id = $1)",
+        project.id
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    sqlx::query!(
+        "DELETE FROM storage_buckets WHERE project_id = $1",
+        project.id
+    )
+    .execute(&mut *tx)
+    .await?;
 
     // 1. Delete app incidents
     sqlx::query!(

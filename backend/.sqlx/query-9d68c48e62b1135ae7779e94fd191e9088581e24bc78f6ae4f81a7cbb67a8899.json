@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO serverless_instances (id, workspace_id, project_id, name, runtime, memory_limit_mb, status, inherit_project_envs)\n         VALUES ($1, $2, $3, $4, $5, $6, 'draft', false)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9d68c48e62b1135ae7779e94fd191e9088581e24bc78f6ae4f81a7cbb67a8899"
+}

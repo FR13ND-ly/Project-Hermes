@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE serverless_routes SET method = $1, route_path = $2, code = $3, updated_at = now() WHERE id = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c472428cab454dc629d6b4345dab668573065f2bbc5930f7d764dd6b0e334ecd"
+}

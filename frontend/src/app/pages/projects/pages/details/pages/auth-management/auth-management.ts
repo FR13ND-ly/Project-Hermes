@@ -21,7 +21,6 @@ export class AuthManagement {
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
 
-  readonly publishingVar = signal<string | null>(null);
 
   readonly activeTab = signal<'users' | 'roles' | 'api-keys' | 'integration'>('users');
   readonly loading = signal(false);
@@ -34,27 +33,39 @@ export class AuthManagement {
   readonly integrationSnippet = computed(() => {
     const i = this.integration();
     if (!i) return '';
-    return `// middleware Express — validează JWT-ul local cu secretul din env
+    return `// Express — Hermes BaaS auth (validare JWT locală cu secretul din env)
 import jwt from 'jsonwebtoken';
 
 const SECRET = process.env.${i.authSecretEnvKey};   // injectat automat de Hermes
 const APP_ID = '${i.appId}';
 const HERMES = '${i.apiBaseUrl}';
 
-// login: cere token-ul de la Hermes
-async function login(email, password) {
+// login: identifier + parolă -> { accessToken, refreshToken }
+// Trimite X-Hermes-Auth-Secret DOAR de pe server ca să poți injecta claims custom
+// (ex. tenantId, plan) în access token. Fără header, additionalClaims e ignorat.
+async function login(identifier, password, additionalClaims = {}) {
   const r = await fetch(\`\${HERMES}/apps/\${APP_ID}/auth/login\`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Hermes-Auth-Secret': SECRET },
+    body: JSON.stringify({ identifier, password, additionalClaims })
   });
-  return r.json(); // { token, roles, permissions }
+  return r.json(); // { accessToken, refreshToken, expiresIn, roles, permissions }
+}
+
+// access token-ul e scurt; reînnoiește-l cu refresh token-ul (single-use)
+async function refresh(refreshToken) {
+  const r = await fetch(\`\${HERMES}/apps/\${APP_ID}/auth/refresh\`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken })
+  });
+  return r.json(); // { accessToken, refreshToken, ... }
 }
 
 // protejează rutele: verificare locală, zero apeluri către Hermes
 export function requireUser(req, res, next) {
   const token = (req.headers.authorization || '').replace('Bearer ', '');
   try {
-    req.user = jwt.verify(token, SECRET); // { sub, email, roles, permissions }
+    req.user = jwt.verify(token, SECRET); // { sub, identifier, roles, permissions, ...custom }
     next();
   } catch {
     res.status(401).json({ error: 'unauthorized' });
@@ -249,7 +260,7 @@ export const requireRole = (role) => (req, res, next) =>
 
     const confirmed = await this.confirm.ask({
       title: `${nextStatus === 'suspended' ? 'Suspendare' : 'Reactivare'} Cont`,
-      message: `Sigur doriți să ${nextStatus === 'suspended' ? 'suspendați' : 'reactivați'} utilizatorul "${user.fullName}" (${user.email})? Conturile suspendate nu se mai pot autentifica în aplicație.`,
+      message: `Sigur doriți să ${nextStatus === 'suspended' ? 'suspendați' : 'reactivați'} utilizatorul "${user.identifier}"? Conturile suspendate nu se mai pot autentifica în aplicație.`,
       confirmText: nextStatus === 'suspended' ? 'Suspendă cont' : 'Activează cont',
       cancelText: 'Anulează',
       isDanger: nextStatus === 'suspended'
@@ -280,15 +291,15 @@ export const requireRole = (role) => (req, res, next) =>
 
     if (!activeApp || !user || !pwd) return;
 
-    if (pwd.length < 6) {
-      this.toast.error('Parola trebuie să aibă cel puțin 6 caractere.');
+    if (pwd.length < 8) {
+      this.toast.error('Parola trebuie să aibă cel puțin 8 caractere.');
       return;
     }
 
     this.resettingPassword.set(true);
     this.authMgmtService.resetUserPassword(activeApp.id, user.appUserId, pwd).subscribe({
       next: () => {
-        this.toast.success(`Parola utilizatorului "${user.fullName}" a fost resetată.`);
+        this.toast.success(`Parola utilizatorului "${user.identifier}" a fost resetată.`);
         this.showResetPasswordModal.set(false);
         this.resettingPassword.set(false);
         this.selectedUser.set(null);
@@ -314,7 +325,7 @@ export const requireRole = (role) => (req, res, next) =>
     if (!activeApp || !user || !role) return;
 
     this.assigningRole.set(true);
-    this.authMgmtService.assignUserRole(activeApp.id, user.email, role).subscribe({
+    this.authMgmtService.assignUserRole(activeApp.id, user.identifier, role).subscribe({
       next: () => {
         this.toast.success(`Rolul "${role}" a fost alocat.`);
         this.newRoleName.set('');
@@ -344,7 +355,7 @@ export const requireRole = (role) => (req, res, next) =>
 
     const confirmed = await this.confirm.ask({
       title: 'Retragere Rol',
-      message: `Sigur doriți să retrageți rolul "${role}" de la utilizatorul "${user.fullName}"?`,
+      message: `Sigur doriți să retrageți rolul "${role}" de la utilizatorul "${user.identifier}"?`,
       confirmText: 'Retrage rol',
       cancelText: 'Anulează',
       isDanger: true
@@ -593,24 +604,4 @@ export const requireRole = (role) => (req, res, next) =>
     });
   }
 
-  publishVariableToProject(key: string, value: string, isSecret: boolean): void {
-    const projId = this.parent.projectId();
-    if (!projId) return;
-
-    this.publishingVar.set(key);
-    this.projectService.setProjectEnv(projId, {
-      key,
-      value,
-      isSecret
-    }).subscribe({
-      next: () => {
-        this.publishingVar.set(null);
-        this.toast.success(`Variabila ${key} a fost publicată în pool-ul proiectului!`);
-      },
-      error: (err) => {
-        this.publishingVar.set(null);
-        this.toast.error(err.error?.message || `Eroare la publicarea variabilei ${key}.`);
-      }
-    });
-  }
 }

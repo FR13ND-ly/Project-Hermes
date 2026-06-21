@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE app_instances SET status = $1, updated_at = now() WHERE id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "app_status",
+            "kind": {
+              "Enum": [
+                "building",
+                "running",
+                "stopped",
+                "failed",
+                "crashed"
+              ]
+            }
+          }
+        },
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "56e89cb3133eeb40404570abbcaefe9d07766f9aa9531bb9300f0bed9112dad8"
+}

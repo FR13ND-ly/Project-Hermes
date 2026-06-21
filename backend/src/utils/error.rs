@@ -13,8 +13,9 @@ pub enum AppError {
     Permission(String),
     NotFound(String),
     Conflict(String),
+    RateLimited(String),
     Infrastructure(String),
-    Fatal(anyhow::Error), 
+    Fatal(anyhow::Error),
 }
 
 impl std::fmt::Display for AppError {
@@ -25,6 +26,7 @@ impl std::fmt::Display for AppError {
             AppError::Permission(msg) => write!(f, "Permission Denied: {}", msg),
             AppError::NotFound(msg) => write!(f, "Not Found: {}", msg),
             AppError::Conflict(msg) => write!(f, "Conflict: {}", msg),
+            AppError::RateLimited(msg) => write!(f, "Rate Limited: {}", msg),
             AppError::Infrastructure(msg) => write!(f, "Infrastructure: {}", msg),
             AppError::Fatal(err) => write!(f, "Fatal Error: {}", err),
         }
@@ -55,7 +57,11 @@ impl IntoResponse for AppError {
             }
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, "NOT_FOUND", msg),
             AppError::Conflict(msg) => (StatusCode::CONFLICT, "CONFLICT", msg),
-            
+            AppError::RateLimited(msg) => {
+                tracing::warn!(%request_id, kind = "rate_limit", "Rate limit exceeded: {}", msg);
+                (StatusCode::TOO_MANY_REQUESTS, "RATE_LIMITED", msg)
+            }
+
             AppError::Infrastructure(msg) => {
                 error!(%request_id, "Infrastructure error: {}", msg);
                 (

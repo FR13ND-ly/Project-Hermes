@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE jobs SET status='running', attempts = attempts + 1,\n                  locked_at = now(), locked_by = $1, updated_at = now()\n           WHERE id = (\n               SELECT id FROM jobs\n               WHERE status = 'queued' AND run_after <= now()\n               ORDER BY created_at\n               FOR UPDATE SKIP LOCKED\n               LIMIT 1\n           )\n           RETURNING id, kind, payload as \"payload: serde_json::Value\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "payload: serde_json::Value",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "37aab62be3953b23ffd122085692f5e8f4073a433cf6cdaa945c354e7784ea94"
+}

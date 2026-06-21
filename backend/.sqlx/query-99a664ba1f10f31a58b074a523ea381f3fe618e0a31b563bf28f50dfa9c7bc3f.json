@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE projects SET created_by = $1 WHERE created_by = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "99a664ba1f10f31a58b074a523ea381f3fe618e0a31b563bf28f50dfa9c7bc3f"
+}

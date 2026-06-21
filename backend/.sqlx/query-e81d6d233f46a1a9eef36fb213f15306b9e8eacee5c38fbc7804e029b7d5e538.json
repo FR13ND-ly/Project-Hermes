@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE app_incident_logs SET resolved_at = now() WHERE app_instance_id = $1 AND incident_type = 'HIGH_MEMORY' AND resolved_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e81d6d233f46a1a9eef36fb213f15306b9e8eacee5c38fbc7804e029b7d5e538"
+}

@@ -24,6 +24,8 @@ pub struct CreateAppRequest {
     /// Project-pool env vars to link the new instance to at creation time.
     #[serde(default)]
     pub linked_project_env_ids: Option<Vec<Uuid>>,
+    #[serde(default)]
+    pub enable_baas: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -35,6 +37,13 @@ pub struct CreateBranchRequest {
     pub cpu_limit: Option<i32>,
     pub memory_limit_mb: Option<i64>,
     pub external_port: Option<i32>,
+    pub replicas_min: Option<i32>,
+    pub replicas_max: Option<i32>,
+    /// Average CPU % target for the autoscaler (only used when replicas_max > min).
+    pub autoscale_cpu_percent: Option<i32>,
+    /// Scale to 0 when idle. Defaults to enabled for non-production instances.
+    pub auto_sleep_enabled: Option<bool>,
+    pub auto_sleep_after_minutes: Option<i32>,
 }
 
 #[derive(Debug, Serialize)]
@@ -49,6 +58,13 @@ pub struct AppInstanceResponse {
     pub container_name: String,
     pub external_port: Option<i32>,
     pub meta_data: serde_json::Value,
+    pub cpu_limit: i32,
+    pub memory_limit_mb: i64,
+    pub replicas_min: i32,
+    pub replicas_max: i32,
+    pub autoscale_cpu_percent: i32,
+    pub auto_sleep_enabled: bool,
+    pub auto_sleep_after_minutes: i32,
 }
 
 #[derive(Debug, Serialize)]
@@ -67,6 +83,7 @@ pub struct AppDetailedResponse {
     pub start_command: Option<String>,
     #[serde(rename = "created_at")]
     pub created_at: DateTime<Utc>,
+    pub enable_baas: bool,
 }
 
 #[derive(Debug, Deserialize)]

@@ -32,8 +32,8 @@ export class WorkspaceSettings implements OnInit {
 
   // Form fields signals
   readonly wsName = signal('');
-  readonly maxMemory = signal<number>(2048);
-  readonly maxStorage = signal<number>(10);
+  readonly maxMemory = signal<number>(0);
+  readonly maxStorage = signal<number>(0);
   readonly maxCpu = signal<number>(0);
 
   // Git credentials (PATs)

@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ai.container_name, ai.internal_port, ai.external_port, ai.assigned_domain, a.id as app_id, a.project_id, a.workspace_id, ai.cpu_limit, ai.memory_limit_mb, ai.replicas_min, ai.replicas_max, a.tcp_udp_ports, ai.meta_data\n         FROM app_instances ai\n         JOIN apps a ON ai.app_id = a.id\n         WHERE ai.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "container_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "internal_port",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "external_port",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "assigned_domain",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "app_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "project_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "cpu_limit",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "memory_limit_mb",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "replicas_min",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "replicas_max",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "tcp_udp_ports",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 12,
+        "name": "meta_data",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d29ad6ba77a98b23137fa32ffb761c45504f5e699f1ead3ed1198cf2234ecfea"
+}

@@ -110,6 +110,9 @@ pub struct StorageBucket {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub created_by: Uuid,
+    pub app_id: Option<String>,
+    pub secret_key_encrypted: Option<String>,
+    pub secret_key_nonce: Option<String>,
 }
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]

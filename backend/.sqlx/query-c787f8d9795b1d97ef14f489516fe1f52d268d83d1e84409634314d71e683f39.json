@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT git_repository, branch_name FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE ai.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "git_repository",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "branch_name",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "c787f8d9795b1d97ef14f489516fe1f52d268d83d1e84409634314d71e683f39"
+}

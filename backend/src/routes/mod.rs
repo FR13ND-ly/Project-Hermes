@@ -1,6 +1,28 @@
 use axum::Router;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::{AllowOrigin, Any, CorsLayer};
 use crate::app_state::AppState;
+
+/// Build the CORS layer. In production set `CORS_ALLOWED_ORIGINS` to a comma
+/// separated allowlist (e.g. `https://app.example.com,https://admin.example.com`).
+/// When unset or `*`, all origins are allowed — convenient for local development.
+fn build_cors() -> CorsLayer {
+    match std::env::var("CORS_ALLOWED_ORIGINS") {
+        Ok(val) if !val.trim().is_empty() && val.trim() != "*" => {
+            let origins: Vec<_> = val
+                .split(',')
+                .filter_map(|o| o.trim().parse::<axum::http::HeaderValue>().ok())
+                .collect();
+            CorsLayer::new()
+                .allow_origin(AllowOrigin::list(origins))
+                .allow_methods(Any)
+                .allow_headers(Any)
+        }
+        _ => CorsLayer::new()
+            .allow_origin(Any)
+            .allow_methods(Any)
+            .allow_headers(Any),
+    }
+}
 
 mod auth_routes;
 mod domain_routes;
@@ -21,10 +43,7 @@ mod ws_routes;
 mod serverless_routes;
 
 pub fn create_router(state: AppState) -> Router {
-    let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
+    let cors = build_cors();
 
     Router::new()
         .route(

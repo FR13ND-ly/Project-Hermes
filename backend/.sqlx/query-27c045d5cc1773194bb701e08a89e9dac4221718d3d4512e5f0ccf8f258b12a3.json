@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM serverless_env_variables WHERE id = $1 AND instance_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "27c045d5cc1773194bb701e08a89e9dac4221718d3d4512e5f0ccf8f258b12a3"
+}

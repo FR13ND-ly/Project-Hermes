@@ -64,7 +64,7 @@
           </div>
         </div>
 
-        <p class="text-[10px] text-zinc-600 pt-1">Bucket-urile sunt private — accesul la fișiere se face securizat, cu token.</p>
+        <p class="text-[10px] text-zinc-600 pt-1">Bucket-urile sunt private — accesul la fișiere se face securizat, cu app_id/secret_key.</p>
 
         <!-- Publish to project env pool -->
         <div class="pt-4 border-t border-zinc-900 space-y-3">
@@ -1239,74 +1239,26 @@
             <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Integrare API — Conectare Aplicații Externe</h4>
           </div>
           <p class="text-xs text-zinc-500 leading-relaxed font-sans">
-            Generați un token de integrare cu durată lungă (10 ani) pentru a conecta acest bucket de stocare la aplicația dumneavoastră externă.
-            Tokenul permite operații complete: upload, listare, descărcare și ștergere fișiere prin API REST.
+            Bucket-urile sunt private. Aplicațiile externe accesează fișierele cu perechea
+            <span class="font-mono text-zinc-300">app_id</span> / <span class="font-mono text-zinc-300">secret_key</span>
+            a bucket-ului, publicată automat în pool-ul de mediu al proiectului.
           </p>
         </div>
 
-        <!-- Token Generation -->
-        <div class="bg-[#0a0a0a] border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-          <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Token de Integrare</h4>
-
-          @if (!integrationToken()) {
-            <div class="flex items-center gap-3">
-              <button
-                (click)="generateToken()"
-                [disabled]="generatingToken()"
-                class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-              >
-                @if (!generatingToken()) {
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
-                  </svg>
-                  <span>Generează Token API</span>
-                } @else {
-                  <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span>Se generează...</span>
-                }
-              </button>
-              <span class="text-[10px] text-zinc-650 font-sans">Tokenul va fi afișat o singură dată. Salvați-l în siguranță.</span>
-            </div>
-          } @else {
-            <div class="space-y-3">
-              <div class="flex items-center gap-2">
-                <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Token generat cu succes</span>
-                @if (integrationTokenExpiry()) {
-                  <span class="text-[9px] text-zinc-650 ml-2">Expiră: {{ integrationTokenExpiry() | date:'longDate' }}</span>
-                }
-              </div>
-              <div class="relative">
-                <pre class="bg-black border border-zinc-850 rounded p-3 text-[10px] text-zinc-400 font-mono overflow-x-auto select-all whitespace-pre-wrap break-all max-h-20">{{ integrationToken() }}</pre>
-                <button
-                  (click)="copyToClipboard(integrationToken()!)"
-                  class="absolute top-2 right-2 p-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-500 hover:text-white cursor-pointer transition-colors"
-                  title="Copiază tokenul"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
-                  </svg>
-                </button>
-              </div>
-              <div class="bg-zinc-955 border border-zinc-900 rounded p-2.5 flex items-start gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-amber-500 shrink-0 mt-0.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                </svg>
-                <p class="text-[10px] text-zinc-500 leading-relaxed font-sans">
-                  <strong class="text-amber-400">Atenție:</strong> Acest token oferă acces complet la bucket. Nu îl expuneți în codul client-side.
-                  Păstrați-l doar în variabile de mediu server-side (.env).
-                </p>
-              </div>
-            </div>
-          }
+        <!-- Bucket credentials (key pair) -->
+        <div class="bg-[#0a0a0a] border border-zinc-900 rounded p-5 space-y-2 shadow-sm">
+          <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Credențiale Bucket</h4>
+          <p class="text-[11px] text-zinc-500 leading-relaxed font-sans">
+            Accesul se face cu perechea <span class="font-mono text-zinc-300">app_id</span> /
+            <span class="font-mono text-zinc-300">secret_key</span>, publicată automat în pool-ul de mediu al
+            proiectului ca <span class="font-mono text-zinc-300">BUCKET_&lt;slug&gt;_APP_ID</span> și
+            <span class="font-mono text-zinc-300">BUCKET_&lt;slug&gt;_SECRET_KEY</span>. O poți regenera din
+            tab-ul <span class="text-zinc-300">„Setări"</span> → „Rotește Credențiale".
+          </p>
         </div>
 
         <!-- Code Snippets -->
-        @if (integrationToken()) {
-          <div class="space-y-4">
+        <div class="space-y-4">
             <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Exemple de Utilizare</h4>
 
             <!-- .env snippet -->
@@ -1369,7 +1321,6 @@
               <pre class="p-4 text-[11px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ getDownloadSnippet() }}</pre>
             </div>
           </div>
-        }
       </div>
     }
 

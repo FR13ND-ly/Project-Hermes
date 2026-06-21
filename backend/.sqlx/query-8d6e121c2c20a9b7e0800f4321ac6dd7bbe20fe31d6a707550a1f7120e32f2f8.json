@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE serverless_instances SET external_port = $1 WHERE id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8d6e121c2c20a9b7e0800f4321ac6dd7bbe20fe31d6a707550a1f7120e32f2f8"
+}

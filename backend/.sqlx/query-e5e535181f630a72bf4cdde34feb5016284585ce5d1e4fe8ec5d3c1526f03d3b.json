@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ab.app_instance_id, ai.branch_name, a.git_repository, a.build_command\n         FROM app_builds ab\n         JOIN app_instances ai ON ab.app_instance_id = ai.id\n         JOIN apps a ON ab.app_id = a.id\n         WHERE ab.id = $1 AND ab.app_id = $2 AND a.workspace_id = $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "app_instance_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "branch_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "git_repository",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "build_command",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "e5e535181f630a72bf4cdde34feb5016284585ce5d1e4fe8ec5d3c1526f03d3b"
+}

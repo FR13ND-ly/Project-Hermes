@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE app_instances SET status = 'running', updated_at = now() WHERE id = $1 AND status != 'running'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8ca4b5ecbd5e70b08c392915a6be63941d14776cf11557b92b193d31e56e72c5"
+}

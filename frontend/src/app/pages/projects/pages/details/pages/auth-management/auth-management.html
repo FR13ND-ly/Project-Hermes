@@ -100,8 +100,7 @@
               <table class="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr class="border-b border-zinc-950 bg-black/60 text-zinc-550 uppercase tracking-wider text-[9px] font-bold">
-                    <th class="p-3">Utilizator / Email</th>
-                    <th class="p-3">Nume complet</th>
+                    <th class="p-3">Identificator</th>
                     <th class="p-3">Status</th>
                     <th class="p-3">Ultima Conexiune</th>
                     <th class="p-3">Roluri</th>
@@ -111,13 +110,9 @@
                 <tbody>
                   @for (user of filteredUsers(); track user.appUserId) {
                     <tr class="border-b border-zinc-950/60 hover:bg-black/30 transition-colors">
-                      <!-- Email -->
+                      <!-- Identifier -->
                       <td class="p-3 font-semibold text-zinc-300 select-all">
-                        {{ user.email }}
-                      </td>
-                      <!-- Fullname -->
-                      <td class="p-3 text-zinc-400">
-                        {{ user.fullName }}
+                        {{ user.identifier }}
                       </td>
                       <!-- Status -->
                       <td class="p-3">
@@ -483,46 +478,22 @@
     @if (activeTab() === 'integration') {
       <div class="space-y-5 animate-fade-in font-mono">
         @if (integration(); as i) {
-          <!-- Project Variable Pool Publisher Card -->
+          <!-- Auto-published to project pool -->
           <div class="p-4 rounded-lg border border-zinc-800 bg-[#070708] space-y-3 font-sans relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
             <div class="flex items-start gap-3">
-              <div class="p-2.5 bg-indigo-950/45 border border-indigo-900/30 rounded text-indigo-400 shrink-0">
+              <div class="p-2.5 bg-emerald-950/45 border border-emerald-900/30 rounded text-emerald-400 shrink-0">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div class="space-y-1 w-full">
-                <h4 class="text-xs font-bold text-zinc-200 uppercase tracking-wider font-mono">Publicare în Pool-ul Proiectului</h4>
+                <h4 class="text-xs font-bold text-zinc-200 uppercase tracking-wider font-mono">Publicat automat în pool</h4>
                 <p class="text-[11px] text-zinc-400 leading-relaxed font-sans">
-                  Pentru ca aplicația ta să poată valida token-urile de acces local și să se conecteze la serviciul de autentificare, publică aceste variabile în pool-ul proiectului. Le vei putea apoi conecta la orice instanță.
+                  <span class="font-mono text-zinc-300">HERMES_AUTH_SECRET</span>, <span class="font-mono text-zinc-300">HERMES_AUTH_APP_ID</span> și
+                  <span class="font-mono text-zinc-300">HERMES_AUTH_API_URL</span> sunt publicate automat în pool-ul proiectului — nu trebuie să apeși nimic.
+                  Le poți conecta la orice instanță din tab-ul „Variabile" → „Din Proiect".
                 </p>
-                <div class="flex flex-wrap gap-2 pt-2">
-                  <button
-                    type="button"
-                    (click)="publishVariableToProject('HERMES_AUTH_APP_ID', i.appId, false)"
-                    [disabled]="publishingVar() === 'HERMES_AUTH_APP_ID'"
-                    class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-semibold cursor-pointer transition-colors font-mono"
-                  >
-                    {{ publishingVar() === 'HERMES_AUTH_APP_ID' ? 'Se publică...' : 'Publică HERMES_AUTH_APP_ID' }}
-                  </button>
-                  <button
-                    type="button"
-                    (click)="publishVariableToProject('HERMES_AUTH_API_URL', i.apiBaseUrl, false)"
-                    [disabled]="publishingVar() === 'HERMES_AUTH_API_URL'"
-                    class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-semibold cursor-pointer transition-colors font-mono"
-                  >
-                    {{ publishingVar() === 'HERMES_AUTH_API_URL' ? 'Se publică...' : 'Publică HERMES_AUTH_API_URL' }}
-                  </button>
-                  <button
-                    type="button"
-                    (click)="publishVariableToProject('HERMES_AUTH_SECRET', i.authSecret, true)"
-                    [disabled]="publishingVar() === 'HERMES_AUTH_SECRET'"
-                    class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-semibold cursor-pointer transition-colors font-mono"
-                  >
-                    {{ publishingVar() === 'HERMES_AUTH_SECRET' ? 'Se publică...' : 'Publică HERMES_AUTH_SECRET' }}
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -560,6 +531,8 @@
               @for (ep of [
                 { label: 'Register', url: i.registerEndpoint },
                 { label: 'Login', url: i.loginEndpoint },
+                { label: 'Refresh', url: i.refreshEndpoint },
+                { label: 'Logout', url: i.logoutEndpoint },
                 { label: 'Verify token', url: i.verifyTokenEndpoint },
                 { label: 'Verify key', url: i.verifyKeyEndpoint }
               ]; track ep.label) {
@@ -592,12 +565,12 @@
         <div class="w-full max-w-md bg-[#0a0a0a] border border-zinc-800 rounded-lg shadow-2xl p-6 space-y-6">
           <div class="space-y-1">
             <h3 class="text-xs font-bold text-white uppercase tracking-wider">Resetare Parolă Utilizator</h3>
-            <p class="text-zinc-550 text-xs leading-relaxed font-sans">Introduceți o nouă parolă pentru utilizatorul <span class="text-zinc-300 font-bold font-mono select-all">{{ user.email }}</span>.</p>
+            <p class="text-zinc-550 text-xs leading-relaxed font-sans">Introduceți o nouă parolă pentru utilizatorul <span class="text-zinc-300 font-bold font-mono select-all">{{ user.identifier }}</span>.</p>
           </div>
 
           <!-- Password input -->
           <div class="space-y-1.5">
-            <label for="reset-pwd-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Noua Parolă (minim 6 caractere)</label>
+            <label for="reset-pwd-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Noua Parolă (minim 8 caractere)</label>
             <input 
               id="reset-pwd-input"
               type="password" 
@@ -636,7 +609,7 @@
         <div class="w-full max-w-md bg-[#0a0a0a] border border-zinc-800 rounded-lg shadow-2xl p-6 space-y-5">
           <div class="space-y-1 border-b border-zinc-900 pb-3">
             <h3 class="text-xs font-bold text-white uppercase tracking-wider">Administrare Roluri Utilizator</h3>
-            <p class="text-zinc-550 text-xs font-sans">Rolurile active pentru <span class="text-zinc-300 font-bold font-mono">{{ user.email }}</span></p>
+            <p class="text-zinc-550 text-xs font-sans">Rolurile active pentru <span class="text-zinc-300 font-bold font-mono">{{ user.identifier }}</span></p>
           </div>
 
           <!-- Active Roles list with revoke buttons -->

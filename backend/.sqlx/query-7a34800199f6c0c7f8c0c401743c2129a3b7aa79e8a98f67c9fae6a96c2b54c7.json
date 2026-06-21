@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO environment_variables (id, workspace_id, app_instance_id, key, encrypted_value, nonce, is_secret)\n                         VALUES ($1, $2, $3, $4, $5, $6, false) ON CONFLICT (app_instance_id, key) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Text",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7a34800199f6c0c7f8c0c401743c2129a3b7aa79e8a98f67c9fae6a96c2b54c7"
+}

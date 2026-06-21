@@ -52,8 +52,8 @@ export class DbDetailComponent implements OnInit, OnDestroy {
   private eventSource: EventSource | null = null;
 
   // Edit settings signals
-  readonly cpuLimit = signal(250); // mCPU
-  readonly memLimit = signal(512); // MB
+  readonly cpuLimit = signal(0); // mCPU — 0 = unlimited
+  readonly memLimit = signal(0); // MB — 0 = unlimited
   readonly backupEnabled = signal(false);
   readonly backupCount = signal(7);
   readonly savingSettings = signal(false);
@@ -236,7 +236,6 @@ export class DbDetailComponent implements OnInit, OnDestroy {
     }
     this.wsSubscription = this.wsService.onEvent<any>('database_status_changed').subscribe(payload => {
       if (payload.database_id === id) {
-        console.log('[DbDetail] Database status changed in WS, reloading:', payload);
         this.loadDatabaseDetails(id, true);
       }
     });
@@ -270,8 +269,9 @@ export class DbDetailComponent implements OnInit, OnDestroy {
     this.dbService.getDatabase(id).subscribe({
       next: (res) => {
         this.db.set(res);
-        this.cpuLimit.set(res.cpuLimit || 250);
-        this.memLimit.set(res.memoryLimitMb || 512);
+        // Preserve 0 (= unlimited); only fall back when the value is missing.
+        this.cpuLimit.set(res.cpuLimit ?? 0);
+        this.memLimit.set(res.memoryLimitMb ?? 0);
         this.backupEnabled.set(res.backupEnabled || false);
         this.backupCount.set(res.backupCount || 7);
         this.loadBackupCron(id);

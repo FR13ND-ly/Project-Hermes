@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO databases (id, workspace_id, project_id, app_instance_id, name, type, version, db_user, db_password, db_password_nonce, db_name, container_name, internal_port, is_external, external_port, status, cpu_limit, memory_limit_mb, storage_size_gb)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        {
+          "Custom": {
+            "name": "db_type",
+            "kind": {
+              "Enum": [
+                "postgres",
+                "mysql",
+                "redis",
+                "mongodb"
+              ]
+            }
+          }
+        },
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Int4",
+        "Bool",
+        "Int4",
+        {
+          "Custom": {
+            "name": "db_status",
+            "kind": {
+              "Enum": [
+                "provisioning",
+                "running",
+                "stopped",
+                "failed"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "85ea7a77c262fa37d605cf136cb9bca1646f9f41a3203c247fe767bc17090f3d"
+}

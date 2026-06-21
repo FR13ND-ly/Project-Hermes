@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO project_webhooks (id, project_id, name, url, webhook_type, is_active, created_at)\n         VALUES ($1, $2, $3, $4, $5, true, $6)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Text",
+        "Varchar",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "486bda1c6517e3ab5f01189f09702d743dcbed4bc28ad66978986ca1a20c0a59"
+}

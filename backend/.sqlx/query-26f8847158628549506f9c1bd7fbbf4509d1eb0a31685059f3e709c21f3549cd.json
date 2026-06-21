@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ael.app_instance_id FROM app_env_links ael\n             JOIN project_env_variables pev ON pev.id = ael.project_env_id\n             WHERE pev.source = 'storage' AND pev.source_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "app_instance_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "26f8847158628549506f9c1bd7fbbf4509d1eb0a31685059f3e709c21f3549cd"
+}

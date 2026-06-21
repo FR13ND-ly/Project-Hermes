@@ -49,7 +49,7 @@ where
         } else {
             return Err(AppError::Auth("Missing Authorization header or token query parameter".to_string()));
         };
-        let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "super_secret_key".to_string());
+        let jwt_secret = crate::config::secrets::jwt_secret();
 
         let token_data = decode::<Claims>(
             &token,

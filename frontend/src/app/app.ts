@@ -1,8 +1,8 @@
-import { Component, inject, computed, signal, effect } from '@angular/core';
+import { Component, inject, computed, signal, effect, HostListener } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from './core/services/auth';
-import { WorkspaceService, Workspace } from './core/services/workspace.service';
+import { WorkspaceService, Workspace, WorkspaceUsage } from './core/services/workspace.service';
 import { ToastService } from './core/services/toast.service';
 import { ConfirmService } from './core/services/confirm.service';
 import { BuildIndicator } from './shared/components/build-indicator/build-indicator';
@@ -29,6 +29,23 @@ export class App {
   readonly showCreateWorkspaceModal = signal(false);
   readonly newWorkspaceName = signal('');
 
+  // Real resource usage for the current workspace (header gauges).
+  readonly usage = signal<WorkspaceUsage | null>(null);
+
+  /** RAM usage as a percentage, or null when the workspace has no memory cap. */
+  readonly ramPercent = computed(() => {
+    const u = this.usage();
+    if (!u || u.maxMemoryMb <= 0) return null;
+    return Math.min(100, Math.round((u.usedMemoryMb / u.maxMemoryMb) * 100));
+  });
+
+  /** Disk usage as a percentage, or null when the workspace has no storage cap. */
+  readonly diskPercent = computed(() => {
+    const u = this.usage();
+    if (!u || u.maxStorageGb <= 0) return null;
+    return Math.min(100, Math.round((u.usedStorageGb / u.maxStorageGb) * 100));
+  });
+
   readonly currentWorkspaceName = computed(() => {
     const activeId = this.auth.currentWorkspaceId();
     const list = this.workspaces();
@@ -40,20 +57,45 @@ export class App {
   });
 
   constructor() {
-    this.checkRoute();
-
-    // Reactively load workspaces list when user session is active
+    // Reactively load workspace list + usage when a session is active.
+    // Route protection itself is handled by the route guards (auth.guard.ts).
     effect(() => {
       if (this.isAuthenticated()) {
         this.loadWorkspaces();
+        this.loadUsage();
+      } else {
+        this.usage.set(null);
+        this.workspaces.set([]);
       }
     });
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.confirm.activeModal()) {
+      this.confirm.cancel();
+      return;
+    }
+    if (this.showCreateWorkspaceModal()) {
+      this.showCreateWorkspaceModal.set(false);
+      return;
+    }
+    if (this.showWorkspaceDropdown()) {
+      this.showWorkspaceDropdown.set(false);
+    }
   }
 
   loadWorkspaces(): void {
     this.workspaceService.listWorkspaces().subscribe({
       next: (res) => this.workspaces.set(res || []),
       error: (err) => console.error('Eroare la încărcarea spațiilor de lucru', err)
+    });
+  }
+
+  loadUsage(): void {
+    this.workspaceService.getUsage().subscribe({
+      next: (u) => this.usage.set(u),
+      error: () => this.usage.set(null)
     });
   }
 
@@ -94,15 +136,5 @@ export class App {
 
   logout(): void {
     this.auth.logout();
-  }
-
-  private checkRoute(): void {
-    setTimeout(() => {
-      if (!this.auth.isAuthenticated()) {
-        this.router.navigate(['/auth']);
-      } else if (window.location.pathname === '/' || window.location.pathname === '/auth') {
-        this.router.navigate(['/dashboard']);
-      }
-    }, 50);
   }
 }

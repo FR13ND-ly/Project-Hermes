@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE app_instances SET consecutive_health_failures = consecutive_health_failures + 1, updated_at = now()\n         WHERE id = $1 RETURNING consecutive_health_failures",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "consecutive_health_failures",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0c3af8a716d19f9df685813213485a1b1e59edb9101558d327d4e02c8551532a"
+}

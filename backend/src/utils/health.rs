@@ -24,6 +24,7 @@ pub fn start_health_check_worker(pool: PgPool) {
 
         loop {
             interval.tick().await;
+            if !crate::utils::leader::is_leader() { continue; }
 
             let active_instances = sqlx::query!(
                 "SELECT ai.id, ai.container_name, ai.internal_port, ai.health_check_path, ai.status as \"status: AppStatus\", a.workspace_id
@@ -117,6 +118,7 @@ pub fn start_metric_alert_worker(pool: PgPool) {
 
         loop {
             interval.tick().await;
+            if !crate::utils::leader::is_leader() { continue; }
 
             let instances = sqlx::query!(
                 "SELECT ai.id, ai.container_name, ai.memory_limit_mb, a.workspace_id

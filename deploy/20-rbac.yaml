@@ -1,0 +1,69 @@
+# The control plane orchestrates apps/databases/serverless across every
+# hermes-ws-* namespace, so it needs cluster-wide permissions on the resource
+# kinds it manages. Scoped to those kinds (not full cluster-admin).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hermes-control-plane
+  namespace: hermes-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: hermes-control-plane
+rules:
+  # Core workloads & config the backend creates/reads in workspace namespaces.
+  - apiGroups: [""]
+    resources:
+      - namespaces
+      - pods
+      - pods/log
+      - services
+      - secrets
+      - configmaps
+      - persistentvolumeclaims
+      - resourcequotas
+      - limitranges
+      - events
+      - serviceaccounts
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Live password rotation / backups exec into pods.
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create", "get"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "replicasets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Knative (serverless) + Traefik middlewares (custom domain rules).
+  - apiGroups: ["serving.knative.dev"]
+    resources: ["services"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["traefik.io", "traefik.containo.us"]
+    resources: ["middlewares", "ingressroutes", "ingressroutetcps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Read live resource usage for telemetry/quotas.
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: hermes-control-plane
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: hermes-control-plane
+subjects:
+  - kind: ServiceAccount
+    name: hermes-control-plane
+    namespace: hermes-system

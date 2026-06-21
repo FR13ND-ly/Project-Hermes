@@ -6,8 +6,7 @@ import { environment } from '../../../environments/environment';
 
 export interface AppUserWithRoles {
   appUserId: string;
-  email: string;
-  fullName: string;
+  identifier: string;
   status: string;
   lastLogin: string | null;
   roles: string[];
@@ -46,6 +45,8 @@ export interface AuthIntegration {
   authSecret: string;
   registerEndpoint: string;
   loginEndpoint: string;
+  refreshEndpoint: string;
+  logoutEndpoint: string;
   verifyTokenEndpoint: string;
   verifyKeyEndpoint: string;
 }
@@ -74,8 +75,8 @@ export class AuthManagementService {
     return this.api.post<void>(`/apps/${appId}/users/${userId}/reset-password`, { newPassword });
   }
 
-  assignUserRole(appId: string, email: string, role: string): Observable<void> {
-    return this.api.post<void>(`/apps/${appId}/users/roles`, { email, role });
+  assignUserRole(appId: string, identifier: string, role: string): Observable<void> {
+    return this.api.post<void>(`/apps/${appId}/users/roles`, { identifier, role });
   }
 
   removeUserRole(appId: string, payload: { appUserId: string; role: string }): Observable<void> {

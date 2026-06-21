@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT provider, host, encrypted_token, nonce FROM git_credentials WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "provider",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "host",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "encrypted_token",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "nonce",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c4e3fb59cd83b0f411fe7de24bf8d8fe9736de3453c9053cd773c2a11be22b98"
+}

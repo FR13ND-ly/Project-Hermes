@@ -46,7 +46,6 @@ export class Dashboard implements OnInit, OnDestroy {
     for (const event of events) {
       this.wsSubscriptions.add(
         this.wsService.onEvent(event).subscribe(() => {
-          console.log(`[Dashboard] Event '${event}' received, reloading data silently`);
           this.loadData(true);
         })
       );

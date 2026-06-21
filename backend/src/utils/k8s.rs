@@ -13,6 +13,24 @@ impl K8sManager {
             .map_err(|e| AppError::Infrastructure(format!("Failed to connect to K3s cluster: {}", e)))
     }
 
+    /// The namespace the control plane itself runs in — where the `hermes-backups`
+    /// and object-storage PVCs live. Read from the in-cluster service-account token
+    /// when present, overridable via `HERMES_SYSTEM_NAMESPACE`, defaulting to
+    /// `hermes-system`.
+    pub fn system_namespace() -> String {
+        std::env::var("HERMES_SYSTEM_NAMESPACE")
+            .ok()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .or_else(|| {
+                std::fs::read_to_string("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+                    .ok()
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+            })
+            .unwrap_or_else(|| "hermes-system".to_string())
+    }
+
     /// Resolve the first pod name matching label `app={app_label}` in a namespace.
     /// Used to target a workload's pod for `exec` (StatefulSet/Deployment-agnostic).
     pub async fn pod_name_for_app(client: &Client, namespace: &str, app_label: &str) -> Result<String, AppError> {
@@ -121,20 +139,32 @@ impl K8sManager {
         let quotas: Api<k8s_openapi::api::core::v1::ResourceQuota> = Api::namespaced(client.clone(), namespace);
         let limit_ranges: Api<k8s_openapi::api::core::v1::LimitRange> = Api::namespaced(client.clone(), namespace);
 
+        // No workspace quota set (the default) → impose nothing at all. Both the
+        // quota and the LimitRange are removed, so containers run unlimited unless a
+        // per-resource limit is set on the workload itself.
         if max_mem <= 0 && max_storage <= 0 && max_cpu <= 0 {
             let _ = quotas.delete("hermes-quota", &DeleteParams::default()).await;
+            let _ = limit_ranges.delete("hermes-limits", &DeleteParams::default()).await;
+            return Ok(());
         } else {
+            // Track only `requests.*`, never `limits.*`. A quota that constrains
+            // `limits.memory`/`limits.cpu` forces *every* pod in the namespace to
+            // declare those limits or be rejected — which would break uncapped
+            // workloads (apps/databases with no limit, and Knative pods that don't
+            // set a CPU limit). The LimitRange below supplies a defaultRequest so
+            // every pod has a request counted here, while staying uncapped unless it
+            // sets its own limit (matching the platform's "never cap unless asked"
+            // design). Guaranteed-QoS workloads mirror limits into requests, so their
+            // full limit still counts against the workspace cap.
             let mut hard = serde_json::Map::new();
             if max_mem > 0 {
                 hard.insert("requests.memory".to_string(), json!(format!("{}Mi", max_mem)));
-                hard.insert("limits.memory".to_string(), json!(format!("{}Mi", max_mem)));
             }
             if max_storage > 0 {
                 hard.insert("requests.storage".to_string(), json!(format!("{}Gi", max_storage)));
             }
             if max_cpu > 0 {
                 hard.insert("requests.cpu".to_string(), json!(format!("{}m", max_cpu)));
-                hard.insert("limits.cpu".to_string(), json!(format!("{}m", max_cpu)));
             }
 
             if !hard.is_empty() {
@@ -161,7 +191,10 @@ impl K8sManager {
             }
         }
 
-        // LimitRange: default limits per container as safety net
+        // A workspace quota is in effect. Provide only a small defaultRequest so pods
+        // that don't declare requests can still be scheduled/counted against the quota.
+        // Deliberately NO `default` limit — a container is never capped unless its own
+        // limit is set explicitly.
         let limit_manifest: k8s_openapi::api::core::v1::LimitRange = serde_json::from_value(json!({
             "apiVersion": "v1",
             "kind": "LimitRange",
@@ -172,13 +205,9 @@ impl K8sManager {
             "spec": {
                 "limits": [{
                     "type": "Container",
-                    "default": {
-                        "cpu": "500m",
-                        "memory": "512Mi"
-                    },
                     "defaultRequest": {
-                        "cpu": "100m",
-                        "memory": "256Mi"
+                        "cpu": "50m",
+                        "memory": "64Mi"
                     }
                 }]
             }
@@ -231,7 +260,7 @@ impl K8sManager {
                     if let Some(resources) = &container.resources {
                         if let Some(limits) = &resources.limits {
                             if let Some(mem_qty) = limits.get("memory") {
-                                used_mb += Self::parse_memory_quantity_mb(&mem_qty.0);
+                                used_mb += crate::utils::quantity::parse_memory_mib(&mem_qty.0) as i32;
                             }
                         }
                     }
@@ -240,19 +269,6 @@ impl K8sManager {
         }
 
         (used_mb, has_active_build)
-    }
-
-    fn parse_memory_quantity_mb(qty_str: &str) -> i32 {
-        let s = qty_str.trim();
-        if s.ends_with("Gi") {
-            s.trim_end_matches("Gi").parse::<i32>().unwrap_or(0) * 1024
-        } else if s.ends_with("Mi") {
-            s.trim_end_matches("Mi").parse::<i32>().unwrap_or(0)
-        } else if s.ends_with("Ki") {
-            s.trim_end_matches("Ki").parse::<i32>().unwrap_or(0) / 1024
-        } else {
-            s.parse::<i64>().unwrap_or(0) as i32 / 1024 / 1024
-        }
     }
 
     /// Returns total storage used by PVCs in the namespace, in GB (as f64).
@@ -271,7 +287,7 @@ impl K8sManager {
                 if let Some(resources) = &spec.resources {
                     if let Some(requests) = &resources.requests {
                         if let Some(storage_qty) = requests.get("storage") {
-                            total_bytes += Self::parse_storage_quantity_bytes(&storage_qty.0);
+                            total_bytes += crate::utils::quantity::parse_memory_bytes(&storage_qty.0) as i64;
                         }
                     }
                 }
@@ -279,21 +295,6 @@ impl K8sManager {
         }
 
         total_bytes as f64 / 1_073_741_824.0
-    }
-
-    fn parse_storage_quantity_bytes(qty_str: &str) -> i64 {
-        let s = qty_str.trim();
-        if s.ends_with("Ti") {
-            s.trim_end_matches("Ti").parse::<i64>().unwrap_or(0) * 1_099_511_627_776
-        } else if s.ends_with("Gi") {
-            s.trim_end_matches("Gi").parse::<i64>().unwrap_or(0) * 1_073_741_824
-        } else if s.ends_with("Mi") {
-            s.trim_end_matches("Mi").parse::<i64>().unwrap_or(0) * 1_048_576
-        } else if s.ends_with("Ki") {
-            s.trim_end_matches("Ki").parse::<i64>().unwrap_or(0) * 1_024
-        } else {
-            s.parse::<i64>().unwrap_or(0)
-        }
     }
 
     pub async fn apply_network_policy(client: &Client, namespace: &str) -> Result<(), AppError> {
@@ -321,6 +322,18 @@ impl K8sManager {
                             "namespaceSelector": {
                                 "matchLabels": {
                                     "kubernetes.io/metadata.name": "kube-system"
+                                }
+                            }
+                        }]
+                    },
+                    {
+                        // Allow the in-cluster control plane (hermes-system) to reach
+                        // workspace DBs directly for backup/restore/query/rotation —
+                        // no more pod exec.
+                        "from": [{
+                            "namespaceSelector": {
+                                "matchLabels": {
+                                    "kubernetes.io/metadata.name": "hermes-system"
                                 }
                             }
                         }]
@@ -384,6 +397,9 @@ impl K8sManager {
         binds: Vec<(String, String)>,
         cpu_limit: i32,
         memory_limit_mb: i64,
+        replicas_min: i32,
+        replicas_max: i32,
+        autoscale_cpu_percent: i32,
     ) -> Result<(), AppError> {
         let deployments: Api<Deployment> = Api::namespaced(client.clone(), namespace);
 
@@ -486,6 +502,13 @@ impl K8sManager {
             resources["limits"] = limits;
         }
 
+        // When an HPA is active (max > min) the Deployment must NOT own `replicas` —
+        // otherwise every (re)apply resets it to min and fights the autoscaler. Omitting
+        // the field (Null → None → not serialized under SSA) lets the HPA own the count.
+        let min_r = replicas_min.max(1);
+        let max_r = replicas_max.max(min_r);
+        let replicas_field = if max_r > min_r { serde_json::Value::Null } else { json!(min_r) };
+
         let deployment_manifest: Deployment = serde_json::from_value(json!({
             "apiVersion": "apps/v1",
             "kind": "Deployment",
@@ -497,7 +520,7 @@ impl K8sManager {
                 }
             },
             "spec": {
-                "replicas": 1,
+                "replicas": replicas_field,
                 "strategy": {
                     "type": "RollingUpdate",
                     "rollingUpdate": {
@@ -551,7 +574,56 @@ impl K8sManager {
         ).await
         .map_err(|e| AppError::Infrastructure(format!("Failed to apply Deployment {}: {}", name, e)))?;
 
+        // Reconcile the autoscaler: HPA when a real range is set, otherwise none.
+        Self::apply_hpa(client, namespace, name, replicas_min.max(1), replicas_max.max(replicas_min.max(1)), autoscale_cpu_percent).await;
+
         Ok(())
+    }
+
+    /// Reconciles a CPU-target HorizontalPodAutoscaler for a deployment. When
+    /// `max <= min` no autoscaling is wanted, so any existing HPA is removed (it
+    /// would otherwise pin the replica count). Best-effort: HPA needs metrics-server
+    /// in the cluster, so failures are logged but never block a deploy.
+    async fn apply_hpa(client: &Client, namespace: &str, name: &str, min: i32, max: i32, cpu_target: i32) {
+        let hpas: Api<k8s_openapi::api::autoscaling::v2::HorizontalPodAutoscaler> =
+            Api::namespaced(client.clone(), namespace);
+
+        if max <= min {
+            let _ = hpas.delete(name, &DeleteParams::default()).await;
+            return;
+        }
+
+        let manifest: k8s_openapi::api::autoscaling::v2::HorizontalPodAutoscaler =
+            match serde_json::from_value(json!({
+                "apiVersion": "autoscaling/v2",
+                "kind": "HorizontalPodAutoscaler",
+                "metadata": { "name": name, "namespace": namespace },
+                "spec": {
+                    "scaleTargetRef": { "apiVersion": "apps/v1", "kind": "Deployment", "name": name },
+                    "minReplicas": min,
+                    "maxReplicas": max,
+                    "metrics": [{
+                        "type": "Resource",
+                        "resource": {
+                            "name": "cpu",
+                            "target": { "type": "Utilization", "averageUtilization": cpu_target.clamp(1, 100) }
+                        }
+                    }]
+                }
+            })) {
+                Ok(m) => m,
+                Err(e) => {
+                    tracing::warn!(%name, "HPA manifest build failed: {}", e);
+                    return;
+                }
+            };
+
+        if let Err(e) = hpas
+            .patch(name, &PatchParams::apply("hermes-orchestrator").force(), &Patch::Apply(&manifest))
+            .await
+        {
+            tracing::warn!(%name, "Failed to apply HPA (is metrics-server installed?): {}", e);
+        }
     }
 
     pub async fn deploy_service(
@@ -730,6 +802,11 @@ impl K8sManager {
     ) -> Result<(), AppError> {
         let deployments: Api<Deployment> = Api::namespaced(client.clone(), namespace);
         let _ = deployments.delete(name, &DeleteParams::default()).await;
+
+        // Remove the autoscaler (if any) so it doesn't outlive the deployment.
+        let hpas: Api<k8s_openapi::api::autoscaling::v2::HorizontalPodAutoscaler> =
+            Api::namespaced(client.clone(), namespace);
+        let _ = hpas.delete(name, &DeleteParams::default()).await;
 
         let services: Api<Service> = Api::namespaced(client.clone(), namespace);
         let _ = services.delete(name, &DeleteParams::default()).await;
@@ -1283,6 +1360,157 @@ impl K8sManager {
             .unwrap_or(0);
 
         // Cleanup job
+        let delete_params = DeleteParams {
+            propagation_policy: Some(kube::api::PropagationPolicy::Background),
+            ..Default::default()
+        };
+        let _ = jobs.delete(name, &delete_params).await;
+
+        Ok((logs_str, exit_code))
+    }
+
+    /// Run a one-off DB-client Job in the control-plane namespace with the shared
+    /// `hermes-backups` PVC mounted at `/var/lib/hermes/backups`. Used for both
+    /// backup (dump → file on the PVC) and restore (file on the PVC → DB).
+    ///
+    /// Unlike [`run_job_and_get_logs`], the Job mounts the backups PVC, so `command`
+    /// can read/write dump files the control plane also sees (no streaming through
+    /// pod logs, no size/binary truncation). The Job uses the database's own image,
+    /// which ships the matching `pg_dump`/`psql`/`mysql`, and reaches the DB across
+    /// namespaces via its FQDN — the per-workspace NetworkPolicy already allows
+    /// ingress from `hermes-system`. The DB password is passed via a Secret (envFrom)
+    /// so it never appears in the Job spec or logs. Returns the pod logs + exit code.
+    ///
+    /// NOTE: the backups PVC is ReadWriteOnce, so this Job pod must land on the same
+    /// node as the control-plane pod that already mounts it. That holds on the
+    /// single-node k3s target; a multi-node deploy would need node pinning here.
+    pub async fn run_db_pvc_job(
+        client: &Client,
+        system_namespace: &str,
+        name: &str,
+        image: &str,
+        envs: Vec<(String, String)>,
+        command: &str,
+        backups_pvc_claim: &str,
+    ) -> Result<(String, i32), AppError> {
+        struct SecretCleanupGuard {
+            client: Client,
+            namespace: String,
+            name: String,
+        }
+        impl Drop for SecretCleanupGuard {
+            fn drop(&mut self) {
+                let client = self.client.clone();
+                let namespace = self.namespace.clone();
+                let name = self.name.clone();
+                tokio::spawn(async move {
+                    let secrets: Api<k8s_openapi::api::core::v1::Secret> = Api::namespaced(client, &namespace);
+                    let _ = secrets.delete(&format!("{}-env", name), &DeleteParams::default()).await;
+                });
+            }
+        }
+
+        let jobs: Api<k8s_openapi::api::batch::v1::Job> = Api::namespaced(client.clone(), system_namespace);
+
+        // Clear any stale job with the same name to avoid a 409 on create.
+        if jobs.get(name).await.is_ok() {
+            let delete_params = DeleteParams {
+                propagation_policy: Some(kube::api::PropagationPolicy::Background),
+                ..Default::default()
+            };
+            let _ = jobs.delete(name, &delete_params).await;
+            for _ in 0..10 {
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                if jobs.get(name).await.is_err() {
+                    break;
+                }
+            }
+        }
+
+        Self::create_secret(client, system_namespace, name, envs).await?;
+        let _cleanup_guard = SecretCleanupGuard {
+            client: client.clone(),
+            namespace: system_namespace.to_string(),
+            name: name.to_string(),
+        };
+
+        let job_manifest: k8s_openapi::api::batch::v1::Job = serde_json::from_value(json!({
+            "apiVersion": "batch/v1",
+            "kind": "Job",
+            "metadata": { "name": name, "namespace": system_namespace },
+            "spec": {
+                "backoffLimit": 0,
+                "ttlSecondsAfterFinished": 120,
+                // Dumps can be slow on large DBs; give them room (30 min).
+                "activeDeadlineSeconds": 1800,
+                "template": {
+                    "spec": {
+                        "restartPolicy": "Never",
+                        "containers": [{
+                            "name": name,
+                            "image": image,
+                            "imagePullPolicy": "IfNotPresent",
+                            "command": ["/bin/sh", "-c", command],
+                            "resources": {
+                                "requests": { "memory": "64Mi", "cpu": "100m" },
+                                "limits": { "memory": "512Mi", "cpu": "1000m" }
+                            },
+                            "envFrom": [{ "secretRef": { "name": format!("{}-env", name) } }],
+                            "volumeMounts": [{
+                                "name": "backups",
+                                "mountPath": "/var/lib/hermes/backups"
+                            }]
+                        }],
+                        "volumes": [{
+                            "name": "backups",
+                            "persistentVolumeClaim": { "claimName": backups_pvc_claim }
+                        }]
+                    }
+                }
+            }
+        })).map_err(|e| AppError::Fatal(anyhow::anyhow!("Backup Job serialization failed: {}", e)))?;
+
+        jobs.create(&PostParams::default(), &job_manifest).await
+            .map_err(|e| AppError::Infrastructure(format!("Failed to create backup Job {}: {}", name, e)))?;
+
+        // Wait for the Job to reach a terminal state.
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(2));
+        loop {
+            interval.tick().await;
+            match jobs.get(name).await {
+                Ok(job_status) => {
+                    if let Some(status) = job_status.status {
+                        if status.succeeded.unwrap_or(0) > 0 || status.failed.unwrap_or(0) > 0 {
+                            break;
+                        }
+                    }
+                }
+                Err(_) => return Err(AppError::Infrastructure(format!("Backup Job {} disappeared", name))),
+            }
+        }
+
+        // Pull the pod's logs + exit code (for error surfacing).
+        let pods_api: Api<Pod> = Api::namespaced(client.clone(), system_namespace);
+        let lp = kube::api::ListParams::default().labels(&format!("job-name={}", name));
+        let pod_list = pods_api.list(&lp).await
+            .map_err(|e| AppError::Infrastructure(format!("Failed to list pods for backup Job: {}", e)))?;
+        let (logs_str, exit_code) = match pod_list.items.first().and_then(|p| p.metadata.name.as_ref()) {
+            Some(pod_name) => {
+                let log_params = kube::api::LogParams { follow: false, ..Default::default() };
+                let logs = pods_api.logs(pod_name, &log_params).await.unwrap_or_default();
+                let code = pod_list.items.first()
+                    .and_then(|p| p.status.as_ref())
+                    .and_then(|s| s.container_statuses.as_ref())
+                    .and_then(|st| st.first())
+                    .and_then(|st| st.state.as_ref())
+                    .and_then(|state| state.terminated.as_ref())
+                    .map(|t| t.exit_code)
+                    .unwrap_or(1);
+                (logs, code)
+            }
+            None => (String::new(), 1),
+        };
+
         let delete_params = DeleteParams {
             propagation_policy: Some(kube::api::PropagationPolicy::Background),
             ..Default::default()

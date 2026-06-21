@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, assigned_domain, container_name FROM app_instances \n             WHERE branch_name = $1 AND instance_type != 'production'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "assigned_domain",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "container_name",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "92af87852e80e346919109f0337d491c3a240e4e7a1d90f6b0dd2bc513cea752"
+}

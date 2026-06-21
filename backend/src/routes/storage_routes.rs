@@ -30,9 +30,7 @@ pub fn routes(state: AppState) -> Router {
         .layer(Extension(RequiredPermission("volume:create")));
 
     let init_upload_router = Router::new()
-        .route("/upload/init", post(storage_controller::initialize_upload))
-        .layer(from_fn_with_state(state.clone(), check_permission))
-        .layer(Extension(RequiredPermission("volume:create")));
+        .route("/upload/init", post(storage_controller::initialize_upload));
 
     let list_objects_router = Router::new()
         .route("/buckets/:bucket_slug/objects", get(storage_controller::list_objects))
@@ -40,21 +38,16 @@ pub fn routes(state: AppState) -> Router {
         .layer(Extension(RequiredPermission("volume:read")));
 
     let delete_object_router = Router::new()
-        .route("/objects/:id", axum::routing::delete(storage_controller::delete_object))
-        .layer(from_fn_with_state(state.clone(), check_permission))
-        .layer(Extension(RequiredPermission("volume:delete")));
+        .route("/objects/:id", axum::routing::delete(storage_controller::delete_object));
 
     let download_private_router = Router::new()
-        .route("/private/:file_id", get(storage_controller::download_private_file))
-        .layer(from_fn_with_state(state.clone(), check_permission))
-        .layer(Extension(RequiredPermission("volume:read")));
+        .route("/private/:file_id", get(storage_controller::download_private_file));
 
     let public_transfer_routes = Router::new()
         .route("/upload/:id", post(storage_controller::process_upload_stream).put(storage_controller::process_upload_stream))
         .route("/upload/:id/progress", get(storage_controller::upload_progress_stream));
 
     let generate_token_router = Router::new()
-        .route("/buckets/:id/token", post(storage_controller::generate_bucket_token))
         .route("/buckets/:id/rotate-credentials", post(storage_controller::rotate_bucket_credentials))
         .layer(from_fn_with_state(state.clone(), check_permission))
         .layer(Extension(RequiredPermission("volume:create")));

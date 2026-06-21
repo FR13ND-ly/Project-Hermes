@@ -5,16 +5,8 @@ use crate::app_state::AppState;
 use crate::dtos::domain_dto::{AddDomainRequest, DomainResponse};
 use crate::middlewares::auth_middleware::AuthenticatedUser;
 use crate::models::domain_model::{Domain, DomainRoutingType, DomainStatus};
-use crate::utils::{cloudflare, nginx::NginxManager, error::AppError};
+use crate::utils::{cloudflare, error::AppError};
 use crate::utils::pagination::{PaginationParams, Paginated};
-
-fn routing_type_str(rt: DomainRoutingType) -> &'static str {
-    match rt {
-        DomainRoutingType::ReverseProxy => "reverse_proxy",
-        DomainRoutingType::StaticHost => "static_host",
-        DomainRoutingType::Custom => "custom",
-    }
-}
 
 /// What a domain points at, resolved from its target_type/target_id.
 struct ResolvedTarget {
@@ -279,6 +271,29 @@ pub async fn get_domain_logs(
     Ok(Json(DomainLogsResponse { lines, supported: true }))
 }
 
+/// Human-readable summary of the routing actually applied. Edge routing is now a
+/// k8s Ingress reconciled by Traefik (with automatic TLS via cert-manager), not a
+/// host Nginx site — but we keep ADR-003's transparency goal by storing this in
+/// `domains.nginx_config_content` so the UI can show exactly what routes a domain.
+fn render_applied_config(fqdn: &str, service: Option<&str>, port: i32, body_size_mb: i32) -> String {
+    let tls = match std::env::var("HERMES_SSL_ISSUER") {
+        Ok(issuer) if !issuer.trim().is_empty() => format!("tls: automatic (cert-manager issuer: {})", issuer),
+        _ => "tls: disabled (no HERMES_SSL_ISSUER configured)".to_string(),
+    };
+    format!(
+        "# Applied via Traefik (Kubernetes Ingress)\n\
+         host: {fqdn}\n\
+         backend: {svc}:{port}\n\
+         {tls}\n\
+         maxBodySize: {body_size_mb}MB\n",
+        fqdn = fqdn,
+        svc = service.unwrap_or("(unknown)"),
+        port = port,
+        tls = tls,
+        body_size_mb = body_size_mb,
+    )
+}
+
 pub async fn add_domain(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -324,23 +339,17 @@ pub async fn add_domain(
         }
     }
 
-    // Databases are TCP: just a DNS record, no nginx site / ingress.
+    // Databases are TCP: just a DNS record, no HTTP edge. Everything else is
+    // routed by Traefik via the k8s Ingress created below — no host Nginx.
     let final_nginx_content = if target.dns_only {
         None
     } else {
-        let cert_path = format!("/etc/ssl/hermes/{}.crt", fqdn);
-        let key_path = format!("/etc/ssl/hermes/{}.key", fqdn);
-        Some(NginxManager::deploy_site(
-            routing_type_str(target.routing_type),
+        Some(render_applied_config(
             &fqdn,
             target.nginx_target_host.as_deref(),
-            target.nginx_root_path.as_deref(),
+            target.target_port,
             body_size,
-            ssl_enabled,
-            &cert_path,
-            &key_path,
-            payload.nginx_config_content.as_deref(),
-        )?)
+        ))
     };
 
     let domain_id = Uuid::new_v4();
@@ -446,20 +455,7 @@ pub async fn verify_and_sync_domain(
     let final_nginx_content = if dns_only {
         domain.nginx_config_content.clone()
     } else {
-        let cert_path = format!("/etc/ssl/hermes/{}.crt", domain.fqdn);
-        let key_path = format!("/etc/ssl/hermes/{}.key", domain.fqdn);
-        let content = NginxManager::deploy_site(
-            routing_type_str(domain.routing_type),
-            &domain.fqdn,
-            domain.nginx_target_host.as_deref(),
-            domain.nginx_root_path.as_deref(),
-            domain.client_max_body_size,
-            domain.is_ssl,
-            &cert_path,
-            &key_path,
-            domain.nginx_config_content.as_deref()
-        )?;
-
+        let mut applied_port = 80;
         if domain.routing_type == DomainRoutingType::ReverseProxy {
             if let Some(ref service_name) = domain.nginx_target_host {
                 let namespace = format!("hermes-ws-{}", ws_id);
@@ -470,6 +466,7 @@ pub async fn verify_and_sync_domain(
                 .fetch_optional(&state.pool)
                 .await?
                 .unwrap_or(80);
+                applied_port = target_port;
 
                 if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
                     let _ = crate::utils::k8s::K8sManager::deploy_ingress(
@@ -483,7 +480,12 @@ pub async fn verify_and_sync_domain(
                 }
             }
         }
-        Some(content)
+        Some(render_applied_config(
+            &domain.fqdn,
+            domain.nginx_target_host.as_deref(),
+            applied_port,
+            domain.client_max_body_size,
+        ))
     };
 
     sqlx::query!(
@@ -500,6 +502,56 @@ pub async fn verify_and_sync_domain(
     d.status = DomainStatus::Active;
     d.nginx_config_content = final_nginx_content;
     Ok(Json(to_response(d, name)))
+}
+
+/// Best-effort teardown of a domain's *external* resources (Cloudflare DNS
+/// record, nginx site, k8s ingress). It does NOT delete the DB row — the caller
+/// removes that (e.g. inside a transaction). Used when a parent resource/project
+/// is deleted so domains don't leave dangling DNS/ingress behind.
+pub async fn teardown_domain_resources(pool: &sqlx::PgPool, ws_id: Uuid, domain: &Domain) {
+    let cf = resolve_project_cf(pool, ws_id, &domain.target_type, domain.target_id).await;
+
+    if let (Some(zone_id), Some(record_id)) =
+        (domain.cloudflare_zone_id.clone(), domain.cloudflare_record_id.clone())
+    {
+        let _ = cloudflare::delete_dns_record(&zone_id, &record_id, cf.api_token.as_deref()).await;
+    }
+
+    // Databases are DNS-only (no ingress / nginx site to remove).
+    if domain.target_type != "database" {
+        let namespace = format!("hermes-ws-{}", ws_id);
+        let domain_res_name = format!("domain-{}", domain.id);
+        if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
+            let _ = crate::utils::k8s::K8sManager::delete_ingress(&k8s_client, &namespace, &domain_res_name).await;
+        }
+    }
+}
+
+/// Tears down and deletes every domain attached to a single resource (matched by
+/// `target_type` + `target_id`). Best-effort, used when the underlying resource
+/// (app instance, serverless function, database) is deleted so its domains never
+/// linger with live DNS/ingress.
+pub async fn purge_domains_for_target(pool: &sqlx::PgPool, ws_id: Uuid, target_type: &str, target_id: Uuid) {
+    let domains = sqlx::query_as::<_, Domain>(
+        "SELECT * FROM domains WHERE workspace_id = $1 AND target_type = $2 AND target_id = $3"
+    )
+    .bind(ws_id)
+    .bind(target_type)
+    .bind(target_id)
+    .fetch_all(pool)
+    .await
+    .unwrap_or_default();
+
+    for d in &domains {
+        teardown_domain_resources(pool, ws_id, d).await;
+    }
+
+    let _ = sqlx::query!(
+        "DELETE FROM domains WHERE workspace_id = $1 AND target_type = $2 AND target_id = $3",
+        ws_id, target_type, target_id
+    )
+    .execute(pool)
+    .await;
 }
 
 pub async fn remove_domain(
@@ -543,7 +595,6 @@ pub async fn remove_domain(
                 let _ = crate::utils::k8s::K8sManager::delete_ingress(&k8s_client, &namespace, &domain_res_name).await;
             }
         });
-        NginxManager::delete_site(&domain.fqdn)?;
     }
 
     sqlx::query!("DELETE FROM domains WHERE id = $1", domain.id)
@@ -591,21 +642,7 @@ pub async fn update_domain(
     let ssl_enabled = payload.is_ssl.unwrap_or(domain.is_ssl);
     let routing_type = payload.routing_type.unwrap_or(domain.routing_type);
 
-    let cert_path = format!("/etc/ssl/hermes/{}.crt", domain.fqdn);
-    let key_path = format!("/etc/ssl/hermes/{}.key", domain.fqdn);
-
-    let final_nginx_content = NginxManager::deploy_site(
-        routing_type_str(routing_type),
-        &domain.fqdn,
-        payload.nginx_target_host.as_deref(),
-        payload.nginx_root_path.as_deref(),
-        body_size,
-        ssl_enabled,
-        &cert_path,
-        &key_path,
-        payload.nginx_config_content.as_deref()
-    )?;
-
+    let mut applied_port = 80;
     if routing_type == DomainRoutingType::ReverseProxy {
         if let Some(ref service_name) = payload.nginx_target_host {
             let namespace = format!("hermes-ws-{}", ws_id);
@@ -616,6 +653,7 @@ pub async fn update_domain(
             .fetch_optional(&state.pool)
             .await?
             .unwrap_or(80);
+            applied_port = target_port;
 
             if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
                 let _ = crate::utils::k8s::K8sManager::deploy_ingress(
@@ -629,12 +667,20 @@ pub async fn update_domain(
             }
         }
     } else {
+        // Non reverse-proxy: make sure no stale Ingress lingers.
         let namespace = format!("hermes-ws-{}", ws_id);
         let domain_res_name = format!("domain-{}", domain.id);
         if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
             let _ = crate::utils::k8s::K8sManager::delete_ingress(&k8s_client, &namespace, &domain_res_name).await;
         }
     }
+
+    let final_nginx_content = render_applied_config(
+        &domain.fqdn,
+        payload.nginx_target_host.as_deref(),
+        applied_port,
+        body_size,
+    );
 
     sqlx::query!(
         "UPDATE domains

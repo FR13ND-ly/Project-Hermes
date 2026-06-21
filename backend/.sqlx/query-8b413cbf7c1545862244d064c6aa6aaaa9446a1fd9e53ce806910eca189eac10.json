@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO app_instances (id, app_id, branch_name, instance_type, status, internal_port, assigned_domain, container_name, external_port)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        {
+          "Custom": {
+            "name": "app_instance_type",
+            "kind": {
+              "Enum": [
+                "production",
+                "staging",
+                "preview"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "app_status",
+            "kind": {
+              "Enum": [
+                "building",
+                "running",
+                "stopped",
+                "failed",
+                "crashed"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Varchar",
+        "Varchar",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8b413cbf7c1545862244d064c6aa6aaaa9446a1fd9e53ce806910eca189eac10"
+}

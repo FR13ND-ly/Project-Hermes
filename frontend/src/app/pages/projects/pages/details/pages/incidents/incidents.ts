@@ -81,7 +81,6 @@ export class Incidents implements OnInit, OnDestroy {
     this.wsSubscription = this.wsService.onEvent<any>('incident_created').subscribe(payload => {
       const projId = this.parent.projectId();
       if (projId && payload.project_id === projId) {
-        console.log('[Incidents] New incident logged in WS, reloading silently:', payload);
         this.loadIncidents();
       }
     });

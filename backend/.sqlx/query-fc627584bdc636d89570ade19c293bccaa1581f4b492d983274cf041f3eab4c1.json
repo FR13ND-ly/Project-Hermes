@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE app_builds SET status='failed', phase='failed',\n                     failure_reason=COALESCE(failure_reason,'Build/deploy interrupted'),\n                     failure_category=COALESCE(failure_category,'INTERRUPTED') WHERE id=$1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fc627584bdc636d89570ade19c293bccaa1581f4b492d983274cf041f3eab4c1"
+}

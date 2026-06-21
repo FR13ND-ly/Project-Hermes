@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO app_incident_logs (id, workspace_id, app_instance_id, incident_type, message) VALUES ($1, $2, $3, 'HIGH_MEMORY', $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "08f8d2bdb65a66e6d6c00e3b7f235e0d3a22052bb6b0b57349d013bc91b16ad3"
+}

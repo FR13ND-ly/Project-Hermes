@@ -1,0 +1,95 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ab.id, ab.app_id, ab.app_instance_id, ab.status, ab.phase, ab.failure_reason, ab.failure_category, ab.logs, ab.created_at, ai.branch_name, ab.commit_message, ab.commit_sha, ab.duration_sec\n         FROM app_builds ab\n         JOIN app_instances ai ON ab.app_instance_id = ai.id\n         WHERE ab.id = $1 AND ab.app_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "app_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "app_instance_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "phase",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "failure_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "failure_category",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "logs",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "branch_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "commit_message",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "commit_sha",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "duration_sec",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "098ab8aeb5aa5cb310b79230e70087855e23331107e0b7461a8f6e90c3e690e8"
+}

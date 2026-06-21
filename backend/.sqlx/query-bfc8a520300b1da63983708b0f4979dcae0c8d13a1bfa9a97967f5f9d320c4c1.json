@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM domains WHERE workspace_id = $1 AND (\n            target_id IN (SELECT id FROM app_instances WHERE app_id IN (SELECT id FROM apps WHERE project_id = $2))\n            OR target_id IN (SELECT id FROM serverless_instances WHERE project_id = $2)\n            OR target_id IN (SELECT id FROM databases WHERE project_id = $2)\n        )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bfc8a520300b1da63983708b0f4979dcae0c8d13a1bfa9a97967f5f9d320c4c1"
+}

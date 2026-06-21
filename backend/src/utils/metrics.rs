@@ -119,6 +119,7 @@ pub fn start_gauge_sampler(pool: sqlx::PgPool) {
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(15));
         loop {
             interval.tick().await;
+            if !crate::utils::leader::is_leader() { continue; }
 
             // Connection pool state.
             gauge!(DB_POOL_CONNECTIONS, "state" => "total").set(pool.size() as f64);
@@ -126,7 +127,7 @@ pub fn start_gauge_sampler(pool: sqlx::PgPool) {
 
             // Build concurrency headroom (0 = saturated).
             gauge!(BUILD_PERMITS_AVAILABLE)
-                .set(crate::utils::builder::available_build_permits() as f64);
+                .set(crate::utils::builder::available_build_permits(&pool).await as f64);
 
             // Counts (best-effort; a failed query just skips this tick's update).
             if let Ok(n) = sqlx::query_scalar!("SELECT count(*) FROM app_builds WHERE phase = 'queued'")

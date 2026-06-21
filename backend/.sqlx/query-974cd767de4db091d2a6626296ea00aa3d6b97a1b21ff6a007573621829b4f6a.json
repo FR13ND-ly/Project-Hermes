@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE app_instances SET current_image_tag = $1, status = 'building', updated_at = now() WHERE id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "974cd767de4db091d2a6626296ea00aa3d6b97a1b21ff6a007573621829b4f6a"
+}

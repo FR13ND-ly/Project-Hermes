@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ai.meta_data, a.workspace_id FROM app_instances ai\n         JOIN apps a ON ai.app_id = a.id\n         WHERE ai.id = $1 AND a.workspace_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "meta_data",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 1,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "e99eda3524478994ad7472deb2a253fc448c4f836df94886937efa489fc381a3"
+}

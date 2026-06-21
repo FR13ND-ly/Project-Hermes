@@ -60,6 +60,8 @@ import { WebSocketService } from '../../../core/services/websocket.service';
                   <div class="flex items-center gap-2 shrink-0">
                     @if (item.status === 'queued') {
                       <span class="w-1.5 h-1.5 rounded-full bg-amber-500" title="în așteptare"></span>
+                    } @else if (item.status === 'deploying') {
+                      <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" title="se lansează"></span>
                     } @else {
                       <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="rulează"></span>
                     }
@@ -91,7 +93,10 @@ export class BuildIndicator implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.load();
     // Refresh on any build / database / serverless lifecycle event.
-    for (const evt of ['build_status_changed', 'database_status_changed', 'serverless_function_updated']) {
+    // 'instance_status_changed' is the signal the app page uses to know an app is
+    // ready — without it the indicator kept showing "deploying" after the deploy
+    // finished (the instance flips to running but no build event fires).
+    for (const evt of ['build_status_changed', 'instance_status_changed', 'database_status_changed', 'serverless_function_updated']) {
       this.sub.add(this.wsService.onEvent<any>(evt).subscribe(() => this.load()));
     }
     this.tickTimer = setInterval(() => this.now.set(Date.now()), 1000);

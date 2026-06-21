@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM cron_jobs WHERE target_type = 'database' AND target_id = $1 AND is_backup = true",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "39d77994db7ec2bbcc3e477f0aaa1587fa084940b3ef9424b271c297c6c66807"
+}

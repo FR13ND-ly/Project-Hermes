@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE databases SET status = $1, updated_at = now() WHERE id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "db_status",
+            "kind": {
+              "Enum": [
+                "provisioning",
+                "running",
+                "stopped",
+                "failed"
+              ]
+            }
+          }
+        },
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cd60fb114286b8dd9574cd14b4c604a3fd79feea3457c221147c8b935e73daba"
+}

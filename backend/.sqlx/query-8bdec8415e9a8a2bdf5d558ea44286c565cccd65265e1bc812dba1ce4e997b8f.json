@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n            SELECT 1 \n            FROM workspace_members wm\n            JOIN role_permissions rp ON wm.role_id = rp.role_id\n            JOIN permissions p ON rp.permission_id = p.id\n            WHERE wm.workspace_id = $1 \n              AND wm.user_id = $2 \n              AND p.name = $3\n        ) as \"has_perm!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "has_perm!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "8bdec8415e9a8a2bdf5d558ea44286c565cccd65265e1bc812dba1ce4e997b8f"
+}
