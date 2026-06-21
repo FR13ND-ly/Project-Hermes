@@ -5,6 +5,8 @@ use crate::utils::error::AppError;
 
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
+#[cfg(unix)]
+use std::process::Command;
 
 const SITES_AVAILABLE: &str = "/etc/nginx/sites-available";
 const SITES_ENABLED: &str = "/etc/nginx/sites-enabled";
