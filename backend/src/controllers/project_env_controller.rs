@@ -275,7 +275,7 @@ pub async fn link_project_env(
     AuthenticatedUser(claims): AuthenticatedUser,
     Path(instance_id): Path<Uuid>,
     Json(payload): Json<LinkProjectEnvRequest>,
-) -> Result<StatusCode, AppError> {
+) -> Result<Json<serde_json::Value>, AppError> {
     let ws = claims
         .current_workspace_id
         .ok_or_else(|| AppError::Validation("No active workspace selected.".to_string()))?;
@@ -295,6 +295,29 @@ pub async fn link_project_env(
         ));
     }
 
+    // "Linking wins": an explicit link supersedes a LOCAL var with the same key on
+    // this instance. We delete the conflicting local one so a key can't be both local
+    // and linked (which silently shadowed the linked value). This lets users set a
+    // placeholder locally up-front and have it auto-replaced when the pool var links.
+    let key: Option<String> = sqlx::query_scalar::<_, String>(
+        "SELECT key FROM project_env_variables WHERE id = $1",
+    )
+    .bind(payload.project_env_id)
+    .fetch_optional(&state.pool)
+    .await?;
+
+    let mut replaced_local_key: Option<String> = None;
+    if let Some(ref k) = key {
+        let deleted = sqlx::query("DELETE FROM environment_variables WHERE app_instance_id = $1 AND key = $2")
+            .bind(instance_id)
+            .bind(k)
+            .execute(&state.pool)
+            .await?;
+        if deleted.rows_affected() > 0 {
+            replaced_local_key = Some(k.clone());
+        }
+    }
+
     sqlx::query!(
         "INSERT INTO app_env_links (app_instance_id, project_env_id) VALUES ($1, $2)
          ON CONFLICT DO NOTHING",
@@ -305,7 +328,7 @@ pub async fn link_project_env(
     .await?;
 
     hot_reload_if_running(&state.pool, instance_id);
-    Ok(StatusCode::NO_CONTENT)
+    Ok(Json(serde_json::json!({ "replacedLocalKey": replaced_local_key })))
 }
 
 /// PATCH /projects/:project_id/env/:id — rename a project env var's key. Works

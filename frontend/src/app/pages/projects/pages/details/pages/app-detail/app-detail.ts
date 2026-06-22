@@ -967,9 +967,15 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       : this.projectService.linkProjectEnv(appInstanceId, env.id);
 
     req.subscribe({
-      next: () => {
+      next: (res: any) => {
         this.togglingLinkId.set(null);
-        this.toast.success(env.linked ? 'Variabilă deconectată.' : 'Variabilă conectată.');
+        if (!env.linked && res?.replacedLocalKey) {
+          // "Linking wins": a conflicting local var with the same key was removed.
+          this.toast.info(`Variabila locală ${res.replacedLocalKey} a fost înlocuită de cea din pool (linkarea câștigă).`);
+          this.loadAppDetails();
+        } else {
+          this.toast.success(env.linked ? 'Variabilă deconectată.' : 'Variabilă conectată.');
+        }
         this.loadAvailableProjectEnv();
       },
       error: (err) => {
