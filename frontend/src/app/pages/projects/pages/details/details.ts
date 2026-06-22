@@ -316,6 +316,10 @@ export class Details implements OnInit, OnDestroy {
   readonly expandedDbs = signal<Record<number, boolean>>({});
   toggleAppExpand(i: number): void { this.expandedApps.update(m => ({ ...m, [i]: !m[i] })); }
   toggleDbExpand(i: number): void { this.expandedDbs.update(m => ({ ...m, [i]: !m[i] })); }
+  // Per-service editor dialog: which app index is open (null = closed).
+  readonly editingAppIndex = signal<number | null>(null);
+  openAppEditor(i: number): void { this.editingAppIndex.set(i); }
+  closeAppEditor(): void { this.editingAppIndex.set(null); }
 
   toggleComposeApp(index: number): void {
     this.composePlan.update(p => {
