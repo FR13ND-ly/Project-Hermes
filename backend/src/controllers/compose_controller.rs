@@ -219,6 +219,31 @@ pub async fn apply_compose_plan(
         );
     }
 
+    // Validate service aliases are unique (within this stack + across the workspace)
+    // before creating anything — services share the namespace.
+    let mut seen_aliases: Vec<String> = Vec::new();
+    for app in payload.plan.apps.iter().filter(|a| a.include) {
+        let slug = app.name.trim().to_lowercase().replace([' ', '_'], "-");
+        let alias = match app.network_name.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            Some(custom) => crate::utils::string_gen::sanitize_k8s_name(custom),
+            None => crate::utils::string_gen::sanitize_k8s_name(&format!("hermes-app-{}-{}", slug, branch)),
+        };
+        if seen_aliases.contains(&alias) {
+            return Err(AppError::Validation(format!("Numele de serviciu '{}' apare de două ori în acest stack.", alias)));
+        }
+        seen_aliases.push(alias.clone());
+        let taken = sqlx::query_scalar::<_, bool>(
+            "SELECT EXISTS(SELECT 1 FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE a.workspace_id = $1 AND ai.network_alias = $2)",
+        )
+        .bind(ws_id)
+        .bind(&alias)
+        .fetch_one(&state.pool)
+        .await?;
+        if taken {
+            return Err(AppError::Conflict(format!("Numele de serviciu '{}' e deja folosit în acest workspace. Alege altul.", alias)));
+        }
+    }
+
     // 2. Pass 1: Create apps in DB + conditionally generate BaaS auth secrets.
     let mut app_identities: HashMap<String, (Uuid, Uuid)> = HashMap::new();
     // service name -> published project_env id for that app's own URL (depends_on links).
@@ -244,10 +269,9 @@ pub async fn apply_compose_plan(
         // Resolve this app's in-cluster network alias (custom or auto) and optionally
         // publish its URL into the project env pool, e.g. service "backend" ->
         // BACKEND_URL = http://backend:3000. depends_on consumers auto-linked in Pass 2.
-        let container_name = crate::utils::string_gen::sanitize_k8s_name(&format!("hermes-app-{}-{}-{}", slug, branch, &instance_id.to_string()[..8]));
         let network_alias = match app.network_name.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
             Some(custom) => crate::utils::string_gen::sanitize_k8s_name(custom),
-            None => container_name.rsplit_once('-').map(|(p, _)| p.to_string()).unwrap_or_else(|| container_name.clone()),
+            None => crate::utils::string_gen::sanitize_k8s_name(&format!("hermes-app-{}-{}", slug, branch)),
         };
         app_alias_by_service.insert(app.service.clone(), network_alias.clone());
         if app.publish_url != Some(false) {

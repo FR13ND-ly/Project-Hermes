@@ -240,6 +240,27 @@ pub async fn create_app(
     let container_name = crate::utils::string_gen::sanitize_k8s_name(&format!("hermes-app-{}-{}-{}", slug, branch, &instance_id.to_string()[..8]));
     let assigned_domain: Option<String> = None;
 
+    // Resolve the in-cluster service alias (custom or auto) and ensure it is unique
+    // within the workspace BEFORE creating anything (services share the namespace).
+    let network_alias = match payload.network_name.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        Some(custom) => crate::utils::string_gen::sanitize_k8s_name(custom),
+        None => crate::utils::string_gen::sanitize_k8s_name(&format!("hermes-app-{}-{}", slug, branch)),
+    };
+    let alias_taken = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM app_instances ai JOIN apps a ON ai.app_id = a.id
+         WHERE a.workspace_id = $1 AND ai.network_alias = $2)",
+    )
+    .bind(ws_id)
+    .bind(&network_alias)
+    .fetch_one(&state.pool)
+    .await?;
+    if alias_taken {
+        return Err(AppError::Conflict(format!(
+            "Numele de serviciu '{}' e deja folosit în acest workspace. Alege altul.",
+            network_alias
+        )));
+    }
+
     let git_subpath = payload.git_subpath.as_deref().map(|s| s.trim().trim_matches('/')).filter(|s| !s.is_empty()).map(|s| s.to_string());
 
     // The chosen git credential (if any) must belong to this workspace.
@@ -279,17 +300,10 @@ pub async fn create_app(
         .execute(&state.pool)
         .await?;
 
-    // Resolve this app's in-cluster network alias (custom or auto), persist it for
-    // the deploy path, and optionally publish its URL into the project env pool so
-    // OTHER apps can reference it (toggleable; key defaults to <SLUG>_URL).
+    // Persist the (already validated) network alias for the deploy path, and
+    // optionally publish this app's URL into the project env pool so OTHER apps can
+    // reference it (toggleable; key defaults to <SLUG>_URL).
     {
-        let network_alias = match payload.network_name.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-            Some(custom) => crate::utils::string_gen::sanitize_k8s_name(custom),
-            None => container_name
-                .rsplit_once('-')
-                .map(|(p, _)| p.to_string())
-                .unwrap_or_else(|| container_name.clone()),
-        };
         sqlx::query("UPDATE app_instances SET network_alias = $1 WHERE id = $2")
             .bind(&network_alias)
             .bind(instance_id)
