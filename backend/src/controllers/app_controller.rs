@@ -279,6 +279,23 @@ pub async fn create_app(
         .execute(&state.pool)
         .await?;
 
+    // Publish this app's own internal URL into the project env pool so OTHER apps
+    // can reference it (manually linkable in the UI; auto-linked for compose
+    // depends_on). Uses the stable service name (no per-instance hash) so the URL
+    // survives recreation: http://hermes-app-<slug>-<branch>:<port>
+    {
+        let stable_svc = container_name
+            .rsplit_once('-')
+            .map(|(p, _)| p)
+            .unwrap_or(container_name.as_str());
+        let app_url = format!("http://{}:{}", stable_svc, internal_port);
+        let url_key = format!("{}_URL", crate::utils::app_env::sanitize_key_fragment(&slug, "APP"));
+        let _ = crate::utils::app_env::publish_project_env(
+            &state.pool, ws_id, payload.project_id, &url_key, &app_url, false, "app", app_id,
+        )
+        .await;
+    }
+
     // Provision any environment variables supplied at creation time.
     if let Some(vars) = &payload.env_variables {
         for var in vars {
@@ -1983,6 +2000,9 @@ pub async fn delete_app(
     .fetch_optional(&state.pool)
     .await?
     .ok_or_else(|| AppError::NotFound("Application not found.".to_string()))?;
+
+    // Remove this app's published URL from the project env pool (+ unlink consumers).
+    let _ = crate::utils::app_env::unpublish_project_env(&state.pool, "app", app.id).await;
 
     // Get all instances
     let instances = sqlx::query!(

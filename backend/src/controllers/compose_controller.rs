@@ -217,6 +217,8 @@ pub async fn apply_compose_plan(
 
     // 2. Pass 1: Create apps in DB + conditionally generate BaaS auth secrets.
     let mut app_identities: HashMap<String, (Uuid, Uuid)> = HashMap::new();
+    // service name -> published project_env id for that app's own URL (depends_on links).
+    let mut app_url_env_by_service: HashMap<String, Uuid> = HashMap::new();
     for app in payload.plan.apps.iter().filter(|a| a.include) {
         let app_id = Uuid::new_v4();
         let instance_id = Uuid::new_v4();
@@ -232,6 +234,19 @@ pub async fn apply_compose_plan(
         )
         .execute(&state.pool)
         .await?;
+
+        // Publish this app's own stable internal URL into the project env pool, e.g.
+        // service "backend" -> BACKEND_URL = http://hermes-app-backend-main:3000.
+        // depends_on consumers are auto-linked in Pass 2.
+        let container_name = crate::utils::string_gen::sanitize_k8s_name(&format!("hermes-app-{}-{}-{}", slug, branch, &instance_id.to_string()[..8]));
+        let stable_svc = container_name.rsplit_once('-').map(|(p, _)| p).unwrap_or(container_name.as_str());
+        let app_url = format!("http://{}:{}", stable_svc, app.internal_port);
+        let url_key = format!("{}_URL", crate::utils::app_env::sanitize_key_fragment(&app.service, "APP"));
+        if let Ok(env_id) = crate::utils::app_env::publish_project_env(
+            &state.pool, ws_id, payload.project_id, &url_key, &app_url, false, "app", app_id,
+        ).await {
+            app_url_env_by_service.insert(app.service.clone(), env_id);
+        }
 
         if app.enable_baas {
             if let Err(e) = crate::utils::app_auth::get_or_create_app_auth_secret(
@@ -333,9 +348,10 @@ pub async fn apply_compose_plan(
             ).execute(&state.pool).await;
         }
 
-        // Link this app to the connection env of every database it depends on.
+        // Link this app to the connection env of every database AND app it depends on
+        // (depends_on: backend  ->  this app gets BACKEND_URL, auto-wired).
         for dep in &app.depends_on {
-            if let Some(env_id) = db_env_by_service.get(dep) {
+            if let Some(env_id) = db_env_by_service.get(dep).or_else(|| app_url_env_by_service.get(dep)) {
                 let _ = sqlx::query!(
                     "INSERT INTO app_env_links (app_instance_id, project_env_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
                     instance_id, env_id
