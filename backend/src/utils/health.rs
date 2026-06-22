@@ -58,7 +58,11 @@ pub fn start_health_check_worker(pool: PgPool) {
 
                         match response {
                             Ok(res) => {
-                                if res.status().is_success() {
+                                // Any response below 500 means the server is up and handling
+                                // requests — a 404/401/403 on the probe path is NOT a crash.
+                                // Only 5xx is unhealthy; otherwise API-only apps that return
+                                // 404 on "/" get wrongly marked as failed.
+                                if res.status().as_u16() < 500 {
                                     crate::utils::metrics::record_health_check("ok");
                                     let _ = resolve_active_incidents(&pool_clone, inst.id).await;
                                 } else {
@@ -68,19 +72,19 @@ pub fn start_health_check_worker(pool: PgPool) {
                                 }
                             }
                             Err(e) => {
-                                // If we are running outside the cluster (e.g. local Windows development),
-                                // we cannot resolve or reach internal cluster DNS names directly.
-                                // In this case, we check if the Deployment is healthy in Kubernetes.
+                                // The HTTP probe couldn't reach the app. Before declaring it
+                                // down, fall back to the source of truth: is the Deployment
+                                // actually Ready in Kubernetes? This runs both in- and
+                                // out-of-cluster, so a probe hiccup (DNS, slow start, wrong
+                                // path) never marks a Ready app as failed.
                                 let mut is_healthy = false;
-                                if std::env::var("KUBERNETES_SERVICE_HOST").is_err() {
-                                    if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
-                                        let namespace = format!("hermes-ws-{}", inst.workspace_id);
-                                        let deployments: kube::Api<k8s_openapi::api::apps::v1::Deployment> = kube::Api::namespaced(k8s_client, &namespace);
-                                        if let Ok(deploy) = deployments.get(&inst.container_name).await {
-                                            if let Some(status) = deploy.status {
-                                                if status.ready_replicas.unwrap_or(0) > 0 {
-                                                    is_healthy = true;
-                                                }
+                                if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
+                                    let namespace = format!("hermes-ws-{}", inst.workspace_id);
+                                    let deployments: kube::Api<k8s_openapi::api::apps::v1::Deployment> = kube::Api::namespaced(k8s_client, &namespace);
+                                    if let Ok(deploy) = deployments.get(&inst.container_name).await {
+                                        if let Some(status) = deploy.status {
+                                            if status.ready_replicas.unwrap_or(0) > 0 {
+                                                is_healthy = true;
                                             }
                                         }
                                     }
