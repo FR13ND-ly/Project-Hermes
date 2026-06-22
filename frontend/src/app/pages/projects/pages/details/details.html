@@ -806,68 +806,77 @@
                         </button>
                       </div>
 
-                      <div class="overflow-y-auto px-6 py-5 space-y-6">
-                        <div class="space-y-3">
-                          <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">General</p>
-                          <div class="grid gap-3 sm:grid-cols-3">
-                            <div class="space-y-1.5">
-                              <label class="text-[11px] font-medium text-zinc-400">Nume</label>
-                              <input type="text" [ngModel]="eApp.name" (ngModelChange)="updateAppName(editingAppIndex()!, $event)" class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
-                            </div>
-                            <div class="space-y-1.5">
-                              <label class="text-[11px] font-medium text-zinc-400">Port intern</label>
-                              <input type="number" [ngModel]="eApp.internalPort" (ngModelChange)="updateAppInternalPort(editingAppIndex()!, $event)" class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
-                            </div>
-                            <div class="space-y-1.5">
-                              <label class="text-[11px] font-medium text-zinc-400">Port extern <span class="text-zinc-600">(opțional)</span></label>
-                              <input type="number" [ngModel]="eApp.externalPort" (ngModelChange)="updateAppExternalPort(editingAppIndex()!, $event)" placeholder="auto" class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
-                            </div>
-                          </div>
-                        </div>
+                      <div class="flex items-center gap-1 px-6 pt-3 border-b border-zinc-900">
+                        <button type="button" (click)="editorTab.set('general')" class="px-3 py-2 text-xs font-semibold border-b-2 -mb-px cursor-pointer transition-colors" [class]="editorTab() === 'general' ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'">General</button>
+                        <button type="button" (click)="editorTab.set('network')" class="px-3 py-2 text-xs font-semibold border-b-2 -mb-px cursor-pointer transition-colors" [class]="editorTab() === 'network' ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'">Rețea &amp; pool</button>
+                        <button type="button" (click)="editorTab.set('env')" class="px-3 py-2 text-xs font-semibold border-b-2 -mb-px cursor-pointer transition-colors" [class]="editorTab() === 'env' ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'">Variabile ({{ eApp.env.length }})</button>
+                      </div>
 
-                        <div class="space-y-3 border-t border-zinc-900 pt-5">
-                          <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Rețea &amp; pool</p>
-                          <div class="grid gap-3 sm:grid-cols-2">
-                            <div class="space-y-1.5">
-                              <label class="text-[11px] font-medium text-zinc-400">Nume serviciu (rețea)</label>
-                              <input type="text" [ngModel]="eApp.networkName" (ngModelChange)="updateAppNetworkName(editingAppIndex()!, $event)" placeholder="auto (recomandat)" class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
-                              <p class="text-[11px] text-zinc-600">Adresa la care alte app-uri îl apelează. Gol = auto. Ex. <span class="font-mono">http://{{ eApp.networkName && eApp.networkName.length ? eApp.networkName : 'backend' }}:{{ eApp.internalPort }}</span></p>
+                      <div class="overflow-y-auto px-6 py-5 min-h-[260px]">
+                        @if (editorTab() === 'general') {
+                          <div class="space-y-4">
+                            <div class="grid gap-3 sm:grid-cols-3">
+                              <div class="space-y-1.5">
+                                <label class="text-[11px] font-medium text-zinc-400">Nume</label>
+                                <input type="text" [ngModel]="eApp.name" (ngModelChange)="updateAppName(editingAppIndex()!, $event)" class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
+                              </div>
+                              <div class="space-y-1.5">
+                                <label class="text-[11px] font-medium text-zinc-400">Port intern</label>
+                                <input type="number" [ngModel]="eApp.internalPort" (ngModelChange)="updateAppInternalPort(editingAppIndex()!, $event)" class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
+                              </div>
+                              <div class="space-y-1.5">
+                                <label class="text-[11px] font-medium text-zinc-400">Port extern <span class="text-zinc-600">(opțional)</span></label>
+                                <input type="number" [ngModel]="eApp.externalPort" (ngModelChange)="updateAppExternalPort(editingAppIndex()!, $event)" placeholder="auto" class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
+                              </div>
                             </div>
-                            <div class="space-y-1.5">
-                              <label class="text-[11px] font-medium text-zinc-400">Cheie URL în pool</label>
-                              <input type="text" [ngModel]="eApp.urlEnvKey" (ngModelChange)="updateAppUrlEnvKey(editingAppIndex()!, $event)" [placeholder]="defaultUrlKey(eApp)" [disabled]="eApp.publishUrl === false" class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white uppercase focus:outline-none focus:border-zinc-500 disabled:opacity-40" />
-                            </div>
+                            @if (eApp.volumes.length > 0) {
+                              <p class="text-xs text-zinc-600">Volume: {{ eApp.volumes.length }} (montate automat din compose).</p>
+                            }
                           </div>
-                          <label class="flex items-start gap-3 p-3 rounded border border-zinc-850 bg-zinc-950/40 cursor-pointer">
-                            <input type="checkbox" [checked]="eApp.publishUrl !== false" (change)="toggleComposeAppPublishUrl(editingAppIndex()!)" class="h-4 w-4 mt-0.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer" />
-                            <span class="text-xs text-zinc-300 select-none">Publică URL-ul în pool <span class="text-zinc-500">— alte app-uri se pot lega de el; auto pentru depends_on.</span></span>
-                          </label>
-                          <label class="flex items-start gap-3 p-3 rounded border border-zinc-850 bg-zinc-950/40 cursor-pointer">
-                            <input type="checkbox" [checked]="eApp.enableBaas" (change)="toggleComposeAppBaas(editingAppIndex()!)" class="h-4 w-4 mt-0.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer" />
-                            <span class="text-xs text-zinc-300 select-none">Asociază capabilități BaaS Auth <span class="text-zinc-500">— generează cheia de semnare și o mapează în container.</span></span>
-                          </label>
-                        </div>
+                        }
 
-                        <div class="space-y-2 border-t border-zinc-900 pt-5">
-                          <div class="flex items-center justify-between">
-                            <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Variabile de mediu</p>
-                            <button type="button" (click)="addAppEnv(editingAppIndex()!)" class="text-[11px] px-2 py-1 rounded border border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-900 cursor-pointer">+ Adaugă</button>
-                          </div>
-                          @if (eApp.env.length === 0) {
-                            <p class="text-xs text-zinc-700">Nicio variabilă.</p>
-                          }
-                          @for (e of eApp.env; track $index; let j = $index) {
-                            <div class="flex items-center gap-2">
-                              <input type="text" [ngModel]="e.key" (ngModelChange)="updateAppEnvKey(editingAppIndex()!, j, $event)" placeholder="CHEIE" class="flex-1 min-w-0 px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white uppercase focus:outline-none focus:border-zinc-500" />
-                              <span class="text-zinc-700">=</span>
-                              <input type="text" [ngModel]="e.value" (ngModelChange)="updateAppEnvValue(editingAppIndex()!, j, $event)" placeholder="valoare" class="flex-1 min-w-0 px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
-                              <button type="button" (click)="removeAppEnv(editingAppIndex()!, j)" class="w-8 h-8 flex items-center justify-center rounded text-zinc-600 hover:text-red-400 hover:bg-red-950/30 cursor-pointer shrink-0">✕</button>
+                        @if (editorTab() === 'network') {
+                          <div class="space-y-4">
+                            <div class="grid gap-3 sm:grid-cols-2">
+                              <div class="space-y-1.5">
+                                <label class="text-[11px] font-medium text-zinc-400">Nume serviciu (rețea)</label>
+                                <input type="text" [ngModel]="eApp.networkName" (ngModelChange)="updateAppNetworkName(editingAppIndex()!, $event)" placeholder="auto (recomandat)" class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
+                                <p class="text-[11px] text-zinc-600">Adresa la care alte app-uri îl apelează. Gol = auto. Ex. <span class="font-mono">http://{{ eApp.networkName && eApp.networkName.length ? eApp.networkName : 'backend' }}:{{ eApp.internalPort }}</span></p>
+                              </div>
+                              <div class="space-y-1.5">
+                                <label class="text-[11px] font-medium text-zinc-400">Cheie URL în pool</label>
+                                <input type="text" [ngModel]="eApp.urlEnvKey" (ngModelChange)="updateAppUrlEnvKey(editingAppIndex()!, $event)" [placeholder]="defaultUrlKey(eApp)" [disabled]="eApp.publishUrl === false" class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white uppercase focus:outline-none focus:border-zinc-500 disabled:opacity-40" />
+                              </div>
                             </div>
-                          }
-                        </div>
+                            <label class="flex items-start gap-3 p-3 rounded border border-zinc-850 bg-zinc-950/40 cursor-pointer">
+                              <input type="checkbox" [checked]="eApp.publishUrl !== false" (change)="toggleComposeAppPublishUrl(editingAppIndex()!)" class="h-4 w-4 mt-0.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer" />
+                              <span class="text-xs text-zinc-300 select-none">Publică URL-ul în pool <span class="text-zinc-500">— alte app-uri se pot lega de el; auto pentru depends_on.</span></span>
+                            </label>
+                            <label class="flex items-start gap-3 p-3 rounded border border-zinc-850 bg-zinc-950/40 cursor-pointer">
+                              <input type="checkbox" [checked]="eApp.enableBaas" (change)="toggleComposeAppBaas(editingAppIndex()!)" class="h-4 w-4 mt-0.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer" />
+                              <span class="text-xs text-zinc-300 select-none">Asociază capabilități BaaS Auth <span class="text-zinc-500">— generează cheia de semnare și o mapează în container.</span></span>
+                            </label>
+                          </div>
+                        }
 
-                        @if (eApp.volumes.length > 0) {
-                          <p class="text-xs text-zinc-600 border-t border-zinc-900 pt-4">Volume: {{ eApp.volumes.length }} (montate automat din compose).</p>
+                        @if (editorTab() === 'env') {
+                          <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                              <p class="text-[11px] text-zinc-500">Variabile de mediu ale serviciului</p>
+                              <button type="button" (click)="addAppEnv(editingAppIndex()!)" class="text-[11px] px-2 py-1 rounded border border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-900 cursor-pointer">+ Adaugă</button>
+                            </div>
+                            @if (eApp.env.length === 0) {
+                              <p class="text-xs text-zinc-700">Nicio variabilă.</p>
+                            }
+                            @for (e of eApp.env; track $index; let j = $index) {
+                              <div class="flex items-center gap-2">
+                                <input type="text" [ngModel]="e.key" (ngModelChange)="updateAppEnvKey(editingAppIndex()!, j, $event)" placeholder="CHEIE" class="flex-1 min-w-0 px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white uppercase focus:outline-none focus:border-zinc-500" />
+                                <span class="text-zinc-700">=</span>
+                                <input type="text" [ngModel]="e.value" (ngModelChange)="updateAppEnvValue(editingAppIndex()!, j, $event)" placeholder="valoare" class="flex-1 min-w-0 px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
+                                <button type="button" (click)="removeAppEnv(editingAppIndex()!, j)" class="w-8 h-8 flex items-center justify-center rounded text-zinc-600 hover:text-red-400 hover:bg-red-950/30 cursor-pointer shrink-0">✕</button>
+                              </div>
+                            }
+                          </div>
                         }
                       </div>
 
