@@ -66,6 +66,8 @@ pub struct AppInstanceResponse {
     pub internal_port: i32,
     pub assigned_domain: Option<String>,
     pub container_name: String,
+    /// In-cluster service alias other apps use to reach this one (None = old/auto).
+    pub network_alias: Option<String>,
     pub external_port: Option<i32>,
     pub meta_data: serde_json::Value,
     pub cpu_limit: i32,
@@ -86,6 +88,8 @@ pub struct AppDetailedResponse {
     pub slug: String,
     #[serde(rename = "git_repo_url")]
     pub git_repository: String,
+    /// Kubernetes namespace this app's workloads live in (hermes-ws-<workspace_id>).
+    pub namespace: String,
     pub instances: Vec<AppInstanceResponse>,
     pub git_subpath: Option<String>,
     pub git_credential_id: Option<Uuid>,

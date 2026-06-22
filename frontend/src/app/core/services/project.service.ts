@@ -34,6 +34,7 @@ export interface AppInstance {
   internalPort: number;
   assignedDomain: string | null;
   containerName: string;
+  networkAlias?: string | null;
   externalPort?: number;
   cpuLimit?: number;
   memoryLimitMb?: number;
@@ -51,6 +52,7 @@ export interface AppDetail {
   project_id: string;
   name: string;
   git_repo_url: string;
+  namespace?: string;
   build_status: string;
   tcp_udp_ports: any[] | null;
   created_at: string;

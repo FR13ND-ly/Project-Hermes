@@ -795,7 +795,7 @@
                 <!-- Per-service editor dialog (opened from "Editează") -->
                 @if (editingAppIndex() !== null && plan.apps[editingAppIndex()!]; as eApp) {
                   <div class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" (click)="closeAppEditor()">
-                    <div class="w-full max-w-2xl bg-[#0a0a0a] border border-zinc-800 rounded-lg shadow-2xl flex flex-col max-h-[88vh]" (click)="$event.stopPropagation()">
+                    <div class="w-full max-w-3xl bg-[#0a0a0a] border border-zinc-800 rounded-lg shadow-2xl flex flex-col max-h-[90vh]" (click)="$event.stopPropagation()">
                       <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-900">
                         <div>
                           <h3 class="text-sm font-bold text-white">Editează serviciul</h3>

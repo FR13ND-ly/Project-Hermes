@@ -44,17 +44,25 @@
               <span class="text-zinc-600">Creat:</span>
               <span class="text-zinc-300 ml-1">{{ app()?.created_at | date:'dd.MM.yyyy HH:mm' }}</span>
             </div>
+            @if (app()?.namespace) {
+              <div>
+                <span class="text-zinc-600">Namespace:</span>
+                <span class="text-zinc-300 ml-1 select-all font-mono">{{ app()?.namespace }}</span>
+              </div>
+            }
             @if (getSelectedInstance(); as inst) {
-              @if (inst.status === 'running' && inst.externalPort) {
+              <div>
+                <span class="text-zinc-600">Adresă internă:</span>
+                <span class="text-zinc-300 ml-1 select-all font-mono" title="Adresa la care alte aplicații din proiect ajung la aceasta">http://{{ inst.networkAlias || stripHash(inst.containerName) }}:{{ inst.internalPort }}</span>
+              </div>
+              @if (inst.assignedDomain) {
                 <div>
-                  <span class="text-zinc-600">Link:</span>
+                  <span class="text-zinc-600">Link public:</span>
                   <a
-                    [href]="inst.assignedDomain ? 'http://' + inst.assignedDomain : 'http://localhost:' + inst.externalPort"
+                    [href]="'https://' + inst.assignedDomain"
                     target="_blank"
                     class="text-indigo-400 font-semibold hover:underline ml-1 font-sans"
-                  >
-                    {{ inst.assignedDomain ? 'http://' + inst.assignedDomain : 'http://localhost:' + inst.externalPort }}
-                  </a>
+                  >https://{{ inst.assignedDomain }}</a>
                 </div>
               }
             }

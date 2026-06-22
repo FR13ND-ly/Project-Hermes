@@ -1217,6 +1217,12 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     return this.getSelectedInstance()?.internalPort || 80;
   }
 
+  // Derive the stable in-cluster alias from the container name when networkAlias is
+  // absent (old/auto apps): strip the trailing -<8 hex> instance hash.
+  stripHash(name: string | null | undefined): string {
+    return name ? name.replace(/-[0-9a-f]{8}$/, '') : (name || '');
+  }
+
   onStopInstance(): void {
     const appId = this.appId();
     const instanceId = this.activeInstanceId();

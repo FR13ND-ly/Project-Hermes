@@ -49,6 +49,7 @@ pub struct AppInstance {
     pub internal_port: i32,
     pub assigned_domain: Option<String>,
     pub container_name: String,
+    pub network_alias: Option<String>,
     pub cpu_limit: i32,
     pub memory_limit_mb: i64,
     pub meta_data: serde_json::Value,
