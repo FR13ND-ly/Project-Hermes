@@ -668,6 +668,37 @@ impl K8sManager {
         ).await
         .map_err(|e| AppError::Infrastructure(format!("Failed to apply Service {}: {}", name, e)))?;
 
+        // Stable alias Service (name without the per-instance hash, i.e.
+        // hermes-app-<slug>-<branch>) pointing at the same pods, so OTHER apps can
+        // reach this one at an address that survives recreation:
+        //   http://hermes-app-<slug>-<branch>:<port>
+        // Non-fatal: a failure here must not break the deploy.
+        if let Some((stable_name, _hash)) = name.rsplit_once('-') {
+            if !stable_name.is_empty() && stable_name != name {
+                let alias: Service = serde_json::from_value(json!({
+                    "apiVersion": "v1",
+                    "kind": "Service",
+                    "metadata": {
+                        "name": stable_name,
+                        "namespace": namespace,
+                        "labels": { "app": stable_name, "hermes-alias-for": name }
+                    },
+                    "spec": {
+                        "ports": [{ "port": port, "targetPort": port }],
+                        "selector": { "app": name }
+                    }
+                })).map_err(|e| AppError::Fatal(anyhow::anyhow!("Alias Service serialization failed: {}", e)))?;
+
+                if let Err(e) = services.patch(
+                    stable_name,
+                    &PatchParams::apply("hermes-orchestrator").force(),
+                    &Patch::Apply(&alias)
+                ).await {
+                    tracing::warn!(%stable_name, %name, "Failed to apply stable alias Service: {}", e);
+                }
+            }
+        }
+
         Ok(())
     }
 

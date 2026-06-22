@@ -350,6 +350,16 @@ pub async fn apply_compose_plan(
         }
     }
 
+    // Auto-register the GitHub push webhook for the repo backing this stack, so
+    // compose/split-created apps also get auto-deploy on push (this path used to
+    // skip it entirely). One webhook per repo (all services share git_repository).
+    if let Some(ref repo) = payload.git_repository {
+        let host = std::env::var("HERMES_BASE_DOMAIN").unwrap_or_default();
+        crate::controllers::app_controller::try_register_github_webhook(
+            &state.pool, ws_id, claims.sub, payload.git_credential_id, repo, &host,
+        ).await;
+    }
+
     Ok(StatusCode::CREATED)
 }
 

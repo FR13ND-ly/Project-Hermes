@@ -120,6 +120,101 @@ fn parse_github_repo(url: &str) -> Option<(String, String)> {
     None
 }
 
+/// Best-effort GitHub push-webhook registration for auto-deploy on push.
+///
+/// Resolves a token from the app's workspace git credential (the current system),
+/// falling back to the legacy per-user `users.github_token`. Shared by the normal
+/// create-app flow and the docker-compose split/import flows (which previously
+/// never registered a webhook at all). Fire-and-forget: failures are logged.
+pub async fn try_register_github_webhook(
+    pool: &sqlx::PgPool,
+    ws_id: Uuid,
+    user_id: Uuid,
+    git_credential_id: Option<Uuid>,
+    git_repository: &str,
+    host: &str,
+) {
+    if host.trim().is_empty() {
+        return;
+    }
+
+    let mut gh_token: Option<String> = None;
+    if let Some(cred_id) = git_credential_id {
+        if let Ok(Some((enc, nonce))) = sqlx::query_as::<_, (String, String)>(
+            "SELECT encrypted_token, nonce FROM git_credentials WHERE id = $1 AND workspace_id = $2",
+        )
+        .bind(cred_id)
+        .bind(ws_id)
+        .fetch_optional(pool)
+        .await
+        {
+            gh_token = crate::utils::crypto::decrypt_env_value(&enc, &nonce).ok();
+        }
+    }
+    if gh_token.is_none() {
+        gh_token = sqlx::query!("SELECT github_token FROM users WHERE id = $1", user_id)
+            .fetch_one(pool)
+            .await
+            .ok()
+            .and_then(|r| r.github_token);
+    }
+
+    let (Some(token), Some((owner, repo))) = (gh_token, parse_github_repo(git_repository)) else {
+        return;
+    };
+
+    let proto = if host.contains("localhost") || host.contains("127.0.0.1") || host.contains("192.168.") {
+        "http"
+    } else {
+        "https"
+    };
+    let webhook_url = format!("{}://{}/api/v1/apps/webhook", proto, host);
+
+    tokio::spawn(async move {
+        let client = reqwest::Client::new();
+        let mut config = serde_json::json!({
+            "url": webhook_url,
+            "content_type": "json",
+            "insecure_ssl": "1"
+        });
+        // Register the shared secret so GitHub signs deliveries (HMAC-SHA256),
+        // which the /apps/webhook endpoint then verifies.
+        if let Ok(secret) = std::env::var("HERMES_GITHUB_WEBHOOK_SECRET") {
+            if !secret.is_empty() {
+                config["secret"] = serde_json::Value::String(secret);
+            }
+        }
+        let webhook_payload = serde_json::json!({
+            "name": "web",
+            "active": true,
+            "events": ["push", "pull_request"],
+            "config": config
+        });
+
+        let url = format!("https://api.github.com/repos/{}/{}/hooks", owner, repo);
+        let res = client.post(&url)
+            .header("Authorization", format!("Bearer {}", token))
+            .header("User-Agent", "hermes-orchestrator")
+            .header("Accept", "application/vnd.github+json")
+            .json(&webhook_payload)
+            .send()
+            .await;
+
+        match res {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    tracing::info!(%owner, %repo, "Registered GitHub webhook at {}", webhook_url);
+                } else if let Ok(err_txt) = resp.text().await {
+                    tracing::warn!(%owner, %repo, "Failed to register GitHub webhook: {}", err_txt);
+                }
+            }
+            Err(e) => {
+                tracing::warn!(%owner, %repo, "Network error registering GitHub webhook: {}", e);
+            }
+        }
+    });
+}
+
 pub async fn create_app(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -269,89 +364,22 @@ pub async fn create_app(
         payload.build_command.clone(),
     ).await;
 
-    // Resolve a GitHub token to auto-register the push webhook. Prefer the
-    // workspace git credential chosen for this app (current system); fall back to
-    // the legacy per-user users.github_token for older accounts. (The old code read
-    // only users.github_token, which is now empty after migration to git_credentials
-    // — so webhooks silently never registered for imported apps.)
-    let mut gh_token: Option<String> = None;
-    if let Some(cred_id) = payload.git_credential_id {
-        if let Ok(Some((enc, nonce))) = sqlx::query_as::<_, (String, String)>(
-            "SELECT encrypted_token, nonce FROM git_credentials WHERE id = $1 AND workspace_id = $2",
-        )
-        .bind(cred_id)
-        .bind(ws_id)
-        .fetch_optional(&state.pool)
-        .await
-        {
-            gh_token = crate::utils::crypto::decrypt_env_value(&enc, &nonce).ok();
-        }
-    }
-    if gh_token.is_none() {
-        gh_token = sqlx::query!("SELECT github_token FROM users WHERE id = $1", claims.sub)
-            .fetch_one(&state.pool)
-            .await
-            .ok()
-            .and_then(|r| r.github_token);
-    }
-
-    if let (Some(token), Some((owner, repo))) = (gh_token, parse_github_repo(&payload.git_repository)) {
-        let client = reqwest::Client::new();
-        let host = headers.get(axum::http::header::HOST)
-            .and_then(|h| h.to_str().ok())
-            .unwrap_or("localhost:3000")
-            .to_string();
-        
-        let proto = if host.contains("localhost") || host.contains("127.0.0.1") || host.contains("192.168.") {
-            "http"
-        } else {
-            "https"
-        };
-        let webhook_url = format!("{}://{}/api/v1/apps/webhook", proto, host);
-        
-        tokio::spawn(async move {
-            let mut config = serde_json::json!({
-                "url": webhook_url,
-                "content_type": "json",
-                "insecure_ssl": "1"
-            });
-            // Register the shared secret so GitHub signs deliveries (HMAC-SHA256),
-            // which the /apps/webhook endpoint then verifies.
-            if let Ok(secret) = std::env::var("HERMES_GITHUB_WEBHOOK_SECRET") {
-                if !secret.is_empty() {
-                    config["secret"] = serde_json::Value::String(secret);
-                }
-            }
-            let webhook_payload = serde_json::json!({
-                "name": "web",
-                "active": true,
-                "events": ["push", "pull_request"],
-                "config": config
-            });
-
-            let url = format!("https://api.github.com/repos/{}/{}/hooks", owner, repo);
-            let res = client.post(&url)
-                .header("Authorization", format!("Bearer {}", token))
-                .header("User-Agent", "hermes-orchestrator")
-                .header("Accept", "application/vnd.github+json")
-                .json(&webhook_payload)
-                .send()
-                .await;
-            
-            match res {
-                Ok(resp) => {
-                    if resp.status().is_success() {
-                        tracing::info!(%owner, %repo, "Registered GitHub webhook at {}", webhook_url);
-                    } else if let Ok(err_txt) = resp.text().await {
-                        tracing::warn!(%owner, %repo, "Failed to register GitHub webhook: {}", err_txt);
-                    }
-                }
-                Err(e) => {
-                    tracing::warn!(%owner, %repo, "Network error registering GitHub webhook: {}", e);
-                }
-            }
-        });
-    }
+    // Auto-register the GitHub push webhook (auto-deploy on push). Shared helper so
+    // the docker-compose split/import paths register it too.
+    let webhook_host = headers
+        .get(axum::http::header::HOST)
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("localhost:3000")
+        .to_string();
+    try_register_github_webhook(
+        &state.pool,
+        ws_id,
+        claims.sub,
+        payload.git_credential_id,
+        &payload.git_repository,
+        &webhook_host,
+    )
+    .await;
 
     let instances = vec![AppInstanceResponse {
         id: instance_id,
