@@ -1062,8 +1062,12 @@ async fn backup_sql_via_job(
     let (envs, dump): (Vec<(String, String)>, String) = match db_service.r#type {
         DbType::Postgres => (
             vec![("PGPASSWORD".to_string(), password.to_string())],
+            // Wait until the DB is reachable before dumping: a freshly-created Job pod
+            // can run before its network routing to the ClusterIP is ready (k3s startup
+            // race), and pg_dump doesn't retry — so without this the backup fails with
+            // "Is the server running on that host".
             format!(
-                "mkdir -p '{dir}' && pg_dump --clean --if-exists -h {host} -p {port} -U {user} -d {db} > '{file}'",
+                "i=0; until pg_isready -h {host} -p {port} -U {user} -q; do i=$((i+1)); [ $i -ge 30 ] && echo 'DB unreachable after 60s' >&2 && exit 1; sleep 2; done; mkdir -p '{dir}' && pg_dump --clean --if-exists -h {host} -p {port} -U {user} -d {db} > '{file}'",
                 dir = backups_dir, host = host, port = port,
                 user = db_service.db_user, db = db_service.db_name, file = filepath
             ),
@@ -1071,7 +1075,7 @@ async fn backup_sql_via_job(
         DbType::Mysql => (
             vec![("MYSQL_PWD".to_string(), password.to_string())],
             format!(
-                "mkdir -p '{dir}' && mysqldump --add-drop-table -h {host} -P {port} -u {user} {db} > '{file}'",
+                "i=0; until mysqladmin ping -h {host} -P {port} -u {user} --silent; do i=$((i+1)); [ $i -ge 30 ] && echo 'DB unreachable after 60s' >&2 && exit 1; sleep 2; done; mkdir -p '{dir}' && mysqldump --add-drop-table -h {host} -P {port} -u {user} {db} > '{file}'",
                 dir = backups_dir, host = host, port = port,
                 user = db_service.db_user, db = db_service.db_name, file = filepath
             ),
@@ -1679,14 +1683,14 @@ pub async fn rotate_database_password(
             DbType::Postgres => (
                 vec![("PGPASSWORD".to_string(), old_password.clone())],
                 format!(
-                    "psql -h {host} -p {port} -U {user} -d {db} -v ON_ERROR_STOP=1 -c \"ALTER USER \\\"{user}\\\" WITH PASSWORD '{pw}';\"",
+                    "i=0; until pg_isready -h {host} -p {port} -U {user} -q; do i=$((i+1)); [ $i -ge 30 ] && echo 'DB unreachable after 60s' >&2 && exit 1; sleep 2; done; psql -h {host} -p {port} -U {user} -d {db} -v ON_ERROR_STOP=1 -c \"ALTER USER \\\"{user}\\\" WITH PASSWORD '{pw}';\"",
                     host = host, port = port, user = db_service.db_user, db = db_service.db_name, pw = new_password
                 ),
             ),
             DbType::Mysql => (
                 vec![("MYSQL_PWD".to_string(), old_password.clone())],
                 format!(
-                    "mysql -h {host} -P {port} -uroot -e \"ALTER USER '{user}'@'%' IDENTIFIED BY '{pw}'; ALTER USER 'root'@'%' IDENTIFIED BY '{pw}'; FLUSH PRIVILEGES;\"",
+                    "i=0; until mysqladmin ping -h {host} -P {port} -uroot --silent; do i=$((i+1)); [ $i -ge 30 ] && echo 'DB unreachable after 60s' >&2 && exit 1; sleep 2; done; mysql -h {host} -P {port} -uroot -e \"ALTER USER '{user}'@'%' IDENTIFIED BY '{pw}'; ALTER USER 'root'@'%' IDENTIFIED BY '{pw}'; FLUSH PRIVILEGES;\"",
                     host = host, port = port, user = db_service.db_user, pw = new_password
                 ),
             ),
@@ -1698,7 +1702,7 @@ pub async fn rotate_database_password(
                     ("NEWPASS".to_string(), new_password.clone()),
                 ],
                 format!(
-                    "mongosh \"mongodb://{user}:$OLDPASS@{host}:{port}/admin\" --quiet --eval \"db.getSiblingDB('admin').changeUserPassword('{user}', process.env.NEWPASS)\"",
+                    "i=0; until mongosh \"mongodb://{user}:$OLDPASS@{host}:{port}/admin\" --quiet --eval 'quit(0)' >/dev/null 2>&1; do i=$((i+1)); [ $i -ge 30 ] && echo 'DB unreachable after 60s' >&2 && exit 1; sleep 2; done; mongosh \"mongodb://{user}:$OLDPASS@{host}:{port}/admin\" --quiet --eval \"db.getSiblingDB('admin').changeUserPassword('{user}', process.env.NEWPASS)\"",
                     user = db_service.db_user, host = host, port = port
                 ),
             ),
