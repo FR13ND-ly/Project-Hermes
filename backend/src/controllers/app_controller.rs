@@ -269,14 +269,33 @@ pub async fn create_app(
         payload.build_command.clone(),
     ).await;
 
-    // Try to retrieve user's github token and auto-register webhook
-    let user_token = sqlx::query!("SELECT github_token FROM users WHERE id = $1", claims.sub)
-        .fetch_one(&state.pool)
+    // Resolve a GitHub token to auto-register the push webhook. Prefer the
+    // workspace git credential chosen for this app (current system); fall back to
+    // the legacy per-user users.github_token for older accounts. (The old code read
+    // only users.github_token, which is now empty after migration to git_credentials
+    // — so webhooks silently never registered for imported apps.)
+    let mut gh_token: Option<String> = None;
+    if let Some(cred_id) = payload.git_credential_id {
+        if let Ok(Some((enc, nonce))) = sqlx::query_as::<_, (String, String)>(
+            "SELECT encrypted_token, nonce FROM git_credentials WHERE id = $1 AND workspace_id = $2",
+        )
+        .bind(cred_id)
+        .bind(ws_id)
+        .fetch_optional(&state.pool)
         .await
-        .ok()
-        .and_then(|r| r.github_token);
+        {
+            gh_token = crate::utils::crypto::decrypt_env_value(&enc, &nonce).ok();
+        }
+    }
+    if gh_token.is_none() {
+        gh_token = sqlx::query!("SELECT github_token FROM users WHERE id = $1", claims.sub)
+            .fetch_one(&state.pool)
+            .await
+            .ok()
+            .and_then(|r| r.github_token);
+    }
 
-    if let (Some(token), Some((owner, repo))) = (user_token, parse_github_repo(&payload.git_repository)) {
+    if let (Some(token), Some((owner, repo))) = (gh_token, parse_github_repo(&payload.git_repository)) {
         let client = reqwest::Client::new();
         let host = headers.get(axum::http::header::HOST)
             .and_then(|h| h.to_str().ok())
