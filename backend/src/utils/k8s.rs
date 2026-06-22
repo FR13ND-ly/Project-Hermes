@@ -442,11 +442,15 @@ impl K8sManager {
                 }
             })).map_err(|e| AppError::Fatal(anyhow::anyhow!("PV serialization failed: {}", e)))?;
 
-            let _ = pv_api.patch(
+            if let Err(e) = pv_api.patch(
                 &pv_name,
                 &PatchParams::apply("hermes-orchestrator").force(),
                 &Patch::Apply(&pv_manifest)
-            ).await;
+            ).await {
+                // Swallowing this used to silently leave the PVC Pending forever (e.g. when
+                // the control-plane RBAC lacked `persistentvolumes`). Surface it instead.
+                tracing::error!(pv = %pv_name, "Failed to create app-volume PersistentVolume: {}", e);
+            }
 
             // Create/patch PersistentVolumeClaim bound to the custom PV
             let pvc_manifest = serde_json::from_value::<k8s_openapi::api::core::v1::PersistentVolumeClaim>(json!({
@@ -468,11 +472,13 @@ impl K8sManager {
                 }
             })).map_err(|e| AppError::Fatal(anyhow::anyhow!("PVC serialization failed: {}", e)))?;
 
-            let _ = pvc_api.patch(
+            if let Err(e) = pvc_api.patch(
                 &pvc_name,
                 &PatchParams::apply("hermes-orchestrator").force(),
                 &Patch::Apply(&pvc_manifest)
-            ).await;
+            ).await {
+                tracing::error!(pvc = %pvc_name, "Failed to create app-volume PersistentVolumeClaim: {}", e);
+            }
 
             volumes.push(json!({
                 "name": vol_name,
