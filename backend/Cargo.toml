@@ -7,7 +7,6 @@ edition = "2024"
 axum = { version = "0.7.9", features = ["macros", "multipart", "ws"] }
 tokio = { version = "1.38.0", features = ["full"] }
 tokio-util = { version = "0.7", features = ["io"] }
-tower = { version = "0.4.13" }
 tower-http = { version = "0.5.2", features = ["cors", "trace", "request-id"] }
 
 sqlx = { version = "0.7.4", features = ["runtime-tokio", "tls-rustls", "postgres", "uuid", "chrono"] }
@@ -34,7 +33,6 @@ metrics = "0.24"
 metrics-exporter-prometheus = { version = "0.16", default-features = false }
 
 jsonwebtoken = "9.3.0"
-bcrypt = "0.16.0"
 reqwest = { version = "0.12.5", features = ["json", "rustls-tls"] }
 
 dotenvy = "0.15.7"
@@ -52,7 +50,6 @@ async-stream = "0.3"
 aes-gcm = "0.10"
 base64 = "0.21"
 
-bollard = "0.15"
 rand = "0.10.1"
 nanoid = "0.4"
 
@@ -62,9 +59,6 @@ rust-s3 = { version = "0.33.0", default-features = false, features = ["tokio-rus
 percent-encoding = "2.3"
 zenwebp = "0.4.4"
 cron = "0.12"
-
-[target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3", features = ["winerror"] }
 
 # Fast dev iteration: our own crate at opt-level 0 (recompiled constantly), deps at
 # opt-level 1 (compiled once + cached, keeps runtime decent), image codecs at 3.
