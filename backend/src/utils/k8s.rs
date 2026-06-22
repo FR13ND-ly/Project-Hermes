@@ -637,6 +637,7 @@ impl K8sManager {
         namespace: &str,
         name: &str,
         port: i32,
+        network_alias: Option<&str>,
     ) -> Result<(), AppError> {
         let services: Api<Service> = Api::namespaced(client.clone(), namespace);
 
@@ -668,12 +669,14 @@ impl K8sManager {
         ).await
         .map_err(|e| AppError::Infrastructure(format!("Failed to apply Service {}: {}", name, e)))?;
 
-        // Stable alias Service (name without the per-instance hash, i.e.
-        // hermes-app-<slug>-<branch>) pointing at the same pods, so OTHER apps can
-        // reach this one at an address that survives recreation:
-        //   http://hermes-app-<slug>-<branch>:<port>
-        // Non-fatal: a failure here must not break the deploy.
-        if let Some((stable_name, _hash)) = name.rsplit_once('-') {
+        // Stable alias Service so OTHER apps can reach this one at an address that
+        // survives recreation. Uses the app's custom network_alias if set, else the
+        // auto name (container_name without the per-instance hash). Non-fatal.
+        let alias_name: Option<&str> = match network_alias {
+            Some(a) if !a.trim().is_empty() => Some(a),
+            _ => name.rsplit_once('-').map(|(p, _)| p),
+        };
+        if let Some(stable_name) = alias_name {
             if !stable_name.is_empty() && stable_name != name {
                 let alias: Service = serde_json::from_value(json!({
                     "apiVersion": "v1",
@@ -1093,7 +1096,7 @@ impl K8sManager {
         ).await
         .map_err(|e| AppError::Infrastructure(format!("Failed to apply DB StatefulSet {}: {}", name, e)))?;
 
-        Self::deploy_service(client, namespace, name, port).await?;
+        Self::deploy_service(client, namespace, name, port, None).await?;
         Ok(())
     }
 

@@ -279,21 +279,37 @@ pub async fn create_app(
         .execute(&state.pool)
         .await?;
 
-    // Publish this app's own internal URL into the project env pool so OTHER apps
-    // can reference it (manually linkable in the UI; auto-linked for compose
-    // depends_on). Uses the stable service name (no per-instance hash) so the URL
-    // survives recreation: http://hermes-app-<slug>-<branch>:<port>
+    // Resolve this app's in-cluster network alias (custom or auto), persist it for
+    // the deploy path, and optionally publish its URL into the project env pool so
+    // OTHER apps can reference it (toggleable; key defaults to <SLUG>_URL).
     {
-        let stable_svc = container_name
-            .rsplit_once('-')
-            .map(|(p, _)| p)
-            .unwrap_or(container_name.as_str());
-        let app_url = format!("http://{}:{}", stable_svc, internal_port);
-        let url_key = format!("{}_URL", crate::utils::app_env::sanitize_key_fragment(&slug, "APP"));
-        let _ = crate::utils::app_env::publish_project_env(
-            &state.pool, ws_id, payload.project_id, &url_key, &app_url, false, "app", app_id,
-        )
-        .await;
+        let network_alias = match payload.network_name.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            Some(custom) => crate::utils::string_gen::sanitize_k8s_name(custom),
+            None => container_name
+                .rsplit_once('-')
+                .map(|(p, _)| p.to_string())
+                .unwrap_or_else(|| container_name.clone()),
+        };
+        sqlx::query("UPDATE app_instances SET network_alias = $1 WHERE id = $2")
+            .bind(&network_alias)
+            .bind(instance_id)
+            .execute(&state.pool)
+            .await?;
+
+        if payload.publish_url != Some(false) {
+            let app_url = format!("http://{}:{}", network_alias, internal_port);
+            let url_key = payload
+                .url_env_key
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_uppercase())
+                .unwrap_or_else(|| format!("{}_URL", crate::utils::app_env::sanitize_key_fragment(&slug, "APP")));
+            let _ = crate::utils::app_env::publish_project_env(
+                &state.pool, ws_id, payload.project_id, &url_key, &app_url, false, "app", app_id,
+            )
+            .await;
+        }
     }
 
     // Provision any environment variables supplied at creation time.

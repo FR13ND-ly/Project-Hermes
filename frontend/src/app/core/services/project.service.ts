@@ -107,6 +107,12 @@ export interface PlanApp {
   dependsOn: string[];
   include: boolean;
   enableBaas: boolean;
+  /// Custom in-cluster service/DNS name (empty/undefined = auto).
+  networkName?: string | null;
+  /// Publish this app's URL into the project env pool (default true).
+  publishUrl?: boolean;
+  /// Env key for the published URL (default <SERVICE>_URL).
+  urlEnvKey?: string | null;
 }
 export interface PlanDatabase {
   service: string;
@@ -171,6 +177,9 @@ export class ProjectService {
     envVariables?: EnvVarInput[];
     linkedProjectEnvIds?: string[];
     enableBaas?: boolean;
+    networkName?: string;
+    publishUrl?: boolean;
+    urlEnvKey?: string;
   }): Observable<any> {
     return this.api.post<any>('/apps', payload);
   }

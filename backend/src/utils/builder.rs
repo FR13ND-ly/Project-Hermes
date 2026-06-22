@@ -1624,6 +1624,16 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
             .await
             .unwrap_or(80);
 
+            // Custom in-cluster service alias (NULL for old/auto apps -> derived name).
+            let network_alias = sqlx::query_scalar::<_, Option<String>>(
+                "SELECT network_alias FROM app_instances WHERE id = $1",
+            )
+            .bind(instance_id)
+            .fetch_one(&pool)
+            .await
+            .ok()
+            .flatten();
+
             match crate::utils::k8s::K8sManager::deploy_app(
                 &k8s_client,
                 &namespace,
@@ -1643,7 +1653,8 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
                         &k8s_client,
                         &namespace,
                         app_name,
-                        meta.internal_port
+                        meta.internal_port,
+                        network_alias.as_deref()
                     ).await {
                         Ok(_) => {
                             if let Some(ports_arr) = meta.tcp_udp_ports.as_array() {

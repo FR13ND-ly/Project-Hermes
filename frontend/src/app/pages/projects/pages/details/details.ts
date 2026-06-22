@@ -50,6 +50,10 @@ export class Details implements OnInit, OnDestroy {
   readonly externalPort = signal<number | null>(null);
   readonly gitSubpath = signal('');
   readonly enableBaas = signal(false);
+  // Custom in-cluster service/DNS name (empty = auto) + publish-URL-to-pool controls.
+  readonly networkName = signal('');
+  readonly publishUrl = signal(true);
+  readonly urlEnvKey = signal('');
   readonly detectedSubdirectories = signal<string[]>([]);
   readonly subpathSelectionMode = signal<'select' | 'custom'>('select');
   readonly selectedSubpathOption = signal('');
@@ -360,6 +364,20 @@ export class Details implements OnInit, OnDestroy {
   updateAppEnvValue(appIdx: number, envIdx: number, v: string): void {
     this.composePlan.update(p => p ? { ...p, apps: p.apps.map((a, idx) => idx === appIdx ? { ...a, env: a.env.map((e, j) => j === envIdx ? { ...e, value: v } : e) } : a) } : p);
   }
+  updateAppNetworkName(i: number, v: string): void {
+    this.composePlan.update(p => p ? { ...p, apps: p.apps.map((a, idx) => idx === i ? { ...a, networkName: v } : a) } : p);
+  }
+  updateAppUrlEnvKey(i: number, v: string): void {
+    this.composePlan.update(p => p ? { ...p, apps: p.apps.map((a, idx) => idx === i ? { ...a, urlEnvKey: v.toUpperCase() } : a) } : p);
+  }
+  toggleComposeAppPublishUrl(i: number): void {
+    this.composePlan.update(p => p ? { ...p, apps: p.apps.map((a, idx) => idx === i ? { ...a, publishUrl: a.publishUrl === false } : a) } : p);
+  }
+  // Default published-URL key shown as placeholder (matches backend <SERVICE>_URL).
+  defaultUrlKey(app: { service: string }): string {
+    const base = (app.service || 'APP').toUpperCase().replace(/[^A-Z0-9]/g, '_').replace(/^_+|_+$/g, '');
+    return (base || 'APP') + '_URL';
+  }
 
   // --- Edit database fields in the plan before applying ---
   updateDbName(i: number, v: string): void {
@@ -548,7 +566,10 @@ export class Details implements OnInit, OnDestroy {
       gitCredentialId: this.selectedCredentialId() || undefined,
       envVariables: envVariables.length > 0 ? envVariables : undefined,
       linkedProjectEnvIds: this.selectedProjectEnvIds().length > 0 ? this.selectedProjectEnvIds() : undefined,
-      enableBaas: this.enableBaas()
+      enableBaas: this.enableBaas(),
+      networkName: this.networkName().trim() || undefined,
+      publishUrl: this.publishUrl(),
+      urlEnvKey: this.urlEnvKey().trim() || undefined
     }).subscribe({
       next: (res) => {
         this.deployingApp.set(false);
@@ -565,6 +586,9 @@ export class Details implements OnInit, OnDestroy {
         this.selectedProjectEnvIds.set([]);
         this.newAppEnvJsonMode.set(false);
         this.enableBaas.set(false);
+        this.networkName.set('');
+        this.publishUrl.set(true);
+        this.urlEnvKey.set('');
         this.selectedImportRepo.set(null);
         this.isCustomGitUrl.set(false);
         this.toast.success('Aplicația a fost înregistrată pentru deployment cu succes!');

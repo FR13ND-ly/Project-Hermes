@@ -116,6 +116,10 @@ fn plan_from_compose(yaml: &str) -> Result<ComposePlan, AppError> {
             // image-only non-DB services can't be built by Hermes → default off.
             include: buildable,
             enable_baas: false,
+            // Defaults: auto network name (None), publish URL on, auto key (<SERVICE>_URL).
+            network_name: None,
+            publish_url: Some(true),
+            url_env_key: None,
         });
     }
 
@@ -219,6 +223,8 @@ pub async fn apply_compose_plan(
     let mut app_identities: HashMap<String, (Uuid, Uuid)> = HashMap::new();
     // service name -> published project_env id for that app's own URL (depends_on links).
     let mut app_url_env_by_service: HashMap<String, Uuid> = HashMap::new();
+    // service name -> chosen in-cluster network alias (persisted on the instance in Pass 2).
+    let mut app_alias_by_service: HashMap<String, String> = HashMap::new();
     for app in payload.plan.apps.iter().filter(|a| a.include) {
         let app_id = Uuid::new_v4();
         let instance_id = Uuid::new_v4();
@@ -235,17 +241,25 @@ pub async fn apply_compose_plan(
         .execute(&state.pool)
         .await?;
 
-        // Publish this app's own stable internal URL into the project env pool, e.g.
-        // service "backend" -> BACKEND_URL = http://hermes-app-backend-main:3000.
-        // depends_on consumers are auto-linked in Pass 2.
+        // Resolve this app's in-cluster network alias (custom or auto) and optionally
+        // publish its URL into the project env pool, e.g. service "backend" ->
+        // BACKEND_URL = http://backend:3000. depends_on consumers auto-linked in Pass 2.
         let container_name = crate::utils::string_gen::sanitize_k8s_name(&format!("hermes-app-{}-{}-{}", slug, branch, &instance_id.to_string()[..8]));
-        let stable_svc = container_name.rsplit_once('-').map(|(p, _)| p).unwrap_or(container_name.as_str());
-        let app_url = format!("http://{}:{}", stable_svc, app.internal_port);
-        let url_key = format!("{}_URL", crate::utils::app_env::sanitize_key_fragment(&app.service, "APP"));
-        if let Ok(env_id) = crate::utils::app_env::publish_project_env(
-            &state.pool, ws_id, payload.project_id, &url_key, &app_url, false, "app", app_id,
-        ).await {
-            app_url_env_by_service.insert(app.service.clone(), env_id);
+        let network_alias = match app.network_name.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            Some(custom) => crate::utils::string_gen::sanitize_k8s_name(custom),
+            None => container_name.rsplit_once('-').map(|(p, _)| p.to_string()).unwrap_or_else(|| container_name.clone()),
+        };
+        app_alias_by_service.insert(app.service.clone(), network_alias.clone());
+        if app.publish_url != Some(false) {
+            let app_url = format!("http://{}:{}", network_alias, app.internal_port);
+            let url_key = app.url_env_key.as_deref().map(str::trim).filter(|s| !s.is_empty())
+                .map(|s| s.to_uppercase())
+                .unwrap_or_else(|| format!("{}_URL", crate::utils::app_env::sanitize_key_fragment(&app.service, "APP")));
+            if let Ok(env_id) = crate::utils::app_env::publish_project_env(
+                &state.pool, ws_id, payload.project_id, &url_key, &app_url, false, "app", app_id,
+            ).await {
+                app_url_env_by_service.insert(app.service.clone(), env_id);
+            }
         }
 
         if app.enable_baas {
@@ -300,6 +314,15 @@ pub async fn apply_compose_plan(
         )
         .execute(&state.pool)
         .await?;
+
+        // Persist the chosen network alias (resolved in Pass 1) for the deploy path.
+        if let Some(alias) = app_alias_by_service.get(&app.service) {
+            let _ = sqlx::query("UPDATE app_instances SET network_alias = $1 WHERE id = $2")
+                .bind(alias)
+                .bind(instance_id)
+                .execute(&state.pool)
+                .await;
+        }
 
         // Link to BaaS Auth secret if enabled for this app. This idempotent call ensures the new instance is linked.
         if app.enable_baas {

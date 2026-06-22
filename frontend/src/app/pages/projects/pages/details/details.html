@@ -494,7 +494,42 @@
                   />
                 </div>
               </div>
-        
+
+              <div class="border-t border-zinc-900 pt-4 space-y-4">
+                <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Rețea & pool</h3>
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <div class="space-y-1.5">
+                    <label for="new-app-netname" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Nume serviciu (rețea)</label>
+                    <input
+                      id="new-app-netname"
+                      type="text"
+                      placeholder="auto (recomandat)"
+                      [ngModel]="networkName()"
+                      (ngModelChange)="networkName.set($event)"
+                      [disabled]="deployingApp()"
+                      class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
+                    />
+                    <p class="text-[10px] text-zinc-600 font-sans">Adresa la care alte app-uri îl apelează. Gol = auto. Ex. <span class="text-zinc-400">backend</span> → http://backend:{{ internalPort() }}</p>
+                  </div>
+                  <div class="space-y-1.5">
+                    <label for="new-app-urlkey" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Cheie URL în pool</label>
+                    <input
+                      id="new-app-urlkey"
+                      type="text"
+                      placeholder="&lt;NUME&gt;_URL"
+                      [ngModel]="urlEnvKey()"
+                      (ngModelChange)="urlEnvKey.set($event)"
+                      [disabled]="deployingApp() || !publishUrl()"
+                      class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white uppercase focus:outline-none focus:border-zinc-500 transition-colors disabled:opacity-40"
+                    />
+                  </div>
+                </div>
+                <div class="flex items-center gap-2.5">
+                  <input id="new-app-puburl" type="checkbox" [checked]="publishUrl()" (change)="publishUrl.set(!publishUrl())" [disabled]="deployingApp()" class="h-4 w-4 bg-black border border-zinc-800 rounded accent-white cursor-pointer" />
+                  <label for="new-app-puburl" class="text-xs text-zinc-300 font-sans cursor-pointer select-none">Publică URL-ul aplicației în pool (alte app-uri se pot lega de el)</label>
+                </div>
+              </div>
+
               <div class="border-t border-zinc-900 pt-4 space-y-4">
                 <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Comenzi opționale (Build/Start)</h3>
                 
@@ -746,6 +781,21 @@
                                       <label class="text-[8px] uppercase text-zinc-500">Port extern (opțional)</label>
                                       <input type="number" [ngModel]="app.externalPort" (ngModelChange)="updateAppExternalPort(i, $event)" placeholder="auto" class="block w-full px-2 py-1.5 text-[11px] bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
                                     </div>
+                                  </div>
+                                  <div class="grid gap-2 sm:grid-cols-2">
+                                    <div class="space-y-1">
+                                      <label class="text-[8px] uppercase text-zinc-500">Nume serviciu (rețea)</label>
+                                      <input type="text" [ngModel]="app.networkName" (ngModelChange)="updateAppNetworkName(i, $event)" placeholder="auto (recomandat)" class="block w-full px-2 py-1.5 text-[11px] bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
+                                      <p class="text-[8px] text-zinc-600 font-sans">Adresa la care alte app-uri îl apelează. Gol = auto. Ex. <span class="text-zinc-400">backend</span> → http://backend:{{ app.internalPort }}</p>
+                                    </div>
+                                    <div class="space-y-1">
+                                      <label class="text-[8px] uppercase text-zinc-500">Cheie URL în pool</label>
+                                      <input type="text" [ngModel]="app.urlEnvKey" (ngModelChange)="updateAppUrlEnvKey(i, $event)" [placeholder]="defaultUrlKey(app)" [disabled]="app.publishUrl === false" class="block w-full px-2 py-1.5 text-[11px] bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 uppercase disabled:opacity-40" />
+                                    </div>
+                                  </div>
+                                  <div class="flex items-center gap-2 py-1 bg-zinc-950/40 p-2 rounded border border-zinc-900">
+                                    <input type="checkbox" id="puburl-{{i}}" [checked]="app.publishUrl !== false" (change)="toggleComposeAppPublishUrl(i)" class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer" />
+                                    <label for="puburl-{{i}}" class="text-[10px] text-zinc-300 font-sans cursor-pointer select-none">Publică URL-ul în pool (alte app-uri se pot lega de el; auto pentru depends_on)</label>
                                   </div>
                                   <div class="flex items-center gap-2 py-1 bg-zinc-950/40 p-2 rounded border border-zinc-900">
                                     <input type="checkbox" id="baas-{{i}}" [checked]="app.enableBaas" (change)="toggleComposeAppBaas(i)" class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer" />

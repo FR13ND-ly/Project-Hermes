@@ -26,6 +26,16 @@ pub struct CreateAppRequest {
     pub linked_project_env_ids: Option<Vec<Uuid>>,
     #[serde(default)]
     pub enable_baas: Option<bool>,
+    /// Custom in-cluster service/DNS name other apps use to reach this one.
+    /// None/empty = auto (hermes-app-<slug>-<branch>).
+    #[serde(default)]
+    pub network_name: Option<String>,
+    /// Publish this app's URL into the project env pool. None or true = publish.
+    #[serde(default)]
+    pub publish_url: Option<bool>,
+    /// Env key for the published URL (uppercased). None = <SLUG>_URL.
+    #[serde(default)]
+    pub url_env_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
