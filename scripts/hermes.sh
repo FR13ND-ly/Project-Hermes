@@ -90,6 +90,28 @@ install_cert_manager() {
   ok "cert-manager + issuers ready."
 }
 
+# ── Knative Serving + Kourier (required for serverless functions) ─────────────
+# Heavy-ish (controller + webhook + autoscaler + activator + Kourier); on a small
+# node give it headroom. Idempotent: skipped if the Knative Service CRD exists.
+install_knative() {
+  local kv="knative-v1.13.0"
+  if $KUBECTL get crd services.serving.knative.dev >/dev/null 2>&1; then
+    ok "Knative Serving already installed."
+    return
+  fi
+  c "Installing Knative Serving ($kv) + Kourier (for serverless functions)..."
+  $KUBECTL apply -f "https://github.com/knative/serving/releases/download/$kv/serving-crds.yaml"
+  $KUBECTL apply -f "https://github.com/knative/serving/releases/download/$kv/serving-core.yaml"
+  $KUBECTL apply -f "https://github.com/knative/net-kourier/releases/download/$kv/kourier.yaml"
+  $KUBECTL patch configmap/config-network -n knative-serving --type merge \
+    -p '{"data":{"ingress-class":"kourier.ingress.networking.knative.dev"}}'
+  $KUBECTL apply -f "https://github.com/knative/serving/releases/download/$kv/serving-default-domain.yaml"
+  c "Waiting for Knative controllers to come up..."
+  $KUBECTL -n knative-serving rollout status deploy/controller --timeout=300s || true
+  $KUBECTL -n knative-serving rollout status deploy/webhook --timeout=300s || true
+  ok "Knative Serving ready."
+}
+
 # ── Build the platform images on the host and import into k3s containerd ──────
 build_and_import_images() {
   c "Building backend image (this compiles Rust; takes a few minutes)..."
@@ -146,6 +168,7 @@ cmd_install() {
   install_k3s
   setup_registry
   install_cert_manager
+  install_knative
   build_and_import_images
   ensure_secret
   apply_stack
@@ -172,6 +195,7 @@ cmd_status() {
 case "${1:-}" in
   install) cmd_install ;;
   update)  cmd_update ;;
+  knative) require_root; install_knative ;;
   status)  cmd_status ;;
-  *) die "Usage: $0 install|update|status  (set CERT_EMAIL, DASHBOARD_HOST, HERMES_BASE_DOMAIN)";;
+  *) die "Usage: $0 install|update|knative|status  (set CERT_EMAIL, DASHBOARD_HOST, HERMES_BASE_DOMAIN)";;
 esac
