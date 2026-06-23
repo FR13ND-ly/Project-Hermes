@@ -1,28 +1,26 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT workspace_id, project_id, auth_roles_config FROM apps WHERE id = $1",
+  "query": "SELECT id, workspace_id, project_id FROM baas_services",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "workspace_id",
+        "name": "id",
         "type_info": "Uuid"
       },
       {
         "ordinal": 1,
-        "name": "project_id",
+        "name": "workspace_id",
         "type_info": "Uuid"
       },
       {
         "ordinal": 2,
-        "name": "auth_roles_config",
-        "type_info": "Jsonb"
+        "name": "project_id",
+        "type_info": "Uuid"
       }
     ],
     "parameters": {
-      "Left": [
-        "Uuid"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -30,5 +28,5 @@
       false
     ]
   },
-  "hash": "9ed45f0c32a9336378b84fa0aec655001b30fc2468192d3db4efa3418edb479b"
+  "hash": "09dd3f03d72d0e492d01b8c24c28481136d1a685f470b0e07c553209414e100a"
 }

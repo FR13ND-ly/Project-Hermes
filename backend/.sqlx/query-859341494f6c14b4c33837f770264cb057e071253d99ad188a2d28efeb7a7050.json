@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE apps SET auth_roles_config = $1 WHERE id = $2",
+  "query": "UPDATE baas_services SET auth_roles_config = $1, updated_at = now() WHERE id = $2",
   "describe": {
     "columns": [],
     "parameters": {
@@ -11,5 +11,5 @@
     },
     "nullable": []
   },
-  "hash": "5fc09125f73e692770c36e2ebe6e3288d030690b70f249d3bb48410907259e6e"
+  "hash": "859341494f6c14b4c33837f770264cb057e071253d99ad188a2d28efeb7a7050"
 }

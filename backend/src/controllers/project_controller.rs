@@ -324,9 +324,10 @@ pub async fn delete_project(
     .execute(&mut *tx)
     .await?;
 
-    // 5. Delete app user roles
+    // 5. Delete BaaS services for the project (cascades their users/roles/api-keys/
+    //    refresh-tokens). BaaS is now a standalone project resource, not app-scoped.
     sqlx::query!(
-        "DELETE FROM app_user_roles WHERE app_id IN (SELECT id FROM apps WHERE project_id = $1)",
+        "DELETE FROM baas_services WHERE project_id = $1",
         project.id
     )
     .execute(&mut *tx)

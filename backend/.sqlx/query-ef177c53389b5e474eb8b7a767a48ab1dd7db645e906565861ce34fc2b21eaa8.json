@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO app_env_links (app_instance_id, project_env_id)\n                         SELECT $1, id FROM project_env_variables WHERE source = 'baas_auth' AND source_id = $2\n                         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ef177c53389b5e474eb8b7a767a48ab1dd7db645e906565861ce34fc2b21eaa8"
+}

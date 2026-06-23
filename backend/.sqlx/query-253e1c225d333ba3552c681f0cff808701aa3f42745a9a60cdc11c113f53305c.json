@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM app_user_roles WHERE app_id = $1 AND app_user_id = $2 AND role = $3",
+  "query": "DELETE FROM app_user_roles WHERE baas_id = $1 AND app_user_id = $2 AND role = $3",
   "describe": {
     "columns": [],
     "parameters": {
@@ -12,5 +12,5 @@
     },
     "nullable": []
   },
-  "hash": "735e9a7759e5dbcffd62c4c44d0b6bc868be363ea3b87590e76320441f5d5ff5"
+  "hash": "253e1c225d333ba3552c681f0cff808701aa3f42745a9a60cdc11c113f53305c"
 }

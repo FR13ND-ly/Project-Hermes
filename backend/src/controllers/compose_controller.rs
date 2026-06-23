@@ -288,10 +288,10 @@ pub async fn apply_compose_plan(
         }
 
         if app.enable_baas {
-            if let Err(e) = crate::utils::app_auth::get_or_create_app_auth_secret(
-                &state.pool, app_id, ws_id, payload.project_id,
+            if let Err(e) = crate::utils::app_auth::create_baas_service(
+                &state.pool, ws_id, payload.project_id, &format!("{} Auth", app.service.trim()),
             ).await {
-                tracing::warn!(app_id = %app_id, "Failed to provision BaaS auth secret in compose Pass 1: {}", e);
+                tracing::warn!(app_id = %app_id, "Failed to provision BaaS service in compose Pass 1: {}", e);
             }
         }
     }
@@ -349,14 +349,8 @@ pub async fn apply_compose_plan(
                 .await;
         }
 
-        // Link to BaaS Auth secret if enabled for this app. This idempotent call ensures the new instance is linked.
-        if app.enable_baas {
-            if let Err(e) = crate::utils::app_auth::get_or_create_app_auth_secret(
-                &state.pool, app_id, ws_id, payload.project_id,
-            ).await {
-                tracing::warn!(app_id = %app_id, "Failed to link BaaS auth secret in compose Pass 2: {}", e);
-            }
-        }
+        // BaaS for compose services is provisioned once in Pass 1 (standalone service);
+        // nothing app-scoped to link here anymore.
 
         // Provision + link a private storage bucket for this service, if requested.
         if app.enable_storage {

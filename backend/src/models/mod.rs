@@ -1,5 +1,6 @@
 pub mod app_model;
 pub mod app_user_model;
+pub mod baas_model;
 pub mod cron_model;
 pub mod database_model;
 pub mod domain_model;

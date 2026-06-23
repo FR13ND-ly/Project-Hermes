@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct AppUser {
     pub id: Uuid,
-    pub app_id: Uuid,
+    pub baas_id: Uuid,
     pub identifier: String,
     #[serde(skip_serializing)]
     pub password_hash: String,
@@ -22,7 +22,7 @@ pub struct AppUser {
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct AppUserRole {
     pub id: Uuid,
-    pub app_id: Uuid,
+    pub baas_id: Uuid,
     pub app_user_id: Uuid,
     pub role: String,
     pub created_at: DateTime<Utc>,
@@ -31,7 +31,7 @@ pub struct AppUserRole {
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct AppApiKey {
     pub id: Uuid,
-    pub app_id: Uuid,
+    pub baas_id: Uuid,
     pub name: String,
     #[serde(skip_serializing)]
     pub key_hash: String,

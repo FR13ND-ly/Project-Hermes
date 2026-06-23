@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO app_api_keys (id, app_id, name, key_hash, key_prefix, created_at, expires_at)\n         VALUES ($1, $2, $3, $4, $5, $6, $7)",
+  "query": "INSERT INTO app_api_keys (id, baas_id, name, key_hash, key_prefix, created_at, expires_at)\n         VALUES ($1, $2, $3, $4, $5, $6, $7)",
   "describe": {
     "columns": [],
     "parameters": {
@@ -16,5 +16,5 @@
     },
     "nullable": []
   },
-  "hash": "b2a24c7f6bb4cc0ad5406b002889f04e7e7c32156c8760e6bf2e54448f2a64e5"
+  "hash": "27018d638ef57595d68dcf282540ed3c19d998f4682e7a47e015501d3271ec64"
 }

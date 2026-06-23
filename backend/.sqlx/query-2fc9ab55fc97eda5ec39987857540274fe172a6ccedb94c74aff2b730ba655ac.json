@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, key_hash, expires_at FROM app_api_keys WHERE app_id = $1 AND key_prefix = $2",
+  "query": "SELECT id, name, key_hash, expires_at FROM app_api_keys WHERE baas_id = $1 AND key_prefix = $2",
   "describe": {
     "columns": [
       {
@@ -37,5 +37,5 @@
       true
     ]
   },
-  "hash": "082be0d7bc4706c598ec8a459d75aecb737df1f1bf3d5a6a0cce33aeccbf9db2"
+  "hash": "2fc9ab55fc97eda5ec39987857540274fe172a6ccedb94c74aff2b730ba655ac"
 }

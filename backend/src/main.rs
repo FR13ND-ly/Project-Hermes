@@ -61,6 +61,10 @@ async fn main() -> Result<(), anyhow::Error> {
     // Backfill per-bucket access credentials (app_id/secret_key) + publish them.
     crate::controllers::storage_controller::reconcile_bucket_credentials(&pool).await;
 
+    // Republish each BaaS service's HERMES_AUTH_APP_ID/HERMES_APP_ID (= service id) so
+    // the values match the new /baas/:id routes after the app→service migration.
+    crate::utils::app_auth::reconcile_baas_published_ids(&pool).await;
+
     // Unstick app instances whose deploy/build monitoring died with a previous
     // process (they'd otherwise show "deploying" forever in the build queue).
     crate::utils::builder::reconcile_stuck_deploys(&pool).await;

@@ -163,7 +163,7 @@ pub struct VerifyKeyResponse {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthIntegrationResponse {
-    pub app_id: Uuid,
+    pub baas_id: Uuid,
     pub api_base_url: String,
     pub auth_secret_env_key: String,
     pub auth_secret: String,

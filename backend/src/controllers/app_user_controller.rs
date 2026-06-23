@@ -16,7 +16,37 @@ use crate::dtos::app_user_dto::{
     AuthIntegrationResponse,
 };
 use crate::middlewares::auth_middleware::AuthenticatedUser;
+use crate::models::baas_model::BaasService;
 use crate::utils::error::AppError;
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateBaasServiceRequest {
+    pub project_id: Uuid,
+    pub name: String,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BaasServiceResponse {
+    pub id: Uuid,
+    pub project_id: Uuid,
+    pub name: String,
+    pub slug: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl From<BaasService> for BaasServiceResponse {
+    fn from(s: BaasService) -> Self {
+        BaasServiceResponse {
+            id: s.id,
+            project_id: s.project_id,
+            name: s.name,
+            slug: s.slug,
+            created_at: s.created_at,
+        }
+    }
+}
 
 #[derive(Debug, serde::Deserialize)]
 pub struct UsersQuery {
@@ -41,7 +71,7 @@ pub struct PaginatedUsersResponse {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct AppUserClaims {
     pub sub: Uuid,
-    pub app_id: Uuid,
+    pub baas_id: Uuid,
     pub identifier: String,
     pub roles: Vec<String>,
     #[serde(default)]
@@ -67,7 +97,7 @@ fn refresh_ttl_secs() -> i64 {
 /// Claim names the backend may NOT override via `additionalClaims` — they are owned
 /// by Hermes and define the token's identity/authorization.
 const RESERVED_CLAIMS: &[&str] = &[
-    "sub", "app_id", "identifier", "roles", "permissions", "iat", "exp", "jti", "iss", "aud", "nbf",
+    "sub", "baas_id", "identifier", "roles", "permissions", "iat", "exp", "jti", "iss", "aud", "nbf",
 ];
 
 #[derive(Debug, sqlx::FromRow)]
@@ -77,32 +107,32 @@ struct AppAuthCtx {
     auth_roles_config: serde_json::Value,
 }
 
-async fn fetch_app_ctx(pool: &sqlx::PgPool, app_id: Uuid) -> Result<AppAuthCtx, AppError> {
+async fn fetch_app_ctx(pool: &sqlx::PgPool, baas_id: Uuid) -> Result<AppAuthCtx, AppError> {
     sqlx::query_as::<_, AppAuthCtx>(
-        "SELECT workspace_id, project_id, auth_roles_config FROM apps WHERE id = $1",
+        "SELECT workspace_id, project_id, auth_roles_config FROM baas_services WHERE id = $1",
     )
-    .bind(app_id)
+    .bind(baas_id)
     .fetch_optional(pool)
     .await?
     .ok_or_else(|| AppError::NotFound("Application not found.".to_string()))
 }
 
-async fn fetch_roles(pool: &sqlx::PgPool, app_id: Uuid, user_id: Uuid) -> Result<Vec<String>, AppError> {
+async fn fetch_roles(pool: &sqlx::PgPool, baas_id: Uuid, user_id: Uuid) -> Result<Vec<String>, AppError> {
     Ok(sqlx::query_scalar::<_, String>(
-        "SELECT role FROM app_user_roles WHERE app_id = $1 AND app_user_id = $2",
+        "SELECT role FROM app_user_roles WHERE baas_id = $1 AND app_user_id = $2",
     )
-    .bind(app_id)
+    .bind(baas_id)
     .bind(user_id)
     .fetch_all(pool)
     .await?)
 }
 
 /// Confirm the app exists in the caller's workspace (admin/dashboard endpoints).
-async fn ensure_app_in_ws(pool: &sqlx::PgPool, app_id: Uuid, ws_id: Uuid) -> Result<(), AppError> {
+async fn ensure_app_in_ws(pool: &sqlx::PgPool, baas_id: Uuid, ws_id: Uuid) -> Result<(), AppError> {
     let exists = sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS(SELECT 1 FROM apps WHERE id = $1 AND workspace_id = $2)",
+        "SELECT EXISTS(SELECT 1 FROM baas_services WHERE id = $1 AND workspace_id = $2)",
     )
-    .bind(app_id)
+    .bind(baas_id)
     .bind(ws_id)
     .fetch_one(pool)
     .await?;
@@ -123,7 +153,7 @@ struct IssuedTokens {
 /// refresh re-issues them).
 async fn issue_token_pair(
     pool: &sqlx::PgPool,
-    app_id: Uuid,
+    baas_id: Uuid,
     user_id: Uuid,
     identifier: &str,
     roles: &[String],
@@ -137,7 +167,7 @@ async fn issue_token_pair(
 
     let claims = AppUserClaims {
         sub: user_id,
-        app_id,
+        baas_id,
         identifier: identifier.to_string(),
         roles: roles.to_vec(),
         permissions: permissions.to_vec(),
@@ -159,11 +189,11 @@ async fn issue_token_pair(
     let refresh_exp = now + chrono::Duration::seconds(refresh_ttl_secs());
 
     sqlx::query(
-        "INSERT INTO app_refresh_tokens (id, app_id, app_user_id, token_hash, additional_claims, expires_at)
+        "INSERT INTO app_refresh_tokens (id, baas_id, app_user_id, token_hash, additional_claims, expires_at)
          VALUES ($1, $2, $3, $4, $5, $6)",
     )
     .bind(Uuid::new_v4())
-    .bind(app_id)
+    .bind(baas_id)
     .bind(user_id)
     .bind(&refresh_hash)
     .bind(serde_json::Value::Object(extra))
@@ -226,8 +256,8 @@ fn client_ip(headers: &HeaderMap) -> String {
 
 /// Throttle public BaaS auth attempts per (app, client IP) to blunt brute-force.
 /// Shared across replicas via the Postgres-backed limiter (20 / 5 min).
-async fn enforce_baas_rate_limit(state: &AppState, headers: &HeaderMap, app_id: Uuid) -> Result<(), AppError> {
-    let key = format!("baas:{}:{}", app_id, client_ip(headers));
+async fn enforce_baas_rate_limit(state: &AppState, headers: &HeaderMap, baas_id: Uuid) -> Result<(), AppError> {
+    let key = format!("baas:{}:{}", baas_id, client_ip(headers));
     if !crate::utils::locks::check_rate_limit(&state.pool, &key, 20, 300).await {
         return Err(AppError::RateLimited(
             "Too many authentication attempts. Please try again in a few minutes.".to_string(),
@@ -239,30 +269,30 @@ async fn enforce_baas_rate_limit(state: &AppState, headers: &HeaderMap, app_id: 
 pub async fn assign_user_role_to_app(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
-    Path(app_id): Path<Uuid>,
+    Path(baas_id): Path<Uuid>,
     Json(payload): Json<AssignRoleRequest>,
 ) -> Result<StatusCode, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
-    ensure_app_in_ws(&state.pool, app_id, ws_id).await?;
+    ensure_app_in_ws(&state.pool, baas_id, ws_id).await?;
 
     let user_id = sqlx::query_scalar::<_, Uuid>(
-        "SELECT id FROM app_users WHERE app_id = $1 AND identifier = $2",
+        "SELECT id FROM app_users WHERE baas_id = $1 AND identifier = $2",
     )
-    .bind(app_id)
+    .bind(baas_id)
     .bind(payload.identifier.trim())
     .fetch_optional(&state.pool)
     .await?
     .ok_or_else(|| AppError::NotFound("No user with this identifier in this application.".to_string()))?;
 
     sqlx::query(
-        "INSERT INTO app_user_roles (id, app_id, app_user_id, role)
+        "INSERT INTO app_user_roles (id, baas_id, app_user_id, role)
          VALUES ($1, $2, $3, $4)
-         ON CONFLICT (app_id, app_user_id, role) DO NOTHING",
+         ON CONFLICT (baas_id, app_user_id, role) DO NOTHING",
     )
     .bind(Uuid::new_v4())
-    .bind(app_id)
+    .bind(baas_id)
     .bind(user_id)
     .bind(payload.role.trim().to_lowercase())
     .execute(&state.pool)
@@ -274,14 +304,14 @@ pub async fn assign_user_role_to_app(
 pub async fn remove_user_role_from_app(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
-    Path(app_id): Path<Uuid>,
+    Path(baas_id): Path<Uuid>,
     Json(payload): Json<RemoveRoleRequest>,
 ) -> Result<StatusCode, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
-    let app_exists = sqlx::query!("SELECT id FROM apps WHERE id = $1 AND workspace_id = $2", app_id, ws_id)
+    let app_exists = sqlx::query!("SELECT id FROM baas_services WHERE id = $1 AND workspace_id = $2", baas_id, ws_id)
         .fetch_optional(&state.pool)
         .await?;
 
@@ -290,8 +320,8 @@ pub async fn remove_user_role_from_app(
     }
 
     sqlx::query!(
-        "DELETE FROM app_user_roles WHERE app_id = $1 AND app_user_id = $2 AND role = $3",
-        app_id, payload.app_user_id, payload.role.trim().to_lowercase()
+        "DELETE FROM app_user_roles WHERE baas_id = $1 AND app_user_id = $2 AND role = $3",
+        baas_id, payload.app_user_id, payload.role.trim().to_lowercase()
     )
     .execute(&state.pool)
     .await?;
@@ -311,13 +341,13 @@ struct UserRoleRow {
 pub async fn list_app_users_with_roles(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
-    Path(app_id): Path<Uuid>,
+    Path(baas_id): Path<Uuid>,
     Query(query): Query<UsersQuery>,
 ) -> Result<Json<PaginatedUsersResponse>, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
-    ensure_app_in_ws(&state.pool, app_id, ws_id).await?;
+    ensure_app_in_ws(&state.pool, baas_id, ws_id).await?;
 
     let search_pattern = query.search.as_ref().map(|s| format!("%{}%", s.trim().to_lowercase()));
 
@@ -325,10 +355,10 @@ pub async fn list_app_users_with_roles(
         "SELECT COUNT(DISTINCT au.id)
          FROM app_users au
          JOIN app_user_roles aur ON au.id = aur.app_user_id
-         WHERE aur.app_id = $1
+         WHERE aur.baas_id = $1
            AND ($2::text IS NULL OR au.identifier ILIKE $2)",
     )
-    .bind(app_id)
+    .bind(baas_id)
     .bind(search_pattern.clone())
     .fetch_one(&state.pool)
     .await?;
@@ -347,14 +377,14 @@ pub async fn list_app_users_with_roles(
             array_agg(aur.role) AS roles
         FROM app_users au
         JOIN app_user_roles aur ON au.id = aur.app_user_id
-        WHERE aur.app_id = $1
+        WHERE aur.baas_id = $1
           AND ($2::text IS NULL OR au.identifier ILIKE $2)
         GROUP BY au.id, au.identifier, au.status, au.last_login
         ORDER BY au.identifier ASC
         LIMIT $3 OFFSET $4
         "#,
     )
-    .bind(app_id)
+    .bind(baas_id)
     .bind(search_pattern)
     .bind(limit)
     .bind(offset)
@@ -386,11 +416,11 @@ pub async fn list_app_users_with_roles(
 pub async fn register_public_user(
     State(state): State<AppState>,
     headers: HeaderMap,
-    Path(app_id): Path<Uuid>,
+    Path(baas_id): Path<Uuid>,
     Json(payload): Json<AppUserRegisterRequest>,
 ) -> Result<(StatusCode, Json<AppUserAuthResponse>), AppError> {
-    enforce_baas_rate_limit(&state, &headers, app_id).await?;
-    let app = fetch_app_ctx(&state.pool, app_id).await?;
+    enforce_baas_rate_limit(&state, &headers, baas_id).await?;
+    let app = fetch_app_ctx(&state.pool, baas_id).await?;
 
     let identifier = payload.identifier.trim().to_string();
     if identifier.is_empty() {
@@ -401,9 +431,9 @@ pub async fn register_public_user(
     }
 
     let exists = sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS(SELECT 1 FROM app_users WHERE app_id = $1 AND identifier = $2)",
+        "SELECT EXISTS(SELECT 1 FROM app_users WHERE baas_id = $1 AND identifier = $2)",
     )
-    .bind(app_id)
+    .bind(baas_id)
     .bind(&identifier)
     .fetch_one(&state.pool)
     .await?;
@@ -415,31 +445,31 @@ pub async fn register_public_user(
 
     let hashed_password = crate::utils::crypto::hash_password(&payload.password)?;
     let user_id = Uuid::new_v4();
-    sqlx::query("INSERT INTO app_users (id, app_id, identifier, password_hash) VALUES ($1, $2, $3, $4)")
+    sqlx::query("INSERT INTO app_users (id, baas_id, identifier, password_hash) VALUES ($1, $2, $3, $4)")
         .bind(user_id)
-        .bind(app_id)
+        .bind(baas_id)
         .bind(&identifier)
         .bind(hashed_password)
         .execute(&state.pool)
         .await?;
 
     let roles = vec!["user".to_string()];
-    sqlx::query("INSERT INTO app_user_roles (id, app_id, app_user_id, role) VALUES ($1, $2, $3, $4)")
+    sqlx::query("INSERT INTO app_user_roles (id, baas_id, app_user_id, role) VALUES ($1, $2, $3, $4)")
         .bind(Uuid::new_v4())
-        .bind(app_id)
+        .bind(baas_id)
         .bind(user_id)
         .bind(&roles[0])
         .execute(&state.pool)
         .await?;
 
     let permissions = crate::utils::app_auth::permissions_for_roles(&app.auth_roles_config, &roles);
-    let secret = crate::utils::app_auth::get_or_create_app_auth_secret(
-        &state.pool, app_id, app.workspace_id, app.project_id,
+    let secret = crate::utils::app_auth::get_or_create_secret(
+        &state.pool, baas_id, app.workspace_id, app.project_id,
     ).await?;
     let extra = resolve_additional_claims(&headers, payload.additional_claims, &secret)?;
 
     let tokens = issue_token_pair(
-        &state.pool, app_id, user_id, &identifier, &roles, &permissions, &secret, extra,
+        &state.pool, baas_id, user_id, &identifier, &roles, &permissions, &secret, extra,
     ).await?;
 
     Ok((
@@ -460,17 +490,17 @@ pub async fn register_public_user(
 pub async fn login_public_user(
     State(state): State<AppState>,
     headers: HeaderMap,
-    Path(app_id): Path<Uuid>,
+    Path(baas_id): Path<Uuid>,
     Json(payload): Json<AppUserLoginRequest>,
 ) -> Result<Json<AppUserAuthResponse>, AppError> {
-    enforce_baas_rate_limit(&state, &headers, app_id).await?;
-    let app = fetch_app_ctx(&state.pool, app_id).await?;
+    enforce_baas_rate_limit(&state, &headers, baas_id).await?;
+    let app = fetch_app_ctx(&state.pool, baas_id).await?;
     let identifier = payload.identifier.trim().to_string();
 
     let user = sqlx::query_as::<_, AppUser>(
-        "SELECT * FROM app_users WHERE app_id = $1 AND identifier = $2",
+        "SELECT * FROM app_users WHERE baas_id = $1 AND identifier = $2",
     )
-    .bind(app_id)
+    .bind(baas_id)
     .bind(&identifier)
     .fetch_optional(&state.pool)
     .await?
@@ -488,15 +518,15 @@ pub async fn login_public_user(
         .execute(&state.pool)
         .await?;
 
-    let roles = fetch_roles(&state.pool, app_id, user.id).await?;
+    let roles = fetch_roles(&state.pool, baas_id, user.id).await?;
     let permissions = crate::utils::app_auth::permissions_for_roles(&app.auth_roles_config, &roles);
-    let secret = crate::utils::app_auth::get_or_create_app_auth_secret(
-        &state.pool, app_id, app.workspace_id, app.project_id,
+    let secret = crate::utils::app_auth::get_or_create_secret(
+        &state.pool, baas_id, app.workspace_id, app.project_id,
     ).await?;
     let extra = resolve_additional_claims(&headers, payload.additional_claims, &secret)?;
 
     let tokens = issue_token_pair(
-        &state.pool, app_id, user.id, &user.identifier, &roles, &permissions, &secret, extra,
+        &state.pool, baas_id, user.id, &user.identifier, &roles, &permissions, &secret, extra,
     ).await?;
 
     Ok(Json(AppUserAuthResponse {
@@ -523,19 +553,19 @@ struct ConsumedRefresh {
 pub async fn refresh_app_token(
     State(state): State<AppState>,
     headers: HeaderMap,
-    Path(app_id): Path<Uuid>,
+    Path(baas_id): Path<Uuid>,
     Json(payload): Json<RefreshTokenRequest>,
 ) -> Result<Json<AppUserAuthResponse>, AppError> {
-    enforce_baas_rate_limit(&state, &headers, app_id).await?;
-    let app = fetch_app_ctx(&state.pool, app_id).await?;
+    enforce_baas_rate_limit(&state, &headers, baas_id).await?;
+    let app = fetch_app_ctx(&state.pool, baas_id).await?;
     let token_hash = format!("{:x}", Sha256::digest(payload.refresh_token.as_bytes()));
 
     let consumed = sqlx::query_as::<_, ConsumedRefresh>(
         "DELETE FROM app_refresh_tokens
-         WHERE app_id = $1 AND token_hash = $2 AND expires_at > now()
+         WHERE baas_id = $1 AND token_hash = $2 AND expires_at > now()
          RETURNING app_user_id, additional_claims",
     )
-    .bind(app_id)
+    .bind(baas_id)
     .bind(&token_hash)
     .fetch_optional(&state.pool)
     .await?
@@ -547,10 +577,10 @@ pub async fn refresh_app_token(
     };
 
     let user = sqlx::query_as::<_, AppUser>(
-        "SELECT * FROM app_users WHERE id = $1 AND app_id = $2",
+        "SELECT * FROM app_users WHERE id = $1 AND baas_id = $2",
     )
     .bind(consumed.app_user_id)
-    .bind(app_id)
+    .bind(baas_id)
     .fetch_optional(&state.pool)
     .await?
     .ok_or_else(|| AppError::Auth("Account no longer exists.".to_string()))?;
@@ -559,14 +589,14 @@ pub async fn refresh_app_token(
         return Err(AppError::Auth("This account is suspended or inactive.".to_string()));
     }
 
-    let roles = fetch_roles(&state.pool, app_id, user.id).await?;
+    let roles = fetch_roles(&state.pool, baas_id, user.id).await?;
     let permissions = crate::utils::app_auth::permissions_for_roles(&app.auth_roles_config, &roles);
-    let secret = crate::utils::app_auth::get_or_create_app_auth_secret(
-        &state.pool, app_id, app.workspace_id, app.project_id,
+    let secret = crate::utils::app_auth::get_or_create_secret(
+        &state.pool, baas_id, app.workspace_id, app.project_id,
     ).await?;
 
     let tokens = issue_token_pair(
-        &state.pool, app_id, user.id, &user.identifier, &roles, &permissions, &secret, extra,
+        &state.pool, baas_id, user.id, &user.identifier, &roles, &permissions, &secret, extra,
     ).await?;
 
     Ok(Json(AppUserAuthResponse {
@@ -585,12 +615,12 @@ pub async fn refresh_app_token(
 /// Access tokens are short-lived and expire on their own.
 pub async fn logout_app_user(
     State(state): State<AppState>,
-    Path(app_id): Path<Uuid>,
+    Path(baas_id): Path<Uuid>,
     Json(payload): Json<LogoutRequest>,
 ) -> Result<StatusCode, AppError> {
     let token_hash = format!("{:x}", Sha256::digest(payload.refresh_token.as_bytes()));
-    sqlx::query("DELETE FROM app_refresh_tokens WHERE app_id = $1 AND token_hash = $2")
-        .bind(app_id)
+    sqlx::query("DELETE FROM app_refresh_tokens WHERE baas_id = $1 AND token_hash = $2")
+        .bind(baas_id)
         .bind(&token_hash)
         .execute(&state.pool)
         .await?;
@@ -601,23 +631,23 @@ pub async fn logout_app_user(
 pub async fn update_app_user_status(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
-    Path((app_id, user_id)): Path<(Uuid, Uuid)>,
+    Path((baas_id, user_id)): Path<(Uuid, Uuid)>,
     Json(payload): Json<crate::dtos::app_user_dto::UpdateUserStatusRequest>,
 ) -> Result<StatusCode, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
-    ensure_app_in_ws(&state.pool, app_id, ws_id).await?;
+    ensure_app_in_ws(&state.pool, baas_id, ws_id).await?;
 
     let status_clean = payload.status.trim().to_lowercase();
     if status_clean != "active" && status_clean != "suspended" {
         return Err(AppError::Validation("Invalid status. Must be active or suspended.".to_string()));
     }
 
-    sqlx::query("UPDATE app_users SET status = $1, updated_at = now() WHERE id = $2 AND app_id = $3")
+    sqlx::query("UPDATE app_users SET status = $1, updated_at = now() WHERE id = $2 AND baas_id = $3")
         .bind(&status_clean)
         .bind(user_id)
-        .bind(app_id)
+        .bind(baas_id)
         .execute(&state.pool)
         .await?;
 
@@ -636,23 +666,23 @@ pub async fn update_app_user_status(
 pub async fn reset_app_user_password(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
-    Path((app_id, user_id)): Path<(Uuid, Uuid)>,
+    Path((baas_id, user_id)): Path<(Uuid, Uuid)>,
     Json(payload): Json<crate::dtos::app_user_dto::ResetPasswordRequest>,
 ) -> Result<StatusCode, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
-    ensure_app_in_ws(&state.pool, app_id, ws_id).await?;
+    ensure_app_in_ws(&state.pool, baas_id, ws_id).await?;
 
     if payload.new_password.len() < 8 {
         return Err(AppError::Validation("Password must be at least 8 characters.".to_string()));
     }
     let hashed_password = crate::utils::crypto::hash_password(&payload.new_password)?;
 
-    sqlx::query("UPDATE app_users SET password_hash = $1, updated_at = now() WHERE id = $2 AND app_id = $3")
+    sqlx::query("UPDATE app_users SET password_hash = $1, updated_at = now() WHERE id = $2 AND baas_id = $3")
         .bind(hashed_password)
         .bind(user_id)
-        .bind(app_id)
+        .bind(baas_id)
         .execute(&state.pool)
         .await?;
 
@@ -669,47 +699,47 @@ pub async fn reset_app_user_password(
 pub async fn get_app_auth_config(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
-    Path(app_id): Path<Uuid>,
+    Path(baas_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
-    let app = sqlx::query!(
-        "SELECT auth_roles_config FROM apps WHERE id = $1 AND workspace_id = $2",
-        app_id,
+    let svc = sqlx::query!(
+        "SELECT auth_roles_config FROM baas_services WHERE id = $1 AND workspace_id = $2",
+        baas_id,
         ws_id
     )
     .fetch_optional(&state.pool)
     .await?
-    .ok_or_else(|| AppError::NotFound("Application not found.".to_string()))?;
+    .ok_or_else(|| AppError::NotFound("Auth service not found.".to_string()))?;
 
-    Ok(Json(app.auth_roles_config))
+    Ok(Json(svc.auth_roles_config))
 }
 
 // Update JSON auth configurations (roles & permissions)
 pub async fn update_app_auth_config(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
-    Path(app_id): Path<Uuid>,
+    Path(baas_id): Path<Uuid>,
     Json(payload): Json<crate::dtos::app_user_dto::UpdateAuthConfigRequest>,
 ) -> Result<StatusCode, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
-    let app_exists = sqlx::query!("SELECT id FROM apps WHERE id = $1 AND workspace_id = $2", app_id, ws_id)
+    let svc_exists = sqlx::query!("SELECT id FROM baas_services WHERE id = $1 AND workspace_id = $2", baas_id, ws_id)
         .fetch_optional(&state.pool)
         .await?;
 
-    if app_exists.is_none() {
-        return Err(AppError::NotFound("Application not found in this workspace.".to_string()));
+    if svc_exists.is_none() {
+        return Err(AppError::NotFound("Auth service not found in this workspace.".to_string()));
     }
 
     sqlx::query!(
-        "UPDATE apps SET auth_roles_config = $1 WHERE id = $2",
+        "UPDATE baas_services SET auth_roles_config = $1, updated_at = now() WHERE id = $2",
         payload.auth_roles_config,
-        app_id
+        baas_id
     )
     .execute(&state.pool)
     .await?;
@@ -721,13 +751,13 @@ pub async fn update_app_auth_config(
 pub async fn list_app_api_keys(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
-    Path(app_id): Path<Uuid>,
+    Path(baas_id): Path<Uuid>,
 ) -> Result<Json<Vec<crate::dtos::app_user_dto::ApiKeyResponse>>, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
-    let app_exists = sqlx::query!("SELECT id FROM apps WHERE id = $1 AND workspace_id = $2", app_id, ws_id)
+    let app_exists = sqlx::query!("SELECT id FROM baas_services WHERE id = $1 AND workspace_id = $2", baas_id, ws_id)
         .fetch_optional(&state.pool)
         .await?;
 
@@ -736,9 +766,9 @@ pub async fn list_app_api_keys(
     }
 
     let keys = sqlx::query_as::<_, crate::models::app_user_model::AppApiKey>(
-        "SELECT id, app_id, name, key_hash, key_prefix, created_at, expires_at, last_used_at FROM app_api_keys WHERE app_id = $1 ORDER BY created_at DESC",
+        "SELECT id, baas_id, name, key_hash, key_prefix, created_at, expires_at, last_used_at FROM app_api_keys WHERE baas_id = $1 ORDER BY created_at DESC",
     )
-    .bind(app_id)
+    .bind(baas_id)
     .fetch_all(&state.pool)
     .await?;
 
@@ -761,14 +791,14 @@ pub async fn list_app_api_keys(
 pub async fn create_app_api_key(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
-    Path(app_id): Path<Uuid>,
+    Path(baas_id): Path<Uuid>,
     Json(payload): Json<crate::dtos::app_user_dto::CreateApiKeyRequest>,
 ) -> Result<(StatusCode, Json<crate::dtos::app_user_dto::CreateApiKeyResponse>), AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
-    let app_row = sqlx::query!("SELECT project_id FROM apps WHERE id = $1 AND workspace_id = $2", app_id, ws_id)
+    let app_row = sqlx::query!("SELECT project_id FROM baas_services WHERE id = $1 AND workspace_id = $2", baas_id, ws_id)
         .fetch_optional(&state.pool)
         .await?
         .ok_or_else(|| AppError::NotFound("Application not found in this workspace.".to_string()))?;
@@ -799,10 +829,10 @@ pub async fn create_app_api_key(
     let now = chrono::Utc::now();
 
     sqlx::query!(
-        "INSERT INTO app_api_keys (id, app_id, name, key_hash, key_prefix, created_at, expires_at)
+        "INSERT INTO app_api_keys (id, baas_id, name, key_hash, key_prefix, created_at, expires_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7)",
         new_id,
-        app_id,
+        baas_id,
         payload.name.trim(),
         key_hash,
         prefix,
@@ -840,13 +870,13 @@ pub async fn create_app_api_key(
 pub async fn delete_app_api_key(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
-    Path((app_id, key_id)): Path<(Uuid, Uuid)>,
+    Path((baas_id, key_id)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
-    let app_exists = sqlx::query!("SELECT id FROM apps WHERE id = $1 AND workspace_id = $2", app_id, ws_id)
+    let app_exists = sqlx::query!("SELECT id FROM baas_services WHERE id = $1 AND workspace_id = $2", baas_id, ws_id)
         .fetch_optional(&state.pool)
         .await?;
 
@@ -855,9 +885,9 @@ pub async fn delete_app_api_key(
     }
 
     sqlx::query!(
-        "DELETE FROM app_api_keys WHERE id = $1 AND app_id = $2",
+        "DELETE FROM app_api_keys WHERE id = $1 AND baas_id = $2",
         key_id,
-        app_id
+        baas_id
     )
     .execute(&state.pool)
     .await?;
@@ -877,19 +907,19 @@ pub async fn delete_app_api_key(
 // current auth_roles_config so config changes take effect on existing tokens.
 pub async fn verify_app_token(
     State(state): State<AppState>,
-    Path(app_id): Path<Uuid>,
+    Path(baas_id): Path<Uuid>,
     Json(payload): Json<VerifyTokenRequest>,
 ) -> Result<Json<VerifyTokenResponse>, AppError> {
     let app = sqlx::query!(
-        "SELECT workspace_id, project_id, auth_roles_config FROM apps WHERE id = $1",
-        app_id
+        "SELECT workspace_id, project_id, auth_roles_config FROM baas_services WHERE id = $1",
+        baas_id
     )
     .fetch_optional(&state.pool)
     .await?
     .ok_or_else(|| AppError::NotFound("Application not found.".to_string()))?;
 
-    let secret = crate::utils::app_auth::get_or_create_app_auth_secret(
-        &state.pool, app_id, app.workspace_id, app.project_id,
+    let secret = crate::utils::app_auth::get_or_create_secret(
+        &state.pool, baas_id, app.workspace_id, app.project_id,
     ).await?;
 
     let invalid = || VerifyTokenResponse {
@@ -913,7 +943,7 @@ pub async fn verify_app_token(
     };
 
     // Reject tokens that were signed for a different app.
-    if data.claims.app_id != app_id {
+    if data.claims.baas_id != baas_id {
         return Ok(Json(invalid()));
     }
 
@@ -934,7 +964,7 @@ pub async fn verify_app_token(
 // the secret against the stored hash, checks expiry, and stamps last_used_at.
 pub async fn verify_app_key(
     State(state): State<AppState>,
-    Path(app_id): Path<Uuid>,
+    Path(baas_id): Path<Uuid>,
     Json(payload): Json<VerifyKeyRequest>,
 ) -> Result<Json<VerifyKeyResponse>, AppError> {
     let invalid = Json(VerifyKeyResponse { valid: false, expired: false, name: None });
@@ -944,8 +974,8 @@ pub async fn verify_app_key(
     };
 
     let key = sqlx::query!(
-        "SELECT id, name, key_hash, expires_at FROM app_api_keys WHERE app_id = $1 AND key_prefix = $2",
-        app_id, prefix
+        "SELECT id, name, key_hash, expires_at FROM app_api_keys WHERE baas_id = $1 AND key_prefix = $2",
+        baas_id, prefix
     )
     .fetch_optional(&state.pool)
     .await?;
@@ -981,22 +1011,22 @@ pub async fn get_auth_integration(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
     headers: HeaderMap,
-    Path(app_id): Path<Uuid>,
+    Path(baas_id): Path<Uuid>,
 ) -> Result<Json<AuthIntegrationResponse>, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
     let app = sqlx::query!(
-        "SELECT project_id FROM apps WHERE id = $1 AND workspace_id = $2",
-        app_id, ws_id
+        "SELECT project_id FROM baas_services WHERE id = $1 AND workspace_id = $2",
+        baas_id, ws_id
     )
     .fetch_optional(&state.pool)
     .await?
     .ok_or_else(|| AppError::NotFound("Application not found in this workspace.".to_string()))?;
 
-    let secret = crate::utils::app_auth::get_or_create_app_auth_secret(
-        &state.pool, app_id, ws_id, app.project_id,
+    let secret = crate::utils::app_auth::get_or_create_secret(
+        &state.pool, baas_id, ws_id, app.project_id,
     ).await?;
 
     let host = headers
@@ -1013,31 +1043,31 @@ pub async fn get_auth_integration(
     // Auto-publish the integration vars into the project pool (idempotent) so the app
     // gets them with no manual step — the secret is already published by get_or_create.
     let _ = crate::utils::app_auth::publish_baas_var(
-        &state.pool, ws_id, app.project_id, app_id, "HERMES_AUTH_APP_ID", &app_id.to_string(), false,
+        &state.pool, ws_id, app.project_id, baas_id, "HERMES_AUTH_APP_ID", &baas_id.to_string(), false,
     ).await;
     let _ = crate::utils::app_auth::publish_baas_var(
-        &state.pool, ws_id, app.project_id, app_id, "HERMES_AUTH_API_URL", &api_base_url, false,
+        &state.pool, ws_id, app.project_id, baas_id, "HERMES_AUTH_API_URL", &api_base_url, false,
     ).await;
     // Friendly aliases many apps expect (e.g. they read HERMES_BAAS_URL / HERMES_APP_ID).
-    // HERMES_BAAS_URL embeds the app id as /apps/<uuid> so apps can derive it.
+    // HERMES_BAAS_URL embeds the service id as /baas/<uuid> so apps can derive it.
     let _ = crate::utils::app_auth::publish_baas_var(
-        &state.pool, ws_id, app.project_id, app_id, "HERMES_BAAS_URL", &format!("{}/apps/{}", api_base_url, app_id), false,
+        &state.pool, ws_id, app.project_id, baas_id, "HERMES_BAAS_URL", &format!("{}/baas/{}", api_base_url, baas_id), false,
     ).await;
     let _ = crate::utils::app_auth::publish_baas_var(
-        &state.pool, ws_id, app.project_id, app_id, "HERMES_APP_ID", &app_id.to_string(), false,
+        &state.pool, ws_id, app.project_id, baas_id, "HERMES_APP_ID", &baas_id.to_string(), false,
     ).await;
 
     Ok(Json(AuthIntegrationResponse {
-        app_id,
+        baas_id,
         api_base_url: api_base_url.clone(),
         auth_secret_env_key: crate::utils::app_auth::AUTH_SECRET_ENV_KEY.to_string(),
         auth_secret: secret,
-        register_endpoint: format!("{}/apps/{}/auth/register", api_base_url, app_id),
-        login_endpoint: format!("{}/apps/{}/auth/login", api_base_url, app_id),
-        refresh_endpoint: format!("{}/apps/{}/auth/refresh", api_base_url, app_id),
-        logout_endpoint: format!("{}/apps/{}/auth/logout", api_base_url, app_id),
-        verify_token_endpoint: format!("{}/apps/{}/auth/verify-token", api_base_url, app_id),
-        verify_key_endpoint: format!("{}/apps/{}/auth/verify-key", api_base_url, app_id),
+        register_endpoint: format!("{}/baas/{}/auth/register", api_base_url, baas_id),
+        login_endpoint: format!("{}/baas/{}/auth/login", api_base_url, baas_id),
+        refresh_endpoint: format!("{}/baas/{}/auth/refresh", api_base_url, baas_id),
+        logout_endpoint: format!("{}/baas/{}/auth/logout", api_base_url, baas_id),
+        verify_token_endpoint: format!("{}/baas/{}/auth/verify-token", api_base_url, baas_id),
+        verify_key_endpoint: format!("{}/baas/{}/auth/verify-key", api_base_url, baas_id),
     }))
 }
 
@@ -1048,26 +1078,144 @@ pub async fn get_auth_integration(
 pub async fn rotate_auth_secret(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
-    Path(app_id): Path<Uuid>,
+    Path(baas_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
     let app = sqlx::query!(
-        "SELECT project_id FROM apps WHERE id = $1 AND workspace_id = $2",
-        app_id, ws_id
+        "SELECT project_id FROM baas_services WHERE id = $1 AND workspace_id = $2",
+        baas_id, ws_id
     )
     .fetch_optional(&state.pool)
     .await?
     .ok_or_else(|| AppError::NotFound("Application not found in this workspace.".to_string()))?;
 
-    let secret = crate::utils::app_auth::rotate_app_auth_secret(
-        &state.pool, app_id, ws_id, app.project_id,
+    let secret = crate::utils::app_auth::rotate_secret(
+        &state.pool, baas_id, ws_id, app.project_id,
     ).await?;
 
     Ok(Json(serde_json::json!({
         "auth_secret": secret,
         "auth_secret_env_key": crate::utils::app_auth::AUTH_SECRET_ENV_KEY,
     })))
+}
+// ─── Standalone BaaS service CRUD (project resource, no app required) ──────────
+
+/// POST /baas — create a standalone BaaS auth service in a project. Generates and
+/// publishes its signing secret to the project env pool immediately.
+pub async fn create_baas_service(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Json(payload): Json<CreateBaasServiceRequest>,
+) -> Result<(StatusCode, Json<BaasServiceResponse>), AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let name = payload.name.trim().to_string();
+    if name.is_empty() {
+        return Err(AppError::Validation("A name is required.".to_string()));
+    }
+
+    let belongs = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1 AND workspace_id = $2)",
+    )
+    .bind(payload.project_id)
+    .bind(ws_id)
+    .fetch_one(&state.pool)
+    .await?;
+    if !belongs {
+        return Err(AppError::NotFound("Project not found in this workspace.".to_string()));
+    }
+
+    let baas_id = crate::utils::app_auth::create_baas_service(&state.pool, ws_id, payload.project_id, &name).await?;
+
+    let svc = sqlx::query_as::<_, BaasService>("SELECT * FROM baas_services WHERE id = $1")
+        .bind(baas_id)
+        .fetch_one(&state.pool)
+        .await?;
+
+    Ok((StatusCode::CREATED, Json(svc.into())))
+}
+
+/// GET /projects/:project_id/baas — list the auth services in a project.
+pub async fn list_project_baas_services(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(project_id): Path<Uuid>,
+) -> Result<Json<Vec<BaasServiceResponse>>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let services = sqlx::query_as::<_, BaasService>(
+        "SELECT * FROM baas_services WHERE project_id = $1 AND workspace_id = $2 ORDER BY created_at DESC",
+    )
+    .bind(project_id)
+    .bind(ws_id)
+    .fetch_all(&state.pool)
+    .await?;
+
+    Ok(Json(services.into_iter().map(Into::into).collect()))
+}
+
+/// GET /baas/:id — a single auth service.
+pub async fn get_baas_service(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(baas_id): Path<Uuid>,
+) -> Result<Json<BaasServiceResponse>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let svc = sqlx::query_as::<_, BaasService>(
+        "SELECT * FROM baas_services WHERE id = $1 AND workspace_id = $2",
+    )
+    .bind(baas_id)
+    .bind(ws_id)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Auth service not found.".to_string()))?;
+
+    Ok(Json(svc.into()))
+}
+
+/// DELETE /baas/:id — delete an auth service. Removes its published pool vars
+/// (reloading any linked apps) and cascades its users/roles/api-keys/tokens.
+pub async fn delete_baas_service(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(baas_id): Path<Uuid>,
+) -> Result<StatusCode, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let exists = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM baas_services WHERE id = $1 AND workspace_id = $2)",
+    )
+    .bind(baas_id)
+    .bind(ws_id)
+    .fetch_one(&state.pool)
+    .await?;
+    if !exists {
+        return Err(AppError::NotFound("Auth service not found in this workspace.".to_string()));
+    }
+
+    // Unpublish the secret/app-id/api-url pool vars and reload any apps linking them.
+    let linked = crate::utils::app_env::unpublish_project_env(&state.pool, "baas_auth", baas_id).await;
+    for inst in linked {
+        crate::controllers::env_variable_controller::hot_reload_if_running(&state.pool, inst);
+    }
+
+    sqlx::query("DELETE FROM baas_services WHERE id = $1 AND workspace_id = $2")
+        .bind(baas_id)
+        .bind(ws_id)
+        .execute(&state.pool)
+        .await?;
+
+    Ok(StatusCode::NO_CONTENT)
 }
