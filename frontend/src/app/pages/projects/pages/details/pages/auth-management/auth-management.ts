@@ -2,7 +2,7 @@ import { Component, inject, signal, effect, computed } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Details } from '../../details';
-import { AuthManagementService, AppUserWithRoles, ApiKeyInfo, CreateApiKeyResponse, AuthIntegration } from '../../../../../../core/services/auth-management.service';
+import { AuthManagementService, AppUserWithRoles, ApiKeyInfo, CreateApiKeyResponse, AuthIntegration, BaasService } from '../../../../../../core/services/auth-management.service';
 import { ProjectService } from '../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
@@ -26,6 +26,14 @@ export class AuthManagement {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
+  // Standalone BaaS services for this project (no app required). The page operates on
+  // the selected service; users/roles/api-keys/integration are all scoped to it.
+  readonly services = signal<BaasService[]>([]);
+  readonly selectedService = signal<BaasService | null>(null);
+  readonly loadingServices = signal(false);
+  readonly newServiceName = signal('');
+  readonly creatingService = signal(false);
+
   // Integration tab
   readonly integration = signal<AuthIntegration | null>(null);
   readonly revealSecret = signal(false);
@@ -37,14 +45,14 @@ export class AuthManagement {
 import jwt from 'jsonwebtoken';
 
 const SECRET = process.env.${i.authSecretEnvKey};   // injectat automat de Hermes
-const APP_ID = '${i.appId}';
+const BAAS_ID = '${i.baasId}';
 const HERMES = '${i.apiBaseUrl}';
 
 // login: identifier + parolă -> { accessToken, refreshToken }
 // Trimite X-Hermes-Auth-Secret DOAR de pe server ca să poți injecta claims custom
 // (ex. tenantId, plan) în access token. Fără header, additionalClaims e ignorat.
 async function login(identifier, password, additionalClaims = {}) {
-  const r = await fetch(\`\${HERMES}/apps/\${APP_ID}/auth/login\`, {
+  const r = await fetch(\`\${HERMES}/baas/\${BAAS_ID}/auth/login\`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Hermes-Auth-Secret': SECRET },
     body: JSON.stringify({ identifier, password, additionalClaims })
@@ -54,7 +62,7 @@ async function login(identifier, password, additionalClaims = {}) {
 
 // access token-ul e scurt; reînnoiește-l cu refresh token-ul (single-use)
 async function refresh(refreshToken) {
-  const r = await fetch(\`\${HERMES}/apps/\${APP_ID}/auth/refresh\`, {
+  const r = await fetch(\`\${HERMES}/baas/\${BAAS_ID}/auth/refresh\`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken })
   });
@@ -121,9 +129,17 @@ export const requireRole = (role) => (req, res, next) =>
   readonly showGeneratedKeyModal = signal(false);
 
   constructor() {
-    // Reload active app data when the selected application changes
+    // Load this project's BaaS services whenever the project changes.
     effect(() => {
-      const activeApp = this.parent.selectedApp();
+      const projectId = this.parent.projectId();
+      if (projectId) {
+        this.loadServices(projectId);
+      }
+    });
+
+    // Reload active service data when the selected service changes
+    effect(() => {
+      const activeApp = this.selectedService();
       if (activeApp) {
         this.currentPage.set(1);
         this.searchQuery.set('');
@@ -139,15 +155,88 @@ export const requireRole = (role) => (req, res, next) =>
     // Reload tab data when tab changes
     effect(() => {
       const tab = this.activeTab();
-      const activeApp = this.parent.selectedApp();
+      const activeApp = this.selectedService();
       if (activeApp && tab) {
         this.loadActiveTabData();
       }
     });
   }
 
+  // --- BaaS service management ---
+  loadServices(projectId: string): void {
+    this.loadingServices.set(true);
+    this.authMgmtService.listServices(projectId).subscribe({
+      next: (list) => {
+        this.services.set(list || []);
+        // Keep the current selection if still present, else select the first.
+        const current = this.selectedService();
+        const stillThere = current && (list || []).some(s => s.id === current.id);
+        if (!stillThere) {
+          this.selectedService.set((list || [])[0] || null);
+        }
+        this.loadingServices.set(false);
+      },
+      error: () => { this.services.set([]); this.loadingServices.set(false); }
+    });
+  }
+
+  selectService(svc: BaasService): void {
+    if (this.selectedService()?.id === svc.id) return;
+    this.activeTab.set('users');
+    this.selectedService.set(svc);
+  }
+
+  selectServiceById(id: string): void {
+    const svc = this.services().find(s => s.id === id);
+    if (svc) this.selectService(svc);
+  }
+
+  onCreateService(): void {
+    const projectId = this.parent.projectId();
+    const name = this.newServiceName().trim();
+    if (!projectId || !name) {
+      this.toast.error('Numele serviciului este obligatoriu.');
+      return;
+    }
+    this.creatingService.set(true);
+    this.authMgmtService.createService(projectId, name).subscribe({
+      next: (svc) => {
+        this.creatingService.set(false);
+        this.newServiceName.set('');
+        this.services.update(list => [svc, ...list]);
+        this.selectedService.set(svc);
+        this.toast.success(`Serviciul de autentificare „${svc.name}" a fost creat.`);
+      },
+      error: (err) => {
+        this.creatingService.set(false);
+        this.toast.error(err.error?.message || 'Eroare la crearea serviciului.');
+      }
+    });
+  }
+
+  async onDeleteService(svc: BaasService): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Ștergere serviciu de autentificare',
+      message: `Sigur ștergi „${svc.name}"? Toți utilizatorii, rolurile și cheile API asociate vor fi șterse definitiv.`,
+      confirmText: 'Șterge',
+      cancelText: 'Anulează',
+      isDanger: true
+    });
+    if (!confirmed) return;
+    this.authMgmtService.deleteService(svc.id).subscribe({
+      next: () => {
+        this.toast.success(`Serviciul „${svc.name}" a fost șters.`);
+        this.services.update(list => list.filter(s => s.id !== svc.id));
+        if (this.selectedService()?.id === svc.id) {
+          this.selectedService.set(this.services()[0] || null);
+        }
+      },
+      error: (err) => this.toast.error(err.error?.message || 'Eroare la ștergerea serviciului.')
+    });
+  }
+
   loadActiveTabData(): void {
-    const activeApp = this.parent.selectedApp();
+    const activeApp = this.selectedService();
     if (!activeApp) return;
 
     const tab = this.activeTab();
@@ -164,7 +253,7 @@ export const requireRole = (role) => (req, res, next) =>
 
   // --- Integration ---
   loadIntegration(): void {
-    const activeApp = this.parent.selectedApp();
+    const activeApp = this.selectedService();
     if (!activeApp) return;
     this.loading.set(true);
     this.revealSecret.set(false);
@@ -181,7 +270,7 @@ export const requireRole = (role) => (req, res, next) =>
   }
 
   async rotateAuthSecret(): Promise<void> {
-    const activeApp = this.parent.selectedApp();
+    const activeApp = this.selectedService();
     if (!activeApp) return;
 
     const confirmed = await this.confirm.ask({
@@ -216,7 +305,7 @@ export const requireRole = (role) => (req, res, next) =>
 
   // --- Users Management ---
   loadUsers(): void {
-    const activeApp = this.parent.selectedApp();
+    const activeApp = this.selectedService();
     if (!activeApp) return;
 
     this.loading.set(true);
@@ -252,7 +341,7 @@ export const requireRole = (role) => (req, res, next) =>
   }
 
   async onToggleUserStatus(user: AppUserWithRoles): Promise<void> {
-    const activeApp = this.parent.selectedApp();
+    const activeApp = this.selectedService();
     if (!activeApp) return;
 
     const nextStatus = user.status === 'active' ? 'suspended' : 'active';
@@ -285,7 +374,7 @@ export const requireRole = (role) => (req, res, next) =>
   }
 
   onResetPasswordSubmit(): void {
-    const activeApp = this.parent.selectedApp();
+    const activeApp = this.selectedService();
     const user = this.selectedUser();
     const pwd = this.newPassword().trim();
 
@@ -318,7 +407,7 @@ export const requireRole = (role) => (req, res, next) =>
   }
 
   onAssignRoleSubmit(): void {
-    const activeApp = this.parent.selectedApp();
+    const activeApp = this.selectedService();
     const user = this.selectedUser();
     const role = this.newRoleName().trim().toLowerCase();
 
@@ -349,7 +438,7 @@ export const requireRole = (role) => (req, res, next) =>
   }
 
   async onRemoveRole(role: string): Promise<void> {
-    const activeApp = this.parent.selectedApp();
+    const activeApp = this.selectedService();
     const user = this.selectedUser();
     if (!activeApp || !user || !role) return;
 
@@ -385,7 +474,7 @@ export const requireRole = (role) => (req, res, next) =>
 
   // --- JSON Config ---
   loadAuthConfig(): void {
-    const activeApp = this.parent.selectedApp();
+    const activeApp = this.selectedService();
     if (!activeApp) return;
 
     this.loading.set(true);
@@ -432,7 +521,7 @@ export const requireRole = (role) => (req, res, next) =>
   }
 
   onSaveConfig(): void {
-    const activeApp = this.parent.selectedApp();
+    const activeApp = this.selectedService();
     if (!activeApp) return;
 
     if (this.parseError()) {
@@ -524,7 +613,7 @@ export const requireRole = (role) => (req, res, next) =>
 
   // --- API Keys Management ---
   loadApiKeys(): void {
-    const activeApp = this.parent.selectedApp();
+    const activeApp = this.selectedService();
     if (!activeApp) return;
 
     this.loading.set(true);
@@ -541,7 +630,7 @@ export const requireRole = (role) => (req, res, next) =>
   }
 
   onCreateApiKey(): void {
-    const activeApp = this.parent.selectedApp();
+    const activeApp = this.selectedService();
     const name = this.newKeyName().trim();
     if (!activeApp || !name) return;
 
@@ -572,7 +661,7 @@ export const requireRole = (role) => (req, res, next) =>
   }
 
   async onDeleteApiKey(key: ApiKeyInfo): Promise<void> {
-    const activeApp = this.parent.selectedApp();
+    const activeApp = this.selectedService();
     if (!activeApp) return;
 
     const confirmed = await this.confirm.ask({

@@ -1,24 +1,51 @@
 <div class="space-y-6 animate-fade-in font-mono text-zinc-350">
 
-  <!-- Section Header -->
+  <!-- Section Header + service selector/creator -->
   <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-900 pb-4 gap-4">
     <div>
-      <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Identity Provider & BaaS Auth</h3>
-      <p class="text-xs text-zinc-550">Gestionați utilizatorii, rolurile de acces public și cheile API ale aplicației active.</p>
+      <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Autentificare (BaaS)</h3>
+      <p class="text-xs text-zinc-550">Servicii de autentificare end-user — resurse de proiect, independente de aplicații.</p>
     </div>
 
-    <!-- Active App Indicator -->
-    @if (parent.selectedApp(); as app) {
-      <div class="px-3 py-1 rounded bg-zinc-950 border border-zinc-900 text-[10px] text-zinc-400">
-        Aplicație: <span class="text-white font-bold">{{ app.name }}</span>
-      </div>
-    }
+    <div class="flex items-center gap-2 flex-wrap">
+      @if (services().length > 0) {
+        <select
+          [ngModel]="selectedService()?.id"
+          (ngModelChange)="selectServiceById($event)"
+          class="px-3 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 cursor-pointer"
+        >
+          @for (s of services(); track s.id) {
+            <option [value]="s.id">{{ s.name }}</option>
+          }
+        </select>
+        @if (selectedService(); as svc) {
+          <button
+            (click)="onDeleteService(svc)"
+            class="px-2.5 py-1.5 rounded border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-red-400 hover:border-red-900/50 text-[10px] font-semibold transition-colors cursor-pointer"
+            title="Șterge serviciul"
+          >Șterge</button>
+        }
+      }
+      <input
+        type="text"
+        placeholder="Nume serviciu nou"
+        [ngModel]="newServiceName()"
+        (ngModelChange)="newServiceName.set($event)"
+        class="px-3 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 w-40"
+      />
+      <button
+        (click)="onCreateService()"
+        [disabled]="creatingService() || !newServiceName().trim()"
+        class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-bold shadow disabled:opacity-50 cursor-pointer"
+      >+ Creează</button>
+    </div>
   </div>
 
-  @if (!parent.selectedApp()) {
-    <!-- Zero State: No App Selected -->
+  @if (!selectedService()) {
+    <!-- Zero State: no service yet -->
     <div class="bg-black/30 border border-zinc-900 rounded-lg p-12 text-center text-zinc-550 text-xs">
-      Vă rugăm să selectați o aplicație activă din selectorul de sus pentru a putea gestiona autentificarea.
+      Niciun serviciu de autentificare în acest proiect. Creează unul mai sus ca să gestionezi utilizatori,
+      roluri și chei API — fără să ai nevoie de o aplicație.
     </div>
   } @else {
     
@@ -504,12 +531,12 @@
               <p class="text-[10px] text-zinc-550 mt-0.5 font-sans leading-relaxed">Aplicația ta validează token-urile <strong>local</strong>, cu secretul de mai jos — fără apeluri către Hermes. Secretul e deja injectat în env ca <span class="font-mono text-zinc-300">{{ i.authSecretEnvKey }}</span>.</p>
             </div>
 
-            <!-- App ID -->
+            <!-- Service ID -->
             <div class="space-y-1.5">
-              <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">App ID</span>
+              <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Service ID (BaaS)</span>
               <div class="flex items-center gap-2">
-                <code class="flex-1 px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ i.appId }}</code>
-                <button (click)="copyText(i.appId, 'App ID')" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copiază</button>
+                <code class="flex-1 px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ i.baasId }}</code>
+                <button (click)="copyText(i.baasId, 'Service ID')" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copiază</button>
               </div>
             </div>
 
