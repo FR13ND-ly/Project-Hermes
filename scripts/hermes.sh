@@ -7,10 +7,14 @@
 #  See docs/adr/005-cloud-native-control-plane.md.
 #
 #  Usage (as root):
-#    CERT_EMAIL=you@example.com DASHBOARD_HOST=dashboard.example.com \
-#      ./scripts/hermes.sh install
+#    ./scripts/hermes.sh install         # prompts for email/hosts/IP interactively
 #    ./scripts/hermes.sh update          # rebuild + roll out latest code
 #    ./scripts/hermes.sh status
+#
+#  Prompts are pre-filled from env vars when set — pass them to skip the questions
+#  (or for non-interactive / CI runs, where prompting is disabled automatically):
+#    CERT_EMAIL=you@example.com DASHBOARD_HOST=dashboard.example.com \
+#      HERMES_BASE_DOMAIN=example.com ./scripts/hermes.sh install
 # ==============================================================================
 set -euo pipefail
 
@@ -22,12 +26,41 @@ KUBECTL="k3s kubectl"
 CERT_EMAIL="${CERT_EMAIL:-admin@example.com}"
 DASHBOARD_HOST="${DASHBOARD_HOST:-dashboard.hermes.local}"
 HERMES_BASE_DOMAIN="${HERMES_BASE_DOMAIN:-hermes.local}"
+# IP that custom app/serverless domains resolve to. Empty = auto-detect the node IP.
+HERMES_INGRESS_IP="${HERMES_INGRESS_IP:-}"
 
 c()  { printf '\033[1;34m[hermes]\033[0m %s\n' "$*"; }
 ok() { printf '\033[1;32m[ ok ]\033[0m %s\n' "$*"; }
 die(){ printf '\033[1;31m[fail]\033[0m %s\n' "$*" >&2; exit 1; }
 
 require_root() { [ "$(id -u)" -eq 0 ] || die "Run as root (sudo)."; }
+
+# Prompt for a value, showing a default; Enter keeps the default. Echoes the choice.
+ask() {
+  local msg="$1" def="$2" ans
+  printf '\033[1;34m[hermes]\033[0m %s [\033[1;33m%s\033[0m]: ' "$msg" "${def:-—}" >&2
+  read -r ans || ans=""
+  printf '%s' "${ans:-$def}"
+}
+
+# Interactively collect install config, pre-filled with env vars / defaults. Skipped
+# when there's no terminal (CI / piped) — env vars and defaults are used as-is.
+collect_config() {
+  if [ ! -t 0 ]; then
+    c "No terminal detected — using env vars / defaults (CERT_EMAIL, DASHBOARD_HOST, …)."
+    return
+  fi
+  c "Configure this Hermes install — press Enter to accept each default:"
+  CERT_EMAIL="$(ask "Email for Let's Encrypt / TLS certificates" "$CERT_EMAIL")"
+  DASHBOARD_HOST="$(ask "Dashboard hostname (point its DNS at this node)" "$DASHBOARD_HOST")"
+  HERMES_BASE_DOMAIN="$(ask "Base domain for generated app subdomains" "$HERMES_BASE_DOMAIN")"
+  local ip_default="$HERMES_INGRESS_IP"
+  [ -n "$ip_default" ] || ip_default="$(detect_node_ip)"
+  HERMES_INGRESS_IP="$(ask "Public IP custom app/serverless domains resolve to" "$ip_default")"
+  echo
+  c "Using: CERT_EMAIL=$CERT_EMAIL  DASHBOARD_HOST=$DASHBOARD_HOST"
+  c "       HERMES_BASE_DOMAIN=$HERMES_BASE_DOMAIN  HERMES_INGRESS_IP=${HERMES_INGRESS_IP:-auto}"
+}
 
 # ── System dependencies (Docker for building images, git, openssl) ────────────
 install_system_deps() {
@@ -112,6 +145,26 @@ install_knative() {
   ok "Knative Serving ready."
 }
 
+# ── Monitoring (Prometheus) — powers the telemetry charts (app/db CPU/RAM, RED) ─
+# The backend queries it at HERMES_PROMETHEUS_URL (default prometheus-k8s.monitoring.svc:9090).
+# Idempotent: re-apply is a no-op once the Deployment exists.
+install_monitoring() {
+  c "Deploying Prometheus (monitoring namespace) for telemetry..."
+  $KUBECTL apply -f "$ROOT_DIR/prometheus-deployment.yaml"
+  $KUBECTL -n monitoring rollout status deploy/prometheus --timeout=180s || true
+  ok "Monitoring ready (Prometheus → prometheus-k8s.monitoring.svc:9090)."
+}
+
+# Best-effort detection of the node IP that custom app/serverless domains should
+# point their A-records at (ExternalIP → InternalIP → default-route source).
+detect_node_ip() {
+  local ip
+  ip="$($KUBECTL get node -o jsonpath='{.items[0].status.addresses[?(@.type=="ExternalIP")].address}' 2>/dev/null || true)"
+  [ -n "$ip" ] || ip="$($KUBECTL get node -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' 2>/dev/null || true)"
+  [ -n "$ip" ] || ip="$(ip route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}')"
+  printf '%s' "$ip"
+}
+
 # ── Build the platform images on the host and import into k3s containerd ──────
 build_and_import_images() {
   c "Building backend image (this compiles Rust; takes a few minutes)..."
@@ -156,19 +209,33 @@ apply_stack() {
   $KUBECTL apply -f "$ROOT_DIR/deploy/60-backend.yaml"
   $KUBECTL apply -f "$ROOT_DIR/deploy/70-frontend.yaml"
   sed "s/dashboard.hermes.local/$DASHBOARD_HOST/g" "$ROOT_DIR/deploy/80-ingress.yaml" | $KUBECTL apply -f -
-  # Point the backend at the real base domain.
-  $KUBECTL -n "$NS" set env deploy/hermes-backend HERMES_BASE_DOMAIN="$HERMES_BASE_DOMAIN" >/dev/null
+  # Point the backend at the real base domain + the ingress IP that custom
+  # app/serverless domains resolve to (explicit override or auto-detected node IP;
+  # without it domains default to 127.0.0.1 and never resolve externally). Both set
+  # in one call so the backend rolls out only once.
+  local ingress_ip="$HERMES_INGRESS_IP"
+  [ -n "$ingress_ip" ] || ingress_ip="$(detect_node_ip)"
+  if [ -n "$ingress_ip" ]; then
+    $KUBECTL -n "$NS" set env deploy/hermes-backend \
+      HERMES_BASE_DOMAIN="$HERMES_BASE_DOMAIN" HERMES_INGRESS_IP="$ingress_ip" >/dev/null
+    c "Custom domains will point at $ingress_ip (override with HERMES_INGRESS_IP)."
+  else
+    $KUBECTL -n "$NS" set env deploy/hermes-backend HERMES_BASE_DOMAIN="$HERMES_BASE_DOMAIN" >/dev/null
+    c "Could not auto-detect node IP — set HERMES_INGRESS_IP before adding custom domains."
+  fi
   $KUBECTL -n "$NS" rollout status deploy/hermes-backend --timeout=180s
   ok "Stack applied. Backend runs schema migrations automatically on boot."
 }
 
 cmd_install() {
   require_root
+  collect_config
   install_system_deps
   install_k3s
   setup_registry
   install_cert_manager
   install_knative
+  install_monitoring
   build_and_import_images
   ensure_secret
   apply_stack
@@ -193,9 +260,10 @@ cmd_status() {
 }
 
 case "${1:-}" in
-  install) cmd_install ;;
-  update)  cmd_update ;;
-  knative) require_root; install_knative ;;
-  status)  cmd_status ;;
-  *) die "Usage: $0 install|update|knative|status  (set CERT_EMAIL, DASHBOARD_HOST, HERMES_BASE_DOMAIN)";;
+  install)    cmd_install ;;
+  update)     cmd_update ;;
+  knative)    require_root; install_knative ;;
+  monitoring) require_root; install_monitoring ;;
+  status)     cmd_status ;;
+  *) die "Usage: $0 install|update|knative|monitoring|status  (install prompts interactively; env vars CERT_EMAIL, DASHBOARD_HOST, HERMES_BASE_DOMAIN, HERMES_INGRESS_IP pre-fill/skip the prompts)";;
 esac

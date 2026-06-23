@@ -50,8 +50,9 @@ spec:
               value: "registry.kube-system.svc.cluster.local:80"
             - name: HERMES_SSL_ISSUER
               value: "letsencrypt-prod"
+            # Must match the Service in prometheus-deployment.yaml (named prometheus-k8s).
             - name: HERMES_PROMETHEUS_URL
-              value: "http://prometheus.monitoring.svc:9090"
+              value: "http://prometheus-k8s.monitoring.svc:9090"
             # Set to your platform's base domain (used for generated subdomains).
             - name: HERMES_BASE_DOMAIN
               value: "hermes.local"

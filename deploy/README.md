@@ -8,6 +8,15 @@ static dashboard, and Postgres, behind **Traefik** with automatic TLS via
 ## One-command install (fresh Ubuntu/Debian server)
 
 ```bash
+sudo ./scripts/hermes.sh install
+```
+
+The installer **asks for** the email (Let's Encrypt), dashboard hostname, base
+domain and public ingress IP at the start (press Enter to accept each default).
+To skip the prompts — e.g. for CI / unattended runs — pass them as env vars (when
+there's no terminal, prompting is disabled and these are used directly):
+
+```bash
 sudo CERT_EMAIL=you@example.com \
      DASHBOARD_HOST=dashboard.example.com \
      HERMES_BASE_DOMAIN=example.com \
@@ -16,12 +25,23 @@ sudo CERT_EMAIL=you@example.com \
 
 This installs Docker + k3s, deploys the in-cluster registry (for user app builds)
 and configures k3s to trust it, installs cert-manager + Let's Encrypt issuers,
-builds & imports the backend/frontend images, generates platform secrets, and
-applies the stack. The backend runs DB migrations automatically on boot.
+Knative Serving (serverless) and **Prometheus** (telemetry charts), builds &
+imports the backend/frontend images, generates platform secrets, and applies the
+stack. The backend runs DB migrations automatically on boot.
+
+The installer also injects `HERMES_INGRESS_IP` (the IP custom app/serverless
+domains resolve to) — auto-detected from the node, or set it explicitly:
+
+```bash
+sudo HERMES_INGRESS_IP=203.0.113.10 ... ./scripts/hermes.sh install
+```
 
 Then point `DASHBOARD_HOST`'s DNS at the node's public IP and open
 `https://DASHBOARD_HOST`. The first-boot super-admin password is printed during
 install (and stored in the `hermes-secrets` Secret).
+
+Re-run a single piece any time: `./scripts/hermes.sh monitoring` (Prometheus) or
+`./scripts/hermes.sh knative` (serverless).
 
 > **TLS tip:** while testing, set the dashboard/app Ingress issuer to
 > `letsencrypt-staging` to avoid Let's Encrypt rate limits, then switch to
