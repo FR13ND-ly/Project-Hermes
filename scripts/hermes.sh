@@ -263,6 +263,12 @@ cmd_install() {
 
 cmd_update() {
   require_root
+  # Persist whatever config is in effect (env > saved > default) so this and future
+  # updates re-apply manifests with the right host/domain/ingress IP. On the first
+  # update after upgrading the installer, pass your values as env vars if no
+  # /etc/hermes/hermes.conf exists yet, e.g.:
+  #   sudo DASHBOARD_HOST=… HERMES_BASE_DOMAIN=… HERMES_INGRESS_IP=… ./scripts/hermes.sh update
+  save_config
   c "Pulling latest code..."
   git -C "$ROOT_DIR" pull --ff-only
   build_and_import_images
