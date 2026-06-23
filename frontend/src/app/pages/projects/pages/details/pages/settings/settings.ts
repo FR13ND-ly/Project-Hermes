@@ -20,18 +20,8 @@ export class Settings implements OnInit {
   private readonly confirm = inject(ConfirmService);
   private readonly toast = inject(ToastService);
 
-  // CPU/RAM limits in millicores / MB. 0 = unlimited (the platform default).
-  readonly cpuLimit = signal(0); // m
-  readonly memLimit = signal(0); // MB
-  readonly internalPort = signal(8080);
-  readonly replicasMin = signal(1);
-  readonly replicasMax = signal(3);
-  readonly autoscaleCpuPercent = signal(80);
-  readonly autoSleepEnabled = signal(true);
-  readonly autoSleepAfterMinutes = signal(30);
-
-  readonly saving = signal(false);
-  readonly saveSuccess = signal(false);
+  // Container resources, scaling & auto-sleep moved to App detail → Advanced
+  // (they are per app instance, not project-wide).
   readonly error = signal<string | null>(null);
 
   // Destructive actions
@@ -71,24 +61,9 @@ export class Settings implements OnInit {
     effect(() => {
       const details = this.parent.appDetail();
       if (details && details.instances && details.instances.length > 0) {
-        // Load settings from the first instance as reference
-        const inst = details.instances[0];
-        // Preserve 0 (= unlimited); only fall back when the value is missing.
-        const cpuVal = inst.cpuLimit ?? 0;
-        const memVal = inst.memoryLimitMb ?? 0;
-        const portVal = inst.internalPort || 8080;
-        this.cpuLimit.set(cpuVal);
-        this.memLimit.set(memVal);
-        this.internalPort.set(portVal);
-        this.replicasMin.set(inst.replicasMin ?? 1);
-        this.replicasMax.set(inst.replicasMax ?? this.replicasMin());
-        this.autoscaleCpuPercent.set(inst.autoscaleCpuPercent ?? 80);
-        this.autoSleepEnabled.set(inst.autoSleepEnabled ?? true);
-        this.autoSleepAfterMinutes.set(inst.autoSleepAfterMinutes ?? 30);
-        
-        // If not already selected, default the instance to delete to the first one
+        // Default the instance to delete to the first one (reacts to async load).
         if (!this.selectedInstanceToDelete()) {
-          this.selectedInstanceToDelete.set(inst);
+          this.selectedInstanceToDelete.set(details.instances[0]);
         }
       }
     });
@@ -142,39 +117,6 @@ export class Settings implements OnInit {
       error: (err) => {
         this.savingCloudflare.set(false);
         this.toast.error(err.error?.message || 'Eroare la salvarea setărilor Cloudflare.');
-      }
-    });
-  }
-
-  onSaveSettings(): void {
-    const details = this.parent.appDetail();
-    const appId = details?.id;
-    if (!appId || !details.instances || details.instances.length === 0) return;
-    
-    const inst = details.instances[0];
-    this.saving.set(true);
-    this.saveSuccess.set(false);
-    this.error.set(null);
-
-    this.projectService.updateInstanceSettings(appId, inst.id, {
-      cpuLimit: this.cpuLimit(),
-      memoryLimitMb: this.memLimit(),
-      internalPort: this.internalPort(),
-      replicasMin: this.replicasMin(),
-      replicasMax: this.replicasMax(),
-      autoscaleCpuPercent: this.autoscaleCpuPercent(),
-      autoSleepEnabled: this.autoSleepEnabled(),
-      autoSleepAfterMinutes: this.autoSleepAfterMinutes()
-    }).subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.saveSuccess.set(true);
-        this.parent.loadDetails(this.parent.projectId() || '');
-        setTimeout(() => this.saveSuccess.set(false), 4000);
-      },
-      error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la salvarea setărilor.');
-        this.saving.set(false);
       }
     });
   }

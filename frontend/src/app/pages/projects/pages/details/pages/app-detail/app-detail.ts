@@ -268,6 +268,12 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   readonly memLimit = signal(0); // MB
   readonly internalPort = signal(8080);
   readonly externalPort = signal<number | null>(null);
+  // Scaling & availability (per app instance)
+  readonly replicasMin = signal(1);
+  readonly replicasMax = signal(1);
+  readonly autoscaleCpuPercent = signal(80);
+  readonly autoSleepEnabled = signal(false);
+  readonly autoSleepAfterMinutes = signal(30);
   readonly buildCommand = signal('');
   readonly startCommand = signal('');
   readonly savingSettings = signal(false);
@@ -469,8 +475,11 @@ export class AppDetailComponent implements OnInit, OnDestroy {
           this.memLimit.set(inst.memoryLimitMb !== undefined && inst.memoryLimitMb !== null ? inst.memoryLimitMb : 0);
           this.internalPort.set(inst.internalPort || 8080);
           this.externalPort.set(inst.externalPort || null);
-
-
+          this.replicasMin.set(inst.replicasMin ?? 1);
+          this.replicasMax.set(inst.replicasMax ?? this.replicasMin());
+          this.autoscaleCpuPercent.set(inst.autoscaleCpuPercent ?? 80);
+          this.autoSleepEnabled.set(inst.autoSleepEnabled ?? false);
+          this.autoSleepAfterMinutes.set(inst.autoSleepAfterMinutes ?? 30);
 
           if (!this.activeInstanceId()) {
             this.activeInstanceId.set(inst.id);
@@ -1137,7 +1146,12 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       externalPort: this.externalPort() || null,
       buildCommand: this.buildCommand() || null,
       startCommand: this.startCommand() || null,
-      enableBaas: this.enableBaas()
+      enableBaas: this.enableBaas(),
+      replicasMin: this.replicasMin(),
+      replicasMax: this.replicasMax(),
+      autoscaleCpuPercent: this.autoscaleCpuPercent(),
+      autoSleepEnabled: this.autoSleepEnabled(),
+      autoSleepAfterMinutes: this.autoSleepAfterMinutes()
     }).subscribe({
       next: () => {
         this.savingSettings.set(false);

@@ -498,9 +498,8 @@ pub async fn create_branch_instance(
     let replicas_min = payload.replicas_min.unwrap_or(1).max(1);
     let replicas_max = payload.replicas_max.unwrap_or(replicas_min).max(replicas_min);
     let autoscale_cpu_percent = payload.autoscale_cpu_percent.unwrap_or(80).clamp(1, 100);
-    // Auto-sleep defaults on for non-production instances (preserves prior behaviour).
-    let auto_sleep_enabled = payload.auto_sleep_enabled
-        .unwrap_or(!matches!(payload.instance_type, crate::models::app_model::AppInstanceType::Production));
+    // Auto-sleep is opt-in: defaults off unless the caller explicitly enables it.
+    let auto_sleep_enabled = payload.auto_sleep_enabled.unwrap_or(false);
     let auto_sleep_after_minutes = payload.auto_sleep_after_minutes.unwrap_or(30).clamp(1, 10080);
 
     // Quota checks account for full scale-out (per-replica limit × max replicas).

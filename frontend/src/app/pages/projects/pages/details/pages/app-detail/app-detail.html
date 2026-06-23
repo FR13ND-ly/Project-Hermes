@@ -1162,6 +1162,102 @@
           </div>
         </div>
 
+        <!-- Scaling & Availability Settings -->
+        <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+          <div class="border-b border-zinc-900 pb-2.5">
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Scalare & Disponibilitate</h3>
+            <p class="text-[10px] text-zinc-550 mt-0.5 font-mono">Numărul de replici, autoscaling și auto-sleep pentru această aplicație. Se aplică la următorul deploy.</p>
+          </div>
+
+          <!-- Replica range -->
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="space-y-1.5">
+              <label for="replicas-min" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Replicas Min</label>
+              <input
+                id="replicas-min"
+                type="number"
+                min="1"
+                max="5"
+                [ngModel]="replicasMin()"
+                (ngModelChange)="replicasMin.set($event)"
+                [disabled]="savingSettings()"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
+              />
+              <span class="text-[9px] text-zinc-600 block">Numărul de pod-uri rulate mereu.</span>
+            </div>
+
+            <div class="space-y-1.5">
+              <label for="replicas-max" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Replicas Max</label>
+              <input
+                id="replicas-max"
+                type="number"
+                min="1"
+                max="10"
+                [ngModel]="replicasMax()"
+                (ngModelChange)="replicasMax.set($event)"
+                [disabled]="savingSettings()"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
+              />
+              <span class="text-[9px] text-zinc-600 block">Dacă Max &gt; Min, se activează autoscaler-ul (HPA).</span>
+            </div>
+          </div>
+
+          <!-- Autoscale CPU target -->
+          <div class="space-y-1.5 border-t border-zinc-900/40 pt-3">
+            <label for="autoscale-cpu" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Autoscale la CPU (%)</label>
+            <input
+              id="autoscale-cpu"
+              type="number"
+              min="1"
+              max="100"
+              [ngModel]="autoscaleCpuPercent()"
+              (ngModelChange)="autoscaleCpuPercent.set($event)"
+              [disabled]="savingSettings()"
+              class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
+            />
+            <span class="text-[9px] text-zinc-600 block">Când Max &gt; Min, autoscaler-ul adaugă pod-uri (până la Max) când CPU-ul mediu depășește acest prag.</span>
+          </div>
+
+          <!-- Auto-sleep -->
+          <div class="space-y-2 border-t border-zinc-900/40 pt-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                [ngModel]="autoSleepEnabled()"
+                (ngModelChange)="autoSleepEnabled.set($event)"
+                [disabled]="savingSettings()"
+                class="accent-white w-3.5 h-3.5 cursor-pointer"
+              />
+              <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Auto-sleep (oprește la inactivitate)</span>
+            </label>
+            @if (autoSleepEnabled()) {
+              <div class="space-y-1.5 pl-5">
+                <label for="auto-sleep-min" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Inactiv (minute) → scale 0</label>
+                <input
+                  id="auto-sleep-min"
+                  type="number"
+                  min="1"
+                  [ngModel]="autoSleepAfterMinutes()"
+                  (ngModelChange)="autoSleepAfterMinutes.set($event)"
+                  [disabled]="savingSettings()"
+                  class="block w-full max-w-[200px] px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
+                />
+              </div>
+            }
+            <span class="text-[9px] text-zinc-600 block leading-relaxed">Când e activ, instanța e oprită (scale 0) după atâtea minute fără activitate. <span class="text-amber-500/80">Nu se trezește singură la trafic</span> — revine prin Start sau redeploy. Implicit: oprit.</span>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
+            <button
+              (click)="onSaveSettings()"
+              [disabled]="savingSettings()"
+              class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
+            >
+              {{ savingSettings() ? 'Se salvează...' : 'Salvează Setările' }}
+            </button>
+          </div>
+        </div>
+
       </div>
     }
 
