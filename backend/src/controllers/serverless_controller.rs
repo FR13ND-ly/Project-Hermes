@@ -1216,11 +1216,22 @@ async fn deploy_proxy_resources(
     // Forward everything to the Knative service; method/route enforcement now lives
     // inside the instance's wrapper (per-route), so no method check here.
     let configmaps: Api<ConfigMap> = Api::namespaced(client.clone(), namespace);
+    // Cluster DNS IP differs by distro (k3s: 10.43.0.10, vanilla k8s: 10.96.0.10).
+    // Read it from the kube-dns Service so nginx can actually resolve the Knative
+    // service name — a hardcoded 10.96.0.10 silently 502s on k3s.
+    let dns_ip = {
+        let svcs: Api<k8s_openapi::api::core::v1::Service> = Api::namespaced(client.clone(), "kube-system");
+        svcs.get("kube-dns").await.ok()
+            .and_then(|s| s.spec)
+            .and_then(|sp| sp.cluster_ip)
+            .filter(|ip| !ip.is_empty() && ip != "None")
+            .unwrap_or_else(|| "10.43.0.10".to_string())
+    };
     let nginx_conf = format!(
         r#"events {{ worker_connections 1024; }}
 http {{
     client_max_body_size 0;
-    resolver 10.96.0.10 valid=5s;
+    resolver {} valid=5s;
     server {{
         listen 8080;
         location / {{
@@ -1234,7 +1245,7 @@ http {{
         }}
     }}
 }}"#,
-        ksvc_name, namespace, ksvc_name, namespace
+        dns_ip, ksvc_name, namespace, ksvc_name, namespace
     );
 
     let cm_obj: ConfigMap = serde_json::from_value(json!({
