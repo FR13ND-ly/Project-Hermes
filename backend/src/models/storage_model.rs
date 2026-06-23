@@ -70,11 +70,40 @@ pub struct TextProcessingOptions {
     pub pre_compress_gzip: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct BucketProcessingRules {
     pub image_options: Option<ImageProcessingOptions>,
     pub text_options: Option<TextProcessingOptions>,
+}
+
+// Tolerant decoding: a bucket whose stored `default_processing_rules` JSON isn't a
+// valid object (e.g. a legacy `[]`, `null`, or a shape from an older schema) decodes
+// to the default instead of erroring. Without this, one malformed row makes the
+// whole `SELECT *`-backed bucket list fail with a 500 (`invalid length 0, expected
+// struct BucketProcessingRules`). Manual impl so the fallback can't itself error.
+impl<'de> Deserialize<'de> for BucketProcessingRules {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Inner {
+            #[serde(default)]
+            image_options: Option<ImageProcessingOptions>,
+            #[serde(default)]
+            text_options: Option<TextProcessingOptions>,
+        }
+        let value = serde_json::Value::deserialize(deserializer)?;
+        Ok(match serde_json::from_value::<Inner>(value) {
+            Ok(inner) => BucketProcessingRules {
+                image_options: inner.image_options,
+                text_options: inner.text_options,
+            },
+            Err(_) => BucketProcessingRules::default(),
+        })
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -113,6 +142,39 @@ pub struct StorageBucket {
     pub app_id: Option<String>,
     pub secret_key_encrypted: Option<String>,
     pub secret_key_nonce: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // The reported 500: a bucket stored `[]` for default_processing_rules.
+    #[test]
+    fn processing_rules_tolerates_empty_array() {
+        let r: BucketProcessingRules = serde_json::from_str("[]").unwrap();
+        assert_eq!(r, BucketProcessingRules::default());
+    }
+
+    #[test]
+    fn processing_rules_tolerates_null_and_garbage() {
+        assert_eq!(
+            serde_json::from_str::<BucketProcessingRules>("null").unwrap(),
+            BucketProcessingRules::default()
+        );
+        assert_eq!(
+            serde_json::from_str::<BucketProcessingRules>(r#"{"imageOptions":"oops"}"#).unwrap(),
+            BucketProcessingRules::default()
+        );
+    }
+
+    #[test]
+    fn processing_rules_parses_valid_object() {
+        let r: BucketProcessingRules =
+            serde_json::from_str(r#"{"textOptions":{"preCompressBrotli":true,"preCompressGzip":false}}"#)
+                .unwrap();
+        assert!(r.image_options.is_none());
+        assert_eq!(r.text_options.unwrap().pre_compress_brotli, true);
+    }
 }
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
