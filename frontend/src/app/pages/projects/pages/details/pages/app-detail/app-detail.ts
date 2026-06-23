@@ -278,7 +278,6 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   readonly startCommand = signal('');
   readonly savingSettings = signal(false);
   readonly saveSettingsSuccess = signal(false);
-  readonly enableBaas = signal(false);
   readonly workspace = signal<Workspace | null>(null);
 
   // Add Domain Modal
@@ -464,7 +463,6 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
         this.buildCommand.set(res.buildCommand || '');
         this.startCommand.set(res.startCommand || '');
-        this.enableBaas.set(res.enableBaas || false);
 
         // Status transitions are handled reactively via WebSockets
 
@@ -1146,7 +1144,6 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       externalPort: this.externalPort() || null,
       buildCommand: this.buildCommand() || null,
       startCommand: this.startCommand() || null,
-      enableBaas: this.enableBaas(),
       replicasMin: this.replicasMin(),
       replicasMax: this.replicasMax(),
       autoscaleCpuPercent: this.autoscaleCpuPercent(),

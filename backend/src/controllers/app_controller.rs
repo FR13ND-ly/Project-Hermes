@@ -45,7 +45,6 @@ pub struct UpdateInstanceSettingsRequest {
     pub external_port: Option<i32>,
     pub build_command: Option<String>,
     pub start_command: Option<String>,
-    pub enable_baas: Option<bool>,
     pub replicas_min: Option<i32>,
     pub replicas_max: Option<i32>,
     pub autoscale_cpu_percent: Option<i32>,
@@ -393,25 +392,6 @@ pub async fn create_app(
         }
     }
 
-    // BaaS is now a standalone project resource. The create-app "enable auth"
-    // shortcut provisions a service for the project and links its published secret to
-    // this instance, so the app receives HERMES_AUTH_SECRET at runtime.
-    if payload.enable_baas.unwrap_or(false) {
-        match crate::utils::app_auth::create_baas_service(
-            &state.pool, ws_id, payload.project_id, &format!("{} Auth", payload.name.trim()),
-        ).await {
-            Ok(baas_id) => {
-                let _ = sqlx::query!(
-                    "INSERT INTO app_env_links (app_instance_id, project_env_id)
-                     SELECT $1, id FROM project_env_variables WHERE source = 'baas_auth' AND source_id = $2
-                     ON CONFLICT DO NOTHING",
-                    instance_id, baas_id
-                ).execute(&state.pool).await;
-            }
-            Err(e) => tracing::warn!(app_id = %app_id, "Failed to provision BaaS service: {}", e),
-        }
-    }
-
     let _ = crate::utils::job_queue::enqueue_build(
         &state.pool,
         instance_id,
@@ -472,7 +452,6 @@ pub async fn create_app(
             build_command: payload.build_command,
             start_command: payload.start_command,
             created_at: chrono::Utc::now(),
-            enable_baas: payload.enable_baas.unwrap_or(false),
         }),
     ))
 }
@@ -626,17 +605,6 @@ pub async fn get_app_details(
         auto_sleep_after_minutes: inst.auto_sleep_after_minutes,
     }).collect();
 
-    let enable_baas = sqlx::query_scalar!(
-        "SELECT EXISTS(SELECT 1 FROM app_env_links ael
-                       JOIN project_env_variables p ON p.id = ael.project_env_id
-                       JOIN app_instances ai ON ai.id = ael.app_instance_id
-                       WHERE ai.app_id = $1 AND p.source = 'baas_auth')",
-        app.id
-    )
-    .fetch_one(&state.pool)
-    .await?
-    .unwrap_or(false);
-
     Ok(Json(AppDetailedResponse {
         id: app.id,
         project_id: app.project_id,
@@ -650,7 +618,6 @@ pub async fn get_app_details(
         build_command: app.build_command,
         start_command: app.start_command,
         created_at: app.created_at,
-        enable_baas,
     }))
 }
 
@@ -1830,14 +1797,6 @@ pub async fn list_project_apps(
             auto_sleep_after_minutes: inst.auto_sleep_after_minutes,
         }).collect();
 
-        let enable_baas = sqlx::query_scalar!(
-            "SELECT EXISTS(SELECT 1 FROM project_env_variables WHERE source = 'baas_auth' AND source_id = $1)",
-            app.id
-        )
-        .fetch_one(&state.pool)
-        .await?
-        .unwrap_or(false);
-
         items.push(AppDetailedResponse {
             id: app.id,
             project_id: app.project_id,
@@ -1851,7 +1810,6 @@ pub async fn list_project_apps(
             build_command: app.build_command,
             start_command: app.start_command,
             created_at: app.created_at,
-            enable_baas,
         });
     }
 
@@ -1872,40 +1830,14 @@ pub async fn update_instance_settings(
     let _ws_guard = crate::utils::locks::acquire_workspace_lock(&state.pool, ws_id).await?;
 
     // Verify application belongs to this workspace
-    let app_meta = sqlx::query!(
-        "SELECT id, name, project_id FROM apps WHERE id = $1 AND workspace_id = $2",
+    // Authorization check: the app must belong to the caller's workspace.
+    let _app_meta = sqlx::query!(
+        "SELECT id FROM apps WHERE id = $1 AND workspace_id = $2",
         app_id, ws_id
     )
     .fetch_optional(&state.pool)
     .await?
     .ok_or_else(|| AppError::NotFound("Application not found in this workspace.".to_string()))?;
-
-    // BaaS toggle: enabling provisions a standalone service for the project and links
-    // its secret to this instance; disabling just unlinks this instance from any
-    // baas_auth pool vars (the service itself is managed as its own resource now).
-    if let Some(enable) = payload.enable_baas {
-        if enable {
-            match crate::utils::app_auth::create_baas_service(
-                &state.pool, ws_id, app_meta.project_id, &format!("{} Auth", app_meta.name.trim()),
-            ).await {
-                Ok(baas_id) => {
-                    let _ = sqlx::query!(
-                        "INSERT INTO app_env_links (app_instance_id, project_env_id)
-                         SELECT $1, id FROM project_env_variables WHERE source = 'baas_auth' AND source_id = $2
-                         ON CONFLICT DO NOTHING",
-                        instance_id, baas_id
-                    ).execute(&state.pool).await;
-                }
-                Err(e) => tracing::warn!(app_id = %app_id, "Failed to enable BaaS service: {}", e),
-            }
-        } else {
-            let _ = sqlx::query!(
-                "DELETE FROM app_env_links WHERE app_instance_id = $1 AND project_env_id IN
-                 (SELECT id FROM project_env_variables WHERE source = 'baas_auth')",
-                instance_id
-            ).execute(&state.pool).await;
-        }
-    }
 
     // Verify instance belongs to this app
     let instance_exists = sqlx::query!(

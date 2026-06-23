@@ -49,7 +49,6 @@ export class Details implements OnInit, OnDestroy {
   readonly internalPort = signal<number>(8080);
   readonly externalPort = signal<number | null>(null);
   readonly gitSubpath = signal('');
-  readonly enableBaas = signal(false);
   // Custom in-cluster service/DNS name (empty = auto) + publish-URL-to-pool controls.
   readonly networkName = signal('');
   readonly publishUrl = signal(true);
@@ -563,7 +562,6 @@ export class Details implements OnInit, OnDestroy {
       gitCredentialId: this.selectedCredentialId() || undefined,
       envVariables: envVariables.length > 0 ? envVariables : undefined,
       linkedProjectEnvIds: this.selectedProjectEnvIds().length > 0 ? this.selectedProjectEnvIds() : undefined,
-      enableBaas: this.enableBaas(),
       networkName: this.networkName().trim() || undefined,
       publishUrl: this.publishUrl(),
       urlEnvKey: this.urlEnvKey().trim() || undefined
@@ -582,7 +580,6 @@ export class Details implements OnInit, OnDestroy {
         this.newAppEnvRows.set([]);
         this.selectedProjectEnvIds.set([]);
         this.newAppEnvJsonMode.set(false);
-        this.enableBaas.set(false);
         this.networkName.set('');
         this.publishUrl.set(true);
         this.urlEnvKey.set('');

@@ -24,8 +24,6 @@ pub struct CreateAppRequest {
     /// Project-pool env vars to link the new instance to at creation time.
     #[serde(default)]
     pub linked_project_env_ids: Option<Vec<Uuid>>,
-    #[serde(default)]
-    pub enable_baas: Option<bool>,
     /// Custom in-cluster service/DNS name other apps use to reach this one.
     /// None/empty = auto (hermes-app-<slug>-<branch>).
     #[serde(default)]
@@ -97,7 +95,6 @@ pub struct AppDetailedResponse {
     pub start_command: Option<String>,
     #[serde(rename = "created_at")]
     pub created_at: DateTime<Utc>,
-    pub enable_baas: bool,
 }
 
 #[derive(Debug, Deserialize)]

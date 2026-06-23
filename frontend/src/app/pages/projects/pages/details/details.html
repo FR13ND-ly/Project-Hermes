@@ -561,22 +561,6 @@
                   </div>
                 </div>
 
-                <!-- BaaS Auth Integration -->
-                <div class="border-t border-zinc-900/40 pt-4 space-y-2">
-                  <div class="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="new-app-baas"
-                      [ngModel]="enableBaas()"
-                      (ngModelChange)="enableBaas.set($event)"
-                      [disabled]="deployingApp()"
-                      class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
-                    />
-                    <label for="new-app-baas" class="text-xs text-zinc-350 font-sans cursor-pointer select-none">
-                      Asociază capabilități BaaS Auth (generează cheia de semnare și o adaugă în pool-ul de proiect)
-                    </label>
-                  </div>
-                </div>
               </div>
               }
 

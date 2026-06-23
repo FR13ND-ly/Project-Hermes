@@ -81,8 +81,6 @@ pub struct PlanApp {
     pub depends_on: Vec<String>,
     /// Default selection state for the preview.
     pub include: bool,
-    #[serde(default)]
-    pub enable_baas: bool,
     /// Create + link a private storage bucket for this service.
     #[serde(default)]
     pub enable_storage: bool,

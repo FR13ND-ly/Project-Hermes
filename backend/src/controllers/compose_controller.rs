@@ -115,7 +115,6 @@ fn plan_from_compose(yaml: &str) -> Result<ComposePlan, AppError> {
             depends_on,
             // image-only non-DB services can't be built by Hermes → default off.
             include: buildable,
-            enable_baas: false,
             enable_storage: false,
             // Defaults: auto network name (None), publish URL on, auto key (<SERVICE>_URL).
             network_name: None,
@@ -287,13 +286,6 @@ pub async fn apply_compose_plan(
             }
         }
 
-        if app.enable_baas {
-            if let Err(e) = crate::utils::app_auth::create_baas_service(
-                &state.pool, ws_id, payload.project_id, &format!("{} Auth", app.service.trim()),
-            ).await {
-                tracing::warn!(app_id = %app_id, "Failed to provision BaaS service in compose Pass 1: {}", e);
-            }
-        }
     }
 
     // 3. Pass 2: Create app instances, map env vars (links & local), volumes, database links, and trigger builds.

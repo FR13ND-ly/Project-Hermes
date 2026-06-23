@@ -59,7 +59,6 @@ export interface AppDetail {
   instances: AppInstance[];
   buildCommand?: string | null;
   startCommand?: string | null;
-  enableBaas?: boolean;
 }
 
 export interface AppBuild {
@@ -108,7 +107,6 @@ export interface PlanApp {
   volumes: PlanVolume[];
   dependsOn: string[];
   include: boolean;
-  enableBaas: boolean;
   /// Create + link a private storage bucket for this service.
   enableStorage?: boolean;
   /// Custom in-cluster service/DNS name (empty/undefined = auto).
@@ -180,7 +178,6 @@ export class ProjectService {
     gitCredentialId?: string;
     envVariables?: EnvVarInput[];
     linkedProjectEnvIds?: string[];
-    enableBaas?: boolean;
     networkName?: string;
     publishUrl?: boolean;
     urlEnvKey?: string;
@@ -387,7 +384,6 @@ export class ProjectService {
     externalPort?: number | null;
     buildCommand?: string | null;
     startCommand?: string | null;
-    enableBaas?: boolean;
     replicasMin?: number;
     replicasMax?: number;
     autoscaleCpuPercent?: number;

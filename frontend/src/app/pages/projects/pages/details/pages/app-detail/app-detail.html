@@ -1332,25 +1332,6 @@
             </div>
           </div>
 
-          <!-- BaaS Auth Integration -->
-          <div class="pt-4 border-t border-zinc-900/40 space-y-2">
-            <div class="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="app-enable-baas"
-                [ngModel]="enableBaas()"
-                (ngModelChange)="enableBaas.set($event)"
-                [disabled]="savingSettings()"
-                class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
-              />
-              <label for="app-enable-baas" class="text-xs font-bold text-zinc-300 uppercase tracking-wider cursor-pointer select-none">
-                Asociază capabilități BaaS Auth
-              </label>
-            </div>
-            <p class="text-[9px] text-zinc-650 font-mono leading-normal ml-5">
-              Dacă este bifat, Hermes va genera o cheie secretă de semnare HS256 unică pentru această aplicație (sau o va folosi pe cea existentă) și o va publica în pool-ul de variabile de mediu al proiectului sub numele de <code>HERMES_AUTH_SECRET</code>, gata de a fi legată la containere.
-            </p>
-          </div>
 
           <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
             <button
