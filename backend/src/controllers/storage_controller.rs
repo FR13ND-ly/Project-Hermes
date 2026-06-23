@@ -452,6 +452,77 @@ pub async fn create_bucket(
     ))
 }
 
+/// Create (or reuse) a private bucket for a project, publish its credentials + the
+/// storage endpoint, and link them to `instance_id`. Used by the docker-compose
+/// split when a service opts into storage.
+pub async fn provision_bucket_for_instance(
+    pool: &sqlx::PgPool,
+    ws_id: Uuid,
+    project_id: Uuid,
+    created_by: Uuid,
+    name: &str,
+    instance_id: Uuid,
+) -> Result<(), AppError> {
+    let slug = name.trim().to_lowercase().replace(' ', "-");
+
+    let bucket_id = match sqlx::query_scalar::<_, Uuid>(
+        "SELECT id FROM storage_buckets WHERE workspace_id = $1 AND slug = $2",
+    )
+    .bind(ws_id)
+    .bind(&slug)
+    .fetch_optional(pool)
+    .await?
+    {
+        Some(id) => id,
+        None => {
+            let bucket_id = Uuid::new_v4();
+            let access_type = BucketAccessType::PrivateStorage;
+            let bucket_dir = StorageEngine::get_bucket_path(&ws_id.to_string(), &slug, &access_type);
+            let bucket_app_id = format!("hsk_{}", crate::utils::string_gen::generate_secure_string(24));
+            let secret_key = crate::utils::string_gen::generate_secure_string(40);
+            let (secret_enc, secret_nonce) = crate::utils::crypto::encrypt_env_value(&secret_key)?;
+            sqlx::query(
+                "INSERT INTO storage_buckets (id, workspace_id, project_id, name, slug, access_type, is_public, max_bucket_size_bytes, max_file_size_bytes, allow_custom_processing, default_processing_rules, created_by, app_id, secret_key_encrypted, secret_key_nonce)
+                 VALUES ($1, $2, $3, $4, $5, $6::bucket_access_type, false, 0, 0, false, '[]'::jsonb, $7, $8, $9, $10)",
+            )
+            .bind(bucket_id)
+            .bind(ws_id)
+            .bind(project_id)
+            .bind(name.trim())
+            .bind(&slug)
+            .bind(access_type)
+            .bind(created_by)
+            .bind(&bucket_app_id)
+            .bind(&secret_enc)
+            .bind(&secret_nonce)
+            .execute(pool)
+            .await?;
+            let _ = fs::create_dir_all(&bucket_dir);
+            let prefix = format!("BUCKET_{}", crate::utils::app_env::sanitize_key_fragment(&slug, "STORAGE"));
+            publish_bucket_credentials(pool, ws_id, project_id, bucket_id, &prefix, &bucket_app_id, &secret_key).await;
+            bucket_id
+        }
+    };
+
+    // Link the bucket's published credentials + the storage endpoint to this instance.
+    let env_ids = sqlx::query_scalar::<_, Uuid>(
+        "SELECT id FROM project_env_variables WHERE project_id = $1 AND ((source = 'storage' AND source_id = $2) OR source = 'storage_endpoint')",
+    )
+    .bind(project_id)
+    .bind(bucket_id)
+    .fetch_all(pool)
+    .await
+    .unwrap_or_default();
+    for env_id in env_ids {
+        let _ = sqlx::query("INSERT INTO app_env_links (app_instance_id, project_env_id) VALUES ($1, $2) ON CONFLICT DO NOTHING")
+            .bind(instance_id)
+            .bind(env_id)
+            .execute(pool)
+            .await;
+    }
+    Ok(())
+}
+
 pub async fn initialize_upload(
     State(state): State<AppState>,
     headers: axum::http::HeaderMap,

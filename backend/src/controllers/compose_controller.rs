@@ -116,6 +116,7 @@ fn plan_from_compose(yaml: &str) -> Result<ComposePlan, AppError> {
             // image-only non-DB services can't be built by Hermes → default off.
             include: buildable,
             enable_baas: false,
+            enable_storage: false,
             // Defaults: auto network name (None), publish URL on, auto key (<SERVICE>_URL).
             network_name: None,
             publish_url: Some(true),
@@ -354,6 +355,15 @@ pub async fn apply_compose_plan(
                 &state.pool, app_id, ws_id, payload.project_id,
             ).await {
                 tracing::warn!(app_id = %app_id, "Failed to link BaaS auth secret in compose Pass 2: {}", e);
+            }
+        }
+
+        // Provision + link a private storage bucket for this service, if requested.
+        if app.enable_storage {
+            if let Err(e) = crate::controllers::storage_controller::provision_bucket_for_instance(
+                &state.pool, ws_id, payload.project_id, claims.sub, &app.name, instance_id,
+            ).await {
+                tracing::warn!(service = %app.service, "Failed to provision storage bucket in compose Pass 2: {}", e);
             }
         }
 

@@ -856,6 +856,10 @@
                               <input type="checkbox" [checked]="eApp.enableBaas" (change)="toggleComposeAppBaas(editingAppIndex()!)" class="h-4 w-4 mt-0.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer" />
                               <span class="text-xs text-zinc-300 select-none">Asociază capabilități BaaS Auth <span class="text-zinc-500">— generează cheia de semnare și o mapează în container.</span></span>
                             </label>
+                            <label class="flex items-start gap-3 p-3 rounded border border-zinc-850 bg-zinc-950/40 cursor-pointer">
+                              <input type="checkbox" [checked]="eApp.enableStorage" (change)="toggleComposeAppStorage(editingAppIndex()!)" class="h-4 w-4 mt-0.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer" />
+                              <span class="text-xs text-zinc-300 select-none">Creează &amp; leagă un bucket de storage <span class="text-zinc-500">— injectează HERMES_STORAGE_URL + credențialele bucket-ului.</span></span>
+                            </label>
                           </div>
                         }
 

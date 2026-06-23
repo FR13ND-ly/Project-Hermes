@@ -83,6 +83,9 @@ pub struct PlanApp {
     pub include: bool,
     #[serde(default)]
     pub enable_baas: bool,
+    /// Create + link a private storage bucket for this service.
+    #[serde(default)]
+    pub enable_storage: bool,
     /// Custom in-cluster service/DNS name (None/empty = auto hermes-app-<slug>-<branch>).
     #[serde(default)]
     pub network_name: Option<String>,

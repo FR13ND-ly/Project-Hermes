@@ -337,6 +337,13 @@ export class Details implements OnInit, OnDestroy {
       return { ...p, apps };
     });
   }
+  toggleComposeAppStorage(index: number): void {
+    this.composePlan.update(p => {
+      if (!p) return p;
+      const apps = p.apps.map((a, i) => i === index ? { ...a, enableStorage: !a.enableStorage } : a);
+      return { ...p, apps };
+    });
+  }
 
   toggleComposeDb(index: number): void {
     this.composePlan.update(p => {

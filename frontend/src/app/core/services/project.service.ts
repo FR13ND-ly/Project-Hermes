@@ -109,6 +109,8 @@ export interface PlanApp {
   dependsOn: string[];
   include: boolean;
   enableBaas: boolean;
+  /// Create + link a private storage bucket for this service.
+  enableStorage?: boolean;
   /// Custom in-cluster service/DNS name (empty/undefined = auto).
   networkName?: string | null;
   /// Publish this app's URL into the project env pool (default true).
