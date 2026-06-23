@@ -1018,6 +1018,14 @@ pub async fn get_auth_integration(
     let _ = crate::utils::app_auth::publish_baas_var(
         &state.pool, ws_id, app.project_id, app_id, "HERMES_AUTH_API_URL", &api_base_url, false,
     ).await;
+    // Friendly aliases many apps expect (e.g. they read HERMES_BAAS_URL / HERMES_APP_ID).
+    // HERMES_BAAS_URL embeds the app id as /apps/<uuid> so apps can derive it.
+    let _ = crate::utils::app_auth::publish_baas_var(
+        &state.pool, ws_id, app.project_id, app_id, "HERMES_BAAS_URL", &format!("{}/apps/{}", api_base_url, app_id), false,
+    ).await;
+    let _ = crate::utils::app_auth::publish_baas_var(
+        &state.pool, ws_id, app.project_id, app_id, "HERMES_APP_ID", &app_id.to_string(), false,
+    ).await;
 
     Ok(Json(AuthIntegrationResponse {
         app_id,

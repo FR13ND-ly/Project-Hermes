@@ -199,6 +199,15 @@ async fn publish_bucket_credentials(
     app_id: &str,
     secret_key: &str,
 ) {
+    // Publish the storage API endpoint once per project (same for every bucket), so
+    // apps know WHERE to upload. Keyed by project (source_id=project_id) so multiple
+    // buckets don't create duplicate HERMES_STORAGE_URL entries.
+    let storage_url = std::env::var("HERMES_STORAGE_URL").unwrap_or_else(|_|
+        "http://hermes-backend.hermes-system.svc.cluster.local/api/v1/storage".to_string());
+    let _ = crate::utils::app_env::publish_project_env(
+        pool, ws_id, project_id, "HERMES_STORAGE_URL", &storage_url, false, "storage_endpoint", project_id,
+    ).await;
+
     // If this bucket already published its credentials, refresh the VALUES in place
     // (identity = the owning bucket, not the key) so the published key NAMES never
     // drift across create/rotate/reconcile — the APP_ID row is the non-secret one,
