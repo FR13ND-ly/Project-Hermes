@@ -61,6 +61,12 @@ spec:
               mountPath: /var/www/hermes
             - name: backups
               mountPath: /var/lib/hermes/backups
+            # App persistent volumes are hostPath PVs on the node under this root.
+            # Mount the SAME node directory into the control plane so the volume
+            # browser (volume_controller std::fs reads) sees the files apps write —
+            # without it the backend reads its own empty pod path and shows nothing.
+            - name: app-volumes
+              mountPath: /var/lib/hermes/volumes
           readinessProbe:
             httpGet:
               path: /health
@@ -84,6 +90,13 @@ spec:
         - name: backups
           persistentVolumeClaim:
             claimName: hermes-backups
+        # Node directory that backs every app's hostPath PV (see builder.rs:
+        # /var/lib/hermes/volumes/<id>). Shared with the control plane so it can
+        # browse/upload/download volume files.
+        - name: app-volumes
+          hostPath:
+            path: /var/lib/hermes/volumes
+            type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: Service

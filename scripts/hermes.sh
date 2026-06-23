@@ -23,17 +23,35 @@ NS="hermes-system"
 REGISTRY_HOST="registry.kube-system.svc.cluster.local:80"
 KUBECTL="k3s kubectl"
 
-CERT_EMAIL="${CERT_EMAIL:-admin@example.com}"
-DASHBOARD_HOST="${DASHBOARD_HOST:-dashboard.hermes.local}"
-HERMES_BASE_DOMAIN="${HERMES_BASE_DOMAIN:-hermes.local}"
+# Saved install config (so `update` re-applies manifests with the same host/domain/IP
+# instead of resetting them to defaults). Precedence: explicit env > saved > default.
+CONF_FILE="${HERMES_CONF:-/etc/hermes/hermes.conf}"
+[ -f "$CONF_FILE" ] && . "$CONF_FILE" 2>/dev/null || true
+
+CERT_EMAIL="${CERT_EMAIL:-${HERMES_SAVED_CERT_EMAIL:-admin@example.com}}"
+DASHBOARD_HOST="${DASHBOARD_HOST:-${HERMES_SAVED_DASHBOARD_HOST:-dashboard.hermes.local}}"
+HERMES_BASE_DOMAIN="${HERMES_BASE_DOMAIN:-${HERMES_SAVED_HERMES_BASE_DOMAIN:-hermes.local}}"
 # IP that custom app/serverless domains resolve to. Empty = auto-detect the node IP.
-HERMES_INGRESS_IP="${HERMES_INGRESS_IP:-}"
+HERMES_INGRESS_IP="${HERMES_INGRESS_IP:-${HERMES_SAVED_HERMES_INGRESS_IP:-}}"
 
 c()  { printf '\033[1;34m[hermes]\033[0m %s\n' "$*"; }
 ok() { printf '\033[1;32m[ ok ]\033[0m %s\n' "$*"; }
 die(){ printf '\033[1;31m[fail]\033[0m %s\n' "$*" >&2; exit 1; }
 
 require_root() { [ "$(id -u)" -eq 0 ] || die "Run as root (sudo)."; }
+
+# Persist the resolved install config so `update` can re-apply manifests with the
+# same values (host/domain/ingress IP) instead of falling back to defaults.
+save_config() {
+  mkdir -p "$(dirname "$CONF_FILE")"
+  cat > "$CONF_FILE" <<EOF
+HERMES_SAVED_CERT_EMAIL='$CERT_EMAIL'
+HERMES_SAVED_DASHBOARD_HOST='$DASHBOARD_HOST'
+HERMES_SAVED_HERMES_BASE_DOMAIN='$HERMES_BASE_DOMAIN'
+HERMES_SAVED_HERMES_INGRESS_IP='$HERMES_INGRESS_IP'
+EOF
+  ok "Config saved to $CONF_FILE (used by future updates)."
+}
 
 # Prompt for a value, showing a default; Enter keeps the default. Echoes the choice.
 ask() {
@@ -230,6 +248,7 @@ apply_stack() {
 cmd_install() {
   require_root
   collect_config
+  save_config
   install_system_deps
   install_k3s
   setup_registry
@@ -247,6 +266,10 @@ cmd_update() {
   c "Pulling latest code..."
   git -C "$ROOT_DIR" pull --ff-only
   build_and_import_images
+  # Re-apply manifests so spec changes (new volume mounts, env, probes) take effect,
+  # then force a rollout so the freshly imported :latest images are picked up. Uses
+  # the saved install config so host/domain/ingress IP aren't reset.
+  apply_stack
   c "Rolling out new images (migrations run on backend boot)..."
   $KUBECTL -n "$NS" rollout restart deploy/hermes-backend deploy/hermes-frontend
   $KUBECTL -n "$NS" rollout status deploy/hermes-backend --timeout=180s
