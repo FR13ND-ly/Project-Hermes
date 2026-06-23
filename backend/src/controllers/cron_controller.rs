@@ -12,13 +12,79 @@ use chrono::Utc;
 use crate::app_state::AppState;
 use crate::models::cron_model::{CronJob, CronStatus, CronJobLog};
 use crate::models::database_model::DbType;
-use crate::dtos::cron_dto::{CreateCronJobRequest, CronJobResponse, UpdateCronJobRequest, ProjectCronJobResponse};
+use crate::dtos::cron_dto::{CreateCronJobRequest, CronJobResponse, UpdateCronJobRequest, ProjectCronJobResponse, CronEnvResponse, CronEnvVar};
+use crate::dtos::env_variable_dto::EnvVarInput;
 use crate::middlewares::auth_middleware::AuthenticatedUser;
 use crate::utils::error::AppError;
+use crate::utils::crypto;
 use crate::utils::pagination::{PaginationParams, Paginated};
 
 /// Full column list for `cron_jobs` selects (keeps query_as in sync with the model).
 const CRON_COLS: &str = "id, workspace_id, project_id, app_id, target_type, target_id, is_backup, name, schedule, command, status, next_run_at, created_at, updated_at";
+
+/// Replace a cron's custom env vars wholesale (delete-then-insert). Keys are
+/// normalized like app creation (uppercase, spaces→`_`); empty keys are skipped.
+async fn replace_cron_custom_env(
+    pool: &sqlx::PgPool,
+    ws_id: Uuid,
+    job_id: Uuid,
+    vars: &[EnvVarInput],
+) -> Result<(), AppError> {
+    sqlx::query!("DELETE FROM cron_env_variables WHERE cron_job_id = $1", job_id)
+        .execute(pool)
+        .await?;
+    for var in vars {
+        let key = var.key.trim().to_uppercase().replace(' ', "_");
+        if key.is_empty() {
+            continue;
+        }
+        let is_secret = var.is_secret.unwrap_or(true);
+        let (enc, nonce) = crypto::encrypt_env_value(&var.value)?;
+        sqlx::query!(
+            "INSERT INTO cron_env_variables (id, workspace_id, cron_job_id, key, encrypted_value, nonce, is_secret)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             ON CONFLICT (cron_job_id, key)
+             DO UPDATE SET encrypted_value = $5, nonce = $6, is_secret = $7, updated_at = now()",
+            Uuid::new_v4(), ws_id, job_id, key, enc, nonce, is_secret
+        )
+        .execute(pool)
+        .await?;
+    }
+    Ok(())
+}
+
+/// Replace a cron's project-pool links wholesale. Each id is validated to belong to
+/// the cron's project before linking.
+async fn replace_cron_links(
+    pool: &sqlx::PgPool,
+    job_id: Uuid,
+    project_id: Uuid,
+    ids: &[Uuid],
+) -> Result<(), AppError> {
+    sqlx::query!("DELETE FROM cron_env_links WHERE cron_job_id = $1", job_id)
+        .execute(pool)
+        .await?;
+    for id in ids {
+        let belongs = sqlx::query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM project_env_variables WHERE id = $1 AND project_id = $2)",
+            id, project_id
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(false);
+        if !belongs {
+            continue;
+        }
+        sqlx::query!(
+            "INSERT INTO cron_env_links (cron_job_id, project_env_id) VALUES ($1, $2)
+             ON CONFLICT DO NOTHING",
+            job_id, id
+        )
+        .execute(pool)
+        .await?;
+    }
+    Ok(())
+}
 
 fn normalize_schedule(raw: &str) -> String {
     if raw.split_whitespace().count() == 5 {
@@ -142,6 +208,14 @@ pub async fn create_cron_job(
     )
     .execute(&state.pool)
     .await?;
+
+    // Persist the cron's env: custom vars + project-pool links (mirrors app creation).
+    if let Some(vars) = &payload.env_variables {
+        replace_cron_custom_env(&state.pool, ws_id, id, vars).await?;
+    }
+    if let Some(ids) = &payload.linked_project_env_ids {
+        replace_cron_links(&state.pool, id, payload.project_id, ids).await?;
+    }
 
     if let Ok(job) = sqlx::query_as::<_, CronJob>(&format!("SELECT {CRON_COLS} FROM cron_jobs WHERE id = $1"))
         .bind(id)
@@ -444,6 +518,14 @@ pub async fn update_cron_job(
     .execute(&state.pool)
     .await?;
 
+    // Env edits are replace-all: only touched when the field is present in the payload.
+    if let Some(vars) = &payload.env_variables {
+        replace_cron_custom_env(&state.pool, ws_id, current_job.id, vars).await?;
+    }
+    if let Some(ids) = &payload.linked_project_env_ids {
+        replace_cron_links(&state.pool, current_job.id, current_job.project_id, ids).await?;
+    }
+
     if let Ok(job) = sqlx::query_as::<_, CronJob>(&format!("SELECT {CRON_COLS} FROM cron_jobs WHERE id = $1"))
         .bind(current_job.id)
         .fetch_one(&state.pool)
@@ -465,4 +547,56 @@ pub async fn update_cron_job(
         command: current_job.command,
         status: current_job.status,
     }))
+}
+
+/// GET /cron/:job_id/env — the cron's configured env: its custom vars (value
+/// omitted for secrets) + the ids of the project-pool vars it links. Used to
+/// prefill the edit form.
+pub async fn get_cron_env(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path(job_id): Path<Uuid>,
+) -> Result<Json<CronEnvResponse>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let exists = sqlx::query_scalar!(
+        "SELECT EXISTS(SELECT 1 FROM cron_jobs WHERE id = $1 AND workspace_id = $2)",
+        job_id, ws_id
+    )
+    .fetch_one(&state.pool)
+    .await?
+    .unwrap_or(false);
+    if !exists {
+        return Err(AppError::NotFound("Cron job not found.".to_string()));
+    }
+
+    let rows = sqlx::query!(
+        "SELECT id, key, encrypted_value, nonce, is_secret FROM cron_env_variables WHERE cron_job_id = $1 ORDER BY key ASC",
+        job_id
+    )
+    .fetch_all(&state.pool)
+    .await?;
+
+    let variables = rows
+        .into_iter()
+        .map(|r| {
+            let value = if !r.is_secret {
+                crypto::decrypt_env_value(&r.encrypted_value, &r.nonce).ok()
+            } else {
+                None
+            };
+            CronEnvVar { id: r.id, key: r.key, value, is_secret: r.is_secret }
+        })
+        .collect();
+
+    let linked_project_env_ids = sqlx::query_scalar!(
+        "SELECT project_env_id FROM cron_env_links WHERE cron_job_id = $1",
+        job_id
+    )
+    .fetch_all(&state.pool)
+    .await?;
+
+    Ok(Json(CronEnvResponse { variables, linked_project_env_ids }))
 }

@@ -233,10 +233,87 @@
                 Comanda va fi rulată în interiorul containerului cu imaginea stabilă a aplicației selectate.
               </p>
             </div>
+
+            <!-- Environment Variables (optional, injected into the cron run) -->
+            <div class="pt-4 border-t border-zinc-900 space-y-3">
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <h4 class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-mono">Variabile de Mediu</h4>
+                  <p class="text-[10px] text-zinc-600 font-sans">Opțional · injectate în container la rularea jobului</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    (click)="openCreateEnvModal()"
+                    [disabled]="creatingCron()"
+                    class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-semibold transition-colors cursor-pointer"
+                  >Din Proiect@if (selectedProjectEnvIds().length > 0) {<span class="ml-1 text-emerald-400">· {{ selectedProjectEnvIds().length }}</span>}</button>
+                  <button
+                    type="button"
+                    (click)="addEnvRow()"
+                    [disabled]="creatingCron()"
+                    class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-semibold transition-colors cursor-pointer"
+                  >+ Adaugă Variabilă</button>
+                </div>
+              </div>
+
+              @if (selectedProjectEnvIds().length > 0) {
+                <p class="text-[10px] text-zinc-500 font-sans">
+                  <span class="text-emerald-400 font-semibold">{{ selectedProjectEnvIds().length }}</span> variabile conectate din pool-ul proiectului (referință vie).
+                </p>
+              }
+
+              @for (row of newCronEnvRows(); track $index) {
+                <div class="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="CHEIE"
+                    [ngModel]="row.key"
+                    (ngModelChange)="updateEnvRow($index, 'key', $event)"
+                    [disabled]="creatingCron()"
+                    class="flex-1 px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors uppercase font-mono font-bold"
+                  />
+                  <input
+                    type="text"
+                    placeholder="valoare"
+                    [ngModel]="row.value"
+                    (ngModelChange)="updateEnvRow($index, 'value', $event)"
+                    [disabled]="creatingCron()"
+                    class="flex-1 px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  />
+                  <button
+                    type="button"
+                    (click)="toggleEnvRowSecret($index)"
+                    [disabled]="creatingCron()"
+                    class="px-2 py-2 rounded border text-[9px] font-bold uppercase transition-colors cursor-pointer shrink-0"
+                    [class]="row.isSecret ? 'bg-zinc-900 border-zinc-700 text-zinc-300' : 'bg-zinc-950 border-zinc-850 text-zinc-600'"
+                    [title]="row.isSecret ? 'Secret (criptat)' : 'Plaintext'"
+                  >{{ row.isSecret ? 'Secret' : 'Plain' }}</button>
+                  <button
+                    type="button"
+                    (click)="removeEnvRow($index)"
+                    [disabled]="creatingCron()"
+                    class="p-2 rounded text-zinc-500 hover:text-red-400 hover:bg-red-950/20 transition-colors cursor-pointer shrink-0"
+                    title="Elimină"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              }
+            </div>
           </div>
 
+          <app-env-link-modal
+            [(open)]="showCreateEnvModal"
+            title="Conectează variabile la cron"
+            [vars]="projectEnvForModal()"
+            (toggle)="toggleCreateEnvSelection($event)"
+          />
+
           <div class="flex justify-end gap-2 pt-3 border-t border-zinc-900">
-            <button 
+            <button
               (click)="showCreateModal.set(false)"
               [disabled]="creatingCron()"
               class="px-3 py-1.5 rounded border border-zinc-850 hover:bg-zinc-900 text-zinc-450 hover:text-white text-xs font-semibold cursor-pointer transition-colors"

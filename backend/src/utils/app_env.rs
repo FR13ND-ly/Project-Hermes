@@ -156,6 +156,46 @@ pub async fn resolve_instance_env(pool: &PgPool, instance_id: Uuid) -> Vec<(Stri
     finalize(map)
 }
 
+/// Full effective env for a cron job: project-pool vars it links merged with the
+/// cron's own custom vars, the cron's own value winning on a key conflict. Mirrors
+/// `resolve_instance_env` but keyed on `cron_job_id`.
+pub async fn resolve_cron_env(pool: &PgPool, cron_job_id: Uuid) -> Vec<(String, String)> {
+    let mut map: HashMap<String, String> = HashMap::new();
+
+    if let Ok(rows) = sqlx::query!(
+        "SELECT pev.key, pev.encrypted_value, pev.nonce
+         FROM cron_env_links cel
+         JOIN project_env_variables pev ON pev.id = cel.project_env_id
+         WHERE cel.cron_job_id = $1",
+        cron_job_id
+    )
+    .fetch_all(pool)
+    .await
+    {
+        for r in rows {
+            if let Ok(v) = crypto::decrypt_env_value(&r.encrypted_value, &r.nonce) {
+                map.insert(r.key, v);
+            }
+        }
+    }
+
+    if let Ok(rows) = sqlx::query!(
+        "SELECT key, encrypted_value, nonce FROM cron_env_variables WHERE cron_job_id = $1",
+        cron_job_id
+    )
+    .fetch_all(pool)
+    .await
+    {
+        for r in rows {
+            if let Ok(v) = crypto::decrypt_env_value(&r.encrypted_value, &r.nonce) {
+                map.insert(r.key, v);
+            }
+        }
+    }
+
+    finalize(map)
+}
+
 /// Non-secret subset of the effective env, for baking into the build image as
 /// `ENV` (so build tooling like Vite/Next can read it). Secrets are excluded.
 pub async fn resolve_instance_build_env(pool: &PgPool, instance_id: Uuid) -> Vec<(String, String)> {

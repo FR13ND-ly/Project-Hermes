@@ -431,8 +431,15 @@ export class ProjectService {
     name: string;
     schedule: string;
     command: string;
+    envVariables?: EnvVarInput[];
+    linkedProjectEnvIds?: string[];
   }): Observable<CronJob> {
     return this.api.post<CronJob>('/cron', payload);
+  }
+
+  /** The env configured on a cron: its custom vars + linked project-pool var ids. */
+  getCronEnv(jobId: string): Observable<{ variables: { id: string; key: string; value?: string; isSecret: boolean }[]; linkedProjectEnvIds: string[] }> {
+    return this.api.get<any>(`/cron/${jobId}/env`);
   }
 
   deleteCronJob(jobId: string): Observable<any> {
@@ -445,6 +452,8 @@ export class ProjectService {
     command?: string;
     appId?: string;
     status?: 'active' | 'paused' | 'failed';
+    envVariables?: EnvVarInput[];
+    linkedProjectEnvIds?: string[];
   }): Observable<CronJob> {
     return this.api.patch<CronJob>(`/cron/${jobId}`, payload);
   }

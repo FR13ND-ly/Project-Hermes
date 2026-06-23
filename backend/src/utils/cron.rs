@@ -248,9 +248,20 @@ async fn execute_cron_job(
                 }
             }
         }
-        "app" => run_app_cron(&pool, job_id, workspace_id, target_id, command, started_at).await,
-        "database" => run_database_cron(&pool, job_id, workspace_id, target_id, command, started_at).await,
-        "storage" => run_storage_cron(&pool, job_id, workspace_id, target_id, command, started_at).await,
+        // The cron's own env (custom vars + linked project-pool vars) is merged into
+        // every non-backup run, overriding the target's base/connection vars on a key clash.
+        "app" => {
+            let extra = crate::utils::app_env::resolve_cron_env(&pool, job_id).await;
+            run_app_cron(&pool, job_id, workspace_id, target_id, command, extra, started_at).await
+        }
+        "database" => {
+            let extra = crate::utils::app_env::resolve_cron_env(&pool, job_id).await;
+            run_database_cron(&pool, job_id, workspace_id, target_id, command, extra, started_at).await
+        }
+        "storage" => {
+            let extra = crate::utils::app_env::resolve_cron_env(&pool, job_id).await;
+            run_storage_cron(&pool, job_id, workspace_id, target_id, command, extra, started_at).await
+        }
         other => {
             log_cron(&pool, job_id, workspace_id, 1, &format!("Tip de țintă necunoscut: {}", other), started_at).await;
             Err(())
@@ -258,8 +269,20 @@ async fn execute_cron_job(
     }
 }
 
+/// Merge a base env vec with the cron's own env, the cron's value winning on a key
+/// conflict. Dedupes by key (K8s rejects a container with duplicate env names).
+fn merge_env(base: Vec<(String, String)>, extra: Vec<(String, String)>) -> Vec<(String, String)> {
+    let mut map: std::collections::HashMap<String, String> = base.into_iter().collect();
+    for (k, v) in extra {
+        map.insert(k, v);
+    }
+    let mut out: Vec<(String, String)> = map.into_iter().collect();
+    out.sort_by(|a, b| a.0.cmp(&b.0));
+    out
+}
+
 /// App cron: runs the command in the app's production image with its effective env.
-async fn run_app_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, app_id: Uuid, command: String, started_at: chrono::DateTime<Utc>) -> Result<(), ()> {
+async fn run_app_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, app_id: Uuid, command: String, extra_env: Vec<(String, String)>, started_at: chrono::DateTime<Utc>) -> Result<(), ()> {
     let inst = sqlx::query!(
         "SELECT id FROM app_instances WHERE app_id = $1 AND instance_type = 'production'",
         app_id
@@ -276,13 +299,13 @@ async fn run_app_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, app_id: U
     };
 
     let image = crate::utils::builder::resolve_instance_image_tag(pool, inst_id).await;
-    let env = crate::utils::app_env::resolve_instance_env(pool, inst_id).await;
+    let env = merge_env(crate::utils::app_env::resolve_instance_env(pool, inst_id).await, extra_env);
     let namespace = format!("hermes-ws-{}", workspace_id);
     run_k8s_job(pool, job_id, workspace_id, namespace, image, env, command, started_at).await
 }
 
 /// Database cron (non-backup): runs on the DB image with connection vars injected.
-async fn run_database_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, db_id: Uuid, command: String, started_at: chrono::DateTime<Utc>) -> Result<(), ()> {
+async fn run_database_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, db_id: Uuid, command: String, extra_env: Vec<(String, String)>, started_at: chrono::DateTime<Utc>) -> Result<(), ()> {
     let db = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1")
         .bind(db_id)
         .fetch_optional(pool)
@@ -315,21 +338,21 @@ async fn run_database_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, db_i
         DbType::Mongodb => format!("mongodb://{}:{}@{}:{}", db.db_user, password, db.container_name, db.internal_port),
     };
 
-    let env = vec![
+    let env = merge_env(vec![
         ("DATABASE_URL".to_string(), url),
         ("DB_HOST".to_string(), db.container_name.clone()),
         ("DB_PORT".to_string(), db.internal_port.to_string()),
         ("DB_USER".to_string(), db.db_user.clone()),
         ("DB_PASSWORD".to_string(), password),
         ("DB_NAME".to_string(), db.db_name.clone()),
-    ];
+    ], extra_env);
     let namespace = format!("hermes-ws-{}", db.workspace_id);
     run_k8s_job(pool, job_id, workspace_id, namespace, image, env, command, started_at).await
 }
 
 /// Storage cron: runs on a small base image (curl) with the bucket URL + a freshly
 /// minted access token injected, so the command can hit the bucket's API.
-async fn run_storage_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, bucket_id: Uuid, command: String, started_at: chrono::DateTime<Utc>) -> Result<(), ()> {
+async fn run_storage_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, bucket_id: Uuid, command: String, extra_env: Vec<(String, String)>, started_at: chrono::DateTime<Utc>) -> Result<(), ()> {
     let bucket = sqlx::query!(
         "SELECT workspace_id, slug, created_by FROM storage_buckets WHERE id = $1",
         bucket_id
@@ -366,11 +389,11 @@ async fn run_storage_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, bucke
     )
     .unwrap_or_default();
 
-    let env = vec![
+    let env = merge_env(vec![
         ("BUCKET_URL".to_string(), bucket_url),
         ("BUCKET_SLUG".to_string(), bucket.slug.clone()),
         ("BUCKET_TOKEN".to_string(), token),
-    ];
+    ], extra_env);
     let namespace = format!("hermes-ws-{}", bucket.workspace_id);
     run_k8s_job(pool, job_id, workspace_id, namespace, "curlimages/curl:latest".to_string(), env, command, started_at).await
 }

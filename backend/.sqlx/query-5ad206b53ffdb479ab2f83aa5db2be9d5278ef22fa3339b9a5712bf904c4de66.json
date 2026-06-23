@@ -1,22 +1,22 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id FROM app_users WHERE email = $1",
+  "query": "SELECT project_env_id FROM cron_env_links WHERE cron_job_id = $1",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "project_env_id",
         "type_info": "Uuid"
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Uuid"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "fe9395df5322fe5a673d943c7a619f9e2506dac5cffd492e04d59630acd99dac"
+  "hash": "5ad206b53ffdb479ab2f83aa5db2be9d5278ef22fa3339b9a5712bf904c4de66"
 }

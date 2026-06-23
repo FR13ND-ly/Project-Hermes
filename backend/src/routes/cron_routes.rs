@@ -29,6 +29,11 @@ pub fn routes(state: AppState) -> Router {
         .layer(from_fn_with_state(state.clone(), check_permission))
         .layer(Extension(RequiredPermission("app:read")));
 
+    let env_router = Router::new()
+        .route("/cron/:job_id/env", get(cron_controller::get_cron_env))
+        .layer(from_fn_with_state(state.clone(), check_permission))
+        .layer(Extension(RequiredPermission("app:read")));
+
     let list_router = Router::new()
         .route("/apps/:app_id/cron", get(cron_controller::list_app_cron_jobs))
         .layer(from_fn_with_state(state.clone(), check_permission))
@@ -44,6 +49,7 @@ pub fn routes(state: AppState) -> Router {
         .merge(delete_router)
         .merge(update_router)
         .merge(logs_router)
+        .merge(env_router)
         .merge(list_router)
         .merge(project_list_router)
         .with_state(state)

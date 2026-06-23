@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use crate::models::cron_model::CronStatus;
+use crate::dtos::env_variable_dto::EnvVarInput;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -19,6 +20,13 @@ pub struct CreateCronJobRequest {
     pub name: String,
     pub schedule: String,
     pub command: String,
+    /// Custom env vars for the cron run (a key already in the project pool is linked
+    /// instead of duplicated, mirroring app creation).
+    #[serde(default)]
+    pub env_variables: Option<Vec<EnvVarInput>>,
+    /// Project-pool env vars to link this cron to.
+    #[serde(default)]
+    pub linked_project_env_ids: Option<Vec<Uuid>>,
 }
 
 fn default_target_type() -> String {
@@ -67,4 +75,30 @@ pub struct UpdateCronJobRequest {
     pub command: Option<String>,
     pub app_id: Option<Uuid>,
     pub status: Option<CronStatus>,
+    /// When present, replaces the cron's custom env vars wholesale (replace-all,
+    /// like the instance bulk-env editor). Omit to leave env untouched.
+    #[serde(default)]
+    pub env_variables: Option<Vec<EnvVarInput>>,
+    /// When present, replaces the cron's project-pool links wholesale.
+    #[serde(default)]
+    pub linked_project_env_ids: Option<Vec<Uuid>>,
+}
+
+/// A single custom cron env var (value omitted for secrets).
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CronEnvVar {
+    pub id: Uuid,
+    pub key: String,
+    pub value: Option<String>,
+    pub is_secret: bool,
+}
+
+/// The current env configured on a cron: its custom vars + the ids of the
+/// project-pool vars it links (used to prefill the edit form).
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CronEnvResponse {
+    pub variables: Vec<CronEnvVar>,
+    pub linked_project_env_ids: Vec<Uuid>,
 }

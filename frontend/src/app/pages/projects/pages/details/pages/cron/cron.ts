@@ -2,7 +2,7 @@ import { Component, inject, signal, OnInit, OnDestroy, effect, computed } from '
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Details } from '../../details';
-import { ProjectService, CronJob, CronJobLog } from '../../../../../../core/services/project.service';
+import { ProjectService, CronJob, CronJobLog, EnvVarInput, ProjectEnvResponse } from '../../../../../../core/services/project.service';
 import { DatabaseService } from '../../../../../../core/services/database.service';
 import { StorageService } from '../../../../../../core/services/storage.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
@@ -10,6 +10,7 @@ import { ConfirmService } from '../../../../../../core/services/confirm.service'
 import { WebSocketService } from '../../../../../../core/services/websocket.service';
 import { Subscription } from 'rxjs';
 import { Pagination } from '../../../../../../shared/components/pagination/pagination';
+import { EnvLinkModal } from '../../../../../../shared/components/env-link-modal/env-link-modal';
 import { DEFAULT_PAGE_SIZE } from '../../../../../../core/models/pagination';
 
 type CronTargetType = 'app' | 'database' | 'storage';
@@ -17,7 +18,7 @@ type CronTargetType = 'app' | 'database' | 'storage';
 @Component({
   selector: 'app-project-cron',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, Pagination],
+  imports: [CommonModule, FormsModule, DatePipe, Pagination, EnvLinkModal],
   templateUrl: './cron.html',
 })
 export class CronComponent implements OnInit, OnDestroy {
@@ -69,6 +70,56 @@ export class CronComponent implements OnInit, OnDestroy {
   readonly newCronSchedule = signal('*/5 * * * *');
   readonly newCronCommand = signal('echo "Hello World"');
   readonly selectedAppId = signal('');
+
+  // --- Env for the cron run: custom rows + project-pool links (mirrors app creation) ---
+  readonly newCronEnvRows = signal<EnvVarInput[]>([]);
+  readonly projectEnvPool = signal<ProjectEnvResponse[]>([]);
+  readonly selectedProjectEnvIds = signal<string[]>([]);
+  readonly showCreateEnvModal = signal(false);
+
+  // Pool vars decorated with a `linked` flag reflecting the local selection, so the
+  // shared modal renders them with the same toggle UI as app creation.
+  readonly projectEnvForModal = computed<ProjectEnvResponse[]>(() => {
+    const selected = this.selectedProjectEnvIds();
+    return this.projectEnvPool().map(v => ({ ...v, linked: selected.includes(v.id) }));
+  });
+
+  addEnvRow(): void {
+    this.newCronEnvRows.update(rows => [...rows, { key: '', value: '', isSecret: true }]);
+  }
+
+  removeEnvRow(index: number): void {
+    this.newCronEnvRows.update(rows => rows.filter((_, i) => i !== index));
+  }
+
+  updateEnvRow(index: number, field: 'key' | 'value', value: string): void {
+    this.newCronEnvRows.update(rows =>
+      rows.map((row, i) => (i === index ? { ...row, [field]: value } : row))
+    );
+  }
+
+  toggleEnvRowSecret(index: number): void {
+    this.newCronEnvRows.update(rows =>
+      rows.map((row, i) => (i === index ? { ...row, isSecret: !row.isSecret } : row))
+    );
+  }
+
+  openCreateEnvModal(): void {
+    const projectId = this.parent.projectId();
+    if (projectId) {
+      this.projectService.listProjectEnv(projectId).subscribe({
+        next: (res) => this.projectEnvPool.set(res || []),
+        error: () => this.projectEnvPool.set([])
+      });
+    }
+    this.showCreateEnvModal.set(true);
+  }
+
+  toggleCreateEnvSelection(env: ProjectEnvResponse): void {
+    this.selectedProjectEnvIds.update(ids =>
+      ids.includes(env.id) ? ids.filter(id => id !== env.id) : [...ids, env.id]
+    );
+  }
 
   // Target selection (app / database / storage)
   readonly newCronTargetType = signal<CronTargetType>('app');
@@ -178,6 +229,9 @@ export class CronComponent implements OnInit, OnDestroy {
     this.newCronName.set('');
     this.newCronSchedule.set('*/5 * * * *');
     this.newCronCommand.set('echo "Hello World"');
+    this.newCronEnvRows.set([]);
+    this.selectedProjectEnvIds.set([]);
+    this.projectEnvPool.set([]);
     this.showCreateModal.set(true);
   }
 
@@ -200,6 +254,10 @@ export class CronComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const envVariables = this.newCronEnvRows()
+      .map(row => ({ key: row.key.trim(), value: row.value, isSecret: row.isSecret }))
+      .filter(row => row.key.length > 0);
+
     this.creatingCron.set(true);
     this.projectService.createCronJob({
       projectId: projId,
@@ -207,7 +265,9 @@ export class CronComponent implements OnInit, OnDestroy {
       targetId,
       name,
       schedule,
-      command
+      command,
+      envVariables: envVariables.length > 0 ? envVariables : undefined,
+      linkedProjectEnvIds: this.selectedProjectEnvIds().length > 0 ? this.selectedProjectEnvIds() : undefined
     }).subscribe({
       next: () => {
         this.creatingCron.set(false);
