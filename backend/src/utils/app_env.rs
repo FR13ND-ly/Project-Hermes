@@ -111,12 +111,7 @@ pub async fn unpublish_project_env(pool: &PgPool, source: &str, source_id: Uuid)
     linked
 }
 
-fn finalize(mut map: HashMap<String, String>) -> Vec<(String, String)> {
-    if !map.contains_key("HERMES_PLATFORM_URL") {
-        let namespace = std::env::var("HERMES_SYSTEM_NAMESPACE").unwrap_or_else(|_| "hermes-system".to_string());
-        let internal_url = format!("http://hermes-backend.{}.svc.cluster.local", namespace);
-        map.insert("HERMES_PLATFORM_URL".to_string(), internal_url);
-    }
+fn finalize(map: HashMap<String, String>) -> Vec<(String, String)> {
     let mut out: Vec<(String, String)> = map.into_iter().collect();
     out.sort_by(|a, b| a.0.cmp(&b.0));
     out

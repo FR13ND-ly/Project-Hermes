@@ -64,6 +64,20 @@ pub async fn create_project(
     .execute(&state.pool)
     .await?;
 
+    let namespace = std::env::var("HERMES_SYSTEM_NAMESPACE").unwrap_or_else(|_| "hermes-system".to_string());
+    let internal_url = format!("http://hermes-backend.{}.svc.cluster.local", namespace);
+    let _ = crate::utils::app_env::publish_project_env(
+        &state.pool,
+        ws_id,
+        project_id,
+        "HERMES_PLATFORM_URL",
+        &internal_url,
+        false,
+        "platform",
+        project_id,
+    )
+    .await;
+
     Ok((
         StatusCode::CREATED,
         Json(ProjectResponse {
