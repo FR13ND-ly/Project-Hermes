@@ -80,7 +80,7 @@ fn volumes_of(service: &str, svc: &ComposeService) -> Vec<PlanVolume> {
 /// Build a split plan from a docker-compose file (no DB writes).
 fn plan_from_compose(yaml: &str) -> Result<ComposePlan, AppError> {
     let stack: ComposeStack = serde_yaml::from_str(yaml)
-        .map_err(|e| AppError::Validation(format!("docker-compose YAML invalid: {}", e)))?;
+        .map_err(|e| AppError::Validation(format!("Invalid docker-compose YAML: {}", e)))?;
 
     let mut apps = Vec::new();
     let mut databases = Vec::new();
@@ -180,7 +180,7 @@ pub async fn apply_compose_plan(
         let connection_url = match db_type {
             DbType::Postgres => format!("postgresql://{}:{}@{}:{}/{}", db_user, raw_password, container_name, db.internal_port, db_name),
             DbType::Mysql => format!("mysql://{}:{}@{}:{}/{}", db_user, raw_password, container_name, db.internal_port, db_name),
-            DbType::Redis => format!("redis://{}:{}", container_name, db.internal_port),
+            DbType::Redis => format!("redis://:{}@{}:{}", raw_password, container_name, db.internal_port),
             DbType::Mongodb => format!("mongodb://{}:{}@{}:{}", db_user, raw_password, container_name, db.internal_port),
         };
 
@@ -229,7 +229,7 @@ pub async fn apply_compose_plan(
             None => crate::utils::string_gen::sanitize_k8s_name(&format!("hermes-app-{}-{}", slug, branch)),
         };
         if seen_aliases.contains(&alias) {
-            return Err(AppError::Validation(format!("Numele de serviciu '{}' apare de două ori în acest stack.", alias)));
+            return Err(AppError::Validation(format!("The service name '{}' appears twice in this stack.", alias)));
         }
         seen_aliases.push(alias.clone());
         let taken = sqlx::query_scalar::<_, bool>(
@@ -240,7 +240,7 @@ pub async fn apply_compose_plan(
         .fetch_one(&state.pool)
         .await?;
         if taken {
-            return Err(AppError::Conflict(format!("Numele de serviciu '{}' e deja folosit în acest workspace. Alege altul.", alias)));
+            return Err(AppError::Conflict(format!("The service name '{}' is already used in this workspace. Choose another.", alias)));
         }
     }
 
