@@ -10,7 +10,7 @@ use std::convert::Infallible;
 use uuid::Uuid;
 use chrono::Utc;
 use serde_json::json;
-use kube::{api::{ListParams, PostParams, DeleteParams}, Api, Client};
+use kube::{api::{ListParams, PostParams, DeleteParams, Patch, PatchParams}, Api, Client};
 use k8s_openapi::api::core::v1::{ConfigMap, Pod, Service};
 use std::time::Instant;
 
@@ -1213,6 +1213,11 @@ async fn deploy_proxy_resources(
     let service_name = format!("{}-external", ksvc_name);
     let proxy_svc_name = format!("{}-proxy-svc", ksvc_name);
 
+    // Server-side apply = create-or-update, idempotent on redeploy. The old
+    // delete-then-create raced on the LoadBalancer Service: delete leaves it in
+    // Terminating (LB-cleanup finalizer) and the immediate create hit 409 AlreadyExists.
+    let apply_pp = PatchParams::apply("hermes-serverless").force();
+
     // Forward everything to the Knative service; method/route enforcement now lives
     // inside the instance's wrapper (per-route), so no method check here.
     let configmaps: Api<ConfigMap> = Api::namespaced(client.clone(), namespace);
@@ -1253,9 +1258,8 @@ http {{
         "metadata": { "name": configmap_name, "namespace": namespace },
         "data": { "nginx.conf": nginx_conf }
     })).map_err(|e| AppError::Fatal(anyhow::anyhow!("ConfigMap JSON serialization failed: {}", e)))?;
-    let _ = configmaps.delete(&configmap_name, &DeleteParams::default()).await;
-    configmaps.create(&PostParams::default(), &cm_obj).await
-        .map_err(|e| AppError::Infrastructure(format!("Failed to create proxy configmap: {}", e)))?;
+    configmaps.patch(&configmap_name, &apply_pp, &Patch::Apply(&cm_obj)).await
+        .map_err(|e| AppError::Infrastructure(format!("Failed to apply proxy configmap: {}", e)))?;
 
     let deployments: Api<k8s_openapi::api::apps::v1::Deployment> = Api::namespaced(client.clone(), namespace);
     let depl_obj: k8s_openapi::api::apps::v1::Deployment = serde_json::from_value(json!({
@@ -1278,9 +1282,8 @@ http {{
             }
         }
     })).map_err(|e| AppError::Fatal(anyhow::anyhow!("Deployment JSON serialization failed: {}", e)))?;
-    let _ = deployments.delete(&deployment_name, &DeleteParams::default()).await;
-    deployments.create(&PostParams::default(), &depl_obj).await
-        .map_err(|e| AppError::Infrastructure(format!("Failed to create proxy deployment: {}", e)))?;
+    deployments.patch(&deployment_name, &apply_pp, &Patch::Apply(&depl_obj)).await
+        .map_err(|e| AppError::Infrastructure(format!("Failed to apply proxy deployment: {}", e)))?;
 
     let services: Api<Service> = Api::namespaced(client.clone(), namespace);
     let svc_obj: Service = serde_json::from_value(json!({
@@ -1288,18 +1291,16 @@ http {{
         "metadata": { "name": service_name, "namespace": namespace, "labels": { "app": format!("{}-proxy", ksvc_name) } },
         "spec": { "type": "LoadBalancer", "ports": [{ "name": "http", "port": external_port, "targetPort": 8080, "protocol": "TCP" }], "selector": { "app": format!("{}-proxy", ksvc_name) } }
     })).map_err(|e| AppError::Fatal(anyhow::anyhow!("Service JSON serialization failed: {}", e)))?;
-    let _ = services.delete(&service_name, &DeleteParams::default()).await;
-    services.create(&PostParams::default(), &svc_obj).await
-        .map_err(|e| AppError::Infrastructure(format!("Failed to create proxy service: {}", e)))?;
+    services.patch(&service_name, &apply_pp, &Patch::Apply(&svc_obj)).await
+        .map_err(|e| AppError::Infrastructure(format!("Failed to apply proxy service: {}", e)))?;
 
     let svc_cluster_obj: Service = serde_json::from_value(json!({
         "apiVersion": "v1", "kind": "Service",
         "metadata": { "name": proxy_svc_name, "namespace": namespace, "labels": { "app": format!("{}-proxy", ksvc_name) } },
         "spec": { "type": "ClusterIP", "ports": [{ "name": "http", "port": 80, "targetPort": 8080, "protocol": "TCP" }], "selector": { "app": format!("{}-proxy", ksvc_name) } }
     })).map_err(|e| AppError::Fatal(anyhow::anyhow!("ClusterIP Service JSON serialization failed: {}", e)))?;
-    let _ = services.delete(&proxy_svc_name, &DeleteParams::default()).await;
-    services.create(&PostParams::default(), &svc_cluster_obj).await
-        .map_err(|e| AppError::Infrastructure(format!("Failed to create proxy cluster ip service: {}", e)))?;
+    services.patch(&proxy_svc_name, &apply_pp, &Patch::Apply(&svc_cluster_obj)).await
+        .map_err(|e| AppError::Infrastructure(format!("Failed to apply proxy cluster ip service: {}", e)))?;
 
     Ok(())
 }
