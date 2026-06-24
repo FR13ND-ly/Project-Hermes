@@ -43,7 +43,7 @@ export class AdminWorkspaces implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la încărcarea workspace-urilor.');
+        this.toast.error(err.error?.message || 'Error loading workspaces.');
         this.loading.set(false);
       }
     });
@@ -61,10 +61,10 @@ export class AdminWorkspaces implements OnInit {
 
   async onDelete(ws: AdminWorkspaceStats): Promise<void> {
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Workspace',
-      message: `Sigur ștergeți workspace-ul "${ws.name}"? Se vor distruge ireversibil namespace-ul K8s, toate aplicațiile, bazele de date, stocarea și datele asociate.`,
-      confirmText: 'Șterge Definitiv',
-      cancelText: 'Anulează',
+      title: 'Delete Workspace',
+      message: `Are you sure you want to delete the workspace "${ws.name}"? This irreversibly destroys the K8s namespace, all applications, databases, storage and associated data.`,
+      confirmText: 'Delete Permanently',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
@@ -73,12 +73,12 @@ export class AdminWorkspaces implements OnInit {
     this.workspaceService.adminDeleteWorkspace(ws.id).subscribe({
       next: () => {
         this.deletingId.set(null);
-        this.toast.success(`Workspace-ul "${ws.name}" a fost șters.`);
+        this.toast.success(`Workspace "${ws.name}" has been deleted.`);
         this.workspaces.update(list => list.filter(w => w.id !== ws.id));
       },
       error: (err) => {
         this.deletingId.set(null);
-        this.toast.error(err.error?.message || 'Eroare la ștergerea workspace-ului.');
+        this.toast.error(err.error?.message || 'Error deleting the workspace.');
       }
     });
   }

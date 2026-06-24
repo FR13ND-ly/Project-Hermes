@@ -1228,8 +1228,9 @@ pub async fn create_baas_service(
                 if !key_trimmed.is_empty() {
                     let key_id = Uuid::new_v4();
                     let prefix = format!("ak_{}", crate::utils::string_gen::generate_secure_string(8));
-                    let raw_key = format!("{}.{}", prefix, crate::utils::string_gen::generate_secure_string(32));
-                    let key_hash = crate::utils::crypto::hash_password(&raw_key)?;
+                    let raw_secret = crate::utils::string_gen::generate_secure_string(32);
+                    let raw_key = format!("{}.{}", prefix, raw_secret);
+                    let key_hash = crate::utils::crypto::hash_password(&raw_secret)?;
                     sqlx::query(
                         "INSERT INTO app_api_keys (id, baas_id, name, key_hash, key_prefix, created_at, expires_at)
                          VALUES ($1, $2, $3, $4, $5, now(), null)"

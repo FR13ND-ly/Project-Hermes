@@ -30,7 +30,7 @@ export class List implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la încărcarea proiectelor.');
+        this.error.set(err.error?.message || 'Error loading projects.');
         this.loading.set(false);
       }
     });

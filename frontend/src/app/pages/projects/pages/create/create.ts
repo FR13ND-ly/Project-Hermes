@@ -33,7 +33,7 @@ export class Create implements OnInit {
 
   onCreateProject(): void {
     if (!this.projectName().trim()) {
-      this.error.set('Vă rugăm să introduceți numele proiectului.');
+      this.error.set('Please enter the project name.');
       return;
     }
 
@@ -46,7 +46,7 @@ export class Create implements OnInit {
         this.router.navigate(['/projects', res.id]);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la crearea proiectului.');
+        this.error.set(err.error?.message || 'Error creating the project.');
         this.loading.set(false);
       }
     });
