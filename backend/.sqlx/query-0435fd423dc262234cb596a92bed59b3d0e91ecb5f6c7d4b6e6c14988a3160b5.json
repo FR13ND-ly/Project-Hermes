@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE app_instances SET env_seeded = true WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0435fd423dc262234cb596a92bed59b3d0e91ecb5f6c7d4b6e6c14988a3160b5"
+}

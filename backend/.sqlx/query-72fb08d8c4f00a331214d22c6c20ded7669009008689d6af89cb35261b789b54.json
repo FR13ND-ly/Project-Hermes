@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS(SELECT 1 FROM app_env_links ael\n                               JOIN project_env_variables pev ON pev.id = ael.project_env_id\n                               WHERE ael.app_instance_id = $1 AND pev.key = $2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "72fb08d8c4f00a331214d22c6c20ded7669009008689d6af89cb35261b789b54"
+}

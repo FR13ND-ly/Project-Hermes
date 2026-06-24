@@ -1412,19 +1412,54 @@ fi"#,
         .await;
     }
 
-    // Import declared ENV defaults as non-secret vars, without overwriting any
-    // the user already configured (ON CONFLICT DO NOTHING). Capped to avoid abuse.
-    for (key, value) in detected_envs.into_iter().take(50) {
-        if let Ok((enc, nonce)) = crate::utils::crypto::encrypt_env_value(&value) {
-            let _ = sqlx::query!(
-                "INSERT INTO environment_variables (id, workspace_id, app_instance_id, key, encrypted_value, nonce, is_secret)
-                 VALUES ($1, $2, $3, $4, $5, $6, false)
-                 ON CONFLICT (app_instance_id, key) DO NOTHING",
-                Uuid::new_v4(), meta.workspace_id, instance_id, key, enc, nonce
+    // Import declared ENV defaults as non-secret vars — but ONLY on the instance's
+    // FIRST build (env_seeded flag). Re-importing on every rebuild kept re-creating
+    // local vars the user removed, or that were superseded by a linked project-pool
+    // var (e.g. a depends_on backend URL), causing duplicates. Also skip any key
+    // already LINKED from the pool so a Dockerfile default can't shadow/duplicate it.
+    let already_seeded = sqlx::query_scalar!(
+        "SELECT env_seeded FROM app_instances WHERE id = $1",
+        instance_id
+    )
+    .fetch_optional(&pool)
+    .await
+    .ok()
+    .flatten()
+    .unwrap_or(false);
+
+    if !already_seeded {
+        for (key, value) in detected_envs.into_iter().take(50) {
+            let linked = sqlx::query_scalar!(
+                "SELECT EXISTS(SELECT 1 FROM app_env_links ael
+                               JOIN project_env_variables pev ON pev.id = ael.project_env_id
+                               WHERE ael.app_instance_id = $1 AND pev.key = $2)",
+                instance_id, key
             )
-            .execute(&pool)
-            .await;
+            .fetch_one(&pool)
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or(false);
+            if linked {
+                continue;
+            }
+            if let Ok((enc, nonce)) = crate::utils::crypto::encrypt_env_value(&value) {
+                let _ = sqlx::query!(
+                    "INSERT INTO environment_variables (id, workspace_id, app_instance_id, key, encrypted_value, nonce, is_secret)
+                     VALUES ($1, $2, $3, $4, $5, $6, false)
+                     ON CONFLICT (app_instance_id, key) DO NOTHING",
+                    Uuid::new_v4(), meta.workspace_id, instance_id, key, enc, nonce
+                )
+                .execute(&pool)
+                .await;
+            }
         }
+        let _ = sqlx::query!(
+            "UPDATE app_instances SET env_seeded = true WHERE id = $1",
+            instance_id
+        )
+        .execute(&pool)
+        .await;
     }
 
     // Import declared VOLUME mappings as persistent volume records,
