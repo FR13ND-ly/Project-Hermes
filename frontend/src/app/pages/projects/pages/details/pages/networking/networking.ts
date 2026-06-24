@@ -123,8 +123,14 @@ export class Networking implements OnInit, OnDestroy {
     const functions = this.serverlessFunctions();
     const routes: UnifiedRoute[] = [];
 
+    // fqdns that already have an explicit `domains` row (rendered in step 3 below).
+    // Skip the synthesized "Automat (Ingress)" entry for those so the same fqdn isn't
+    // listed twice — for serverless the assigned domain IS the attached custom domain.
+    const attachedFqdns = new Set(domains.map(d => d.fqdn));
+
     // 1. Ingress automatic routes (app instances)
     insts.forEach(inst => {
+      if (inst.assignedDomain && attachedFqdns.has(inst.assignedDomain)) return;
       routes.push({
         id: inst.id,
         fqdn: inst.assignedDomain || '',
@@ -140,7 +146,7 @@ export class Networking implements OnInit, OnDestroy {
 
     // 2. Serverless function routes (those with assigned domain)
     functions.forEach(fn => {
-      if (fn.assignedDomain && fn.status === 'active') {
+      if (fn.assignedDomain && fn.status === 'active' && !attachedFqdns.has(fn.assignedDomain)) {
         routes.push({
           id: fn.id,
           fqdn: fn.assignedDomain,
