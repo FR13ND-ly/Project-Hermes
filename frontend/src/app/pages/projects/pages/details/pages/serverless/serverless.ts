@@ -153,7 +153,9 @@ export class ServerlessComponent implements OnInit, OnDestroy {
   onPageChange(p: number): void { this.page.set(p); this.loadInstances(); }
 
   loadDomains(): void {
-    this.domainService.listDomains(1, 1000).subscribe({
+    // Scope to this project so other projects' domains don't leak in here.
+    const projectId = this.parent.projectId();
+    this.domainService.listDomains(1, 1000, projectId || undefined).subscribe({
       next: (res) => this.domains.set(res?.items || []),
       error: () => {}
     });

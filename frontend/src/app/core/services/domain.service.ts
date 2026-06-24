@@ -41,8 +41,12 @@ export interface AddDomainRequest {
 export class DomainService {
   private readonly api = inject(ApiService);
 
-  listDomains(page = 1, pageSize = DEFAULT_PAGE_SIZE): Observable<Paginated<Domain>> {
-    return this.api.get<Paginated<Domain>>(`/domains?page=${page}&pageSize=${pageSize}`);
+  // `projectId` scopes the list to one project's routes (app/serverless/db targets);
+  // omit it for the workspace-wide list.
+  listDomains(page = 1, pageSize = DEFAULT_PAGE_SIZE, projectId?: string): Observable<Paginated<Domain>> {
+    let url = `/domains?page=${page}&pageSize=${pageSize}`;
+    if (projectId) url += `&projectId=${encodeURIComponent(projectId)}`;
+    return this.api.get<Paginated<Domain>>(url);
   }
 
   addDomain(payload: AddDomainRequest): Observable<Domain> {

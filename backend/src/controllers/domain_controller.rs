@@ -195,30 +195,64 @@ fn to_response(d: Domain, target_name: Option<String>) -> DomainResponse {
     }
 }
 
+/// Query for `GET /domains`: pagination + an optional `projectId` scope. When
+/// `projectId` is set, only domains whose target (app/serverless/database) belongs to
+/// that project are returned — `custom` (project-less) domains are excluded. Omitting
+/// it keeps the workspace-wide listing. (No serde flatten — serde_urlencoded, which
+/// Axum's Query uses, doesn't support it.)
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListDomainsQuery {
+    pub page: Option<i64>,
+    pub page_size: Option<i64>,
+    pub project_id: Option<Uuid>,
+}
+
 pub async fn list_domains(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
-    Query(pagination): Query<PaginationParams>,
+    Query(q): Query<ListDomainsQuery>,
 ) -> Result<Json<Paginated<DomainResponse>>, AppError> {
     let ws_id = claims.current_workspace_id.ok_or_else(|| {
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
-    let (page, page_size, offset) = pagination.resolve();
+    let (page, page_size, offset) = PaginationParams { page: q.page, page_size: q.page_size }.resolve();
+    let project_id = q.project_id;
 
-    let total: i64 = sqlx::query_scalar!("SELECT COUNT(*) FROM domains WHERE workspace_id = $1", ws_id)
+    // Optional project scope: a domain matches when its target resource lives in the
+    // project. `$N::uuid IS NULL` short-circuits to the full workspace list when unset.
+    const PROJECT_FILTER: &str = "
+        AND ($PID::uuid IS NULL
+          OR (target_type = 'app' AND EXISTS (
+                SELECT 1 FROM app_instances ai JOIN apps a ON ai.app_id = a.id
+                WHERE ai.id = domains.target_id AND a.project_id = $PID))
+          OR (target_type = 'serverless' AND EXISTS (
+                SELECT 1 FROM serverless_instances s WHERE s.id = domains.target_id AND s.project_id = $PID))
+          OR (target_type = 'database' AND EXISTS (
+                SELECT 1 FROM databases db WHERE db.id = domains.target_id AND db.project_id = $PID)))";
+
+    let count_sql = format!(
+        "SELECT COUNT(*) FROM domains WHERE workspace_id = $1 {}",
+        PROJECT_FILTER.replace("$PID", "$2")
+    );
+    let total: i64 = sqlx::query_scalar::<_, i64>(&count_sql)
+        .bind(ws_id)
+        .bind(project_id)
         .fetch_one(&state.pool)
-        .await?
-        .unwrap_or(0);
+        .await?;
 
-    let domains = sqlx::query_as::<_, Domain>(
-        "SELECT * FROM domains WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"
-    )
-    .bind(ws_id)
-    .bind(page_size)
-    .bind(offset)
-    .fetch_all(&state.pool)
-    .await?;
+    let list_sql = format!(
+        "SELECT * FROM domains WHERE workspace_id = $1 {} ORDER BY created_at DESC LIMIT $3 OFFSET $4",
+        PROJECT_FILTER.replace("$PID", "$2")
+    );
+    let domains = sqlx::query_as::<_, Domain>(&list_sql)
+        .bind(ws_id)
+        .bind(project_id)
+        .bind(page_size)
+        .bind(offset)
+        .fetch_all(&state.pool)
+        .await?;
 
     let mut items = Vec::with_capacity(domains.len());
     for d in domains {

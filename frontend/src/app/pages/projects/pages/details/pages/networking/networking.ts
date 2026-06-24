@@ -225,7 +225,9 @@ export class Networking implements OnInit, OnDestroy {
 
   loadDomains(): void {
     this.loadingDomains.set(true);
-    this.domainService.listDomains(1, 1000).subscribe({
+    // Scope to the current project so other projects' routes don't show up here.
+    const projectId = this.parent.projectId();
+    this.domainService.listDomains(1, 1000, projectId || undefined).subscribe({
       next: (res) => {
         this.customDomains.set(res?.items || []);
         this.loadingDomains.set(false);
