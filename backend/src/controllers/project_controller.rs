@@ -34,13 +34,32 @@ pub async fn create_project(
 
     let project_id = Uuid::new_v4();
 
+    // Validate the optional Cloudflare credential belongs to this workspace.
+    let cf_cred_id = match payload.cloudflare_credential_id {
+        Some(cid) => {
+            let ok = sqlx::query_scalar!(
+                "SELECT EXISTS(SELECT 1 FROM cloudflare_credentials WHERE id = $1 AND workspace_id = $2)",
+                cid, ws_id
+            )
+            .fetch_one(&state.pool)
+            .await?
+            .unwrap_or(false);
+            if !ok {
+                return Err(AppError::NotFound("Credențială Cloudflare negăsită în acest workspace.".to_string()));
+            }
+            Some(cid)
+        }
+        None => None,
+    };
+
     sqlx::query!(
-        "INSERT INTO projects (id, workspace_id, name, slug, created_by) VALUES ($1, $2, $3, $4, $5)",
+        "INSERT INTO projects (id, workspace_id, name, slug, created_by, cloudflare_credential_id) VALUES ($1, $2, $3, $4, $5, $6)",
         project_id,
         ws_id,
         payload.name,
         slug,
-        claims.sub
+        claims.sub,
+        cf_cred_id
     )
     .execute(&state.pool)
     .await?;
@@ -578,7 +597,7 @@ async fn fetch_project_settings(
     ws_id: Uuid,
 ) -> Result<ProjectSettingsResponse, AppError> {
     let p = sqlx::query!(
-        "SELECT cloudflare_api_token, cloudflare_zone_id, ingress_ip, base_domain
+        "SELECT cloudflare_credential_id, ingress_ip, base_domain
          FROM projects WHERE id = $1 AND workspace_id = $2",
         project_id, ws_id
     )
@@ -587,10 +606,9 @@ async fn fetch_project_settings(
     .ok_or_else(|| AppError::NotFound("Project not found in this workspace.".to_string()))?;
 
     Ok(ProjectSettingsResponse {
-        cloudflare_zone_id: p.cloudflare_zone_id,
+        cloudflare_credential_id: p.cloudflare_credential_id,
         ingress_ip: p.ingress_ip,
         base_domain: p.base_domain,
-        has_cloudflare_token: p.cloudflare_api_token.map(|t| !t.trim().is_empty()).unwrap_or(false),
     })
 }
 
@@ -616,22 +634,31 @@ pub async fn update_project_settings(
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
-    // The Cloudflare API token is a secret: only overwrite when a non-empty value
-    // is supplied (COALESCE keeps the stored value otherwise). The other fields are
-    // visible in the form, so an empty value clears them (stored as NULL).
-    let new_token = payload.cloudflare_api_token.as_deref().map(str::trim).filter(|s| !s.is_empty());
-    let zone_id = payload.cloudflare_zone_id.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    // Validate the selected Cloudflare credential (if any) belongs to this workspace;
+    // the form always sends the current selection, so null means "no Cloudflare".
+    if let Some(cid) = payload.cloudflare_credential_id {
+        let ok = sqlx::query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM cloudflare_credentials WHERE id = $1 AND workspace_id = $2)",
+            cid, ws_id
+        )
+        .fetch_one(&state.pool)
+        .await?
+        .unwrap_or(false);
+        if !ok {
+            return Err(AppError::NotFound("Credențială Cloudflare negăsită în acest workspace.".to_string()));
+        }
+    }
+
     let ingress_ip = payload.ingress_ip.as_deref().map(str::trim).filter(|s| !s.is_empty());
     let base_domain = payload.base_domain.as_deref().map(str::trim).filter(|s| !s.is_empty());
 
     let rows = sqlx::query!(
         "UPDATE projects SET
-            cloudflare_api_token = COALESCE($1, cloudflare_api_token),
-            cloudflare_zone_id = $2,
-            ingress_ip = $3,
-            base_domain = $4
-         WHERE id = $5 AND workspace_id = $6",
-        new_token, zone_id, ingress_ip, base_domain, project_id, ws_id
+            cloudflare_credential_id = $1,
+            ingress_ip = $2,
+            base_domain = $3
+         WHERE id = $4 AND workspace_id = $5",
+        payload.cloudflare_credential_id, ingress_ip, base_domain, project_id, ws_id
     )
     .execute(&state.pool)
     .await?

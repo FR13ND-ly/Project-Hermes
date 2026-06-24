@@ -149,21 +149,39 @@ async fn resolve_project_cf(
 
     let Some(pid) = project_id else { return empty; };
 
-    match sqlx::query!(
-        "SELECT cloudflare_api_token, cloudflare_zone_id, ingress_ip FROM projects WHERE id = $1",
+    let Some(p) = sqlx::query!(
+        "SELECT cloudflare_credential_id, cloudflare_api_token, cloudflare_zone_id, ingress_ip
+         FROM projects WHERE id = $1",
         pid
     )
     .fetch_optional(pool)
     .await
     .ok()
-    .flatten()
-    {
-        Some(p) => ProjectCf {
-            api_token: p.cloudflare_api_token,
-            zone_id: p.cloudflare_zone_id,
-            ingress_ip: p.ingress_ip,
-        },
-        None => empty,
+    .flatten() else { return empty; };
+
+    // Prefer the linked workspace credential (encrypted); fall back to the project's
+    // legacy plaintext columns until the boot reconcile migrates them.
+    if let Some(cred_id) = p.cloudflare_credential_id {
+        if let Ok(Some(c)) = sqlx::query!(
+            "SELECT encrypted_token, nonce, zone_id FROM cloudflare_credentials WHERE id = $1",
+            cred_id
+        )
+        .fetch_optional(pool)
+        .await
+        {
+            let token = crate::utils::crypto::decrypt_env_value(&c.encrypted_token, &c.nonce).ok();
+            return ProjectCf {
+                api_token: token,
+                zone_id: Some(c.zone_id),
+                ingress_ip: p.ingress_ip,
+            };
+        }
+    }
+
+    ProjectCf {
+        api_token: p.cloudflare_api_token,
+        zone_id: p.cloudflare_zone_id,
+        ingress_ip: p.ingress_ip,
     }
 }
 

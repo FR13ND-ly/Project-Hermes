@@ -1,20 +1,25 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT cloudflare_api_token, cloudflare_zone_id, ingress_ip FROM projects WHERE id = $1",
+  "query": "SELECT cloudflare_credential_id, cloudflare_api_token, cloudflare_zone_id, ingress_ip\n         FROM projects WHERE id = $1",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
+        "name": "cloudflare_credential_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
         "name": "cloudflare_api_token",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 1,
+        "ordinal": 2,
         "name": "cloudflare_zone_id",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "ingress_ip",
         "type_info": "Varchar"
       }
@@ -27,8 +32,9 @@
     "nullable": [
       true,
       true,
+      true,
       true
     ]
   },
-  "hash": "905bf7404cb6eed2d0e75d4f8b0b88917e5f787df537a8bb728be4d91b9bb3af"
+  "hash": "2d45bf9b62772d46ce3877d186cdccbc5e7b7ff6794e4194a7f0c1d275bd73c5"
 }

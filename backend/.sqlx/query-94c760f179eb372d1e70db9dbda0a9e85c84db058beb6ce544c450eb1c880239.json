@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT cloudflare_credential_id, ingress_ip, base_domain\n         FROM projects WHERE id = $1 AND workspace_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "cloudflare_credential_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "ingress_ip",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "base_domain",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "94c760f179eb372d1e70db9dbda0a9e85c84db058beb6ce544c450eb1c880239"
+}

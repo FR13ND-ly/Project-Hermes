@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE projects SET\n            cloudflare_credential_id = $1,\n            ingress_ip = $2,\n            base_domain = $3\n         WHERE id = $4 AND workspace_id = $5",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7362c292c0404c22cfb477f0ed114bd89d07334a702d7248d96dedaa0220972f"
+}

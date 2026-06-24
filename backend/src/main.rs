@@ -65,6 +65,10 @@ async fn main() -> Result<(), anyhow::Error> {
     // the values match the new /baas/:id routes after the app→service migration.
     crate::utils::app_auth::reconcile_baas_published_ids(&pool).await;
 
+    // Migrate legacy per-project plaintext Cloudflare tokens into encrypted, workspace-
+    // level credentials and link each project to its new credential.
+    crate::controllers::cloudflare_controller::reconcile_cloudflare_credentials(&pool).await;
+
     // Unstick app instances whose deploy/build monitoring died with a previous
     // process (they'd otherwise show "deploying" forever in the build queue).
     crate::utils::builder::reconcile_stuck_deploys(&pool).await;

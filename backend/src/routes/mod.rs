@@ -37,6 +37,7 @@ mod volume_routes;
 mod compose_routes; // <-- ADAUGĂ ACEASTĂ LINIE
 mod cron_routes;
 mod git_routes;
+mod cloudflare_routes;
 mod incident_routes;
 mod webhook_routes;
 mod ws_routes;
@@ -65,6 +66,7 @@ pub fn create_router(state: AppState) -> Router {
         .nest("/api/v1", incident_routes::routes(state.clone()))
         .nest("/api/v1", webhook_routes::routes(state.clone()))
         .nest("/api/v1", git_routes::routes(state.clone()))
+        .nest("/api/v1", cloudflare_routes::routes(state.clone()))
         .nest("/api/v1", serverless_routes::routes(state.clone()))
         .nest("/api/v1", ws_routes::routes(state))
         .layer(axum::middleware::from_fn(crate::middlewares::logger::telemetry_logger))

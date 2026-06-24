@@ -3,17 +3,21 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateProjectRequest {
     pub name: String,
+    /// Optional workspace Cloudflare credential to associate at creation time.
+    #[serde(default)]
+    pub cloudflare_credential_id: Option<Uuid>,
 }
 
-/// Cloudflare / Ingress settings for a project. The API token is a secret: an
-/// empty/omitted token leaves the stored value unchanged.
+/// Cloudflare / Ingress settings for a project. The Cloudflare token now lives on a
+/// workspace credential; the project just references one (null = none).
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateProjectSettingsRequest {
-    pub cloudflare_api_token: Option<String>,
-    pub cloudflare_zone_id: Option<String>,
+    #[serde(default)]
+    pub cloudflare_credential_id: Option<Uuid>,
     pub ingress_ip: Option<String>,
     pub base_domain: Option<String>,
 }
@@ -21,11 +25,10 @@ pub struct UpdateProjectSettingsRequest {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectSettingsResponse {
-    pub cloudflare_zone_id: Option<String>,
+    /// The associated workspace Cloudflare credential, if any.
+    pub cloudflare_credential_id: Option<Uuid>,
     pub ingress_ip: Option<String>,
     pub base_domain: Option<String>,
-    /// The token itself is never returned; only whether one is configured.
-    pub has_cloudflare_token: bool,
 }
 
 #[derive(Debug, Serialize)]
