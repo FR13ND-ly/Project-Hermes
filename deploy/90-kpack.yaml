@@ -45,21 +45,23 @@ spec:
 ---
 # The set of language buildpacks available to the builder. Covers the common runtimes;
 # add/remove `sources` to change language support, then re-apply.
+# NOTE: Paketo publishes these on Docker Hub (paketobuildpacks/*) — the old gcr.io
+# paths are gone and return "DENIED: Unauthenticated request".
 apiVersion: kpack.io/v1alpha2
 kind: ClusterStore
 metadata:
   name: hermes-store
 spec:
   sources:
-    - image: gcr.io/paketo-buildpacks/nodejs
-    - image: gcr.io/paketo-buildpacks/java
-    - image: gcr.io/paketo-buildpacks/go
-    - image: gcr.io/paketo-buildpacks/python
-    - image: gcr.io/paketo-buildpacks/php
-    - image: gcr.io/paketo-buildpacks/ruby
-    - image: gcr.io/paketo-buildpacks/dotnet-core
-    - image: gcr.io/paketo-buildpacks/web-servers
-    - image: gcr.io/paketo-buildpacks/procfile
+    - image: paketobuildpacks/nodejs
+    - image: paketobuildpacks/java
+    - image: paketobuildpacks/go
+    - image: paketobuildpacks/python
+    - image: paketobuildpacks/php
+    - image: paketobuildpacks/ruby
+    - image: paketobuildpacks/dotnet-core
+    - image: paketobuildpacks/web-servers
+    - image: paketobuildpacks/procfile
 ---
 # The builder the control plane references by name (`hermes-builder`). Detection order
 # is first-match: kpack tries each group against the app source and uses the first that
