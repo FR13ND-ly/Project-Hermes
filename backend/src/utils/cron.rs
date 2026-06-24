@@ -283,17 +283,18 @@ fn merge_env(base: Vec<(String, String)>, extra: Vec<(String, String)>) -> Vec<(
 
 /// App cron: runs the command in the app's production image with its effective env.
 async fn run_app_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, app_id: Uuid, command: String, extra_env: Vec<(String, String)>, started_at: chrono::DateTime<Utc>) -> Result<(), ()> {
-    let inst = sqlx::query!(
-        "SELECT id FROM app_instances WHERE app_id = $1 AND instance_type = 'production'",
-        app_id
+    let inst = sqlx::query_scalar::<_, Uuid>(
+        "SELECT id FROM app_instances WHERE app_id = $1 \
+         ORDER BY (CASE instance_type WHEN 'production' THEN 1 WHEN 'staging' THEN 2 ELSE 3 END) LIMIT 1"
     )
+    .bind(app_id)
     .fetch_optional(pool)
     .await;
 
     let inst_id = match inst {
-        Ok(Some(r)) => r.id,
+        Ok(Some(id)) => id,
         _ => {
-            log_cron(pool, job_id, workspace_id, 1, "The application has no production instance. The cron needs an image built by a production deploy.", started_at).await;
+            log_cron(pool, job_id, workspace_id, 1, "The application has no deployed instance. The cron needs an image built by a deploy.", started_at).await;
             return Err(());
         }
     };
