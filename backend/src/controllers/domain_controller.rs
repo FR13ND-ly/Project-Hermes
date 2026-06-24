@@ -75,7 +75,7 @@ async fn resolve_target(
             .await?
             .ok_or_else(|| AppError::NotFound("Database not found in this workspace.".to_string()))?;
             if !row.is_external {
-                return Err(AppError::Validation("Baza de date trebuie expusă extern (TCP) înainte de a-i atribui un domeniu.".to_string()));
+                return Err(AppError::Validation("The database must be exposed externally (TCP) before assigning it a domain.".to_string()));
             }
             Ok(ResolvedTarget {
                 routing_type: DomainRoutingType::Custom,

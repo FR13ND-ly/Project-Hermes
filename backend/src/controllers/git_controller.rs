@@ -30,7 +30,7 @@ async fn load_credential(pool: &sqlx::PgPool, id: Uuid, ws_id: Uuid) -> Result<(
     .bind(ws_id)
     .fetch_optional(pool)
     .await?
-    .ok_or_else(|| AppError::NotFound("Credențială git negăsită în acest workspace.".to_string()))?;
+    .ok_or_else(|| AppError::NotFound("Git credential not found in this workspace.".to_string()))?;
     let kind = GitProviderKind::parse(&c.provider)?;
     let token = crypto::decrypt_env_value(&c.encrypted_token, &c.nonce)?;
     Ok((kind, c.host, token, c.skip_tls_verify))
@@ -64,11 +64,11 @@ pub async fn create_credential(
         .unwrap_or(kind.default_host()).to_string();
     let label = payload.label.trim();
     if label.is_empty() {
-        return Err(AppError::Validation("Eticheta credențialei este obligatorie.".to_string()));
+        return Err(AppError::Validation("The credential label is required.".to_string()));
     }
     let token = payload.token.trim();
     if token.is_empty() {
-        return Err(AppError::Validation("Token-ul este obligatoriu.".to_string()));
+        return Err(AppError::Validation("The token is required.".to_string()));
     }
     let skip_tls = payload.skip_tls_verify.unwrap_or(false);
 
@@ -103,7 +103,7 @@ pub async fn delete_credential(
     .await?
     .rows_affected();
     if deleted == 0 {
-        return Err(AppError::NotFound("Credențială git negăsită.".to_string()));
+        return Err(AppError::NotFound("Git credential not found.".to_string()));
     }
     Ok(axum::http::StatusCode::NO_CONTENT)
 }
@@ -266,7 +266,7 @@ pub async fn detect_project(
         build_command: String::new(),
         start_command: String::new(),
         internal_port: detected_port.unwrap_or(8080),
-        description: "Tip proiect nespecificat. Introduceți comenzi personalizate de build și start.".to_string(),
+        description: "Project type unspecified. Enter custom build and start commands.".to_string(),
         detected_envs,
         subdirectories,
     };

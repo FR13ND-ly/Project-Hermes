@@ -65,15 +65,15 @@ pub async fn create_cloudflare_credential(
 
     let label = payload.label.trim();
     if label.is_empty() {
-        return Err(AppError::Validation("Eticheta credențialei este obligatorie.".to_string()));
+        return Err(AppError::Validation("The credential label is required.".to_string()));
     }
     let token = payload.token.trim();
     if token.is_empty() {
-        return Err(AppError::Validation("Token-ul este obligatoriu.".to_string()));
+        return Err(AppError::Validation("The token is required.".to_string()));
     }
     let zone_id = payload.zone_id.trim();
     if zone_id.is_empty() {
-        return Err(AppError::Validation("Zone ID-ul este obligatoriu.".to_string()));
+        return Err(AppError::Validation("The Zone ID is required.".to_string()));
     }
     let base_domain = payload.base_domain.as_deref().map(str::trim).filter(|s| !s.is_empty());
 
@@ -106,7 +106,7 @@ pub async fn delete_cloudflare_credential(
     .await?
     .rows_affected();
     if deleted == 0 {
-        return Err(AppError::NotFound("Credențială Cloudflare negăsită.".to_string()));
+        return Err(AppError::NotFound("Cloudflare credential not found.".to_string()));
     }
     Ok(axum::http::StatusCode::NO_CONTENT)
 }

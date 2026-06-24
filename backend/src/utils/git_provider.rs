@@ -1,6 +1,7 @@
 //! Provider-agnostic git host access (GitHub, GitLab). Powers credential
 //! verification, the repo/branch pickers, and provider-agnostic project detection.
 //! Adding a provider = one more arm in `GitProviderKind` and its match arms.
+//! (All user-facing strings are in English.)
 
 use crate::utils::error::AppError;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
@@ -32,7 +33,7 @@ impl GitProviderKind {
         match s.trim().to_lowercase().as_str() {
             "github" => Ok(Self::Github),
             "gitlab" => Ok(Self::Gitlab),
-            other => Err(AppError::Validation(format!("Provider git nesuportat: {}", other))),
+            other => Err(AppError::Validation(format!("Unsupported git provider: {}", other))),
         }
     }
 
@@ -92,15 +93,15 @@ impl GitProviderKind {
             .send()
             .await
             .map_err(|e| AppError::Validation(format!(
-                "Nu am putut contacta '{}' (eroare TLS/rețea): {}. \
-                 Dacă instanța folosește un certificat auto-semnat, activează opțiunea 'Acceptă SSL nesigur'.",
+                "Could not reach '{}' (TLS/network error): {}. \
+                 If the instance uses a self-signed certificate, enable the 'Accept insecure SSL' option.",
                 host, e
             )))?;
         let status = res.status();
         if !status.is_success() {
             return Err(AppError::Validation(format!(
-                "Serverul {} a respins tokenul (HTTP {}). \
-                 Verifică scopurile tokenului — sunt necesare 'api' sau 'read_api'.",
+                "Server {} rejected the token (HTTP {}). \
+                 Check the token's scopes — 'api' or 'read_api' are required.",
                 host,
                 status.as_u16()
             )));
@@ -111,9 +112,9 @@ impl GitProviderKind {
         struct GlUser { username: String }
         match self {
             Self::Github => res.json::<GhUser>().await.map(|u| u.login)
-                .map_err(|_| AppError::Validation("Nu am putut citi profilul GitHub.".to_string())),
+                .map_err(|_| AppError::Validation("Could not read the GitHub profile.".to_string())),
             Self::Gitlab => res.json::<GlUser>().await.map(|u| u.username)
-                .map_err(|_| AppError::Validation("Nu am putut citi profilul GitLab.".to_string())),
+                .map_err(|_| AppError::Validation("Could not read the GitLab profile.".to_string())),
         }
     }
 
@@ -125,7 +126,7 @@ impl GitProviderKind {
                 let res = self.apply_auth(client.get(&url), token).send().await
                     .map_err(|e| AppError::Fatal(e.into()))?;
                 if !res.status().is_success() {
-                    return Err(AppError::Validation("Nu am putut lista repository-urile GitHub.".to_string()));
+                    return Err(AppError::Validation("Could not list GitHub repositories.".to_string()));
                 }
                 #[derive(Deserialize)]
                 struct GhRepo { name: String, full_name: String, private: bool, default_branch: Option<String>, html_url: Option<String> }
@@ -140,7 +141,7 @@ impl GitProviderKind {
                 let res = self.apply_auth(client.get(&url), token).send().await
                     .map_err(|e| AppError::Fatal(e.into()))?;
                 if !res.status().is_success() {
-                    return Err(AppError::Validation("Nu am putut lista proiectele GitLab.".to_string()));
+                    return Err(AppError::Validation("Could not list GitLab projects.".to_string()));
                 }
                 #[derive(Deserialize)]
                 struct GlProject { name: String, path_with_namespace: String, visibility: Option<String>, default_branch: Option<String>, web_url: Option<String> }
@@ -163,7 +164,7 @@ impl GitProviderKind {
         let res = self.apply_auth(client.get(&url), token).send().await
             .map_err(|e| AppError::Fatal(e.into()))?;
         if !res.status().is_success() {
-            return Err(AppError::Validation("Nu am putut lista branch-urile.".to_string()));
+            return Err(AppError::Validation("Could not list branches.".to_string()));
         }
         #[derive(Deserialize)]
         struct Branch { name: String }
@@ -201,7 +202,7 @@ impl GitProviderKind {
                 if let Some(r) = git_ref { req = req.query(&[("ref", r)]); }
                 let res = req.send().await.map_err(|e| AppError::Fatal(e.into()))?;
                 if !res.status().is_success() {
-                    return Err(AppError::Validation("Nu am putut citi conținutul repository-ului.".to_string()));
+                    return Err(AppError::Validation("Could not read the repository contents.".to_string()));
                 }
                 #[derive(Deserialize)]
                 struct Item { name: String, r#type: String }
@@ -217,7 +218,7 @@ impl GitProviderKind {
                 let res = self.apply_auth(client.get(&url), token).query(&q).send().await
                     .map_err(|e| AppError::Fatal(e.into()))?;
                 if !res.status().is_success() {
-                    return Err(AppError::Validation("Nu am putut citi arborele proiectului GitLab.".to_string()));
+                    return Err(AppError::Validation("Could not read the GitLab project tree.".to_string()));
                 }
                 #[derive(Deserialize)]
                 struct Item { name: String, r#type: String }

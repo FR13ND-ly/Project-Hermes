@@ -34,7 +34,7 @@ mod database_routes;
 mod app_routes;
 mod app_user_routes;
 mod volume_routes;
-mod compose_routes; // <-- ADAUGĂ ACEASTĂ LINIE
+mod compose_routes;
 mod cron_routes;
 mod git_routes;
 mod cloudflare_routes;

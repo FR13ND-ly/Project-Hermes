@@ -64,7 +64,7 @@ fn safe_resolve(base: &std::path::Path, relative: &str) -> Result<std::path::Pat
                 if resolved.starts_with(base) && resolved != base {
                     resolved.pop();
                 } else {
-                    return Err(AppError::Validation("Acces neautorizat în afara directorului de bază.".to_string()));
+                    return Err(AppError::Validation("Unauthorized access outside the base directory.".to_string()));
                 }
             }
             _ => {}
@@ -73,7 +73,7 @@ fn safe_resolve(base: &std::path::Path, relative: &str) -> Result<std::path::Pat
     if resolved.starts_with(base) {
         Ok(resolved)
     } else {
-        Err(AppError::Validation("Acces neautorizat în afara directorului de bază.".to_string()))
+        Err(AppError::Validation("Unauthorized access outside the base directory.".to_string()))
     }
 }
 
@@ -109,10 +109,10 @@ pub async fn list_volume_files(
     }
 
     let mut items = Vec::new();
-    let mut dir = std::fs::read_dir(target_path).map_err(|e| AppError::Fatal(anyhow::anyhow!("Eroare la citirea directorului: {}", e)))?;
+    let mut dir = std::fs::read_dir(target_path).map_err(|e| AppError::Fatal(anyhow::anyhow!("Error reading the directory: {}", e)))?;
     while let Some(entry) = dir.next() {
         if let Ok(entry) = entry {
-            let metadata = entry.metadata().map_err(|e| AppError::Fatal(anyhow::anyhow!("Eroare la citirea metadatelor: {}", e)))?;
+            let metadata = entry.metadata().map_err(|e| AppError::Fatal(anyhow::anyhow!("Error reading metadata: {}", e)))?;
             let name = entry.file_name().to_string_lossy().to_string();
             let is_dir = metadata.is_dir();
             let size_bytes = if is_dir { 0 } else { metadata.len() };
@@ -174,7 +174,7 @@ pub async fn download_volume_file(
     let target_file = safe_resolve(base_path, &query.path)?;
 
     if !target_file.exists() || target_file.is_dir() {
-        return Err(AppError::NotFound("Fișierul specificat nu există.".to_string()));
+        return Err(AppError::NotFound("The specified file does not exist.".to_string()));
     }
 
     let filename = target_file.file_name()
@@ -182,7 +182,7 @@ pub async fn download_volume_file(
         .unwrap_or_else(|| "download".to_string());
 
     let file = tokio::fs::File::open(&target_file).await
-        .map_err(|e| AppError::Fatal(anyhow::anyhow!("Nu s-a putut deschide fișierul: {}", e)))?;
+        .map_err(|e| AppError::Fatal(anyhow::anyhow!("Could not open the file: {}", e)))?;
     
     let stream = tokio_util::io::ReaderStream::new(file);
     let body = Body::from_stream(stream);
@@ -193,7 +193,7 @@ pub async fn download_volume_file(
         axum::http::HeaderValue::from_static("application/octet-stream"),
     );
     let cd_val = axum::http::HeaderValue::from_str(&format!("attachment; filename=\"{}\"", filename))
-        .map_err(|e| AppError::Fatal(anyhow::anyhow!("Eroare la procesarea header-ului: {}", e)))?;
+        .map_err(|e| AppError::Fatal(anyhow::anyhow!("Error processing the header: {}", e)))?;
     headers.insert(axum::http::header::CONTENT_DISPOSITION, cd_val);
 
     Ok((headers, body))
@@ -227,13 +227,13 @@ pub async fn upload_volume_file(
     let rel_path = query.path.unwrap_or_default();
     let target_dir = safe_resolve(base_path, &rel_path)?;
 
-    std::fs::create_dir_all(&target_dir).map_err(|e| AppError::Fatal(anyhow::anyhow!("Eroare la crearea directorului destinație: {}", e)))?;
+    std::fs::create_dir_all(&target_dir).map_err(|e| AppError::Fatal(anyhow::anyhow!("Error creating the destination directory: {}", e)))?;
 
     while let Some(field) = multipart.next_field().await.map_err(|e| AppError::Fatal(anyhow::anyhow!("Multipart reading error: {}", e)))? {
         let name = field.file_name().unwrap_or("unnamed_file").to_string();
         let clean_name = std::path::Path::new(&name)
             .file_name()
-            .ok_or_else(|| AppError::Validation("Nume de fișier invalid.".to_string()))?
+            .ok_or_else(|| AppError::Validation("Invalid file name.".to_string()))?
             .to_string_lossy()
             .to_string();
 
@@ -244,7 +244,7 @@ pub async fn upload_volume_file(
         }
 
         let data = field.bytes().await.map_err(|e| AppError::Fatal(anyhow::anyhow!("Multipart bytes reading error: {}", e)))?;
-        std::fs::write(&filepath, data).map_err(|e| AppError::Fatal(anyhow::anyhow!("Eroare la salvarea fișierului pe host: {}", e)))?;
+        std::fs::write(&filepath, data).map_err(|e| AppError::Fatal(anyhow::anyhow!("Error saving the file on the host: {}", e)))?;
     }
 
     Ok(StatusCode::OK)
@@ -276,22 +276,22 @@ pub async fn delete_volume_file(
     let base_path = std::path::Path::new(&volume.host_path);
 
     if query.path.trim().is_empty() || query.path == "/" || query.path == "." {
-        return Err(AppError::Validation("Nu puteți șterge directorul rădăcină al volumului.".to_string()));
+        return Err(AppError::Validation("You cannot delete the volume's root directory.".to_string()));
     }
 
     let target_path = safe_resolve(base_path, &query.path)?;
 
     if !target_path.exists() {
-        return Err(AppError::NotFound("Fișierul sau directorul nu există.".to_string()));
+        return Err(AppError::NotFound("The file or directory does not exist.".to_string()));
     }
 
     if target_path.is_dir() {
         std::fs::remove_dir_all(&target_path).map_err(|e| {
-            AppError::Fatal(anyhow::anyhow!("Eroare la ștergerea recursivă a folderului: {}", e))
+            AppError::Fatal(anyhow::anyhow!("Error recursively deleting the folder: {}", e))
         })?;
     } else {
         std::fs::remove_file(&target_path).map_err(|e| {
-            AppError::Fatal(anyhow::anyhow!("Eroare la ștergerea fișierului: {}", e))
+            AppError::Fatal(anyhow::anyhow!("Error deleting the file: {}", e))
         })?;
     }
 
@@ -329,7 +329,7 @@ pub async fn create_volume_directory(
 
     let clean_name = std::path::Path::new(&payload.name)
         .file_name()
-        .ok_or_else(|| AppError::Validation("Nume director invalid.".to_string()))?
+        .ok_or_else(|| AppError::Validation("Invalid directory name.".to_string()))?
         .to_string_lossy()
         .to_string();
 
@@ -340,7 +340,7 @@ pub async fn create_volume_directory(
     }
 
     std::fs::create_dir_all(&new_dir_path).map_err(|e| {
-        AppError::Fatal(anyhow::anyhow!("Eroare la crearea directorului: {}", e))
+        AppError::Fatal(anyhow::anyhow!("Error creating the directory: {}", e))
     })?;
 
     Ok(StatusCode::CREATED)

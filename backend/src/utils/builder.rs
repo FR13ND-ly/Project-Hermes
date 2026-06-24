@@ -699,9 +699,9 @@ pub async fn run_ephemeral_build(
             r#"cd /workspace
 if [ -d "{sub_path}" ]; then
   cd "{sub_path}"
-  echo "Folosim subdirectorul: {sub_path}"
+  echo "Using subdirectory: {sub_path}"
 else
-  echo "Eroare: Subdirectorul {sub_path} nu a fost găsit în repository!" >&2
+  echo "Error: Subdirectory {sub_path} was not found in the repository!" >&2
   exit 1
 fi"#,
             sub_path = sub_path
@@ -753,9 +753,9 @@ fi"#,
 
     let cloner_script = format!(
         r#"set -e
-{ssh_setup_script}{git_cred_setup}echo "Clonez {cloner_repo} (branch: {branch_name})..."
+{ssh_setup_script}{git_cred_setup}echo "Cloning {cloner_repo} (branch: {branch_name})..."
 if ! git clone --depth 1 --branch {branch_name} {cloner_repo} /workspace; then
-  echo "EROARE: git clone a eșuat. Verifică URL-ul repository-ului, branch-ul ({branch_name}) și autentificarea (token GitHub / cheie SSH)." >&2
+  echo "ERROR: git clone failed. Check the repository URL, the branch ({branch_name}) and authentication (GitHub token / SSH key)." >&2
   exit 1
 fi
 {change_dir_and_detect}
@@ -1049,11 +1049,11 @@ fi"#,
         Ok(p) => p,
         Err(e) => {
             let _ = update_status(&pool, instance_id, AppStatus::Failed).await;
-            let error_msg = format!("Eroare la generarea manifestului pod-ului de build: {}", e);
+            let error_msg = format!("Error generating the build pod manifest: {}", e);
             let duration_sec = start_instant.elapsed().as_secs() as i32;
             let _ = sqlx::query!(
                 "UPDATE app_builds SET status = 'failed', phase = 'failed', logs = $1, duration_sec = $2, failure_reason = $4, failure_category = 'MANIFEST' WHERE id = $3",
-                error_msg, duration_sec, build_id, "Generarea manifestului pod-ului de build a eșuat."
+                error_msg, duration_sec, build_id, "Generating the build pod manifest failed."
             )
             .execute(&pool)
             .await;
@@ -1089,13 +1089,13 @@ fi"#,
     if let Err(e) = pods.create(&PostParams::default(), &pod_manifest).await {
         let _ = update_status(&pool, instance_id, AppStatus::Failed).await;
         let error_msg = format!(
-            "Eroare la crearea pod-ului de build în Kubernetes (verifică cota de resurse a workspace-ului):\n{}",
+            "Error creating the build pod in Kubernetes (check the workspace's resource quota):\n{}",
             e
         );
         let duration_sec = start_instant.elapsed().as_secs() as i32;
         let _ = sqlx::query!(
             "UPDATE app_builds SET status = 'failed', phase = 'failed', logs = $1, duration_sec = $2, failure_reason = $4, failure_category = 'POD_CREATE' WHERE id = $3",
-            error_msg, duration_sec, build_id, "Crearea pod-ului de build a eșuat (probabil cotă de resurse insuficientă în workspace)."
+            error_msg, duration_sec, build_id, "Creating the build pod failed (likely insufficient resource quota in the workspace)."
         )
         .execute(&pool)
         .await;
@@ -1208,7 +1208,7 @@ fi"#,
     };
     match pods.logs(&builder_pod_name, &cloner_params).await {
         Ok(logs) => cloner_logs.push_str(&logs),
-        Err(e) => cloner_logs.push_str(&format!("Nu s-au putut prelua logurile pentru cloner: {}\n", e)),
+        Err(e) => cloner_logs.push_str(&format!("Could not fetch the cloner logs: {}\n", e)),
     }
 
     let mut kaniko_logs = String::new();
@@ -1218,7 +1218,7 @@ fi"#,
     };
     match pods.logs(&builder_pod_name, &kaniko_params).await {
         Ok(logs) => kaniko_logs.push_str(&logs),
-        Err(e) => kaniko_logs.push_str(&format!("Nu s-au putut prelua logurile pentru Kaniko/Build: {}\n", e)),
+        Err(e) => kaniko_logs.push_str(&format!("Could not fetch the Kaniko/Build logs: {}\n", e)),
     }
 
     let mut cloner_duration_str = "N/A".to_string();
@@ -1289,12 +1289,12 @@ fi"#,
 
     let mut build_logs = String::new();
     build_logs.push_str("=========================================\n");
-    build_logs.push_str(&format!(" ETAPA 1: DESCĂRCARE COD (GIT CLONE) [Durată: {}]\n", cloner_duration_str));
+    build_logs.push_str(&format!(" STAGE 1: CODE DOWNLOAD (GIT CLONE) [Duration: {}]\n", cloner_duration_str));
     build_logs.push_str("=========================================\n");
     build_logs.push_str(&cloner_logs);
 
     build_logs.push_str("\n\n=========================================\n");
-    build_logs.push_str(&format!(" ETAPA 2: CONSTRUIRE IMAGINE (KANIKO) [Durată: {}]\n", kaniko_duration_str));
+    build_logs.push_str(&format!(" STAGE 2: IMAGE BUILD (KANIKO) [Duration: {}]\n", kaniko_duration_str));
     build_logs.push_str("=========================================\n");
     build_logs.push_str(&kaniko_logs);
 
@@ -1305,7 +1305,7 @@ fi"#,
     let (failure_category, failure_reason): (Option<String>, Option<String>) = if success {
         (None, None)
     } else if timed_out {
-        (Some("TIMEOUT".to_string()), Some("Build-ul a depășit timpul maxim alocat (15 minute) și a fost oprit automat.".to_string()))
+        (Some("TIMEOUT".to_string()), Some("The build exceeded the maximum allotted time (15 minutes) and was stopped automatically.".to_string()))
     } else {
         let (cat, reason) = classify_build_failure(
             &cloner_logs,
@@ -1321,22 +1321,22 @@ fi"#,
 
     if success {
         build_logs.push_str("\n\n=========================================\n");
-        build_logs.push_str(&format!(" ETAPA 3: CONSTRUIRE REUȘITĂ (SUCCESS) [Timp Total Build: {}]\n", total_build_duration_str));
+        build_logs.push_str(&format!(" STAGE 3: BUILD SUCCEEDED (SUCCESS) [Total Build Time: {}]\n", total_build_duration_str));
         build_logs.push_str("=========================================\n");
-        build_logs.push_str("Imaginea Docker a fost creată cu succes și trimisă în registry.\n");
-        build_logs.push_str("Se pornește faza de lansare în clusterul Kubernetes...\n");
+        build_logs.push_str("The Docker image was built successfully and pushed to the registry.\n");
+        build_logs.push_str("Starting the launch phase in the Kubernetes cluster...\n");
     } else {
         build_logs.push_str("\n\n=========================================\n");
         let label = if timed_out { "TIMEOUT" } else { "FAILED" };
-        build_logs.push_str(&format!(" ETAPA 3: CONSTRUIRE EȘUATĂ ({}) [Timp Total Build: {}]\n", label, total_build_duration_str));
+        build_logs.push_str(&format!(" STAGE 3: BUILD FAILED ({}) [Total Build Time: {}]\n", label, total_build_duration_str));
         build_logs.push_str("=========================================\n");
         if let Some(ref cat) = failure_category {
-            build_logs.push_str(&format!("Categorie eroare : {}\n", cat));
+            build_logs.push_str(&format!("Error category   : {}\n", cat));
         }
         if let Some(ref reason) = failure_reason {
             build_logs.push_str(&format!("Diagnostic       : {}\n", reason));
         }
-        build_logs.push_str("\nPentru detalii suplimentare, consultă logurile etapelor de mai sus.\n");
+        build_logs.push_str("\nFor more details, see the stage logs above.\n");
     }
     let duration_sec = start_instant.elapsed().as_secs() as i32;
 
@@ -1630,7 +1630,7 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
                     .await {
                         let mut updated_logs = build_rec.logs;
                         updated_logs.push_str("\n=========================================\n");
-                        updated_logs.push_str(&format!(" ETAPA 4: DEPLOY REUȘIT (SERVERLESS) [Durată: {}]\n", deploy_duration_str));
+                        updated_logs.push_str(&format!(" STAGE 4: DEPLOY SUCCEEDED (SERVERLESS) [Duration: {}]\n", deploy_duration_str));
                         updated_logs.push_str("=========================================\n");
                         updated_logs.push_str(&format!("- Namespace: {} -> OK\n", namespace));
                         updated_logs.push_str(&format!("- Knative Service: {} (Min Scale: {}, Max Scale: {}, Concurrency: {}) -> OK\n", app_name, min_scale, max_scale, target_concurrency));
@@ -1638,7 +1638,7 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
                             updated_logs.push_str(&format!("- Ingress Domeniu: http://{} -> OK\n", domain));
                         }
                         updated_logs.push_str("\n=========================================\n");
-                        updated_logs.push_str(" SERVICIUL SERVERLESS A FOST LANSAT ȘI ESTE ACTIV!\n");
+                        updated_logs.push_str(" THE SERVERLESS SERVICE HAS BEEN LAUNCHED AND IS ACTIVE!\n");
                         updated_logs.push_str("=========================================\n");
                         
                         let _ = sqlx::query!(
@@ -1758,24 +1758,24 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
                             .await {
                                 let mut updated_logs = build_rec.logs;
                                 updated_logs.push_str("\n=========================================\n");
-                                updated_logs.push_str(&format!(" ETAPA 4: DEPLOY (DEPLOYED) [Durată: {}]\n", deploy_duration_str));
+                                updated_logs.push_str(&format!(" STAGE 4: DEPLOY (DEPLOYED) [Duration: {}]\n", deploy_duration_str));
                                 updated_logs.push_str("=========================================\n");
                                 updated_logs.push_str(&format!("- Namespace: {} -> OK\n", namespace));
-                                updated_logs.push_str(&format!("- Deployment: {} (Port Intern: {}) -> OK\n", app_name, meta.internal_port));
+                                updated_logs.push_str(&format!("- Deployment: {} (Internal Port: {}) -> OK\n", app_name, meta.internal_port));
                                 if let Some(ext_port) = meta.external_port {
-                                    updated_logs.push_str(&format!("- Serviciu LoadBalancer: port extern {} -> OK\n", ext_port));
-                                    updated_logs.push_str(&format!("  -> Accesibil la: http://localhost:{}\n", ext_port));
+                                    updated_logs.push_str(&format!("- LoadBalancer Service: external port {} -> OK\n", ext_port));
+                                    updated_logs.push_str(&format!("  -> Reachable at: http://localhost:{}\n", ext_port));
                                 }
                                 if let Some(ref domain) = meta.assigned_domain {
-                                    updated_logs.push_str(&format!("- Rute Ingress: http://{} -> OK\n", domain));
+                                    updated_logs.push_str(&format!("- Ingress routes: http://{} -> OK\n", domain));
                                 }
                                 updated_logs.push_str("\n=========================================\n");
                                 if let Some(ref reason) = crash {
                                     // Image built & deployed fine, but the container crashed at startup.
-                                    updated_logs.push_str(&format!(" ATENȚIE: Build & deploy OK, dar aplicația a crăpat la pornire: {}\n", reason));
-                                    updated_logs.push_str(" Imaginea este validă (poți face rollback). Verifică variabilele de mediu și comanda de start.\n");
+                                    updated_logs.push_str(&format!(" WARNING: Build & deploy OK, but the application crashed at startup: {}\n", reason));
+                                    updated_logs.push_str(" The image is valid (you can roll back). Check the environment variables and the start command.\n");
                                 } else {
-                                    updated_logs.push_str(" APLICAȚIA A FOST LANSATĂ ȘI ESTE ACTIVĂ!\n");
+                                    updated_logs.push_str(" THE APPLICATION HAS BEEN LAUNCHED AND IS ACTIVE!\n");
                                 }
                                 updated_logs.push_str("=========================================\n");
 
@@ -1814,12 +1814,12 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
     .await {
         let mut updated_logs = build_rec.logs;
         updated_logs.push_str("\n\n=========================================\n");
-        updated_logs.push_str(&format!(" ETAPA 4: DEPLOY EȘUAT (DEPLOYMENT FAILED) [Durată: {}]\n", deploy_duration_str));
+        updated_logs.push_str(&format!(" STAGE 4: DEPLOY FAILED (DEPLOYMENT FAILED) [Duration: {}]\n", deploy_duration_str));
         updated_logs.push_str("=========================================\n");
         if let Some(ref err_msg) = deploy_error {
-            updated_logs.push_str(&format!("Eroare la provizionarea resurselor Kubernetes în cluster:\n{}\n", err_msg));
+            updated_logs.push_str(&format!("Error provisioning Kubernetes resources in the cluster:\n{}\n", err_msg));
         } else {
-            updated_logs.push_str("Eroare la provizionarea resurselor Kubernetes în cluster.\n");
+            updated_logs.push_str("Error provisioning Kubernetes resources in the cluster.\n");
         }
 
         // Only the deploy PHASE failed — the image was built and pushed
@@ -1830,7 +1830,7 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
         // reload/rollback deploy fails (deploy_compiled_app is reused for those).
         let _ = sqlx::query!(
             "UPDATE app_builds SET logs = $1, phase = 'failed', failure_reason = $3, failure_category = 'DEPLOY' WHERE id = $2",
-            updated_logs, build_rec.id, "Deploy-ul resurselor Kubernetes a eșuat (vezi etapa 4 din log-uri). Imaginea s-a construit corect."
+            updated_logs, build_rec.id, "Deploying the Kubernetes resources failed (see stage 4 in the logs). The image was built correctly."
         )
         .execute(&pool)
         .await;
@@ -1880,12 +1880,12 @@ fn classify_build_failure(
 
     // --- OOM & Eviction Detection ---
     if kaniko_reason == Some("OOMKilled") || kaniko_exit_code == Some(137) {
-        return ("BUILD_OOM", "Build-ul a rămas fără memorie (OOMKilled). Mărește limita de memorie a workspace-ului sau redu consumul comenzii de build.".to_string());
+        return ("BUILD_OOM", "The build ran out of memory (OOMKilled). Increase the workspace's memory limit or reduce the build command's footprint.".to_string());
     }
 
     if pod_reason == Some("Evicted") || pod_message.map(|m| m.to_lowercase().contains("evict")).unwrap_or(false) {
-        let msg = pod_message.unwrap_or("Evacuat de Kubernetes din cauza resurselor insuficiente pe nod.");
-        return ("BUILD_EVICTED", format!("Pod-ul de build a fost evacuat (Evicted) de Kubernetes. Detaliu: {}", msg));
+        let msg = pod_message.unwrap_or("Evicted by Kubernetes due to insufficient resources on the node.");
+        return ("BUILD_EVICTED", format!("The build pod was evicted by Kubernetes. Detail: {}", msg));
     }
 
     // Inner build process killed (SIGKILL / exit 137). Kaniko's *container* exits 1
@@ -1896,13 +1896,13 @@ fn classify_build_failure(
         || kaniko_lower.contains("exit code 137")
         || kaniko_lower.contains("oomkilled")
     {
-        return ("BUILD_OOM", "Procesul de build a fost ucis (semnal KILL / cod 137) — aproape sigur lipsă de memorie în timpul compilării. Mărește limita de memorie a workspace-ului (build-urile Angular/webpack au nevoie de obicei de 1.5–2 GB).".to_string());
+        return ("BUILD_OOM", "The build process was killed (KILL signal / code 137) — almost certainly out of memory during compilation. Increase the workspace's memory limit (Angular/webpack builds usually need 1.5–2 GB).".to_string());
     }
 
-    // Kaniko duration N/A = containerul nu a înregistrat un timestamp de terminare,
-    // semn că podul a fost ucis forțat (OOM la nivel de nod, evicție silențioasă etc.)
-    // în timp ce rula o comandă de compilare intensivă. Doar dacă CLONE-ul a reușit —
-    // altfel kaniko n-a pornit niciodată, iar cauza reală e în etapa de clonare (mai jos).
+    // Kaniko duration N/A = the container never recorded a termination timestamp,
+    // a sign the pod was force-killed (node-level OOM, silent eviction, etc.) while
+    // running a heavy compile command. Only when the CLONE succeeded — otherwise
+    // kaniko never started and the real cause is in the clone stage (below).
     if kaniko_exit_code.is_none() && kaniko_reason.is_none() && cloner_exit_code.unwrap_or(0) == 0 {
         let compiling = kaniko_lower.contains("npm run build")
             || kaniko_lower.contains("ng build")
@@ -1916,16 +1916,16 @@ fn classify_build_failure(
         let not_done = !kaniko_lower.contains("hermes-app-image");
         if compiling && not_done {
             return ("BUILD_OOM", concat!(
-                "Build-ul s-a oprit brusc în timpul compilării (posibil depășire de memorie/OOM la nivel de nod). ",
-                "Angular/webpack/bundler-ele necesită de obicei 1-2 GB RAM. ",
-                "Verifică că nodul K8s are suficientă memorie liberă sau mărește limita workspace-ului."
+                "The build stopped abruptly during compilation (possible memory overflow / node-level OOM). ",
+                "Angular/webpack/bundlers usually need 1-2 GB RAM. ",
+                "Check that the K8s node has enough free memory or increase the workspace limit."
             ).to_string());
         }
-        // Pod dispărut fără urmă — probabil evicție sau node pressure
+        // Pod vanished without a trace — likely eviction or node pressure
         if not_done {
             return ("BUILD_KILLED", concat!(
-                "Pod-ul de build a dispărut fără să termine (probabil evicție din cauza presiunii pe resurse). ",
-                "Verifică memoria disponibilă pe nodul K8s și încearcă din nou."
+                "The build pod vanished without finishing (likely eviction due to resource pressure). ",
+                "Check the available memory on the K8s node and try again."
             ).to_string());
         }
     }
@@ -1937,22 +1937,22 @@ fn classify_build_failure(
             || cloner_lower.contains("permission denied (publickey")
             || cloner_lower.contains("invalid username or password")
         {
-            return ("GIT_AUTH", "Autentificarea la repository a eșuat. Reconectează token-ul GitHub sau verifică cheia SSH a proiectului.".to_string());
+            return ("GIT_AUTH", "Authentication to the repository failed. Reconnect the GitHub token or check the project's SSH key.".to_string());
         }
         if cloner_lower.contains("remote branch")
             || cloner_lower.contains("couldn't find remote ref")
             || cloner_lower.contains("not found in upstream")
         {
-            return ("BRANCH_MISSING", "Branch-ul configurat nu există în repository. Verifică numele branch-ului în setările aplicației.".to_string());
+            return ("BRANCH_MISSING", "The configured branch does not exist in the repository. Check the branch name in the application settings.".to_string());
         }
         if cloner_lower.contains("repository not found") || cloner_lower.contains("does not exist") {
-            return ("REPO_NOT_FOUND", "Repository-ul nu a fost găsit. Verifică URL-ul Git și permisiunile contului.".to_string());
+            return ("REPO_NOT_FOUND", "The repository was not found. Check the Git URL and the account's permissions.".to_string());
         }
         if cloner_lower.contains("could not resolve host") || cloner_lower.contains("connection timed out") {
-            return ("NETWORK", "Eroare de rețea la clonarea codului. Reîncearcă build-ul — de obicei e o problemă temporară.".to_string());
+            return ("NETWORK", "Network error while cloning the code. Retry the build — it's usually a temporary problem.".to_string());
         }
         if cloner_exit_code.map(|c| c != 0).unwrap_or(false) {
-            return ("CLONE_FAILED", "Descărcarea codului a eșuat. Consultă log-urile etapei de clonare pentru detalii.".to_string());
+            return ("CLONE_FAILED", "Downloading the code failed. See the clone stage logs for details.".to_string());
         }
     }
 
@@ -1960,13 +1960,13 @@ fn classify_build_failure(
     if kaniko_lower.contains("error resolving dockerfile path")
         || kaniko_lower.contains("no such file or directory") && kaniko_lower.contains("dockerfile")
     {
-        return ("NO_DOCKERFILE", "Nu a fost găsit un Dockerfile în repository. Adaugă un Dockerfile la rădăcină (sau în subcalea configurată).".to_string());
+        return ("NO_DOCKERFILE", "No Dockerfile was found in the repository. Add a Dockerfile at the root (or in the configured subpath).".to_string());
     }
     if kaniko_lower.contains("unauthorized") || kaniko_lower.contains("401") && kaniko_lower.contains("push") {
-        return ("REGISTRY_AUTH", "Push-ul imaginii în registry a fost respins (autentificare). Problemă de platformă — verifică credențialele registry-ului.".to_string());
+        return ("REGISTRY_AUTH", "Pushing the image to the registry was rejected (authentication). Platform issue — check the registry credentials.".to_string());
     }
     if kaniko_lower.contains("connection refused") || kaniko_lower.contains("no such host") {
-        return ("REGISTRY", "Registry-ul de imagini nu a putut fi contactat. Reîncearcă build-ul; dacă persistă, verifică serviciul de registry.".to_string());
+        return ("REGISTRY", "The image registry could not be reached. Retry the build; if it persists, check the registry service.".to_string());
     }
     if kaniko_lower.contains("npm err!")
         || kaniko_lower.contains("error[e")
@@ -1993,8 +1993,8 @@ fn classify_build_failure(
         if detail.len() > 300 {
             detail.truncate(300);
         }
-        let suffix = if detail.is_empty() { String::new() } else { format!(" Detaliu: {}", detail) };
-        return ("BUILD_COMMAND", format!("Comanda de build a eșuat în interiorul imaginii.{}", suffix));
+        let suffix = if detail.is_empty() { String::new() } else { format!(" Detail: {}", detail) };
+        return ("BUILD_COMMAND", format!("The build command failed inside the image.{}", suffix));
     }
 
     // Still unclassified. If a known compiler ran but the image never reached the
@@ -2006,7 +2006,7 @@ fn classify_build_failure(
         || kaniko_lower.contains("webpack")
         || kaniko_lower.contains("vite build");
     if compiling && !kaniko_lower.contains("hermes-app-image") {
-        return ("BUILD_OOM", "Build-ul s-a oprit în timpul compilării fără să producă o eroare — semn tipic de lipsă de memorie (procesul a fost ucis). Mărește limita de memorie a workspace-ului (Angular/webpack au nevoie de obicei de 1.5–2 GB).".to_string());
+        return ("BUILD_OOM", "The build stopped during compilation without producing an error — a typical sign of running out of memory (the process was killed). Increase the workspace's memory limit (Angular/webpack usually need 1.5–2 GB).".to_string());
     }
 
     // Last resort: surface the actual tail of the build log + exit info so the
@@ -2020,18 +2020,18 @@ fn classify_build_failure(
     let tail_str = tail.into_iter().rev().collect::<Vec<_>>().join("\n");
     let mut info = String::new();
     if let Some(code) = kaniko_exit_code {
-        info.push_str(&format!("cod ieșire build: {}; ", code));
+        info.push_str(&format!("build exit code: {}; ", code));
     }
     if let Some(r) = kaniko_reason {
-        info.push_str(&format!("motiv terminare: {}; ", r));
+        info.push_str(&format!("termination reason: {}; ", r));
     }
     if let Some(r) = pod_reason {
-        info.push_str(&format!("motiv pod: {}; ", r));
+        info.push_str(&format!("pod reason: {}; ", r));
     }
     (
         "UNKNOWN",
         format!(
-            "Build-ul a eșuat fără o eroare clasificabilă. {}Ultimele linii din log:\n{}",
+            "The build failed without a classifiable error. {}Last lines from the log:\n{}",
             info, tail_str
         ),
     )
@@ -2099,19 +2099,19 @@ async fn run_trivy_scan(
             Ok(report) => {
                 let criticals = report.matches("CRITICAL").count();
                 let highs = report.matches("HIGH").count();
-                section.push_str(&format!("Rezumat: ~{} CRITICAL, ~{} HIGH (severități HIGH/CRITICAL raportate)\n\n", criticals, highs));
+                section.push_str(&format!("Summary: ~{} CRITICAL, ~{} HIGH (HIGH/CRITICAL severities reported)\n\n", criticals, highs));
                 // Keep the report bounded so the logs column stays manageable.
                 let mut trimmed = report;
                 if trimmed.len() > 20_000 {
                     trimmed.truncate(20_000);
-                    trimmed.push_str("\n... (raport trunchiat)\n");
+                    trimmed.push_str("\n... (report truncated)\n");
                 }
                 section.push_str(&trimmed);
             }
-            Err(_) => section.push_str("Scanarea a rulat dar raportul nu a putut fi citit.\n"),
+            Err(_) => section.push_str("The scan ran but the report could not be read.\n"),
         }
     } else {
-        section.push_str("Scanarea nu s-a încheiat în timpul alocat (5 minute) și a fost abandonată.\n");
+        section.push_str("The scan did not finish within the allotted time (5 minutes) and was abandoned.\n");
     }
 
     let _ = pods.delete(&pod_name, &DeleteParams::default()).await;
@@ -2199,9 +2199,9 @@ async fn monitor_deploy_health(
             let _ = update_status(pool, instance_id, AppStatus::Crashed).await;
 
             let short_reason = match reason.as_str() {
-                "ImagePullBackOff" | "ErrImagePull" | "InvalidImageName" => "Imaginea nu a putut fi descărcată/rezolvată".to_string(),
-                "CreateContainerError" | "CreateContainerConfigError" | "RunContainerError" => "Containerul nu a putut porni (configurare invalidă)".to_string(),
-                _ => "Aplicația a crăpat la pornire (restart în buclă)".to_string(),
+                "ImagePullBackOff" | "ErrImagePull" | "InvalidImageName" => "The image could not be pulled/resolved".to_string(),
+                "CreateContainerError" | "CreateContainerConfigError" | "RunContainerError" => "The container could not start (invalid configuration)".to_string(),
+                _ => "The application crashed at startup (restart loop)".to_string(),
             };
 
             // Mark the deploy phase as crashed without touching the build status:
@@ -2213,7 +2213,7 @@ async fn monitor_deploy_health(
                 "UPDATE app_builds
                  SET phase = 'crashed', failure_category = 'CRASH', failure_reason = $1
                  WHERE id = (SELECT id FROM app_builds WHERE app_instance_id = $2 ORDER BY created_at DESC LIMIT 1)",
-                format!("Build reușit, dar aplicația a crăpat la pornire: {} ({}). Verifică variabilele de mediu și comanda de start.", short_reason, reason),
+                format!("Build succeeded, but the application crashed at startup: {} ({}). Check the environment variables and the start command.", short_reason, reason),
                 instance_id
             )
             .execute(pool)
@@ -2634,6 +2634,6 @@ mod classify_tests {
         assert_eq!(cat, "UNKNOWN");
         // The diagnostic is no longer opaque: it carries the tail + exit code.
         assert!(reason.contains("final line"));
-        assert!(reason.contains("cod ieșire build: 2"));
+        assert!(reason.contains("build exit code: 2"));
     }
 }

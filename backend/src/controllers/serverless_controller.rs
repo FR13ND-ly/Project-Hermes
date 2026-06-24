@@ -100,7 +100,7 @@ async fn authorize_instance(
     .await?
     .unwrap_or(false);
     if !ok {
-        return Err(AppError::NotFound("Instanță serverless negăsită în acest proiect.".to_string()));
+        return Err(AppError::NotFound("Serverless instance not found in this project.".to_string()));
     }
     Ok(())
 }
@@ -154,7 +154,7 @@ pub async fn create_instance(
 
     let name = payload.name.trim().to_string();
     if slugify(&name).is_empty() {
-        return Err(AppError::Validation("Numele instanței este invalid.".to_string()));
+        return Err(AppError::Validation("The instance name is invalid.".to_string()));
     }
     let runtime = payload.runtime.clone().unwrap_or_else(|| "nodejs-cjs".to_string());
     let memory = payload.memory_limit_mb.unwrap_or(0); // 0 = unlimited (no forced default)
@@ -184,7 +184,7 @@ pub async fn get_instance(
     let ws_id = claims.current_workspace_id.ok_or_else(|| AppError::Validation("No active workspace selected.".to_string()))?;
     let inst = sqlx::query_as::<_, ServerlessInstance>("SELECT * FROM serverless_instances WHERE id = $1 AND workspace_id = $2")
         .bind(id).bind(ws_id).fetch_optional(&state.pool).await?
-        .ok_or_else(|| AppError::NotFound("Instanță serverless negăsită.".to_string()))?;
+        .ok_or_else(|| AppError::NotFound("Serverless instance not found.".to_string()))?;
     Ok(Json(load_instance_response(&state.pool, inst).await))
 }
 
@@ -201,7 +201,7 @@ pub async fn update_instance(
 
     let inst = sqlx::query_as::<_, ServerlessInstance>("SELECT * FROM serverless_instances WHERE id = $1 AND workspace_id = $2")
         .bind(id).bind(ws_id).fetch_optional(&state.pool).await?
-        .ok_or_else(|| AppError::NotFound("Instanță serverless negăsită.".to_string()))?;
+        .ok_or_else(|| AppError::NotFound("Serverless instance not found.".to_string()))?;
 
     let name = payload.name.unwrap_or(inst.name);
     let runtime = payload.runtime.unwrap_or(inst.runtime);
@@ -227,7 +227,7 @@ pub async fn update_instance(
                     ws_id, fqdn_clean
                 ).fetch_one(&state.pool).await?.unwrap_or(false);
                 if !domain_exists {
-                    return Err(AppError::Validation("Domeniul selectat nu este înregistrat în acest workspace.".to_string()));
+                    return Err(AppError::Validation("The selected domain is not registered in this workspace.".to_string()));
                 }
                 let svc_name = format!("fn-{}-proxy-svc", slugify(&name));
                 let _ = sqlx::query!(
@@ -299,7 +299,7 @@ pub async fn delete_instance(
     let ws_id = claims.current_workspace_id.ok_or_else(|| AppError::Validation("No active workspace selected.".to_string()))?;
     let inst = sqlx::query_as::<_, ServerlessInstance>("SELECT * FROM serverless_instances WHERE id = $1 AND workspace_id = $2")
         .bind(id).bind(ws_id).fetch_optional(&state.pool).await?
-        .ok_or_else(|| AppError::NotFound("Instanță serverless negăsită.".to_string()))?;
+        .ok_or_else(|| AppError::NotFound("Serverless instance not found.".to_string()))?;
 
     let linked = crate::utils::app_env::unpublish_project_env(&state.pool, "serverless", id).await;
     for inst_id in linked {
@@ -407,7 +407,7 @@ pub async fn update_route(
 
     let route = sqlx::query_as::<_, ServerlessRoute>("SELECT * FROM serverless_routes WHERE id = $1 AND instance_id = $2")
         .bind(route_id).bind(instance_id).fetch_optional(&state.pool).await?
-        .ok_or_else(|| AppError::NotFound("Rută negăsită.".to_string()))?;
+        .ok_or_else(|| AppError::NotFound("Route not found.".to_string()))?;
 
     let method = payload.method.map(|m| m.trim().to_uppercase()).unwrap_or(route.method);
     let route_path = payload.route_path.map(|p| norm_path(&p)).unwrap_or(route.route_path);
@@ -438,7 +438,7 @@ pub async fn delete_route(
     let affected = sqlx::query!("DELETE FROM serverless_routes WHERE id = $1 AND instance_id = $2", route_id, instance_id)
         .execute(&state.pool).await?.rows_affected();
     if affected == 0 {
-        return Err(AppError::NotFound("Rută negăsită.".to_string()));
+        return Err(AppError::NotFound("Route not found.".to_string()));
     }
     let _ = sqlx::query!("UPDATE serverless_instances SET status = 'draft', updated_at = now() WHERE id = $1", instance_id)
         .execute(&state.pool).await;
@@ -557,12 +557,12 @@ pub async fn deploy_instance(
 
     let instance = sqlx::query_as::<_, ServerlessInstance>("SELECT * FROM serverless_instances WHERE id = $1 AND workspace_id = $2")
         .bind(id).bind(ws_id).fetch_optional(&state.pool).await?
-        .ok_or_else(|| AppError::NotFound("Instanță serverless negăsită.".to_string()))?;
+        .ok_or_else(|| AppError::NotFound("Serverless instance not found.".to_string()))?;
 
     let routes = sqlx::query_as::<_, ServerlessRoute>("SELECT * FROM serverless_routes WHERE instance_id = $1 ORDER BY route_path ASC, method ASC")
         .bind(id).fetch_all(&state.pool).await?;
     if routes.is_empty() {
-        return Err(AppError::Validation("Adaugă cel puțin o rută înainte de a lansa instanța.".to_string()));
+        return Err(AppError::Validation("Add at least one route before launching the instance.".to_string()));
     }
 
     let external_port = match instance.external_port {
@@ -600,7 +600,7 @@ pub async fn deploy_instance(
         let start_time = Instant::now();
         let k8s_client = match K8sManager::get_client().await {
             Ok(c) => c,
-            Err(e) => { let _ = save_build_error(&pool, instance_id, build_id, &format!("Eșec conexiune Kubernetes: {}", e)).await; return; }
+            Err(e) => { let _ = save_build_error(&pool, instance_id, build_id, &format!("Kubernetes connection failed: {}", e)).await; return; }
         };
 
         let limits = sqlx::query!("SELECT max_memory_mb, max_storage_gb, max_cpu_millicores FROM workspaces WHERE id = $1", ws_id).fetch_one(&pool).await;
@@ -667,11 +667,11 @@ pub async fn deploy_instance(
             "data": cm_data
         })) {
             Ok(o) => o,
-            Err(e) => { let _ = save_build_error(&pool, instance_id, build_id, &format!("Eroare serializare ConfigMap: {}", e)).await; return; }
+            Err(e) => { let _ = save_build_error(&pool, instance_id, build_id, &format!("ConfigMap serialization error: {}", e)).await; return; }
         };
         let _ = configmaps.delete(&configmap_name, &DeleteParams::default()).await;
         if let Err(e) = configmaps.create(&PostParams::default(), &cm_obj).await {
-            let _ = save_build_error(&pool, instance_id, build_id, &format!("Eroare creare ConfigMap: {}", e)).await; return;
+            let _ = save_build_error(&pool, instance_id, build_id, &format!("ConfigMap creation error: {}", e)).await; return;
         }
 
         // Registry creds (optional)
@@ -726,12 +726,12 @@ pub async fn deploy_instance(
 
         let builder_pod: Pod = match serde_json::from_value(builder_pod_manifest) {
             Ok(p) => p,
-            Err(e) => { let _ = save_build_error(&pool, instance_id, build_id, &format!("Eroare manifest builder: {}", e)).await; return; }
+            Err(e) => { let _ = save_build_error(&pool, instance_id, build_id, &format!("Builder manifest error: {}", e)).await; return; }
         };
         let pods_api: Api<Pod> = Api::namespaced(k8s_client.clone(), &namespace);
         let _ = pods_api.delete(&builder_pod_name, &DeleteParams::default()).await;
         if let Err(e) = pods_api.create(&PostParams::default(), &builder_pod).await {
-            let _ = save_build_error(&pool, instance_id, build_id, &format!("Eroare lansare pod builder: {}", e)).await; return;
+            let _ = save_build_error(&pool, instance_id, build_id, &format!("Builder pod launch error: {}", e)).await; return;
         }
 
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(2));
@@ -885,7 +885,7 @@ pub async fn reload_instance_env(
 
     let inst = sqlx::query_as::<_, ServerlessInstance>("SELECT * FROM serverless_instances WHERE id = $1")
         .bind(instance_id).fetch_one(&state.pool).await?;
-    let image = inst.current_image_tag.clone().ok_or_else(|| AppError::Validation("Lansează instanța cel puțin o dată înainte de a reîncărca variabilele.".to_string()))?;
+    let image = inst.current_image_tag.clone().ok_or_else(|| AppError::Validation("Launch the instance at least once before reloading the variables.".to_string()))?;
 
     let envs = resolve_instance_env_map(&state.pool, inst.id, inst.project_id, inst.inherit_project_envs).await;
 
@@ -1065,12 +1065,12 @@ pub async fn stream_build_logs(
         }
         let k8s_client = match crate::utils::k8s::K8sManager::get_client().await {
             Ok(c) => c,
-            Err(e) => { yield Ok(Event::default().data(format!("[System] Conexiune Kubernetes eșuată: {}", e))); return; }
+            Err(e) => { yield Ok(Event::default().data(format!("[System] Kubernetes connection failed: {}", e))); return; }
         };
         let namespace = format!("hermes-ws-{}", ws_id);
         let builder_pod_name = format!("fn-builder-{}", instance_id);
         let pods_api: kube::Api<Pod> = kube::Api::namespaced(k8s_client, &namespace);
-        yield Ok(Event::default().data("=========================================\n COMPILARE INSTANȚĂ (KANIKO) — LIVE\n=========================================".to_string()));
+        yield Ok(Event::default().data("=========================================\n INSTANCE BUILD (KANIKO) — LIVE\n=========================================".to_string()));
 
         let mut pod_ready = false;
         for _ in 0..15 {
@@ -1112,7 +1112,7 @@ pub async fn stream_instance_logs(
     let ws_id = claims.current_workspace_id.ok_or_else(|| AppError::Validation("No active workspace selected.".to_string()))?;
     let inst = sqlx::query_as::<_, ServerlessInstance>("SELECT * FROM serverless_instances WHERE id = $1 AND workspace_id = $2")
         .bind(id).bind(ws_id).fetch_optional(&state.pool).await?
-        .ok_or_else(|| AppError::NotFound("Instanță serverless negăsită.".to_string()))?;
+        .ok_or_else(|| AppError::NotFound("Serverless instance not found.".to_string()))?;
 
     let k8s_client = K8sManager::get_client().await?;
     let namespace = format!("hermes-ws-{}", ws_id);
@@ -1124,30 +1124,30 @@ pub async fn stream_instance_logs(
         loop {
             let pod_list = match pods_api.list(&lp).await {
                 Ok(list) => list,
-                Err(e) => { yield Ok(Event::default().data(format!("[Console Error] Eșec listare pod-uri: {}", e))); tokio::time::sleep(std::time::Duration::from_secs(3)).await; continue; }
+                Err(e) => { yield Ok(Event::default().data(format!("[Console Error] Failed to list pods: {}", e))); tokio::time::sleep(std::time::Duration::from_secs(3)).await; continue; }
             };
             let pod = match pod_list.items.first() {
                 Some(p) => p,
-                None => { yield Ok(Event::default().data("[Console] Instanța este inactivă (scalată la zero) sau se redeploiază. Se așteaptă apelare...".to_string())); tokio::time::sleep(std::time::Duration::from_secs(3)).await; continue; }
+                None => { yield Ok(Event::default().data("[Console] The instance is idle (scaled to zero) or redeploying. Waiting for a request...".to_string())); tokio::time::sleep(std::time::Duration::from_secs(3)).await; continue; }
             };
             let pod_name = match &pod.metadata.name { Some(name) => name.clone(), None => { tokio::time::sleep(std::time::Duration::from_secs(2)).await; continue; } };
             let phase = pod.status.as_ref().and_then(|s| s.phase.clone()).unwrap_or_else(|| "Unknown".to_string());
             if phase == "Pending" || phase == "Unknown" {
-                yield Ok(Event::default().data(format!("[Console] Instanța se inițializează (Status: {})...", phase)));
+                yield Ok(Event::default().data(format!("[Console] The instance is initializing (Status: {})...", phase)));
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await; continue;
             }
             let log_params = kube::api::LogParams { follow: true, tail_lines: Some(100), container: Some("user-container".to_string()), ..Default::default() };
             match pods_api.log_stream(&pod_name, &log_params).await {
                 Ok(log_stream) => {
-                    yield Ok(Event::default().data("[Console] Conectat cu succes la fluxul de logs:".to_string()));
+                    yield Ok(Event::default().data("[Console] Successfully connected to the log stream:".to_string()));
                     use futures_util::io::AsyncBufReadExt;
                     let mut lines = log_stream.lines();
                     while let Some(line_res) = lines.next().await {
-                        match line_res { Ok(line) => yield Ok(Event::default().data(line)), Err(e) => { yield Ok(Event::default().data(format!("[Console Warning] Eroare rețea logs: {}", e))); break; } }
+                        match line_res { Ok(line) => yield Ok(Event::default().data(line)), Err(e) => { yield Ok(Event::default().data(format!("[Console Warning] Log network error: {}", e))); break; } }
                     }
                     tokio::time::sleep(std::time::Duration::from_secs(3)).await;
                 }
-                Err(e) => { yield Ok(Event::default().data(format!("[Console] Conectare la logs eșuată (se reîncearcă): {}", e))); tokio::time::sleep(std::time::Duration::from_secs(3)).await; }
+                Err(e) => { yield Ok(Event::default().data(format!("[Console] Failed to connect to logs (retrying): {}", e))); tokio::time::sleep(std::time::Duration::from_secs(3)).await; }
             }
         }
     };

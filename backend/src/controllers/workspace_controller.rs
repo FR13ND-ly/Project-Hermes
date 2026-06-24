@@ -21,7 +21,7 @@ pub async fn create_workspace(
     let slug = payload.name.to_lowercase().trim().replace(" ", "-");
     let workspace_id = Uuid::new_v4();
 
-    // Rezolvată eroarea de tip: adăugat unwrap_or(false) pentru Option<bool>
+    // Type fix: added unwrap_or(false) for Option<bool>
     let slug_exists = sqlx::query_scalar!(
         "SELECT EXISTS(SELECT 1 FROM workspaces WHERE slug = $1)",
         slug
@@ -82,7 +82,7 @@ pub async fn list_my_workspaces(
     State(state): State<AppState>,
     AuthenticatedUser(claims): AuthenticatedUser,
 ) -> Result<Json<Vec<WorkspaceResponse>>, AppError> {
-    // Corectată eroarea de argumente: parametrii se trimit prin .bind() în SQLx 0.7+
+    // Argument fix: parameters are passed via .bind() in SQLx 0.7+
     let workspaces = sqlx::query_as::<_, Workspace>(
         "SELECT w.* FROM workspaces w JOIN workspace_members wm ON w.id = wm.workspace_id WHERE wm.user_id = $1"
     )

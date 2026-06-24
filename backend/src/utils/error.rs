@@ -100,27 +100,27 @@ impl From<sqlx::Error> for AppError {
                 if db_err.code().as_deref() == Some("23505") {
                     let constraint_msg = match db_err.constraint() {
                         Some("unique_workspace_app_slug") => {
-                            "O aplicație cu această denumire (slug) există deja în acest workspace."
+                            "An application with this name (slug) already exists in this workspace."
                         }
                         Some("users_username_key") => {
-                            "Numele de utilizator este deja folosit."
+                            "This username is already taken."
                         }
                         Some("users_email_key") => {
-                            "Adresa de email este deja înregistrată."
+                            "This email address is already registered."
                         }
                         Some("workspaces_slug_key") => {
-                            "Un workspace cu această denumire (slug) există deja."
+                            "A workspace with this name (slug) already exists."
                         }
                         Some("unique_workspace_bucket_slug") => {
-                            "Un bucket de stocare cu această denumire există deja în acest workspace."
+                            "A storage bucket with this name already exists in this workspace."
                         }
                         Some("unique_route_path_per_project") => {
-                            "Această rută serverless există deja în cadrul proiectului."
+                            "This serverless route already exists in the project."
                         }
                         Some("unique_env_per_instance") => {
-                            "O variabilă de mediu cu această cheie există deja în instanță."
+                            "An environment variable with this key already exists on the instance."
                         }
-                        _ => "Resursa duplicată încalcă o constrângere de unicitate.",
+                        _ => "The duplicate resource violates a uniqueness constraint.",
                     };
                     AppError::Conflict(constraint_msg.to_string())
                 } else {

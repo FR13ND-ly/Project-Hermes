@@ -18,7 +18,7 @@ pub async fn create_project(
 
     let slug = payload.name.to_lowercase().trim().replace(" ", "-");
 
-    // Corectat: adăugat unwrap_or(false) deoarece query_scalar returnează un Option<bool>
+    // Fix: added unwrap_or(false) because query_scalar returns an Option<bool>
     let slug_exists = sqlx::query_scalar!(
         "SELECT EXISTS(SELECT 1 FROM projects WHERE workspace_id = $1 AND slug = $2)",
         ws_id,
@@ -45,7 +45,7 @@ pub async fn create_project(
             .await?
             .unwrap_or(false);
             if !ok {
-                return Err(AppError::NotFound("Credențială Cloudflare negăsită în acest workspace.".to_string()));
+                return Err(AppError::NotFound("Cloudflare credential not found in this workspace.".to_string()));
             }
             Some(cid)
         }
@@ -85,7 +85,7 @@ pub async fn list_workspace_projects(
         None => return Ok(Json(vec![])),
     };
 
-    // Corectat conform SQLx 0.7+: Parametrul se trimite separat utilizând .bind()
+    // Per SQLx 0.7+: the parameter is passed separately using .bind()
     let projects = sqlx::query_as::<_, Project>(
         "SELECT * FROM projects WHERE workspace_id = $1 ORDER BY created_at DESC"
     )
@@ -645,7 +645,7 @@ pub async fn update_project_settings(
         .await?
         .unwrap_or(false);
         if !ok {
-            return Err(AppError::NotFound("Credențială Cloudflare negăsită în acest workspace.".to_string()));
+            return Err(AppError::NotFound("Cloudflare credential not found in this workspace.".to_string()));
         }
     }
 

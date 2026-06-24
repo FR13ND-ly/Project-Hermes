@@ -101,10 +101,10 @@ pub fn default_backup_command(db_type: &DbType) -> String {
     // `&& echo ... >&2` adds a friendly line to the history WITHOUT corrupting the
     // dump (stderr ≠ stdout) and preserves the dump's exit code (&& short-circuits).
     match db_type {
-        DbType::Postgres => "pg_dump --clean --if-exists -U \"$POSTGRES_USER\" \"$POSTGRES_DB\" && echo \"✅ Backup Postgres pentru baza $POSTGRES_DB finalizat cu succes.\" >&2".to_string(),
-        DbType::Mysql => "mysqldump --add-drop-table -u\"$MYSQL_USER\" -p\"$MYSQL_PASSWORD\" \"$MYSQL_DATABASE\" && echo \"✅ Backup MySQL pentru baza $MYSQL_DATABASE finalizat cu succes.\" >&2".to_string(),
-        DbType::Mongodb => "mongodump --username \"$MONGO_INITDB_ROOT_USERNAME\" --password \"$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --archive && echo \"✅ Backup MongoDB finalizat cu succes.\" >&2".to_string(),
-        DbType::Redis => "redis-cli --rdb /dev/stdout && echo \"✅ Backup Redis finalizat cu succes.\" >&2".to_string(),
+        DbType::Postgres => "pg_dump --clean --if-exists -U \"$POSTGRES_USER\" \"$POSTGRES_DB\" && echo \"✅ Postgres backup of database $POSTGRES_DB completed successfully.\" >&2".to_string(),
+        DbType::Mysql => "mysqldump --add-drop-table -u\"$MYSQL_USER\" -p\"$MYSQL_PASSWORD\" \"$MYSQL_DATABASE\" && echo \"✅ MySQL backup of database $MYSQL_DATABASE completed successfully.\" >&2".to_string(),
+        DbType::Mongodb => "mongodump --username \"$MONGO_INITDB_ROOT_USERNAME\" --password \"$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --archive && echo \"✅ MongoDB backup completed successfully.\" >&2".to_string(),
+        DbType::Redis => "redis-cli --rdb /dev/stdout && echo \"✅ Redis backup completed successfully.\" >&2".to_string(),
     }
 }
 

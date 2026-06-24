@@ -73,7 +73,7 @@ pub async fn seed_initial_super_admin(state: &AppState) -> Result<(), anyhow::Er
     .execute(&mut *tx)
     .await?;
 
-    // 6. Setăm workspace-ul curent în tabela utilizatorului root pentru aliniere la middleware
+    // 6. Set the root user's current workspace so it aligns with the middleware
     sqlx::query!("UPDATE users SET current_workspace_id = $1 WHERE id = $2", workspace_id, user_id)
         .execute(&mut *tx)
         .await?;

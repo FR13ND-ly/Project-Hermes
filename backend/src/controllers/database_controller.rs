@@ -690,7 +690,7 @@ pub async fn stream_database_logs(
             let pod_list = match pods_api.list(&lp).await {
                 Ok(list) => list,
                 Err(e) => {
-                    yield Ok(Event::default().data(format!("[Console Error] Eșec la listarea pod-urilor din Kubernetes: {}", e)));
+                    yield Ok(Event::default().data(format!("[Console Error] Failed to list pods from Kubernetes: {}", e)));
                     tokio::time::sleep(std::time::Duration::from_secs(3)).await;
                     continue;
                 }
@@ -699,7 +699,7 @@ pub async fn stream_database_logs(
             let pod = match pod_list.items.first() {
                 Some(p) => p,
                 None => {
-                    yield Ok(Event::default().data("[Console] Se așteaptă programarea pod-ului pe nod...".to_string()));
+                    yield Ok(Event::default().data("[Console] Waiting for the pod to be scheduled on a node...".to_string()));
                     tokio::time::sleep(std::time::Duration::from_secs(3)).await;
                     continue;
                 }
@@ -718,7 +718,7 @@ pub async fn stream_database_logs(
                 .unwrap_or_else(|| "Unknown".to_string());
 
             if phase == "Pending" || phase == "Unknown" {
-                yield Ok(Event::default().data(format!("[Console] Baza de date se inițializează (Stare: {})...", phase)));
+                yield Ok(Event::default().data(format!("[Console] The database is initializing (State: {})...", phase)));
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
                 continue;
             }
@@ -737,7 +737,7 @@ pub async fn stream_database_logs(
             let log_stream_res = pods_api.log_stream(&pod_name, &log_params).await;
             match log_stream_res {
                 Ok(log_stream) => {
-                    yield Ok(Event::default().data("[Console] Conexiune stabilă cu pod-ul. Se preiau logurile:".to_string()));
+                    yield Ok(Event::default().data("[Console] Stable connection to the pod. Fetching logs:".to_string()));
                     
                     use futures_util::io::AsyncBufReadExt;
                     let mut lines = log_stream.lines();
@@ -747,14 +747,14 @@ pub async fn stream_database_logs(
                                 yield Ok(Event::default().data(line));
                             }
                             Err(e) => {
-                                yield Ok(Event::default().data(format!("[Console Warning] Eroare de rețea la fluxul de logs: {}", e)));
+                                yield Ok(Event::default().data(format!("[Console Warning] Network error on the log stream: {}", e)));
                                 break;
                             }
                         }
                     }
                 }
                 Err(e) => {
-                    yield Ok(Event::default().data(format!("[Console] Se pornește containerul de logs (Eroare API: {})...", e)));
+                    yield Ok(Event::default().data(format!("[Console] Starting the logs container (API error: {})...", e)));
                 }
             }
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
@@ -1002,7 +1002,7 @@ async fn redis_restore_from_file(host: &str, port: i32, password: &str, path: &s
 
     if !data.starts_with(REDIS_DUMP_MAGIC) {
         return Err(AppError::Validation(
-            "Acest backup Redis e în format RDB vechi și nu poate fi restaurat după migrarea la backup pe protocol. Creează un backup nou.".to_string(),
+            "This Redis backup is in the old RDB format and cannot be restored after the migration to protocol-level backups. Create a new backup.".to_string(),
         ));
     }
     let mut pos = REDIS_DUMP_MAGIC.len();
@@ -1095,7 +1095,7 @@ async fn backup_sql_via_job(
         let _ = std::fs::remove_file(filepath);
         let detail = logs.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("").trim();
         return Err(AppError::Infrastructure(format!(
-            "Backup-ul a eșuat (cod {}). Detaliu: {}",
+            "The backup failed (code {}). Detail: {}",
             exit_code, detail
         )));
     }
@@ -1449,7 +1449,7 @@ async fn restore_sql_via_job(
     if exit_code != 0 {
         let detail = logs.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("").trim();
         return Err(AppError::Infrastructure(format!(
-            "Restore-ul a eșuat (cod {}). Detaliu: {}",
+            "The restore failed (code {}). Detail: {}",
             exit_code, detail
         )));
     }
@@ -1717,7 +1717,7 @@ pub async fn rotate_database_password(
         if exit_code != 0 {
             let detail = logs.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("").trim();
             return Err(AppError::Infrastructure(format!(
-                "Rotația parolei a eșuat (cod {}). Detaliu: {}",
+                "The password rotation failed (code {}). Detail: {}",
                 exit_code, detail
             )));
         }

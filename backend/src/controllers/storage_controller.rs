@@ -765,7 +765,7 @@ pub async fn process_upload_stream(
     tokio::spawn(async move {
         // Granular processing stages are reported through an unbounded channel and
         // drained into `storage_objects.processing_stage` concurrently, so the
-        // dashboard's 2s poll can surface "Variantă: thumb", "Conversie", etc. live.
+        // dashboard's 2s poll can surface "Variant: thumb", "Conversion", etc. live.
         let (stage_tx, mut stage_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
         let drain_pool = pool_clone.clone();
         let drain_handle = tokio::spawn(async move {

@@ -357,22 +357,22 @@ async fn dispatch_external_alert(pool: &PgPool, workspace_id: Uuid, instance_id:
                     serde_json::json!({
                         "embeds": [
                             {
-                                "title": "🚨 ALERTĂ INCIDENT - Hermes Orchestrator",
-                                "description": "S-a înregistrat o problemă în starea de funcționare a aplicației.",
+                                "title": "🚨 INCIDENT ALERT - Hermes Orchestrator",
+                                "description": "A problem was detected in the application's health status.",
                                 "color": 15158332,
                                 "fields": [
                                     {
-                                        "name": "ID Instanță",
+                                        "name": "Instance ID",
                                         "value": format!("`{}`", instance_id),
                                         "inline": true
                                     },
                                     {
-                                        "name": "Tip Incident",
+                                        "name": "Incident Type",
                                         "value": format!("`{}`", incident_type),
                                         "inline": true
                                     },
                                     {
-                                        "name": "Mesaj",
+                                        "name": "Message",
                                         "value": message
                                     }
                                 ],
@@ -383,7 +383,7 @@ async fn dispatch_external_alert(pool: &PgPool, workspace_id: Uuid, instance_id:
                 }
                 "slack" => {
                     serde_json::json!({
-                        "text": format!("🚨 *[ALERTĂ INCIDENT]*\n*Instanță:* `{}`\n*Tip:* `{}`\n*Mesaj:* {}\n*Timp:* {}", instance_id, incident_type, message, timestamp)
+                        "text": format!("🚨 *[INCIDENT ALERT]*\n*Instance:* `{}`\n*Type:* `{}`\n*Message:* {}\n*Time:* {}", instance_id, incident_type, message, timestamp)
                     })
                 }
                 _ => {

@@ -58,7 +58,7 @@ pub(crate) fn clean_env_key(raw: &str) -> Result<String, AppError> {
     let rest_ok = clean.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
     if !first_ok || !rest_ok {
         return Err(AppError::Validation(format!(
-            "Cheie de mediu invalidă '{}': folosește doar litere, cifre și underscore, fără a începe cu o cifră.",
+            "Invalid environment key '{}': use only letters, digits and underscores, and don't start with a digit.",
             clean
         )));
     }

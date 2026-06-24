@@ -109,7 +109,7 @@ pub async fn check_workspace_memory_limit(
 
     if total_used + requested_memory_mb > max_mem {
         return Err(AppError::Validation(format!(
-            "Memoria totală alocată în workspace ({used} MB din {max} MB) ar depăși limita maximă admisă dacă se adaugă această resursă ({requested} MB). Vă rugăm să măriți limita de memorie a workspace-ului sau să opriți alte resurse.",
+            "The total memory allocated in this workspace ({used} MB of {max} MB) would exceed the maximum allowed limit if this resource ({requested} MB) is added. Please increase the workspace's memory limit or stop other resources.",
             used = total_used,
             max = max_mem,
             requested = requested_memory_mb
@@ -159,7 +159,7 @@ pub async fn check_workspace_cpu_limit(
 
     if total_used + requested_cpu_millicores as i64 > max_cpu as i64 {
         return Err(AppError::Validation(format!(
-            "CPU-ul total alocat în workspace ({used}m din {max}m) ar depăși limita maximă dacă se adaugă această resursă ({requested}m). Măriți limita de CPU a workspace-ului sau opriți alte resurse.",
+            "The total CPU allocated in this workspace ({used}m of {max}m) would exceed the maximum limit if this resource ({requested}m) is added. Increase the workspace's CPU limit or stop other resources.",
             used = total_used,
             max = max_cpu,
             requested = requested_cpu_millicores

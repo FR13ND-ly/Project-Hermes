@@ -255,7 +255,7 @@ pub async fn create_app(
     .await?;
     if alias_taken {
         return Err(AppError::Conflict(format!(
-            "Numele de serviciu '{}' e deja folosit în acest workspace. Alege altul.",
+            "The service name '{}' is already used in this workspace. Choose another.",
             network_alias
         )));
     }
@@ -272,7 +272,7 @@ pub async fn create_app(
         .await?
         .unwrap_or(false);
         if !ok {
-            return Err(AppError::Validation("Credențiala git nu aparține acestui workspace.".to_string()));
+            return Err(AppError::Validation("The git credential does not belong to this workspace.".to_string()));
         }
     }
 
@@ -792,7 +792,7 @@ pub async fn redeploy_app_instance(
     .await?
     .unwrap_or(false);
     if busy {
-        return Err(AppError::Conflict("Există deja un build în curs pentru această instanță.".to_string()));
+        return Err(AppError::Conflict("There is already a build in progress for this instance.".to_string()));
     }
 
     sqlx::query!(
@@ -1467,7 +1467,7 @@ pub async fn get_build_details(
             if let Ok(_pod) = pods.get(&builder_pod_name).await {
                 let mut live_logs = String::new();
                 live_logs.push_str("=========================================\n");
-                live_logs.push_str(" ETAPA 1: DESCĂRCARE COD (GIT CLONE) (LIVE)\n");
+                live_logs.push_str(" STAGE 1: CODE DOWNLOAD (GIT CLONE) (LIVE)\n");
                 live_logs.push_str("=========================================\n");
                 
                 let cloner_params = kube::api::LogParams {
@@ -1476,11 +1476,11 @@ pub async fn get_build_details(
                 };
                 match pods.logs(&builder_pod_name, &cloner_params).await {
                     Ok(l) => live_logs.push_str(&l),
-                    Err(_) => live_logs.push_str("Se descarcă codul sau se pregătește containerul...\n"),
+                    Err(_) => live_logs.push_str("Downloading the code or preparing the container...\n"),
                 }
 
                 live_logs.push_str("\n\n=========================================\n");
-                live_logs.push_str(" ETAPA 2: CONSTRUIRE IMAGINE (KANIKO) (LIVE)\n");
+                live_logs.push_str(" STAGE 2: IMAGE BUILD (KANIKO) (LIVE)\n");
                 live_logs.push_str("=========================================\n");
                 
                 let kaniko_params = kube::api::LogParams {
@@ -1489,7 +1489,7 @@ pub async fn get_build_details(
                 };
                 match pods.logs(&builder_pod_name, &kaniko_params).await {
                     Ok(l) => live_logs.push_str(&l),
-                    Err(_) => live_logs.push_str("Se construiește imaginea docker (Kaniko) sau se așteaptă containerul...\n"),
+                    Err(_) => live_logs.push_str("Building the docker image (Kaniko) or waiting for the container...\n"),
                 }
                 logs = live_logs;
             }
@@ -1535,13 +1535,13 @@ pub async fn cancel_build(
     .ok_or_else(|| AppError::NotFound("Build not found for this application.".to_string()))?;
 
     if build.status != "building" {
-        return Err(AppError::Conflict("Doar build-urile în curs pot fi anulate.".to_string()));
+        return Err(AppError::Conflict("Only builds in progress can be cancelled.".to_string()));
     }
 
     // Signal the running build loop to stop, and reflect it on the build record.
     sqlx::query!(
         "UPDATE app_builds SET status = 'cancelled', phase = 'cancelled', failure_reason = $2, failure_category = 'CANCELLED' WHERE id = $1",
-        build_id, "Build anulat manual de utilizator."
+        build_id, "Build cancelled manually by the user."
     )
     .execute(&state.pool)
     .await?;
@@ -1598,10 +1598,10 @@ pub async fn rollback_build(
     .ok_or_else(|| AppError::NotFound("Build not found for this application.".to_string()))?;
 
     if build.status != "succeeded" {
-        return Err(AppError::Conflict("Se poate face rollback doar la un build reușit.".to_string()));
+        return Err(AppError::Conflict("Rollback is only possible to a successful build.".to_string()));
     }
     let image_tag = build.image_tag.ok_or_else(|| {
-        AppError::Conflict("Acest build nu are o imagine asociată (build vechi, dinainte de tagurile imutabile).".to_string())
+        AppError::Conflict("This build has no associated image (an old build, from before immutable tags).".to_string())
     })?;
 
     let busy = sqlx::query_scalar!(
@@ -1612,7 +1612,7 @@ pub async fn rollback_build(
     .await?
     .unwrap_or(false);
     if busy {
-        return Err(AppError::Conflict("Există deja un build/deploy în curs pentru această instanță.".to_string()));
+        return Err(AppError::Conflict("There is already a build/deploy in progress for this instance.".to_string()));
     }
 
     // Point the instance at the chosen image and redeploy it.
@@ -1659,7 +1659,7 @@ pub async fn retry_build(
     .unwrap_or(false);
 
     if busy {
-        return Err(AppError::Conflict("Există deja un build în curs pentru această instanță.".to_string()));
+        return Err(AppError::Conflict("There is already a build in progress for this instance.".to_string()));
     }
 
     sqlx::query!(
@@ -2086,7 +2086,7 @@ pub async fn stream_build_logs(
         let k8s_client = match crate::utils::k8s::K8sManager::get_client().await {
             Ok(c) => c,
             Err(e) => {
-                yield Ok(Event::default().data(format!("[System Error] Conexiunea la Kubernetes a eșuat: {}", e)));
+                yield Ok(Event::default().data(format!("[System Error] The connection to Kubernetes failed: {}", e)));
                 return;
             }
         };
@@ -2095,7 +2095,7 @@ pub async fn stream_build_logs(
         let builder_pod_name = format!("hermes-builder-{}", instance_id);
         let pods_api: kube::Api<k8s_openapi::api::core::v1::Pod> = kube::Api::namespaced(k8s_client, &namespace);
 
-        // Așteptăm ca pod-ul de build să fie programat/pornit (max 30 secunde)
+        // Wait for the build pod to be scheduled/started (max 30 seconds)
         let mut pod_ready = false;
         for _ in 0..15 {
             if let Ok(pod) = pods_api.get(&builder_pod_name).await {
@@ -2108,11 +2108,11 @@ pub async fn stream_build_logs(
         }
 
         if !pod_ready {
-            yield Ok(Event::default().data("[System] Se inițializează mediul de compilare...".to_string()));
+            yield Ok(Event::default().data("[System] Initializing the build environment...".to_string()));
         }
 
-        // --- ETAPA 1: CLONER ---
-        yield Ok(Event::default().data("=========================================\n ETAPA 1: DESCĂRCARE COD (GIT CLONE) (LIVE)\n=========================================\n".to_string()));
+        // --- STAGE 1: CLONER ---
+        yield Ok(Event::default().data("=========================================\n STAGE 1: CODE DOWNLOAD (GIT CLONE) (LIVE)\n=========================================\n".to_string()));
 
         let cloner_params = kube::api::LogParams {
             container: Some("cloner".to_string()),
@@ -2138,14 +2138,14 @@ pub async fn stream_build_logs(
         }
 
         if !cloner_stream_success {
-            yield Ok(Event::default().data("Pregătire clonare cod...".to_string()));
+            yield Ok(Event::default().data("Preparing the code clone...".to_string()));
             tokio::time::sleep(std::time::Duration::from_secs(3)).await;
         }
 
-        // --- ETAPA 2: KANIKO ---
-        yield Ok(Event::default().data("\n\n=========================================\n ETAPA 2: CONSTRUIRE IMAGINE (KANIKO) (LIVE)\n=========================================\n".to_string()));
+        // --- STAGE 2: KANIKO ---
+        yield Ok(Event::default().data("\n\n=========================================\n STAGE 2: IMAGE BUILD (KANIKO) (LIVE)\n=========================================\n".to_string()));
 
-        // Așteptăm ca containerul Kaniko să devină activ (max 120 secunde, util în caz de pulling imagine mare)
+        // Wait for the Kaniko container to become active (max 120 seconds, useful when pulling a large image)
         let mut kaniko_active = false;
         for _ in 0..60 {
             if let Ok(pod) = pods_api.get(&builder_pod_name).await {
@@ -2163,7 +2163,7 @@ pub async fn stream_build_logs(
         }
 
         if !kaniko_active {
-            yield Ok(Event::default().data("Se așteaptă pornirea motorului de build (Kaniko)...".to_string()));
+            yield Ok(Event::default().data("Waiting for the build engine (Kaniko) to start...".to_string()));
             tokio::time::sleep(std::time::Duration::from_secs(3)).await;
         }
 
@@ -2188,12 +2188,12 @@ pub async fn stream_build_logs(
             }
         }
 
-        // --- ETAPA 3: DEPLOY & FINALIZARE (LIVE) ---
-        // Cloner/Kaniko au fost transmise live mai sus, dar orchestratorul mai
-        // scrie log-uri (deploy, clasificare erori, sumar final) în DB DUPĂ ce
-        // Kaniko termină. Le transmitem incremental aici, urmărind ce se adaugă în
-        // coloana `logs` până când build-ul nu mai e `building` — astfel
-        // utilizatorul vede totul fără să dea refresh pe pagină.
+        // --- STAGE 3: DEPLOY & FINALIZE (LIVE) ---
+        // Cloner/Kaniko were streamed live above, but the orchestrator also writes
+        // logs (deploy, error classification, final summary) to the DB AFTER Kaniko
+        // finishes. We stream them incrementally here, tracking what's appended to the
+        // `logs` column until the build is no longer `building` — so the user sees
+        // everything without refreshing the page.
         let mut last_len: usize = sqlx::query_scalar!("SELECT logs FROM app_builds WHERE id = $1", build_id)
             .fetch_optional(&pool)
             .await
@@ -2202,7 +2202,7 @@ pub async fn stream_build_logs(
             .map(|l| l.len())
             .unwrap_or(0);
         let mut separator_sent = false;
-        // Maxim ~6 minute pentru fazele post-build (240 * 1500ms).
+        // Up to ~6 minutes for the post-build phases (240 * 1500ms).
         for _ in 0..240 {
             match sqlx::query!("SELECT status, logs FROM app_builds WHERE id = $1", build_id)
                 .fetch_optional(&pool)
@@ -2278,7 +2278,7 @@ async fn handle_instance_log_socket(
         let k8s_client = match crate::utils::k8s::K8sManager::get_client().await {
             Ok(c) => c,
             Err(e) => {
-                let _ = sender.send(Message::Text(format!("[Console Error] Conexiunea la Kubernetes a eșuat: {}", e))).await;
+                let _ = sender.send(Message::Text(format!("[Console Error] The connection to Kubernetes failed: {}", e))).await;
                 return;
             }
         };
@@ -2290,7 +2290,7 @@ async fn handle_instance_log_socket(
             let pod_list = match pods_api.list(&lp).await {
                 Ok(list) => list,
                 Err(e) => {
-                    if sender.send(Message::Text(format!("[Console Error] Eșec la listarea pod-urilor: {}", e))).await.is_err() { break; }
+                    if sender.send(Message::Text(format!("[Console Error] Failed to list pods: {}", e))).await.is_err() { break; }
                     tokio::time::sleep(std::time::Duration::from_secs(3)).await;
                     continue;
                 }
@@ -2299,7 +2299,7 @@ async fn handle_instance_log_socket(
             let pod = match pod_list.items.first() {
                 Some(p) => p,
                 None => {
-                    if sender.send(Message::Text("[Console] Se așteaptă programarea pod-ului pe nod...".to_string())).await.is_err() { break; }
+                    if sender.send(Message::Text("[Console] Waiting for the pod to be scheduled on a node...".to_string())).await.is_err() { break; }
                     tokio::time::sleep(std::time::Duration::from_secs(3)).await;
                     continue;
                 }
@@ -2315,7 +2315,7 @@ async fn handle_instance_log_socket(
 
             let phase = pod.status.as_ref().and_then(|s| s.phase.clone()).unwrap_or_else(|| "Unknown".to_string());
             if phase == "Pending" || phase == "Unknown" {
-                if sender.send(Message::Text(format!("[Console] Instanța se inițializează (Stare: {})...", phase))).await.is_err() { break; }
+                if sender.send(Message::Text(format!("[Console] The instance is initializing (State: {})...", phase))).await.is_err() { break; }
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
                 continue;
             }
@@ -2329,7 +2329,7 @@ async fn handle_instance_log_socket(
 
             match pods_api.log_stream(&pod_name, &log_params).await {
                 Ok(log_stream) => {
-                    if sender.send(Message::Text("[Console] Conexiune stabilă cu containerul. Se preiau logurile:".to_string())).await.is_err() { break; }
+                    if sender.send(Message::Text("[Console] Stable connection to the container. Fetching logs:".to_string())).await.is_err() { break; }
                     use futures_util::io::AsyncBufReadExt;
                     let mut lines = log_stream.lines();
                     while let Some(line_res) = lines.next().await {
@@ -2343,11 +2343,11 @@ async fn handle_instance_log_socket(
                     // Snapshot mode (previous logs) is one-shot.
                     if is_previous { break; }
                     // The follow stream ended (pod restarted/terminated) — wait and reconnect.
-                    if sender.send(Message::Text("[Console] Fluxul s-a încheiat. Reconectare...".to_string())).await.is_err() { break; }
+                    if sender.send(Message::Text("[Console] The stream ended. Reconnecting...".to_string())).await.is_err() { break; }
                     tokio::time::sleep(std::time::Duration::from_secs(2)).await;
                 }
                 Err(e) => {
-                    if sender.send(Message::Text(format!("[Console Warning] Eroare la fluxul de logs: {}", e))).await.is_err() { break; }
+                    if sender.send(Message::Text(format!("[Console Warning] Error on the log stream: {}", e))).await.is_err() { break; }
                     tokio::time::sleep(std::time::Duration::from_secs(3)).await;
                 }
             }

@@ -193,7 +193,7 @@ async fn run_k8s_job(
     let client = match K8sManager::get_client().await {
         Ok(c) => c,
         Err(e) => {
-            log_cron(pool, job_id, workspace_id, 1, &format!("Eroare conectare Kubernetes: {}", e), started_at).await;
+            log_cron(pool, job_id, workspace_id, 1, &format!("Kubernetes connection error: {}", e), started_at).await;
             return Err(());
         }
     };
@@ -205,7 +205,7 @@ async fn run_k8s_job(
             Ok(())
         }
         Err(e) => {
-            log_cron(pool, job_id, workspace_id, 1, &format!("Eroare la rularea containerului în Kubernetes: {:?}", e), started_at).await;
+            log_cron(pool, job_id, workspace_id, 1, &format!("Error running the container in Kubernetes: {:?}", e), started_at).await;
             Err(())
         }
     }
@@ -224,7 +224,7 @@ async fn execute_cron_job(
     let started_at = Utc::now();
 
     let Some(target_id) = target_id else {
-        log_cron(&pool, job_id, workspace_id, 1, "Eroare: cron-ul nu are o resursă țintă.", started_at).await;
+        log_cron(&pool, job_id, workspace_id, 1, "Error: the cron has no target resource.", started_at).await;
         return Err(());
     };
 
@@ -234,7 +234,7 @@ async fn execute_cron_job(
             match crate::controllers::database_controller::perform_database_backup(&pool, target_id, Some(&command)).await {
                 Ok(res) => {
                     let kb = (res.file_size_bytes as f64 / 1024.0).max(0.0);
-                    let mut msg = format!("📦 Backup creat: {} · {:.1} KB", res.filename, kb);
+                    let mut msg = format!("📦 Backup created: {} · {:.1} KB", res.filename, kb);
                     if let Some(extra) = res.log.as_ref().filter(|s| !s.is_empty()) {
                         msg.push('\n');
                         msg.push_str(extra);
@@ -243,7 +243,7 @@ async fn execute_cron_job(
                     Ok(())
                 }
                 Err(e) => {
-                    log_cron(&pool, job_id, workspace_id, 1, &format!("Backup eșuat: {:?}", e), started_at).await;
+                    log_cron(&pool, job_id, workspace_id, 1, &format!("Backup failed: {:?}", e), started_at).await;
                     Err(())
                 }
             }
@@ -263,7 +263,7 @@ async fn execute_cron_job(
             run_storage_cron(&pool, job_id, workspace_id, target_id, command, extra, started_at).await
         }
         other => {
-            log_cron(&pool, job_id, workspace_id, 1, &format!("Tip de țintă necunoscut: {}", other), started_at).await;
+            log_cron(&pool, job_id, workspace_id, 1, &format!("Unknown target type: {}", other), started_at).await;
             Err(())
         }
     }
@@ -293,7 +293,7 @@ async fn run_app_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, app_id: U
     let inst_id = match inst {
         Ok(Some(r)) => r.id,
         _ => {
-            log_cron(pool, job_id, workspace_id, 1, "Aplicația nu are o instanță de producție. Cron-ul are nevoie de o imagine creată la deploy-ul de producție.", started_at).await;
+            log_cron(pool, job_id, workspace_id, 1, "The application has no production instance. The cron needs an image built by a production deploy.", started_at).await;
             return Err(());
         }
     };
@@ -313,7 +313,7 @@ async fn run_database_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, db_i
     let db = match db {
         Ok(Some(d)) => d,
         _ => {
-            log_cron(pool, job_id, workspace_id, 1, "Baza de date țintă nu a fost găsită.", started_at).await;
+            log_cron(pool, job_id, workspace_id, 1, "The target database was not found.", started_at).await;
             return Err(());
         }
     };
@@ -362,7 +362,7 @@ async fn run_storage_cron(pool: &PgPool, job_id: Uuid, workspace_id: Uuid, bucke
     let bucket = match bucket {
         Ok(Some(b)) => b,
         _ => {
-            log_cron(pool, job_id, workspace_id, 1, "Bucket-ul de storage țintă nu a fost găsit.", started_at).await;
+            log_cron(pool, job_id, workspace_id, 1, "The target storage bucket was not found.", started_at).await;
             return Err(());
         }
     };
