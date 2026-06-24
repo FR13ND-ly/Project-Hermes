@@ -159,12 +159,13 @@ async fn dispatch(pool: &PgPool, kind: &str, payload: serde_json::Value) -> Resu
     match kind {
         "build" => {
             let p: BuildPayload = serde_json::from_value(payload).map_err(|e| e.to_string())?;
-            // Strangler switch: opt into the kpack/Buildpacks path with HERMES_BUILDER=kpack;
-            // the generated-Dockerfile + kaniko path remains the default.
-            if std::env::var("HERMES_BUILDER").as_deref() == Ok("kpack") {
-                crate::utils::builder::run_kpack_build(pool.clone(), p.instance_id, p.git_repo, p.branch, p.build_cmd).await;
-            } else {
+            // Builder selection: kpack/Buildpacks is now the default path. Set
+            // HERMES_BUILDER=kaniko to fall back to the legacy generated-Dockerfile +
+            // kaniko mechanism (the strangler escape hatch).
+            if std::env::var("HERMES_BUILDER").as_deref() == Ok("kaniko") {
                 crate::utils::builder::run_ephemeral_build(pool.clone(), p.instance_id, p.git_repo, p.branch, p.build_cmd).await;
+            } else {
+                crate::utils::builder::run_kpack_build(pool.clone(), p.instance_id, p.git_repo, p.branch, p.build_cmd).await;
             }
             Ok(())
         }

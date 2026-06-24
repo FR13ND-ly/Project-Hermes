@@ -33,9 +33,9 @@ async fn main() -> Result<(), anyhow::Error> {
     crate::utils::health::start_metric_alert_worker(pool.clone());
     crate::utils::metrics::start_gauge_sampler(pool.clone());
     crate::utils::builder::start_stuck_deploy_reconciler(pool.clone());
-    // Opt-in steady-state reconcile loop (self-heals drifted/deleted Deployments).
-    // Off unless HERMES_RECONCILE=on (strangler — unchanged behaviour by default).
-    if std::env::var("HERMES_RECONCILE").as_deref() == Ok("on") {
+    // Steady-state reconcile loop (self-heals drifted/deleted Deployments). Now on by
+    // default; set HERMES_RECONCILE=off to disable it (the strangler escape hatch).
+    if std::env::var("HERMES_RECONCILE").as_deref() != Ok("off") {
         crate::utils::builder::start_reconcile_worker(pool.clone());
     }
     // Durable build/deploy job workers (survive restarts; replace fire-and-forget).

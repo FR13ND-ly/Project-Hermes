@@ -25,9 +25,10 @@ sudo CERT_EMAIL=you@example.com \
 
 This installs Docker + k3s, deploys the in-cluster registry (for user app builds)
 and configures k3s to trust it, installs cert-manager + Let's Encrypt issuers,
-Knative Serving (serverless) and **Prometheus** (telemetry charts), builds &
-imports the backend/frontend images, generates platform secrets, and applies the
-stack. The backend runs DB migrations automatically on boot.
+Knative Serving (serverless), **kpack** (the default Buildpacks builder) and
+**Prometheus** (telemetry charts), builds & imports the backend/frontend images,
+generates platform secrets, and applies the stack. The backend runs DB migrations
+automatically on boot.
 
 The installer also injects `HERMES_INGRESS_IP` (the IP custom app/serverless
 domains resolve to) — auto-detected from the node, or set it explicitly:
@@ -40,8 +41,14 @@ Then point `DASHBOARD_HOST`'s DNS at the node's public IP and open
 `https://DASHBOARD_HOST`. The first-boot super-admin password is printed during
 install (and stored in the `hermes-secrets` Secret).
 
-Re-run a single piece any time: `./scripts/hermes.sh monitoring` (Prometheus) or
-`./scripts/hermes.sh knative` (serverless).
+Re-run a single piece any time: `./scripts/hermes.sh monitoring` (Prometheus),
+`./scripts/hermes.sh knative` (serverless) or `./scripts/hermes.sh kpack` (builder).
+
+> **Builder:** apps are built with **kpack / Cloud Native Buildpacks** by default
+> (no Dockerfile needed). To fall back to the legacy generated-Dockerfile + Kaniko
+> path, set `HERMES_BUILDER=kaniko` on `deploy/hermes-backend`. The in-cluster
+> registry is plain HTTP — see the insecure-registry caveat in `90-kpack.yaml` if
+> kpack builds fail on the push step.
 
 > **TLS tip:** while testing, set the dashboard/app Ingress issuer to
 > `letsencrypt-staging` to avoid Let's Encrypt rate limits, then switch to
@@ -70,6 +77,7 @@ stored encrypted values undecryptable).
 | `60-backend.yaml` | control-plane Deployment + Service (image carries `kubectl`) |
 | `70-frontend.yaml` | static dashboard Deployment + Service |
 | `80-ingress.yaml` | platform Ingress (`/api`,`/storage`→backend, `/`→frontend) |
+| `90-kpack.yaml` | kpack ClusterStack/ClusterStore/ClusterBuilder (`hermes-builder`) — the default Buildpacks builder |
 
 ## Notes
 * **Prerequisites for cert-manager / cert issuance:** the dashboard host (and any

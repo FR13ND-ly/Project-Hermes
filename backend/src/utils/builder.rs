@@ -38,15 +38,18 @@ async fn build_phase_db(pool: &sqlx::PgPool, build_id: Uuid) -> Option<String> {
 }
 
 #[tracing::instrument(skip_all, fields(instance_id = %instance_id, branch = %branch_name))]
-/// kpack-based build path (strangler; selected by `HERMES_BUILDER=kpack`). Creates/
-/// updates a kpack `Image` custom resource and waits for kpack to build + push the OCI
-/// image via Cloud Native Buildpacks, then hands off to the same deploy step as the
-/// kaniko path. Replaces the generated-Dockerfile + clone + kaniko mechanism.
+/// kpack-based build path — the default builder (set `HERMES_BUILDER=kaniko` to fall
+/// back to the legacy path). Creates/updates a kpack `Image` custom resource and waits
+/// for kpack to build + push the OCI image via Cloud Native Buildpacks, then hands off
+/// to the same deploy step as the kaniko path. Replaces the generated-Dockerfile +
+/// clone + kaniko mechanism.
 ///
-/// Requires Stage-2 cluster infra: kpack installed, a `hermes-builder` ClusterBuilder,
-/// and a `hermes-kpack` ServiceAccount carrying the git + registry secrets. Not yet
-/// validated against a live cluster — registry addressing and kpack status semantics
-/// need in-cluster verification before flipping `HERMES_BUILDER`.
+/// Requires cluster infra installed by `scripts/hermes.sh` (`install_kpack`): the kpack
+/// controller, a `hermes-builder` ClusterBuilder (deploy/90-kpack.yaml), and a
+/// per-workspace-namespace `hermes-kpack` ServiceAccount (created by
+/// `K8sManager::create_namespace`). NOTE: the in-cluster registry is plain HTTP — the
+/// kpack/Buildpacks lifecycle push to an insecure registry still needs live-cluster
+/// verification (see deploy/90-kpack.yaml); fall back with `HERMES_BUILDER=kaniko`.
 pub async fn run_kpack_build(
     pool: PgPool,
     instance_id: Uuid,

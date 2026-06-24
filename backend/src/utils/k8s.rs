@@ -126,6 +126,37 @@ impl K8sManager {
         // Apply NetworkPolicy for namespace isolation
         Self::apply_network_policy(client, name).await?;
 
+        // kpack builds reference a `hermes-kpack` ServiceAccount in the workspace
+        // namespace (see builder::run_kpack_build). Ensure it exists so the first build
+        // in a fresh workspace doesn't fail. The in-cluster registry is anonymous-push,
+        // so no registry secret is attached; private-git creds are a future addition.
+        Self::ensure_kpack_service_account(client, name).await?;
+
+        Ok(())
+    }
+
+    /// Ensure the `hermes-kpack` ServiceAccount exists in a workspace namespace. kpack
+    /// `Image` resources run their build pods under it; absent it, kpack rejects the
+    /// build. Idempotent (server-side apply).
+    pub async fn ensure_kpack_service_account(client: &Client, namespace: &str) -> Result<(), AppError> {
+        let sas: Api<k8s_openapi::api::core::v1::ServiceAccount> = Api::namespaced(client.clone(), namespace);
+        let sa_manifest: k8s_openapi::api::core::v1::ServiceAccount = serde_json::from_value(json!({
+            "apiVersion": "v1",
+            "kind": "ServiceAccount",
+            "metadata": {
+                "name": "hermes-kpack",
+                "namespace": namespace,
+                "labels": { "app": "hermes", "managed-by": "hermes-orchestrator" }
+            }
+        })).map_err(|e| AppError::Fatal(anyhow::anyhow!("kpack ServiceAccount serialization failed: {}", e)))?;
+
+        let _ = sas.patch(
+            "hermes-kpack",
+            &PatchParams::apply("hermes-orchestrator").force(),
+            &Patch::Apply(&sa_manifest)
+        ).await
+        .map_err(|e| AppError::Infrastructure(format!("Failed to apply hermes-kpack ServiceAccount in {}: {}", namespace, e)))?;
+
         Ok(())
     }
 

@@ -44,6 +44,11 @@ rules:
   - apiGroups: ["autoscaling"]
     resources: ["horizontalpodautoscalers"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # kpack (default Buildpacks builder): the control plane creates/patches an Image CR
+  # per app instance in its workspace namespace and reads the resulting builds.
+  - apiGroups: ["kpack.io"]
+    resources: ["images", "builds"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   # Knative (serverless) + Traefik middlewares (custom domain rules).
   - apiGroups: ["serving.knative.dev"]
     resources: ["services"]

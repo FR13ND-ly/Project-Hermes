@@ -163,6 +163,32 @@ install_knative() {
   ok "Knative Serving ready."
 }
 
+# ── kpack / Cloud Native Buildpacks (the default app builder) ─────────────────
+# Installs the kpack controller from its upstream release, then applies our
+# ClusterStack/ClusterStore/ClusterBuilder (deploy/90-kpack.yaml). The control plane
+# builds each app via a kpack `Image` referencing the `hermes-builder` ClusterBuilder
+# (set HERMES_BUILDER=kaniko on deploy/hermes-backend to use the legacy path instead).
+# Idempotent: the controller install is skipped once the kpack CRDs exist.
+install_kpack() {
+  local kp="v0.14.0"
+  if $KUBECTL get crd clusterbuilders.kpack.io >/dev/null 2>&1; then
+    ok "kpack controller already installed."
+  else
+    c "Installing kpack controller ($kp)..."
+    $KUBECTL apply -f "https://github.com/buildpacks-community/kpack/releases/download/$kp/release-${kp#v}.yaml"
+    c "Waiting for kpack controllers to come up..."
+    $KUBECTL -n kpack rollout status deploy/kpack-controller --timeout=300s || true
+    $KUBECTL -n kpack rollout status deploy/kpack-webhook --timeout=300s || true
+  fi
+  c "Applying Hermes ClusterBuilder + stack/store..."
+  $KUBECTL apply -f "$ROOT_DIR/deploy/90-kpack.yaml"
+  # Best-effort: report whether the builder reaches Ready (it must push its composed
+  # image to the in-cluster HTTP registry — see the caveat in deploy/90-kpack.yaml).
+  $KUBECTL wait --for=condition=Ready clusterbuilder/hermes-builder --timeout=240s 2>/dev/null \
+    && ok "kpack ready (ClusterBuilder hermes-builder is Ready)." \
+    || c "kpack applied, but ClusterBuilder isn't Ready yet — check 'kubectl get clusterbuilder hermes-builder -o yaml' (likely the insecure-registry push; see deploy/90-kpack.yaml)."
+}
+
 # ── Monitoring (Prometheus) — powers the telemetry charts (app/db CPU/RAM, RED) ─
 # The backend queries it at HERMES_PROMETHEUS_URL (default prometheus-k8s.monitoring.svc:9090).
 # Idempotent: re-apply is a no-op once the Deployment exists.
@@ -254,6 +280,7 @@ cmd_install() {
   setup_registry
   install_cert_manager
   install_knative
+  install_kpack
   install_monitoring
   build_and_import_images
   ensure_secret
@@ -271,6 +298,9 @@ cmd_update() {
   save_config
   c "Pulling latest code..."
   git -C "$ROOT_DIR" pull --ff-only
+  # Ensure the default (kpack) builder infra is present — the backend now defaults to
+  # kpack, so an older install that predates it needs the controller + ClusterBuilder.
+  install_kpack
   build_and_import_images
   # Re-apply manifests so spec changes (new volume mounts, env, probes) take effect,
   # then force a rollout so the freshly imported :latest images are picked up. Uses
@@ -292,7 +322,8 @@ case "${1:-}" in
   install)    cmd_install ;;
   update)     cmd_update ;;
   knative)    require_root; install_knative ;;
+  kpack)      require_root; install_kpack ;;
   monitoring) require_root; install_monitoring ;;
   status)     cmd_status ;;
-  *) die "Usage: $0 install|update|knative|monitoring|status  (install prompts interactively; env vars CERT_EMAIL, DASHBOARD_HOST, HERMES_BASE_DOMAIN, HERMES_INGRESS_IP pre-fill/skip the prompts)";;
+  *) die "Usage: $0 install|update|knative|kpack|monitoring|status  (install prompts interactively; env vars CERT_EMAIL, DASHBOARD_HOST, HERMES_BASE_DOMAIN, HERMES_INGRESS_IP pre-fill/skip the prompts)";;
 esac

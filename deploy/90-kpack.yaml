@@ -1,0 +1,100 @@
+# kpack / Cloud Native Buildpacks infrastructure — the default build path.
+#
+# Applied by scripts/hermes.sh (install_kpack) AFTER the kpack controller itself is
+# installed from its upstream release. The control plane (builder::run_kpack_build)
+# creates a kpack `Image` per app instance that references the `hermes-builder`
+# ClusterBuilder below and runs under a per-workspace `hermes-kpack` ServiceAccount
+# (created by K8sManager::create_namespace).
+#
+# ──────────────────────────────────────────────────────────────────────────────
+# ⚠ INSECURE REGISTRY CAVEAT — needs live-cluster verification.
+# The in-cluster registry (deploy/05-registry.yaml) is plain HTTP, no TLS, no auth,
+# at registry.kube-system.svc.cluster.local:80. Kaniko pushes to it with --insecure;
+# the Buildpacks lifecycle that kpack runs does NOT have a universal "insecure
+# registry" switch, so both (a) the ClusterBuilder publishing its composed builder
+# image to `.spec.tag` below and (b) each app Image pushing its result may fail to
+# push over plain HTTP. If builds fail on the push step, either front the registry
+# with TLS (and trust its CA in the kpack build pods) or fall back to the legacy
+# builder with `HERMES_BUILDER=kaniko` on deploy/hermes-backend. This is the one
+# piece that could not be verified without a running cluster.
+# ──────────────────────────────────────────────────────────────────────────────
+---
+# The ClusterBuilder composes its builder image from the store + stack and pushes it
+# to the registry; it needs a ServiceAccount to authenticate that push. Our registry
+# is anonymous-push, so no secret is attached — the SA exists only to satisfy the
+# serviceAccountRef contract (attach a dockerconfigjson secret here if you add auth).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kpack-builder-sa
+  namespace: kpack
+  labels:
+    app: hermes
+---
+# Base build/run images (Ubuntu 22.04 "jammy"). Paketo publishes these on Docker Hub.
+apiVersion: kpack.io/v1alpha2
+kind: ClusterStack
+metadata:
+  name: hermes-stack
+spec:
+  id: io.buildpacks.stacks.jammy
+  buildImage:
+    image: paketobuildpacks/build-jammy-base
+  runImage:
+    image: paketobuildpacks/run-jammy-base
+---
+# The set of language buildpacks available to the builder. Covers the common runtimes;
+# add/remove `sources` to change language support, then re-apply.
+apiVersion: kpack.io/v1alpha2
+kind: ClusterStore
+metadata:
+  name: hermes-store
+spec:
+  sources:
+    - image: gcr.io/paketo-buildpacks/nodejs
+    - image: gcr.io/paketo-buildpacks/java
+    - image: gcr.io/paketo-buildpacks/go
+    - image: gcr.io/paketo-buildpacks/python
+    - image: gcr.io/paketo-buildpacks/php
+    - image: gcr.io/paketo-buildpacks/ruby
+    - image: gcr.io/paketo-buildpacks/dotnet-core
+    - image: gcr.io/paketo-buildpacks/web-servers
+    - image: gcr.io/paketo-buildpacks/procfile
+---
+# The builder the control plane references by name (`hermes-builder`). Detection order
+# is first-match: kpack tries each group against the app source and uses the first that
+# applies. `procfile` is last so an explicit Procfile is honoured as a fallback.
+apiVersion: kpack.io/v1alpha2
+kind: ClusterBuilder
+metadata:
+  name: hermes-builder
+spec:
+  tag: registry.kube-system.svc.cluster.local:80/hermes-kpack/builder
+  stack:
+    name: hermes-stack
+    kind: ClusterStack
+  store:
+    name: hermes-store
+    kind: ClusterStore
+  serviceAccountRef:
+    name: kpack-builder-sa
+    namespace: kpack
+  order:
+    - group:
+        - id: paketo-buildpacks/nodejs
+    - group:
+        - id: paketo-buildpacks/java
+    - group:
+        - id: paketo-buildpacks/go
+    - group:
+        - id: paketo-buildpacks/python
+    - group:
+        - id: paketo-buildpacks/php
+    - group:
+        - id: paketo-buildpacks/ruby
+    - group:
+        - id: paketo-buildpacks/dotnet-core
+    - group:
+        - id: paketo-buildpacks/web-servers
+    - group:
+        - id: paketo-buildpacks/procfile
