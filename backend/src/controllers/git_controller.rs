@@ -279,7 +279,7 @@ pub async fn detect_project(
         detection.build_command = "npm run build".to_string();
         detection.start_command = "npm start".to_string();
         detection.internal_port = detected_port.unwrap_or(3000);
-        detection.description = "Proiect Node.js detectat.".to_string();
+        detection.description = "Node.js project detected.".to_string();
         if let Ok(Some(pkg)) = kind.read_file(&host, &token, &q.repo, &join("package.json"), git_ref, skip_tls).await {
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&pkg) {
                 let has_dep = |name: &str| {
@@ -289,16 +289,16 @@ pub async fn detect_project(
                 if has_dep("next") {
                     detection.project_type = "nextjs".to_string();
                     detection.internal_port = detected_port.unwrap_or(3000);
-                    detection.description = "Proiect Next.js detectat.".to_string();
+                    detection.description = "Next.js project detected.".to_string();
                 } else if has_dep("@angular/core") {
                     detection.project_type = "angular".to_string();
                     detection.internal_port = detected_port.unwrap_or(4200);
-                    detection.description = "Proiect Angular detectat.".to_string();
+                    detection.description = "Angular project detected.".to_string();
                 } else if has_dep("react") {
                     detection.project_type = "react".to_string();
                     detection.start_command = "npm run preview".to_string();
                     detection.internal_port = detected_port.unwrap_or(4173);
-                    detection.description = "Proiect React detectat.".to_string();
+                    detection.description = "React project detected.".to_string();
                 }
             }
         }
@@ -307,12 +307,12 @@ pub async fn detect_project(
         detection.build_command = "pip install -r requirements.txt".to_string();
         detection.start_command = "uvicorn main:app --host 0.0.0.0 --port 8000".to_string();
         detection.internal_port = detected_port.unwrap_or(8000);
-        detection.description = "Proiect Python detectat.".to_string();
+        detection.description = "Python project detected.".to_string();
     } else if has_file("Cargo.toml") {
         detection.project_type = "rust".to_string();
         detection.build_command = "cargo build --release".to_string();
         detection.internal_port = detected_port.unwrap_or(8080);
-        detection.description = "Proiect Rust detectat.".to_string();
+        detection.description = "Rust project detected.".to_string();
     }
 
     Ok(Json(detection))
