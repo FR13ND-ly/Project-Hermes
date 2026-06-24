@@ -126,11 +126,19 @@ pub async fn create_baas_service(
     Ok(id)
 }
 
-/// Republish `HERMES_AUTH_APP_ID` (= service id) and `HERMES_BAAS_URL`/`HERMES_APP_ID`
-/// for every BaaS service, so the values match the new `/baas/:id` routes after the
-/// app→service migration (those vars hold encrypted values the SQL migration can't
-/// rewrite). Idempotent; safe to run on every boot.
+/// Republish `HERMES_AUTH_APP_ID` (= service id) for every BaaS service so the value
+/// matches the `/baas/:id` routes (the var holds an encrypted value the SQL migration
+/// can't rewrite), and prune the dropped pool vars (HERMES_AUTH_API_URL / HERMES_BAAS_URL
+/// / HERMES_APP_ID) left by older versions. Idempotent; safe on every boot.
 pub async fn reconcile_baas_published_ids(pool: &PgPool) {
+    // Remove the convenience vars we no longer publish (only the secret + app id stay).
+    let _ = sqlx::query!(
+        "DELETE FROM project_env_variables
+         WHERE source = 'baas_auth' AND key IN ('HERMES_AUTH_API_URL', 'HERMES_BAAS_URL', 'HERMES_APP_ID')"
+    )
+    .execute(pool)
+    .await;
+
     let rows = match sqlx::query!(
         "SELECT id, workspace_id, project_id FROM baas_services"
     )
@@ -142,7 +150,6 @@ pub async fn reconcile_baas_published_ids(pool: &PgPool) {
     };
     for r in rows {
         let _ = publish_baas_var(pool, r.workspace_id, r.project_id, r.id, "HERMES_AUTH_APP_ID", &r.id.to_string(), false).await;
-        let _ = publish_baas_var(pool, r.workspace_id, r.project_id, r.id, "HERMES_APP_ID", &r.id.to_string(), false).await;
     }
 }
 

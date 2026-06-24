@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM project_env_variables\n         WHERE source = 'baas_auth' AND key IN ('HERMES_AUTH_API_URL', 'HERMES_BAAS_URL', 'HERMES_APP_ID')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "65c067b6a63363f58303ebb064ec4926dd7dde7b5a6bda32fb489128ee4475dd"
+}

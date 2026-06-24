@@ -1040,21 +1040,11 @@ pub async fn get_auth_integration(
     };
     let api_base_url = format!("{}://{}/api/v1", proto, host);
 
-    // Auto-publish the integration vars into the project pool (idempotent) so the app
-    // gets them with no manual step — the secret is already published by get_or_create.
+    // Publish only the minimal pair into the project pool (idempotent): the service
+    // id; the secret is already published by get_or_create. The API URL + alias vars
+    // (HERMES_AUTH_API_URL / HERMES_BAAS_URL / HERMES_APP_ID) were intentionally dropped.
     let _ = crate::utils::app_auth::publish_baas_var(
         &state.pool, ws_id, app.project_id, baas_id, "HERMES_AUTH_APP_ID", &baas_id.to_string(), false,
-    ).await;
-    let _ = crate::utils::app_auth::publish_baas_var(
-        &state.pool, ws_id, app.project_id, baas_id, "HERMES_AUTH_API_URL", &api_base_url, false,
-    ).await;
-    // Friendly aliases many apps expect (e.g. they read HERMES_BAAS_URL / HERMES_APP_ID).
-    // HERMES_BAAS_URL embeds the service id as /baas/<uuid> so apps can derive it.
-    let _ = crate::utils::app_auth::publish_baas_var(
-        &state.pool, ws_id, app.project_id, baas_id, "HERMES_BAAS_URL", &format!("{}/baas/{}", api_base_url, baas_id), false,
-    ).await;
-    let _ = crate::utils::app_auth::publish_baas_var(
-        &state.pool, ws_id, app.project_id, baas_id, "HERMES_APP_ID", &baas_id.to_string(), false,
     ).await;
 
     Ok(Json(AuthIntegrationResponse {
