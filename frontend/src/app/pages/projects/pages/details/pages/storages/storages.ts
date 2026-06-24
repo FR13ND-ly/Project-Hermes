@@ -92,9 +92,10 @@ export class Storages implements OnInit, OnDestroy {
   // Allow the uploading client (via API/token) to override processing rules.
   readonly allowCustomProcessing = signal<boolean>(false);
   readonly isPublicToggle = signal<boolean>(false);
-  // Publish the bucket URL into the project env pool (with optional custom key).
-  readonly publishToEnv = signal(true);
-  readonly envKeyName = signal('');
+  readonly publishAppId = signal(false);
+  readonly appIdEnvKeyName = signal('');
+  readonly publishSecretKey = signal(false);
+  readonly secretKeyEnvKeyName = signal('');
 
   // Upload states
   readonly uploading = signal(false);
@@ -722,6 +723,15 @@ export class Storages implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.publishAppId() && !this.appIdEnvKeyName().trim()) {
+      this.toast.error('Numele variabilei de mediu pentru App ID este obligatoriu dacă este bifat.');
+      return;
+    }
+    if (this.publishSecretKey() && !this.secretKeyEnvKeyName().trim()) {
+      this.toast.error('Numele variabilei de mediu pentru Secret Key este obligatoriu dacă este bifat.');
+      return;
+    }
+
     this.creatingBucket.set(true);
     this.storageService.createBucket({
       name: this.newBucketName().trim(),
@@ -730,14 +740,18 @@ export class Storages implements OnInit, OnDestroy {
       maxBucketSizeBytes: this.maxBucketSizeGb() * 1024 * 1024 * 1024,
       maxFileSizeBytes: Math.max(0, Math.round(this.maxFileSizeMb())) * 1024 * 1024,
       allowCustomProcessing: this.allowCustomProcessing(),
-      publishToEnv: this.publishToEnv(),
-      envKey: this.publishToEnv() && this.envKeyName().trim() ? this.envKeyName().trim() : undefined
+      publishAppId: this.publishAppId(),
+      appIdEnvKey: this.publishAppId() && this.appIdEnvKeyName().trim() ? this.appIdEnvKeyName().trim() : undefined,
+      publishSecretKey: this.publishSecretKey(),
+      secretKeyEnvKey: this.publishSecretKey() && this.secretKeyEnvKeyName().trim() ? this.secretKeyEnvKeyName().trim() : undefined
     }).subscribe({
       next: (newBucket) => {
         this.toast.success(`Bucket-ul "${newBucket.name}" a fost creat cu succes.`);
         this.newBucketName.set('');
-        this.envKeyName.set('');
-        this.publishToEnv.set(true);
+        this.appIdEnvKeyName.set('');
+        this.secretKeyEnvKeyName.set('');
+        this.publishAppId.set(false);
+        this.publishSecretKey.set(false);
         this.maxFileSizeMb.set(0);
         this.allowCustomProcessing.set(false);
         this.showCreateForm.set(false);

@@ -25,12 +25,12 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
           <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-900">
             <div>
               <h3 class="text-xs font-bold text-zinc-200 uppercase tracking-wider">{{ title() }}</h3>
-              <p class="text-[9px] text-zinc-550 mt-0.5">Referință vie — schimbările din pool se propagă automat.</p>
+              <p class="text-[9px] text-zinc-550 mt-0.5">Live reference — changes in the pool propagate automatically.</p>
             </div>
             <button
               (click)="close()"
               class="p-1.5 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white transition-colors cursor-pointer"
-              title="Închide"
+              title="Close"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -41,7 +41,7 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
           <div class="px-5 py-3 border-b border-zinc-900">
             <input
               type="text"
-              placeholder="Caută după nume..."
+              placeholder="Search by name..."
               [ngModel]="search()"
               (ngModelChange)="search.set($event)"
               class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
@@ -54,7 +54,7 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
                 @if (vars().length === 0) {
                   {{ empty() }}
                 } @else {
-                  Niciun rezultat pentru „{{ search() }}".
+                  No results for "{{ search() }}".
                 }
               </p>
             } @else {
@@ -77,7 +77,7 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
                         ? 'px-2.5 py-1 rounded text-[10px] font-semibold border border-emerald-900/50 bg-emerald-950/30 text-emerald-400 hover:bg-emerald-950/50 cursor-pointer disabled:opacity-50 shrink-0'
                         : 'px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 cursor-pointer disabled:opacity-50 shrink-0'"
                     >
-                      {{ env.linked ? 'Conectată ✓' : 'Conectează' }}
+                      {{ env.linked ? 'Linked ✓' : 'Link' }}
                     </button>
                   </div>
                 }
@@ -90,7 +90,7 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
               (click)="close()"
               class="px-3.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer"
             >
-              Gata
+              Done
             </button>
           </div>
         </div>
@@ -101,11 +101,11 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
 export class EnvLinkModal {
   /** Two-way visibility — set false to close. */
   readonly open = model(false);
-  readonly title = input('Conectează variabile din proiect');
+  readonly title = input('Link project variables');
   readonly vars = input<ProjectEnvResponse[]>([]);
   /** Id of the var currently being toggled (disables its button). */
   readonly busyId = input<string | null>(null);
-  readonly empty = input('Niciun env la nivel de proiect. Adaugă-le din tab-ul „Environments" al proiectului.');
+  readonly empty = input("No project-level env vars. Add them from the project's “Environments” tab.");
 
   readonly toggle = output<ProjectEnvResponse>();
 

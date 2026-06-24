@@ -89,7 +89,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
   readonly addEnvMode = signal<'new' | 'project'>('new');
   readonly newEnvKey = signal('');
   readonly newEnvValue = signal('');
-  readonly newEnvIsSecret = signal(true);
+  readonly newEnvIsSecret = signal(false);
   readonly editingEnvId = signal<string | null>(null);
   readonly savingEnv = signal(false);
   readonly reloadingEnv = signal(false);
@@ -463,7 +463,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     this.editingEnvId.set(null);
     this.newEnvKey.set('');
     this.newEnvValue.set('');
-    this.newEnvIsSecret.set(true);
+    this.newEnvIsSecret.set(false);
   }
 
   closeAddEnvPanel(): void {
@@ -471,7 +471,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     this.editingEnvId.set(null);
     this.newEnvKey.set('');
     this.newEnvValue.set('');
-    this.newEnvIsSecret.set(true);
+    this.newEnvIsSecret.set(false);
   }
 
   startEditEnv(env: FunctionEnvResponse): void {

@@ -96,6 +96,8 @@ fn plan_from_compose(yaml: &str) -> Result<ComposePlan, AppError> {
                 version: svc.image.as_deref().map(image_tag).unwrap_or_else(|| "latest".to_string()),
                 internal_port: port,
                 include: true,
+                publish_to_env: Some(true),
+                env_key: None,
             });
             continue;
         }
@@ -118,7 +120,7 @@ fn plan_from_compose(yaml: &str) -> Result<ComposePlan, AppError> {
             enable_storage: false,
             // Defaults: auto network name (None), publish URL on, auto key (<SERVICE>_URL).
             network_name: None,
-            publish_url: Some(true),
+            publish_url: Some(false),
             url_env_key: None,
         });
     }
@@ -199,19 +201,25 @@ pub async fn apply_compose_plan(
         );
 
         // Publish connection string to the project pool (disambiguate the key).
-        let taken = sqlx::query_scalar!(
-            "SELECT EXISTS(SELECT 1 FROM project_env_variables WHERE project_id = $1 AND key = 'DATABASE_URL')",
-            payload.project_id
-        ).fetch_one(&state.pool).await?.unwrap_or(false);
-        let key = if taken {
-            format!("{}_DATABASE_URL", crate::utils::app_env::sanitize_key_fragment(&db.name, "DB"))
-        } else {
-            "DATABASE_URL".to_string()
-        };
-        if let Ok(env_id) = crate::utils::app_env::publish_project_env(
-            &state.pool, ws_id, payload.project_id, &key, &connection_url, true, "database", db_id,
-        ).await {
-            db_env_by_service.insert(db.service.clone(), env_id);
+        if db.publish_to_env.unwrap_or(true) {
+            let taken = sqlx::query_scalar!(
+                "SELECT EXISTS(SELECT 1 FROM project_env_variables WHERE project_id = $1 AND key = 'DATABASE_URL')",
+                payload.project_id
+            ).fetch_one(&state.pool).await?.unwrap_or(false);
+            let default_key = if taken {
+                format!("{}_DATABASE_URL", crate::utils::app_env::sanitize_key_fragment(&db.name, "DB"))
+            } else {
+                "DATABASE_URL".to_string()
+            };
+            let key = match db.env_key.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+                Some(custom) => crate::utils::app_env::sanitize_key_fragment(custom, &default_key),
+                None => default_key,
+            };
+            if let Ok(env_id) = crate::utils::app_env::publish_project_env(
+                &state.pool, ws_id, payload.project_id, &key, &connection_url, true, "database", db_id,
+            ).await {
+                db_env_by_service.insert(db.service.clone(), env_id);
+            }
         }
 
         crate::controllers::database_controller::spawn_db_provisioning(

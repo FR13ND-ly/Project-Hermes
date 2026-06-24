@@ -122,6 +122,8 @@ export interface PlanDatabase {
   version: string;
   internalPort: number;
   include: boolean;
+  publishToEnv?: boolean;
+  envKey?: string | null;
 }
 export interface ComposePlan {
   apps: PlanApp[];
@@ -275,7 +277,7 @@ export class ProjectService {
       appInstanceId: payload.appInstanceId,
       key: payload.key,
       value: payload.value,
-      isSecret: payload.isSecret !== undefined ? payload.isSecret : true
+      isSecret: payload.isSecret !== undefined ? payload.isSecret : false
     });
   }
 
@@ -297,7 +299,7 @@ export class ProjectService {
     return this.api.post<ProjectEnvResponse>(`/projects/${projectId}/env`, {
       key: payload.key,
       value: payload.value,
-      isSecret: payload.isSecret !== undefined ? payload.isSecret : true
+      isSecret: payload.isSecret !== undefined ? payload.isSecret : false
     });
   }
 

@@ -255,7 +255,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   readonly settingEnv = signal(false);
   readonly envKey = signal('');
   readonly envVal = signal('');
-  readonly isSecret = signal(true);
+  readonly isSecret = signal(false);
   readonly revealedEnvIds = signal<Record<string, boolean>>({});
 
   // JSON editor signals
@@ -1007,7 +1007,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.addEnvMode.set('new');
     this.envKey.set('');
     this.envVal.set('');
-    this.isSecret.set(true);
+    this.isSecret.set(false);
   }
 
   // Open the add panel prefilled to edit an existing var (key locked; value blank for secrets).

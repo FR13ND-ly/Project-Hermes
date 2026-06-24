@@ -187,6 +187,35 @@ async fn authenticate_request(
     Err(AppError::Auth("Invalid or expired token".to_string()))
 }
 
+async fn publish_single_credential(
+    pool: &sqlx::PgPool,
+    ws_id: Uuid,
+    project_id: Uuid,
+    bucket_id: Uuid,
+    key: &str,
+    value: &str,
+    is_secret: bool,
+) {
+    if let Ok((enc, nonce)) = crate::utils::crypto::encrypt_env_value(value) {
+        let _ = sqlx::query(
+            "INSERT INTO project_env_variables (id, workspace_id, project_id, key, encrypted_value, nonce, is_secret, source, source_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 'storage', $8)
+             ON CONFLICT (project_id, key)
+             DO UPDATE SET encrypted_value = $5, nonce = $6, is_secret = $7, source = 'storage', source_id = $8, updated_at = now()"
+        )
+        .bind(Uuid::new_v4())
+        .bind(ws_id)
+        .bind(project_id)
+        .bind(key)
+        .bind(enc)
+        .bind(nonce)
+        .bind(is_secret)
+        .bind(bucket_id)
+        .execute(pool)
+        .await;
+    }
+}
+
 /// Upsert a bucket's access credentials into the project env pool as two vars:
 /// <PREFIX>_APP_ID (visible) and <PREFIX>_SECRET_KEY (secret). Both carry
 /// source='storage'/source_id=bucket so delete_bucket removes them together.
@@ -199,15 +228,6 @@ async fn publish_bucket_credentials(
     app_id: &str,
     secret_key: &str,
 ) {
-    // Publish the storage API endpoint once per project (same for every bucket), so
-    // apps know WHERE to upload. Keyed by project (source_id=project_id) so multiple
-    // buckets don't create duplicate HERMES_STORAGE_URL entries.
-    let storage_url = std::env::var("HERMES_STORAGE_URL").unwrap_or_else(|_|
-        "http://hermes-backend.hermes-system.svc.cluster.local/api/v1/storage".to_string());
-    let _ = crate::utils::app_env::publish_project_env(
-        pool, ws_id, project_id, "HERMES_STORAGE_URL", &storage_url, false, "storage_endpoint", project_id,
-    ).await;
-
     // If this bucket already published its credentials, refresh the VALUES in place
     // (identity = the owning bucket, not the key) so the published key NAMES never
     // drift across create/rotate/reconcile — the APP_ID row is the non-secret one,
@@ -222,10 +242,7 @@ async fn publish_bucket_credentials(
     .await
     .unwrap_or_default();
 
-    let has_app_id = existing.iter().any(|r| !r.is_secret);
-    let has_secret = existing.iter().any(|r| r.is_secret);
-
-    if has_app_id && has_secret {
+    if !existing.is_empty() {
         for r in existing {
             let value = if r.is_secret { secret_key } else { app_id };
             if let Ok((enc, nonce)) = crate::utils::crypto::encrypt_env_value(value) {
@@ -416,7 +433,7 @@ pub async fn create_bucket(
     // (secret) are added so apps can connect with the key pair. Opt-out via
     // publish_to_env=false; an optional env_key prefix may be supplied.
     let _ = base_domain; // legacy public-URL publish removed (buckets are private)
-    if let (Some(pid), true) = (payload.project_id, payload.publish_to_env.unwrap_or(true)) {
+    if let Some(pid) = payload.project_id {
         let in_workspace = sqlx::query_scalar!(
             "SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1 AND workspace_id = $2)",
             pid, ws_id
@@ -425,11 +442,31 @@ pub async fn create_bucket(
         .await?
         .unwrap_or(false);
         if in_workspace {
-            let prefix = match payload.env_key.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-                Some(custom) => crate::utils::app_env::sanitize_key_fragment(custom, &format!("BUCKET_{}", crate::utils::app_env::sanitize_key_fragment(&slug, "STORAGE"))),
-                None => format!("BUCKET_{}", crate::utils::app_env::sanitize_key_fragment(&slug, "STORAGE")),
-            };
-            publish_bucket_credentials(&state.pool, ws_id, pid, bucket_id, &prefix, &app_id, &secret_key).await;
+            let has_new_fields = payload.publish_app_id.is_some() || payload.publish_secret_key.is_some();
+            if has_new_fields {
+                if let Some(true) = payload.publish_app_id {
+                    if let Some(ref key) = payload.app_id_env_key {
+                        let key_trimmed = key.trim();
+                        if !key_trimmed.is_empty() {
+                            publish_single_credential(&state.pool, ws_id, pid, bucket_id, key_trimmed, &app_id, false).await;
+                        }
+                    }
+                }
+                if let Some(true) = payload.publish_secret_key {
+                    if let Some(ref key) = payload.secret_key_env_key {
+                        let key_trimmed = key.trim();
+                        if !key_trimmed.is_empty() {
+                            publish_single_credential(&state.pool, ws_id, pid, bucket_id, key_trimmed, &secret_key, true).await;
+                        }
+                    }
+                }
+            } else if payload.publish_to_env.unwrap_or(true) {
+                let prefix = match payload.env_key.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+                    Some(custom) => crate::utils::app_env::sanitize_key_fragment(custom, &format!("BUCKET_{}", crate::utils::app_env::sanitize_key_fragment(&slug, "STORAGE"))),
+                    None => format!("BUCKET_{}", crate::utils::app_env::sanitize_key_fragment(&slug, "STORAGE")),
+                };
+                publish_bucket_credentials(&state.pool, ws_id, pid, bucket_id, &prefix, &app_id, &secret_key).await;
+            }
         }
     }
 

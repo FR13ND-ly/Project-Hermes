@@ -46,7 +46,7 @@ export class Databases implements OnInit, OnDestroy {
   readonly externalPort = signal(5432);
 
   // Publish the connection string into the project env pool (with optional custom key).
-  readonly publishToEnv = signal(true);
+  readonly publishToEnv = signal(false);
   readonly envKeyName = signal('');
 
   // Map of databaseId -> revealed credentials
@@ -190,7 +190,7 @@ export class Databases implements OnInit, OnDestroy {
       next: () => {
         this.dbName.set('');
         this.envKeyName.set('');
-        this.publishToEnv.set(true);
+        this.publishToEnv.set(false);
         this.showCreateForm.set(false);
         this.provisioning.set(false);
         this.toast.success('Baza de date a fost adăugată cu succes!');

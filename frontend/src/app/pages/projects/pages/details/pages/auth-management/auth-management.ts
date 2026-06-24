@@ -33,6 +33,13 @@ export class AuthManagement {
   readonly loadingServices = signal(false);
   readonly newServiceName = signal('');
   readonly creatingService = signal(false);
+  readonly showCreateForm = signal(false);
+  readonly publishAppId = signal(false);
+  readonly appIdEnvKeyName = signal('');
+  readonly publishSecret = signal(false);
+  readonly secretEnvKeyName = signal('');
+  readonly publishApiKey = signal(false);
+  readonly apiKeyEnvKeyName = signal('');
 
   // Integration tab
   readonly integration = signal<AuthIntegration | null>(null);
@@ -44,17 +51,21 @@ export class AuthManagement {
     return `// Express — Hermes BaaS auth (validare JWT locală cu secretul din env)
 import jwt from 'jsonwebtoken';
 
-const SECRET = process.env.${i.authSecretEnvKey};   // injectat automat de Hermes
+const API_KEY = process.env.HERMES_APP_TOKEN;   // Cheia API generată în panou
+const SECRET = process.env.${i.authSecretEnvKey};   // Secretul de semnare JWT
 const BAAS_ID = '${i.baasId}';
 const HERMES = '${i.apiBaseUrl}';
 
 // login: identifier + parolă -> { accessToken, refreshToken }
-// Trimite X-Hermes-Auth-Secret DOAR de pe server ca să poți injecta claims custom
-// (ex. tenantId, plan) în access token. Fără header, additionalClaims e ignorat.
+// Trimite cheia API în header-ul Authorization ca să poți autoriza apelul
+// și să injectezi claims custom (ex. tenantId, plan) în access token.
 async function login(identifier, password, additionalClaims = {}) {
   const r = await fetch(\`\${HERMES}/baas/\${BAAS_ID}/auth/login\`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Hermes-Auth-Secret': SECRET },
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': \`Bearer \${API_KEY}\`
+    },
     body: JSON.stringify({ identifier, password, additionalClaims })
   });
   return r.json(); // { accessToken, refreshToken, expiresIn, roles, permissions }
@@ -63,7 +74,11 @@ async function login(identifier, password, additionalClaims = {}) {
 // access token-ul e scurt; reînnoiește-l cu refresh token-ul (single-use)
 async function refresh(refreshToken) {
   const r = await fetch(\`\${HERMES}/baas/\${BAAS_ID}/auth/refresh\`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': \`Bearer \${API_KEY}\`
+    },
     body: JSON.stringify({ refreshToken })
   });
   return r.json(); // { accessToken, refreshToken, ... }
@@ -198,11 +213,39 @@ export const requireRole = (role) => (req, res, next) =>
       this.toast.error('Numele serviciului este obligatoriu.');
       return;
     }
+
+    if (this.publishAppId() && !this.appIdEnvKeyName().trim()) {
+      this.toast.error('Numele variabilei de mediu pentru App ID este obligatoriu dacă este bifat.');
+      return;
+    }
+    if (this.publishSecret() && !this.secretEnvKeyName().trim()) {
+      this.toast.error('Numele variabilei de mediu pentru Secret este obligatoriu dacă este bifat.');
+      return;
+    }
+    if (this.publishApiKey() && !this.apiKeyEnvKeyName().trim()) {
+      this.toast.error('Numele variabilei de mediu pentru API Key este obligatoriu dacă este bifat.');
+      return;
+    }
+
     this.creatingService.set(true);
-    this.authMgmtService.createService(projectId, name).subscribe({
+    this.authMgmtService.createService(projectId, name, {
+      publishAppId: this.publishAppId(),
+      appIdEnvKey: this.publishAppId() && this.appIdEnvKeyName().trim() ? this.appIdEnvKeyName().trim() : undefined,
+      publishSecret: this.publishSecret(),
+      secretEnvKey: this.publishSecret() && this.secretEnvKeyName().trim() ? this.secretEnvKeyName().trim() : undefined,
+      publishApiKey: this.publishApiKey(),
+      apiKeyEnvKey: this.publishApiKey() && this.apiKeyEnvKeyName().trim() ? this.apiKeyEnvKeyName().trim() : undefined
+    }).subscribe({
       next: (svc) => {
         this.creatingService.set(false);
         this.newServiceName.set('');
+        this.appIdEnvKeyName.set('');
+        this.secretEnvKeyName.set('');
+        this.apiKeyEnvKeyName.set('');
+        this.publishAppId.set(false);
+        this.publishSecret.set(false);
+        this.publishApiKey.set(false);
+        this.showCreateForm.set(false);
         this.services.update(list => [svc, ...list]);
         this.selectedService.set(svc);
         this.toast.success(`Serviciul de autentificare „${svc.name}" a fost creat.`);

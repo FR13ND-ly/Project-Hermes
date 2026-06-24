@@ -10,21 +10,21 @@ import { Component, input, output, computed } from '@angular/core';
   template: `
     @if (totalPages() > 1) {
       <div class="flex items-center justify-between gap-3 pt-3 text-[11px] font-mono text-zinc-500 select-none">
-        <span>{{ rangeStart() }}–{{ rangeEnd() }} din {{ total() }}</span>
+        <span>{{ rangeStart() }}–{{ rangeEnd() }} of {{ total() }}</span>
         <div class="flex items-center gap-1.5">
           <button
             type="button"
             (click)="go(page() - 1)"
             [disabled]="page() <= 1"
             class="px-2.5 py-1 rounded border border-zinc-800 text-zinc-300 hover:bg-zinc-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-          >‹ Anterior</button>
-          <span class="px-2 text-zinc-400">Pagina {{ page() }} / {{ totalPages() }}</span>
+          >‹ Previous</button>
+          <span class="px-2 text-zinc-400">Page {{ page() }} / {{ totalPages() }}</span>
           <button
             type="button"
             (click)="go(page() + 1)"
             [disabled]="page() >= totalPages()"
             class="px-2.5 py-1 rounded border border-zinc-800 text-zinc-300 hover:bg-zinc-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-          >Următor ›</button>
+          >Next ›</button>
         </div>
       </div>
     }

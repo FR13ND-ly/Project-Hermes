@@ -44,17 +44,17 @@ export class Auth {
     const confirmPwd = this.confirmNewPassword().trim();
 
     if (!email || !tempPwd || !newPwd || !confirmPwd) {
-      this.activationError.set('Toate câmpurile sunt obligatorii.');
+      this.activationError.set('All fields are required.');
       return;
     }
 
     if (newPwd.length < 6) {
-      this.activationError.set('Parola nouă trebuie să aibă cel puțin 6 caractere.');
+      this.activationError.set('The new password must be at least 6 characters.');
       return;
     }
 
     if (newPwd !== confirmPwd) {
-      this.activationError.set('Parolele noi introduse nu coincid.');
+      this.activationError.set('The new passwords do not match.');
       return;
     }
 
@@ -76,7 +76,7 @@ export class Auth {
       },
       error: (err) => {
         this.activationLoading.set(false);
-        this.activationError.set(err.error?.message || 'Eroare la activarea contului.');
+        this.activationError.set(err.error?.message || 'Error activating the account.');
       }
     });
   }
@@ -90,7 +90,7 @@ export class Auth {
 
   onSubmit(): void {
     if (!this.loginIdentity() || !this.password()) {
-      this.error.set('Vă rugăm să introduceți datele de autentificare.');
+      this.error.set('Please enter your sign-in credentials.');
       return;
     }
 
@@ -115,7 +115,7 @@ export class Auth {
           
           // Set mode to activate
           this.mode.set('activate');
-          this.activationError.set('Deoarece este prima conectare, vă rugăm să vă alegeți o parolă nouă securizată.');
+          this.activationError.set('Since this is your first sign-in, please choose a new, secure password.');
         } else {
           this.router.navigate(['/dashboard']);
         }
@@ -123,16 +123,16 @@ export class Auth {
       error: (err) => {
         this.loading.set(false);
         const backendMessage = err.error?.message;
-        if (backendMessage === 'This account has been suspended.' || backendMessage === 'Acest cont a fost suspendat.') {
-          this.error.set('Acest cont a fost suspendat.');
+        if (backendMessage === 'This account has been suspended.') {
+          this.error.set('This account has been suspended.');
         } else if (backendMessage === 'Invalid credentials.') {
-          this.error.set('Nume de utilizator sau parolă incorectă.');
+          this.error.set('Incorrect username or password.');
         } else if (backendMessage) {
           this.error.set(backendMessage);
         } else if (err.status === 401) {
-          this.error.set('Nume de utilizator sau parolă incorectă.');
+          this.error.set('Incorrect username or password.');
         } else {
-          this.error.set('Eroare de conexiune la server Hermes.');
+          this.error.set('Connection error to the Hermes server.');
         }
       }
     });

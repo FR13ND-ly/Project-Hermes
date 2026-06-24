@@ -50,7 +50,7 @@ export class App {
     const activeId = this.auth.currentWorkspaceId();
     const list = this.workspaces();
     if (list.length === 0) {
-      return 'Fără Workspace';
+      return 'No Workspace';
     }
     const found = list.find(w => w.id === activeId);
     return found ? found.name : 'Personal Workspace';
@@ -88,7 +88,7 @@ export class App {
   loadWorkspaces(): void {
     this.workspaceService.listWorkspaces().subscribe({
       next: (res) => this.workspaces.set(res || []),
-      error: (err) => console.error('Eroare la încărcarea spațiilor de lucru', err)
+      error: (err) => console.error('Error loading workspaces', err)
     });
   }
 
@@ -108,7 +108,7 @@ export class App {
         });
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la schimbarea spațiului de lucru.');
+        this.toast.error(err.error?.message || 'Error switching workspace.');
       }
     });
   }
@@ -129,7 +129,7 @@ export class App {
         this.onSwitchWorkspace(res.id);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la crearea spațiului de lucru.');
+        this.toast.error(err.error?.message || 'Error creating workspace.');
       }
     });
   }

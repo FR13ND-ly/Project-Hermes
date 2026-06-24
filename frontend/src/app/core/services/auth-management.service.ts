@@ -72,8 +72,15 @@ export class AuthManagementService {
     return this.api.get<BaasService[]>(`/projects/${projectId}/baas`);
   }
 
-  createService(projectId: string, name: string): Observable<BaasService> {
-    return this.api.post<BaasService>(`/baas`, { projectId, name });
+  createService(projectId: string, name: string, options?: {
+    publishAppId?: boolean;
+    appIdEnvKey?: string;
+    publishSecret?: boolean;
+    secretEnvKey?: string;
+    publishApiKey?: boolean;
+    apiKeyEnvKey?: string;
+  }): Observable<BaasService> {
+    return this.api.post<BaasService>(`/baas`, { projectId, name, ...options });
   }
 
   deleteService(baasId: string): Observable<void> {

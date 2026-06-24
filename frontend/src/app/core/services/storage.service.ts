@@ -84,6 +84,10 @@ export interface CreateBucketRequest {
   allowCustomProcessing?: boolean;
   publishToEnv?: boolean;
   envKey?: string;
+  publishAppId?: boolean;
+  appIdEnvKey?: string;
+  publishSecretKey?: boolean;
+  secretKeyEnvKey?: string;
 }
 
 // A PVC listed in the central Storage interface (auto-created at app build).

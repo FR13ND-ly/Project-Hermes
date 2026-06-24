@@ -104,6 +104,10 @@ pub struct PlanDatabase {
     pub version: String,
     pub internal_port: i32,
     pub include: bool,
+    #[serde(default)]
+    pub publish_to_env: Option<bool>,
+    #[serde(default)]
+    pub env_key: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -62,7 +62,7 @@ export class Dashboard implements OnInit, OnDestroy {
     this.workspaceService.listWorkspaces().subscribe({
       next: (res) => this.workspaces.set(res),
       error: () => {
-        if (!silent) this.error.set('Eroare la încărcarea spațiilor de lucru.');
+        if (!silent) this.error.set('Error loading workspaces.');
       }
     });
 
@@ -73,7 +73,7 @@ export class Dashboard implements OnInit, OnDestroy {
         this.loading.set(false);
       },
       error: () => {
-        if (!silent) this.error.set('Eroare la încărcarea proiectelor.');
+        if (!silent) this.error.set('Error loading projects.');
         this.loading.set(false);
       }
     });
@@ -81,7 +81,7 @@ export class Dashboard implements OnInit, OnDestroy {
     // Load usage
     this.workspaceService.getUsage().subscribe({
       next: (res) => this.usage.set(res),
-      error: () => console.error('Eroare la încărcarea cotelor de resurse.')
+      error: () => console.error('Error loading resource quotas.')
     });
   }
 
@@ -92,7 +92,7 @@ export class Dashboard implements OnInit, OnDestroy {
         this.loadData();
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la schimbarea spațiului de lucru.');
+        this.error.set(err.error?.message || 'Error switching workspace.');
         this.loading.set(false);
       }
     });
@@ -108,7 +108,7 @@ export class Dashboard implements OnInit, OnDestroy {
         this.onSwitchWorkspace(res.id);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la crearea spațiului de lucru.');
+        this.error.set(err.error?.message || 'Error creating workspace.');
         this.loading.set(false);
       }
     });

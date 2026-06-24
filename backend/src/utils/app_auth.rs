@@ -33,17 +33,18 @@ pub async fn get_or_create_secret(
     ws_id: Uuid,
     project_id: Uuid,
 ) -> Result<String, AppError> {
-    // Read by key — multiple baas_auth vars (secret/app_id/api_url) share the same
-    // source_id = service id, so we must pin the secret's key specifically.
-    let row = sqlx::query!(
-        "SELECT encrypted_value, nonce FROM project_env_variables WHERE source = 'baas_auth' AND source_id = $1 AND key = $2",
-        baas_id, AUTH_SECRET_ENV_KEY
+    use sqlx::Row;
+    let row = sqlx::query(
+        "SELECT encrypted_value, nonce FROM project_env_variables WHERE source = 'baas_auth' AND source_id = $1 AND is_secret = true"
     )
+    .bind(baas_id)
     .fetch_optional(pool)
     .await?;
 
     if let Some(r) = row {
-        return crypto::decrypt_env_value(&r.encrypted_value, &r.nonce);
+        let encrypted_value: String = r.get("encrypted_value");
+        let nonce: String = r.get("nonce");
+        return crypto::decrypt_env_value(&encrypted_value, &nonce);
     }
 
     rotate_secret(pool, baas_id, ws_id, project_id).await
@@ -88,7 +89,15 @@ pub async fn rotate_secret(
     project_id: Uuid,
 ) -> Result<String, AppError> {
     let secret = generate_secret();
-    publish_baas_var(pool, ws_id, project_id, baas_id, AUTH_SECRET_ENV_KEY, &secret, true).await?;
+    let existing_key = sqlx::query_scalar::<_, String>(
+        "SELECT key FROM project_env_variables WHERE source = 'baas_auth' AND source_id = $1 AND is_secret = true"
+    )
+    .bind(baas_id)
+    .fetch_optional(pool)
+    .await?
+    .unwrap_or_else(|| AUTH_SECRET_ENV_KEY.to_string());
+
+    publish_baas_var(pool, ws_id, project_id, baas_id, &existing_key, &secret, true).await?;
     Ok(secret)
 }
 
@@ -104,15 +113,15 @@ fn slugify(name: &str) -> String {
     if s.is_empty() { "auth".to_string() } else { s }
 }
 
-/// Create a standalone BaaS service row in a project + generate & publish its secret.
-/// Returns the new service id. Used by the BaaS CRUD endpoint and by the app-create
+/// Create a standalone BaaS service row in a project + generate its secret.
+/// Returns the new service id and the generated secret. Used by the BaaS CRUD endpoint and by the app-create
 /// `enableBaas` shortcut.
 pub async fn create_baas_service(
     pool: &PgPool,
     ws_id: Uuid,
     project_id: Uuid,
     name: &str,
-) -> Result<Uuid, AppError> {
+) -> Result<(Uuid, String), AppError> {
     let id = Uuid::new_v4();
     let slug = format!("{}-{}", slugify(name), &id.to_string()[..8]);
     sqlx::query!(
@@ -121,9 +130,8 @@ pub async fn create_baas_service(
     )
     .execute(pool)
     .await?;
-    // Generate + publish the signing secret immediately so the pool var exists.
-    rotate_secret(pool, id, ws_id, project_id).await?;
-    Ok(id)
+    let secret = generate_secret();
+    Ok((id, secret))
 }
 
 /// Republish `HERMES_AUTH_APP_ID` (= service id) for every BaaS service so the value

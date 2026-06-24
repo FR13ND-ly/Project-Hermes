@@ -705,18 +705,34 @@
                                 </div>
                               </div>
                               @if (expandedDbs()[i]) {
-                                <div class="px-2.5 pb-2.5 pt-1 border-t border-zinc-900 grid gap-2 sm:grid-cols-3">
-                                  <div class="space-y-1">
-                                    <label class="text-[8px] uppercase text-zinc-500">Nume</label>
-                                    <input type="text" [ngModel]="db.name" (ngModelChange)="updateDbName(i, $event)" class="block w-full px-2 py-1.5 text-[11px] bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
+                                <div class="px-2.5 pb-2.5 pt-1 border-t border-zinc-900 space-y-3 font-mono">
+                                  <div class="grid gap-2 sm:grid-cols-3">
+                                    <div class="space-y-1">
+                                      <label class="text-[8px] uppercase text-zinc-500">Nume</label>
+                                      <input type="text" [ngModel]="db.name" (ngModelChange)="updateDbName(i, $event)" class="block w-full px-2 py-1.5 text-[11px] bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
+                                    </div>
+                                    <div class="space-y-1">
+                                      <label class="text-[8px] uppercase text-zinc-500">Versiune</label>
+                                      <input type="text" [ngModel]="db.version" (ngModelChange)="updateDbVersion(i, $event)" class="block w-full px-2 py-1.5 text-[11px] bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
+                                    </div>
+                                    <div class="space-y-1">
+                                      <label class="text-[8px] uppercase text-zinc-500">Port intern</label>
+                                      <input type="number" [ngModel]="db.internalPort" (ngModelChange)="updateDbInternalPort(i, $event)" class="block w-full px-2 py-1.5 text-[11px] bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
+                                    </div>
                                   </div>
-                                  <div class="space-y-1">
-                                    <label class="text-[8px] uppercase text-zinc-500">Versiune</label>
-                                    <input type="text" [ngModel]="db.version" (ngModelChange)="updateDbVersion(i, $event)" class="block w-full px-2 py-1.5 text-[11px] bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
-                                  </div>
-                                  <div class="space-y-1">
-                                    <label class="text-[8px] uppercase text-zinc-500">Port intern</label>
-                                    <input type="number" [ngModel]="db.internalPort" (ngModelChange)="updateDbInternalPort(i, $event)" class="block w-full px-2 py-1.5 text-[11px] bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
+                                  
+                                  <!-- Connection string env variable customization -->
+                                  <div class="pt-2 border-t border-zinc-900/60 space-y-2">
+                                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                                      <input type="checkbox" [checked]="db.publishToEnv" (change)="updateDbPublishToEnv(i, !db.publishToEnv)" class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer" />
+                                      <span class="text-[10px] text-zinc-300">Publică string de conexiune în .env</span>
+                                    </label>
+                                    @if (db.publishToEnv) {
+                                      <div class="flex items-center gap-2 pl-6 animate-fade-in">
+                                        <label class="text-[9px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Nume cheie:</label>
+                                        <input type="text" placeholder="DATABASE_URL (implicit)" [ngModel]="db.envKey" (ngModelChange)="updateDbEnvKey(i, $event)" class="block w-full max-w-xs px-2 py-1 text-[10px] bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 uppercase font-bold" />
+                                      </div>
+                                    }
                                   </div>
                                 </div>
                               }

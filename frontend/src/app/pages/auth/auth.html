@@ -12,7 +12,7 @@
         Hermes OS
       </h1>
       <p class="mt-1.5 text-xs text-zinc-500">
-        Consolă Management Cloud & PaaS
+        Cloud & PaaS Management Console
       </p>
     </div>
 
@@ -33,7 +33,7 @@
 
           <!-- Identity Input -->
           <div class="space-y-1.5">
-            <label for="identity" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-mono">Email sau Utilizator</label>
+            <label for="identity" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-mono">Email or Username</label>
             <input 
               id="identity" 
               name="identity" 
@@ -50,7 +50,7 @@
 
           <!-- Password Input -->
           <div class="space-y-1.5">
-            <label for="password" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-mono">Parolă</label>
+            <label for="password" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-mono">Password</label>
             <input 
               id="password" 
               name="password" 
@@ -72,14 +72,14 @@
             class="relative flex w-full items-center justify-center rounded bg-white hover:bg-zinc-200 py-2.5 text-xs font-semibold text-black shadow transition-all cursor-pointer disabled:opacity-50 font-sans"
           >
             @if (!loading()) {
-              <span>Conectare</span>
+              <span>Sign In</span>
             } @else {
               <div class="flex items-center gap-2">
                 <svg class="animate-spin h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span>Se conectează...</span>
+                <span>Signing in...</span>
               </div>
             }
           </button>
@@ -95,15 +95,15 @@
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-emerald-500">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>Cont Activat!</span>
+              <span>Account Activated!</span>
             </div>
             <p class="text-[10px] text-zinc-500 font-sans leading-normal">
-              Contul tău a fost activat cu succes. Vei fi redirecționat la logare...
+              Your account has been activated successfully. You'll be redirected to sign in...
             </p>
           </div>
         } @else {
           <form class="space-y-4" (ngSubmit)="onActivateSubmit()">
-            <h2 class="text-[10px] font-bold text-white uppercase tracking-wider text-center border-b border-zinc-900 pb-2">Activare Cont Nou</h2>
+            <h2 class="text-[10px] font-bold text-white uppercase tracking-wider text-center border-b border-zinc-900 pb-2">Activate New Account</h2>
 
             <!-- Error Message -->
             @if (activationError()) {
@@ -124,7 +124,7 @@
                 type="email" 
                 required 
                 class="block w-full px-3 py-2 bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors" 
-                placeholder="ex. nume@companie.ro"
+                placeholder="e.g. name@company.com"
                 [ngModel]="activateEmail()"
                 (ngModelChange)="activateEmail.set($event)"
                 [disabled]="activationLoading()"
@@ -133,14 +133,14 @@
 
             <!-- Temporary Password Input -->
             <div class="space-y-1.5">
-              <label for="temp-pwd" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Parolă Temporară</label>
+              <label for="temp-pwd" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Temporary Password</label>
               <input 
                 id="temp-pwd" 
                 name="temp-pwd" 
                 type="password" 
                 required 
                 class="block w-full px-3 py-2 bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors" 
-                placeholder="Introdusă de admin"
+                placeholder="Provided by the admin"
                 [ngModel]="temporaryPassword()"
                 (ngModelChange)="temporaryPassword.set($event)"
                 [disabled]="activationLoading()"
@@ -149,14 +149,14 @@
 
             <!-- New Password Input -->
             <div class="space-y-1.5">
-              <label for="new-pwd" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Parolă Nouă Permanentă</label>
+              <label for="new-pwd" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">New Permanent Password</label>
               <input 
                 id="new-pwd" 
                 name="new-pwd" 
                 type="password" 
                 required 
                 class="block w-full px-3 py-2 bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors" 
-                placeholder="Min. 6 caractere"
+                placeholder="Min. 6 characters"
                 [ngModel]="newPassword()"
                 (ngModelChange)="newPassword.set($event)"
                 [disabled]="activationLoading()"
@@ -165,14 +165,14 @@
 
             <!-- Confirm New Password Input -->
             <div class="space-y-1.5">
-              <label for="confirm-pwd" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Confirmare Parolă Nouă</label>
+              <label for="confirm-pwd" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Confirm New Password</label>
               <input 
                 id="confirm-pwd" 
                 name="confirm-pwd" 
                 type="password" 
                 required 
                 class="block w-full px-3 py-2 bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors" 
-                placeholder="Reintroduceți parola"
+                placeholder="Re-enter the password"
                 [ngModel]="confirmNewPassword()"
                 (ngModelChange)="confirmNewPassword.set($event)"
                 [disabled]="activationLoading()"
@@ -186,14 +186,14 @@
               class="relative flex w-full items-center justify-center rounded bg-white hover:bg-zinc-200 py-2.5 text-xs font-semibold text-black shadow transition-all cursor-pointer disabled:opacity-50 font-sans"
             >
               @if (!activationLoading()) {
-                <span>Activează Contul</span>
+                <span>Activate Account</span>
               } @else {
                 <div class="flex items-center gap-2">
                   <svg class="animate-spin h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                   </svg>
-                  <span>Se activează...</span>
+                  <span>Activating...</span>
                 </div>
               }
             </button>
@@ -204,7 +204,7 @@
               (click)="onGoBackToLogin()" 
               class="text-zinc-550 hover:text-white transition-colors cursor-pointer text-[10px] block text-center w-full mt-2 font-mono uppercase tracking-wider font-bold"
             >
-              Înapoi la Logare
+              Back to Sign In
             </button>
           </form>
         }
@@ -214,7 +214,7 @@
 
     <!-- Footer Note -->
     <div class="text-center text-[11px] text-zinc-650">
-      Autentificare securizată prin modulul RBAC Hermes OS
+      Secure authentication via the Hermes OS RBAC module
     </div>
 
   </div>

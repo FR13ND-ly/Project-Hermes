@@ -25,8 +25,8 @@ export class ConfirmService {
     return new Promise<boolean>((resolve) => {
       this.activeModal.set({
         options: {
-          confirmText: 'Confirmă',
-          cancelText: 'Anulează',
+          confirmText: 'Confirm',
+          cancelText: 'Cancel',
           isDanger: false,
           ...options
         },

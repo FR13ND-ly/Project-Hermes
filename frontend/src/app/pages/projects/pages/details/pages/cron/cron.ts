@@ -85,7 +85,7 @@ export class CronComponent implements OnInit, OnDestroy {
   });
 
   addEnvRow(): void {
-    this.newCronEnvRows.update(rows => [...rows, { key: '', value: '', isSecret: true }]);
+    this.newCronEnvRows.update(rows => [...rows, { key: '', value: '', isSecret: false }]);
   }
 
   removeEnvRow(index: number): void {

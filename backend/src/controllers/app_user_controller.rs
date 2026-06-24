@@ -24,6 +24,12 @@ use crate::utils::error::AppError;
 pub struct CreateBaasServiceRequest {
     pub project_id: Uuid,
     pub name: String,
+    pub publish_app_id: Option<bool>,
+    pub app_id_env_key: Option<String>,
+    pub publish_secret: Option<bool>,
+    pub secret_env_key: Option<String>,
+    pub publish_api_key: Option<bool>,
+    pub api_key_env_key: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -208,10 +214,63 @@ async fn issue_token_pair(
 /// is the app backend — by sending the app's signing secret in `X-Hermes-Auth-Secret`
 /// — may inject claims; otherwise a present `additionalClaims` is rejected (so a
 /// public end user can't escalate). Reserved claim names are always stripped.
+fn extract_baas_api_key(headers: &HeaderMap) -> Option<String> {
+    if let Some(auth_header) = headers.get(axum::http::header::AUTHORIZATION).and_then(|v| v.to_str().ok()) {
+        if auth_header.starts_with("Bearer ") {
+            return Some(auth_header[7..].to_string());
+        }
+    }
+    if let Some(custom_header) = headers.get("x-baas-api-key").and_then(|v| v.to_str().ok()) {
+        return Some(custom_header.to_string());
+    }
+    None
+}
+
+async fn validate_baas_api_key(
+    pool: &sqlx::PgPool,
+    baas_id: Uuid,
+    key_str: &str,
+) -> Result<bool, AppError> {
+    let Some((prefix, secret)) = key_str.split_once('.') else {
+        return Ok(false);
+    };
+
+    let key = sqlx::query!(
+        "SELECT id, name, key_hash, expires_at FROM app_api_keys WHERE baas_id = $1 AND key_prefix = $2",
+        baas_id, prefix
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    let Some(key) = key else {
+        return Ok(false);
+    };
+
+    if !crate::utils::crypto::verify_password(secret, &key.key_hash)? {
+        return Ok(false);
+    }
+
+    if let Some(exp) = key.expires_at {
+        if exp < chrono::Utc::now() {
+            return Ok(false);
+        }
+    }
+
+    let _ = sqlx::query!(
+        "UPDATE app_api_keys SET last_used_at = now() WHERE id = $1",
+        key.id
+    )
+    .execute(pool)
+    .await;
+
+    Ok(true)
+}
+
+/// Resolve the custom claims to embed. Only a server-to-server caller that proves it
+/// is the app backend — by sending the app's api key — may inject claims.
+/// Reserved claim names are always stripped.
 fn resolve_additional_claims(
-    headers: &axum::http::HeaderMap,
     requested: Option<serde_json::Value>,
-    app_secret: &str,
 ) -> Result<serde_json::Map<String, serde_json::Value>, AppError> {
     let obj = match requested {
         None | Some(serde_json::Value::Null) => return Ok(serde_json::Map::new()),
@@ -219,19 +278,6 @@ fn resolve_additional_claims(
         Some(serde_json::Value::Object(m)) => m,
         Some(_) => return Err(AppError::Validation("additionalClaims must be a JSON object.".to_string())),
     };
-
-    // Constant-time-ish secret check (compare digests, not the raw secrets).
-    let provided = headers
-        .get("x-hermes-auth-secret")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("");
-    let ok = !provided.is_empty()
-        && Sha256::digest(provided.as_bytes()) == Sha256::digest(app_secret.as_bytes());
-    if !ok {
-        return Err(AppError::Permission(
-            "additionalClaims requires the app auth secret in the X-Hermes-Auth-Secret header.".to_string(),
-        ));
-    }
 
     Ok(obj.into_iter().filter(|(k, _)| !RESERVED_CLAIMS.contains(&k.as_str())).collect())
 }
@@ -420,6 +466,13 @@ pub async fn register_public_user(
     Json(payload): Json<AppUserRegisterRequest>,
 ) -> Result<(StatusCode, Json<AppUserAuthResponse>), AppError> {
     enforce_baas_rate_limit(&state, &headers, baas_id).await?;
+
+    let api_key = extract_baas_api_key(&headers)
+        .ok_or_else(|| AppError::Auth("Missing BaaS API Key".to_string()))?;
+    if !validate_baas_api_key(&state.pool, baas_id, &api_key).await? {
+        return Err(AppError::Auth("Invalid or expired BaaS API Key".to_string()));
+    }
+
     let app = fetch_app_ctx(&state.pool, baas_id).await?;
 
     let identifier = payload.identifier.trim().to_string();
@@ -466,7 +519,7 @@ pub async fn register_public_user(
     let secret = crate::utils::app_auth::get_or_create_secret(
         &state.pool, baas_id, app.workspace_id, app.project_id,
     ).await?;
-    let extra = resolve_additional_claims(&headers, payload.additional_claims, &secret)?;
+    let extra = resolve_additional_claims(payload.additional_claims)?;
 
     let tokens = issue_token_pair(
         &state.pool, baas_id, user_id, &identifier, &roles, &permissions, &secret, extra,
@@ -494,6 +547,13 @@ pub async fn login_public_user(
     Json(payload): Json<AppUserLoginRequest>,
 ) -> Result<Json<AppUserAuthResponse>, AppError> {
     enforce_baas_rate_limit(&state, &headers, baas_id).await?;
+
+    let api_key = extract_baas_api_key(&headers)
+        .ok_or_else(|| AppError::Auth("Missing BaaS API Key".to_string()))?;
+    if !validate_baas_api_key(&state.pool, baas_id, &api_key).await? {
+        return Err(AppError::Auth("Invalid or expired BaaS API Key".to_string()));
+    }
+
     let app = fetch_app_ctx(&state.pool, baas_id).await?;
     let identifier = payload.identifier.trim().to_string();
 
@@ -523,7 +583,7 @@ pub async fn login_public_user(
     let secret = crate::utils::app_auth::get_or_create_secret(
         &state.pool, baas_id, app.workspace_id, app.project_id,
     ).await?;
-    let extra = resolve_additional_claims(&headers, payload.additional_claims, &secret)?;
+    let extra = resolve_additional_claims(payload.additional_claims)?;
 
     let tokens = issue_token_pair(
         &state.pool, baas_id, user.id, &user.identifier, &roles, &permissions, &secret, extra,
@@ -557,6 +617,13 @@ pub async fn refresh_app_token(
     Json(payload): Json<RefreshTokenRequest>,
 ) -> Result<Json<AppUserAuthResponse>, AppError> {
     enforce_baas_rate_limit(&state, &headers, baas_id).await?;
+
+    let api_key = extract_baas_api_key(&headers)
+        .ok_or_else(|| AppError::Auth("Missing BaaS API Key".to_string()))?;
+    if !validate_baas_api_key(&state.pool, baas_id, &api_key).await? {
+        return Err(AppError::Auth("Invalid or expired BaaS API Key".to_string()));
+    }
+
     let app = fetch_app_ctx(&state.pool, baas_id).await?;
     let token_hash = format!("{:x}", Sha256::digest(payload.refresh_token.as_bytes()));
 
@@ -615,9 +682,16 @@ pub async fn refresh_app_token(
 /// Access tokens are short-lived and expire on their own.
 pub async fn logout_app_user(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(baas_id): Path<Uuid>,
     Json(payload): Json<LogoutRequest>,
 ) -> Result<StatusCode, AppError> {
+    let api_key = extract_baas_api_key(&headers)
+        .ok_or_else(|| AppError::Auth("Missing BaaS API Key".to_string()))?;
+    if !validate_baas_api_key(&state.pool, baas_id, &api_key).await? {
+        return Err(AppError::Auth("Invalid or expired BaaS API Key".to_string()));
+    }
+
     let token_hash = format!("{:x}", Sha256::digest(payload.refresh_token.as_bytes()));
     sqlx::query("DELETE FROM app_refresh_tokens WHERE baas_id = $1 AND token_hash = $2")
         .bind(baas_id)
@@ -907,9 +981,16 @@ pub async fn delete_app_api_key(
 // current auth_roles_config so config changes take effect on existing tokens.
 pub async fn verify_app_token(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(baas_id): Path<Uuid>,
     Json(payload): Json<VerifyTokenRequest>,
 ) -> Result<Json<VerifyTokenResponse>, AppError> {
+    let api_key = extract_baas_api_key(&headers)
+        .ok_or_else(|| AppError::Auth("Missing BaaS API Key".to_string()))?;
+    if !validate_baas_api_key(&state.pool, baas_id, &api_key).await? {
+        return Err(AppError::Auth("Invalid or expired BaaS API Key".to_string()));
+    }
+
     let app = sqlx::query!(
         "SELECT workspace_id, project_id, auth_roles_config FROM baas_services WHERE id = $1",
         baas_id
@@ -1120,7 +1201,57 @@ pub async fn create_baas_service(
         return Err(AppError::NotFound("Project not found in this workspace.".to_string()));
     }
 
-    let baas_id = crate::utils::app_auth::create_baas_service(&state.pool, ws_id, payload.project_id, &name).await?;
+    let (baas_id, secret) = crate::utils::app_auth::create_baas_service(&state.pool, ws_id, payload.project_id, &name).await?;
+
+    let has_new_fields = payload.publish_app_id.is_some() || payload.publish_secret.is_some() || payload.publish_api_key.is_some();
+
+    if has_new_fields {
+        if let Some(true) = payload.publish_app_id {
+            if let Some(ref key) = payload.app_id_env_key {
+                let key_trimmed = key.trim();
+                if !key_trimmed.is_empty() {
+                    let _ = crate::utils::app_auth::publish_baas_var(&state.pool, ws_id, payload.project_id, baas_id, key_trimmed, &baas_id.to_string(), false).await;
+                }
+            }
+        }
+        if let Some(true) = payload.publish_secret {
+            if let Some(ref key) = payload.secret_env_key {
+                let key_trimmed = key.trim();
+                if !key_trimmed.is_empty() {
+                    let _ = crate::utils::app_auth::publish_baas_var(&state.pool, ws_id, payload.project_id, baas_id, key_trimmed, &secret, true).await;
+                }
+            }
+        }
+        if let Some(true) = payload.publish_api_key {
+            if let Some(ref key) = payload.api_key_env_key {
+                let key_trimmed = key.trim();
+                if !key_trimmed.is_empty() {
+                    let key_id = Uuid::new_v4();
+                    let prefix = format!("ak_{}", crate::utils::string_gen::generate_secure_string(8));
+                    let raw_key = format!("{}.{}", prefix, crate::utils::string_gen::generate_secure_string(32));
+                    let key_hash = crate::utils::crypto::hash_password(&raw_key)?;
+                    sqlx::query(
+                        "INSERT INTO app_api_keys (id, baas_id, name, key_hash, key_prefix, created_at, expires_at)
+                         VALUES ($1, $2, $3, $4, $5, now(), null)"
+                    )
+                    .bind(key_id)
+                    .bind(baas_id)
+                    .bind("Default API Key")
+                    .bind(key_hash)
+                    .bind(prefix)
+                    .execute(&state.pool)
+                    .await?;
+                    let _ = crate::utils::app_env::publish_project_env(
+                        &state.pool, ws_id, payload.project_id, key_trimmed, &raw_key, true, "baas", key_id
+                    ).await;
+                }
+            }
+        }
+    } else {
+        // Legacy flow
+        let _ = crate::utils::app_auth::publish_baas_var(&state.pool, ws_id, payload.project_id, baas_id, "HERMES_AUTH_APP_ID", &baas_id.to_string(), false).await;
+        let _ = crate::utils::app_auth::publish_baas_var(&state.pool, ws_id, payload.project_id, baas_id, crate::utils::app_auth::AUTH_SECRET_ENV_KEY, &secret, true).await;
+    }
 
     let svc = sqlx::query_as::<_, BaasService>("SELECT * FROM baas_services WHERE id = $1")
         .bind(baas_id)

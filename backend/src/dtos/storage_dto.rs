@@ -21,6 +21,14 @@ pub struct CreateBucketRequest {
     /// Override the suggested env key for the published bucket URL.
     #[serde(default)]
     pub env_key: Option<String>,
+    #[serde(default)]
+    pub publish_app_id: Option<bool>,
+    #[serde(default)]
+    pub app_id_env_key: Option<String>,
+    #[serde(default)]
+    pub publish_secret_key: Option<bool>,
+    #[serde(default)]
+    pub secret_key_env_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -67,32 +67,62 @@
         <p class="text-[10px] text-zinc-600 pt-1">Bucket-urile sunt private — accesul la fișiere se face securizat, cu app_id/secret_key.</p>
 
         <!-- Publish to project env pool -->
-        <div class="pt-4 border-t border-zinc-900 space-y-3">
-          <label class="flex items-center gap-2.5 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              [checked]="publishToEnv()"
-              (change)="publishToEnv.set(!publishToEnv())"
-              [disabled]="creatingBucket()"
-              class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
-            />
-            <span class="text-[11px] font-semibold text-zinc-300">Adaugă în .env proiect</span>
-            <span class="text-[10px] text-zinc-600">— credențialele (APP_ID + SECRET_KEY) devin disponibile aplicațiilor din proiect.</span>
-          </label>
-          @if (publishToEnv()) {
-            <div class="flex items-center gap-2 pl-6 animate-fade-in">
-              <label for="bucket-env-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Prefix chei:</label>
+        <div class="pt-4 border-t border-zinc-900 space-y-4">
+          <!-- App ID publication -->
+          <div class="space-y-2">
+            <label class="flex items-center gap-2.5 cursor-pointer select-none">
               <input
-                id="bucket-env-key"
-                type="text"
-                placeholder="BUCKET_<NUME> (implicit) → _APP_ID, _SECRET_KEY"
-                [ngModel]="envKeyName()"
-                (ngModelChange)="envKeyName.set($event)"
+                type="checkbox"
+                [checked]="publishAppId()"
+                (change)="publishAppId.set(!publishAppId())"
                 [disabled]="creatingBucket()"
-                class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono uppercase font-bold"
+                class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
               />
-            </div>
-          }
+              <span class="text-[11px] font-semibold text-zinc-300">Adaugă App ID în .env proiect</span>
+            </label>
+            @if (publishAppId()) {
+              <div class="flex items-center gap-2 pl-6 animate-fade-in">
+                <label for="bucket-appid-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Nume variabilă (.env):</label>
+                <input
+                  id="bucket-appid-key"
+                  type="text"
+                  placeholder="ex. STORAGE_APP_ID"
+                  [ngModel]="appIdEnvKeyName()"
+                  (ngModelChange)="appIdEnvKeyName.set($event)"
+                  [disabled]="creatingBucket()"
+                  class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono uppercase font-bold"
+                />
+              </div>
+            }
+          </div>
+
+          <!-- Secret Key publication -->
+          <div class="space-y-2">
+            <label class="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                [checked]="publishSecretKey()"
+                (change)="publishSecretKey.set(!publishSecretKey())"
+                [disabled]="creatingBucket()"
+                class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
+              />
+              <span class="text-[11px] font-semibold text-zinc-300">Adaugă Secret Key în .env proiect</span>
+            </label>
+            @if (publishSecretKey()) {
+              <div class="flex items-center gap-2 pl-6 animate-fade-in">
+                <label for="bucket-secret-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Nume variabilă (.env):</label>
+                <input
+                  id="bucket-secret-key"
+                  type="text"
+                  placeholder="ex. STORAGE_SECRET_KEY"
+                  [ngModel]="secretKeyEnvKeyName()"
+                  (ngModelChange)="secretKeyEnvKeyName.set($event)"
+                  [disabled]="creatingBucket()"
+                  class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono uppercase font-bold"
+                />
+              </div>
+            }
+          </div>
         </div>
 
         <!-- Per-file size limit + custom processing override -->

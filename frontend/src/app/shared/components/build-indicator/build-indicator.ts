@@ -21,7 +21,7 @@ import { WebSocketService } from '../../../core/services/websocket.service';
           <button
             (click)="expanded.set(true)"
             class="flex items-center gap-2 pl-2.5 pr-3 py-2 rounded-full bg-[#0a0a0a] border border-zinc-800 shadow-2xl hover:border-zinc-600 transition-colors cursor-pointer"
-            [title]="items().length + ' procese active'"
+            [title]="items().length + ' active processes'"
           >
             <svg class="animate-spin h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -38,9 +38,9 @@ import { WebSocketService } from '../../../core/services/websocket.service';
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                 </svg>
-                <span class="text-[11px] font-bold text-zinc-200 uppercase tracking-wider font-mono">Procese active</span>
+                <span class="text-[11px] font-bold text-zinc-200 uppercase tracking-wider font-mono">Active processes</span>
               </div>
-              <button (click)="expanded.set(false)" class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white cursor-pointer" title="Restrânge">
+              <button (click)="expanded.set(false)" class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white cursor-pointer" title="Collapse">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15" /></svg>
               </button>
             </div>
@@ -59,18 +59,18 @@ import { WebSocketService } from '../../../core/services/websocket.service';
                   </div>
                   <div class="flex items-center gap-2 shrink-0">
                     @if (item.status === 'queued') {
-                      <span class="w-1.5 h-1.5 rounded-full bg-amber-500" title="în așteptare"></span>
+                      <span class="w-1.5 h-1.5 rounded-full bg-amber-500" title="queued"></span>
                     } @else if (item.status === 'deploying') {
-                      <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" title="se lansează"></span>
+                      <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" title="deploying"></span>
                     } @else {
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="rulează"></span>
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="running"></span>
                     }
                     <span class="text-[10px] text-zinc-400 font-mono tabular-nums">{{ elapsed(item.createdAt) }}</span>
                   </div>
                 </a>
               }
               @if (items().length > 6) {
-                <div class="px-3.5 py-1.5 text-[9px] text-zinc-600 text-center">+{{ items().length - 6 }} altele</div>
+                <div class="px-3.5 py-1.5 text-[9px] text-zinc-600 text-center">+{{ items().length - 6 }} more</div>
               }
             </div>
           </div>

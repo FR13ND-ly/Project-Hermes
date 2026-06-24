@@ -27,7 +27,7 @@ export class Environments implements OnInit {
   readonly showProjectAddForm = signal(false);
   readonly pKey = signal('');
   readonly pVal = signal('');
-  readonly pIsSecret = signal(true);
+  readonly pIsSecret = signal(false);
   readonly savingProjectEnv = signal(false);
 
   // Revealed secret values for pool vars (id -> decrypted value), fetched on demand.
@@ -42,7 +42,7 @@ export class Environments implements OnInit {
   readonly editingEnvId = signal<string | null>(null);
   readonly formKey = signal('');
   readonly formVal = signal('');
-  readonly formIsSecret = signal(true);
+  readonly formIsSecret = signal(false);
   readonly savingEnv = signal(false);
 
   // JSON editor (per instance)
@@ -96,7 +96,7 @@ export class Environments implements OnInit {
     this.showProjectAddForm.set(!this.showProjectAddForm());
     this.pKey.set('');
     this.pVal.set('');
-    this.pIsSecret.set(true);
+    this.pIsSecret.set(false);
   }
 
   saveProjectEnv(): void {
@@ -223,7 +223,7 @@ export class Environments implements OnInit {
     this.editingEnvId.set(null);
     this.formKey.set('');
     this.formVal.set('');
-    this.formIsSecret.set(true);
+    this.formIsSecret.set(false);
   }
 
   // Open the add form prefilled to edit an existing var (key locked; value blank for secrets).
@@ -241,7 +241,7 @@ export class Environments implements OnInit {
     this.editingEnvId.set(null);
     this.formKey.set('');
     this.formVal.set('');
-    this.formIsSecret.set(true);
+    this.formIsSecret.set(false);
   }
 
   saveEnv(): void {

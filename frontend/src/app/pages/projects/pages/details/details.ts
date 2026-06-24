@@ -51,7 +51,7 @@ export class Details implements OnInit, OnDestroy {
   readonly gitSubpath = signal('');
   // Custom in-cluster service/DNS name (empty = auto) + publish-URL-to-pool controls.
   readonly networkName = signal('');
-  readonly publishUrl = signal(true);
+  readonly publishUrl = signal(false);
   readonly urlEnvKey = signal('');
   readonly detectedSubdirectories = signal<string[]>([]);
   readonly subpathSelectionMode = signal<'select' | 'custom'>('select');
@@ -62,7 +62,7 @@ export class Details implements OnInit, OnDestroy {
   readonly newAppEnvRows = signal<EnvVarInput[]>([]);
 
   addEnvRow(): void {
-    this.newAppEnvRows.update(rows => [...rows, { key: '', value: '', isSecret: true }]);
+    this.newAppEnvRows.update(rows => [...rows, { key: '', value: '', isSecret: false }]);
   }
 
   removeEnvRow(index: number): void {
@@ -139,7 +139,7 @@ export class Details implements OnInit, OnDestroy {
     const rows: EnvVarInput[] = Object.entries(parsed).map(([key, value]) => ({
       key,
       value: value == null ? '' : String(value),
-      isSecret: true
+      isSecret: false
     }));
     this.newAppEnvRows.set(rows);
     this.newAppEnvJsonMode.set(false);
@@ -299,6 +299,13 @@ export class Details implements OnInit, OnDestroy {
     this.planningCompose.set(true);
     this.projectService.planComposeSplit(this.composeYaml()).subscribe({
       next: (plan) => {
+        if (plan && plan.databases) {
+          plan.databases = plan.databases.map(d => ({
+            ...d,
+            publishToEnv: false,
+            envKey: d.envKey || ''
+          }));
+        }
         this.composePlan.set(plan);
         this.showComposePreview.set(true);
         this.planningCompose.set(false);
@@ -384,6 +391,12 @@ export class Details implements OnInit, OnDestroy {
   }
   updateDbInternalPort(i: number, v: number): void {
     this.composePlan.update(p => p ? { ...p, databases: p.databases.map((d, idx) => idx === i ? { ...d, internalPort: +v || 0 } : d) } : p);
+  }
+  updateDbPublishToEnv(i: number, v: boolean): void {
+    this.composePlan.update(p => p ? { ...p, databases: p.databases.map((d, idx) => idx === i ? { ...d, publishToEnv: v } : d) } : p);
+  }
+  updateDbEnvKey(i: number, v: string): void {
+    this.composePlan.update(p => p ? { ...p, databases: p.databases.map((d, idx) => idx === i ? { ...d, envKey: v } : d) } : p);
   }
 
   composeSelectedCount(): number {
@@ -581,7 +594,7 @@ export class Details implements OnInit, OnDestroy {
         this.selectedProjectEnvIds.set([]);
         this.newAppEnvJsonMode.set(false);
         this.networkName.set('');
-        this.publishUrl.set(true);
+        this.publishUrl.set(false);
         this.urlEnvKey.set('');
         this.selectedImportRepo.set(null);
         this.isCustomGitUrl.set(false);
@@ -639,7 +652,7 @@ export class Details implements OnInit, OnDestroy {
           const rows: EnvVarInput[] = res.detectedEnvs.map((env: any) => ({
             key: env.key,
             value: env.value,
-            isSecret: true
+            isSecret: false
           }));
           this.newAppEnvRows.set(rows);
         } else {
