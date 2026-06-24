@@ -1059,7 +1059,7 @@ export class Storages implements OnInit, OnDestroy {
   getEnvSnippet(): string {
     // Credentials are published to the project env pool as BUCKET_<slug>_APP_ID /
     // BUCKET_<slug>_SECRET_KEY (rotate them in the bucket's Settings tab).
-    return `# Hermes Storage — credentials come from your project's env pool\n# BUCKET_<slug>_APP_ID, BUCKET_<slug>_SECRET_KEY (rotate in Settings)\nHERMES_STORAGE_URL=${environment.apiBaseUrl}/storage`;
+    return `# Hermes Storage — credentials come from your project's env pool\n# BUCKET_<slug>_APP_ID, BUCKET_<slug>_SECRET_KEY (rotate in Settings)\nHERMES_STORAGE_URL=${environment.apiOrigin}/storage`;
   }
 
   getUploadSnippet(): string {

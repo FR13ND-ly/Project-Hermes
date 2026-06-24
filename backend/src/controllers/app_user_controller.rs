@@ -1029,28 +1029,15 @@ pub async fn get_auth_integration(
         &state.pool, baas_id, ws_id, app.project_id,
     ).await?;
 
-    // Build the public base URL the way the client actually reached us. Behind Traefik
-    // (and any reverse proxy) the original host/scheme arrive in X-Forwarded-*; trust
-    // those first, then fall back to Host + a host-name heuristic for the scheme. This
-    // avoids handing apps a wrong URL (e.g. https on a plain-HTTP/IP test box).
-    let fwd_host = headers.get("x-forwarded-host").and_then(|h| h.to_str().ok());
-    let host = fwd_host
-        .or_else(|| headers.get(axum::http::header::HOST).and_then(|h| h.to_str().ok()))
-        .unwrap_or("localhost:8000")
-        .split(',').next().unwrap_or("").trim();
-    let proto = headers
-        .get("x-forwarded-proto")
+    let host = headers
+        .get(axum::http::header::HOST)
         .and_then(|h| h.to_str().ok())
-        .map(|p| p.split(',').next().unwrap_or(p).trim().to_string())
-        .unwrap_or_else(|| {
-            if host.contains("localhost") || host.contains("127.0.0.1")
-                || host.starts_with("192.168.") || host.starts_with("10.")
-            {
-                "http".to_string()
-            } else {
-                "https".to_string()
-            }
-        });
+        .unwrap_or("localhost:8000");
+    let proto = if host.contains("localhost") || host.contains("127.0.0.1") || host.contains("192.168.") {
+        "http"
+    } else {
+        "https"
+    };
     let api_base_url = format!("{}://{}/api/v1", proto, host);
 
     // Publish only the minimal pair into the project pool (idempotent): the service
