@@ -159,13 +159,15 @@ async fn dispatch(pool: &PgPool, kind: &str, payload: serde_json::Value) -> Resu
     match kind {
         "build" => {
             let p: BuildPayload = serde_json::from_value(payload).map_err(|e| e.to_string())?;
-            // Builder selection: kpack/Buildpacks is now the default path. Set
-            // HERMES_BUILDER=kaniko to fall back to the legacy generated-Dockerfile +
-            // kaniko mechanism (the strangler escape hatch).
-            if std::env::var("HERMES_BUILDER").as_deref() == Ok("kaniko") {
-                crate::utils::builder::run_ephemeral_build(pool.clone(), p.instance_id, p.git_repo, p.branch, p.build_cmd).await;
-            } else {
+            // Builder selection: the Dockerfile + Kaniko path is the default — it uses
+            // the repo's own Dockerfile when present (and generates a fallback when
+            // not), which fits Docker-based projects. Opt into kpack/Buildpacks with
+            // HERMES_BUILDER=kpack; note kpack IGNORES Dockerfiles, so it only suits
+            // repos without one.
+            if std::env::var("HERMES_BUILDER").as_deref() == Ok("kpack") {
                 crate::utils::builder::run_kpack_build(pool.clone(), p.instance_id, p.git_repo, p.branch, p.build_cmd).await;
+            } else {
+                crate::utils::builder::run_ephemeral_build(pool.clone(), p.instance_id, p.git_repo, p.branch, p.build_cmd).await;
             }
             Ok(())
         }

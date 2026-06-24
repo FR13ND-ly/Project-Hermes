@@ -38,18 +38,16 @@ async fn build_phase_db(pool: &sqlx::PgPool, build_id: Uuid) -> Option<String> {
 }
 
 #[tracing::instrument(skip_all, fields(instance_id = %instance_id, branch = %branch_name))]
-/// kpack-based build path — the default builder (set `HERMES_BUILDER=kaniko` to fall
-/// back to the legacy path). Creates/updates a kpack `Image` custom resource and waits
-/// for kpack to build + push the OCI image via Cloud Native Buildpacks, then hands off
-/// to the same deploy step as the kaniko path. Replaces the generated-Dockerfile +
-/// clone + kaniko mechanism.
+/// kpack-based build path — OPT-IN via `HERMES_BUILDER=kpack` (the default is the
+/// legacy Dockerfile + Kaniko path). kpack IGNORES any Dockerfile and detects the
+/// language via Cloud Native Buildpacks, so it only suits repos WITHOUT a Dockerfile.
+/// Creates/updates a kpack `Image` custom resource, waits for kpack to build + push the
+/// OCI image, then hands off to the same deploy step as the kaniko path.
 ///
-/// Requires cluster infra installed by `scripts/hermes.sh` (`install_kpack`): the kpack
-/// controller, a `hermes-builder` ClusterBuilder (deploy/90-kpack.yaml), and a
-/// per-workspace-namespace `hermes-kpack` ServiceAccount (created by
-/// `K8sManager::create_namespace`). NOTE: the in-cluster registry is plain HTTP — the
-/// kpack/Buildpacks lifecycle push to an insecure registry still needs live-cluster
-/// verification (see deploy/90-kpack.yaml); fall back with `HERMES_BUILDER=kaniko`.
+/// Requires cluster infra (run `scripts/hermes.sh kpack`): the kpack controller, a
+/// `hermes-builder` ClusterBuilder (deploy/90-kpack.yaml), and a per-workspace-namespace
+/// `hermes-kpack` ServiceAccount (created by `K8sManager::create_namespace`). Verified
+/// against the in-cluster HTTP registry — push works over plain HTTP (no TLS needed).
 pub async fn run_kpack_build(
     pool: PgPool,
     instance_id: Uuid,
@@ -66,9 +64,9 @@ pub async fn run_kpack_build(
     };
 
     #[derive(sqlx::FromRow)]
-    struct KMeta { app_id: Uuid, workspace_id: Uuid }
+    struct KMeta { app_id: Uuid, workspace_id: Uuid, git_subpath: Option<String> }
     let meta = match sqlx::query_as::<_, KMeta>(
-        "SELECT a.id AS app_id, a.workspace_id AS workspace_id
+        "SELECT a.id AS app_id, a.workspace_id AS workspace_id, a.git_subpath AS git_subpath
          FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE ai.id = $1",
     )
     .bind(instance_id)
@@ -114,6 +112,14 @@ pub async fn run_kpack_build(
         env_list.push(json!({ "name": k, "value": v }));
     }
 
+    // Monorepo support: build from a subdirectory when the app sets one (mirrors the
+    // kaniko path's `cd <subpath>`). kpack runs the lifecycle in source.subPath.
+    let mut source = json!({ "git": { "url": git_repo, "revision": branch_name } });
+    let sub_path = meta.git_subpath.as_deref().unwrap_or("").trim().trim_matches('/');
+    if !sub_path.is_empty() {
+        source["subPath"] = json!(sub_path);
+    }
+
     let image_name = format!("hermes-{}", &instance_id.to_string()[..8]);
     let manifest = json!({
         "apiVersion": "kpack.io/v1alpha2",
@@ -127,7 +133,7 @@ pub async fn run_kpack_build(
             "tag": dest_tag,
             "serviceAccountName": "hermes-kpack",
             "builder": { "kind": "ClusterBuilder", "name": "hermes-builder" },
-            "source": { "git": { "url": git_repo, "revision": branch_name } },
+            "source": source,
             "build": { "env": env_list }
         }
     });

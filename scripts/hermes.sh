@@ -163,12 +163,13 @@ install_knative() {
   ok "Knative Serving ready."
 }
 
-# ── kpack / Cloud Native Buildpacks (the default app builder) ─────────────────
-# Installs the kpack controller from its upstream release, then applies our
-# ClusterStack/ClusterStore/ClusterBuilder (deploy/90-kpack.yaml). The control plane
-# builds each app via a kpack `Image` referencing the `hermes-builder` ClusterBuilder
-# (set HERMES_BUILDER=kaniko on deploy/hermes-backend to use the legacy path instead).
-# Idempotent: the controller install is skipped once the kpack CRDs exist.
+# ── kpack / Cloud Native Buildpacks (OPT-IN builder) ──────────────────────────
+# NOT part of install/update — run `./scripts/hermes.sh kpack` only if you want the
+# Buildpacks builder. Installs the kpack controller from its upstream release, then
+# applies our ClusterStack/ClusterStore/ClusterBuilder (deploy/90-kpack.yaml). To
+# actually use it, set HERMES_BUILDER=kpack on deploy/hermes-backend (default stays the
+# Dockerfile + Kaniko path). kpack ignores Dockerfiles, so it only suits repos without
+# one. Idempotent: the controller install is skipped once the kpack CRDs exist.
 install_kpack() {
   local kp="v0.14.0"
   if $KUBECTL get crd clusterbuilders.kpack.io >/dev/null 2>&1; then
@@ -280,7 +281,6 @@ cmd_install() {
   setup_registry
   install_cert_manager
   install_knative
-  install_kpack
   install_monitoring
   build_and_import_images
   ensure_secret
@@ -298,9 +298,6 @@ cmd_update() {
   save_config
   c "Pulling latest code..."
   git -C "$ROOT_DIR" pull --ff-only
-  # Ensure the default (kpack) builder infra is present — the backend now defaults to
-  # kpack, so an older install that predates it needs the controller + ClusterBuilder.
-  install_kpack
   build_and_import_images
   # Re-apply manifests so spec changes (new volume mounts, env, probes) take effect,
   # then force a rollout so the freshly imported :latest images are picked up. Uses
