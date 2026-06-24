@@ -2,6 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { WorkspaceService, WorkspaceUsage, Workspace, WorkspaceMember } from '../../../core/services/workspace.service';
 import { GitService, GitCredential, GitProvider } from '../../../core/services/git.service';
+import { CloudflareService, CloudflareCredential } from '../../../core/services/cloudflare.service';
 import { AuthService } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
@@ -16,6 +17,7 @@ import { DecimalPipe, CommonModule } from '@angular/common';
 export class WorkspaceSettings implements OnInit {
   private readonly workspaceService = inject(WorkspaceService);
   private readonly gitService = inject(GitService);
+  private readonly cloudflareService = inject(CloudflareService);
   readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
@@ -45,6 +47,14 @@ export class WorkspaceSettings implements OnInit {
   readonly newCredSkipTls = signal(false);
   readonly addingCred = signal(false);
 
+  // Cloudflare credentials (token + zone + base domain; one credential = one domain)
+  readonly cloudflareCredentials = signal<CloudflareCredential[]>([]);
+  readonly newCfLabel = signal('');
+  readonly newCfToken = signal('');
+  readonly newCfZoneId = signal('');
+  readonly newCfBaseDomain = signal('');
+  readonly addingCf = signal(false);
+
   // Members list & forms signals
   readonly members = signal<WorkspaceMember[]>([]);
   readonly loadingMembers = signal(false);
@@ -55,6 +65,58 @@ export class WorkspaceSettings implements OnInit {
   ngOnInit(): void {
     this.loadData();
     this.loadGitCredentials();
+    this.loadCloudflareCredentials();
+  }
+
+  loadCloudflareCredentials(): void {
+    this.cloudflareService.listCredentials().subscribe({
+      next: (creds) => this.cloudflareCredentials.set(creds || []),
+      error: () => this.cloudflareCredentials.set([])
+    });
+  }
+
+  onAddCloudflareCredential(): void {
+    const label = this.newCfLabel().trim();
+    const token = this.newCfToken().trim();
+    const zoneId = this.newCfZoneId().trim();
+    if (!label || !token || !zoneId) {
+      this.toast.error('Eticheta, token-ul și Zone ID-ul sunt obligatorii.');
+      return;
+    }
+    this.addingCf.set(true);
+    this.cloudflareService.createCredential({
+      label, token, zoneId,
+      baseDomain: this.newCfBaseDomain().trim() || undefined,
+    }).subscribe({
+      next: () => {
+        this.addingCf.set(false);
+        this.newCfLabel.set('');
+        this.newCfToken.set('');
+        this.newCfZoneId.set('');
+        this.newCfBaseDomain.set('');
+        this.toast.success('Token-ul Cloudflare a fost adăugat.');
+        this.loadCloudflareCredentials();
+      },
+      error: (err) => {
+        this.addingCf.set(false);
+        this.toast.error(err.error?.message || 'Eroare la adăugarea token-ului Cloudflare.');
+      }
+    });
+  }
+
+  async onDeleteCloudflareCredential(cred: CloudflareCredential): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Ștergere token Cloudflare',
+      message: `Sigur ștergi "${cred.label}"? Proiectele care îl folosesc rămân fără DNS Cloudflare până asociezi altul.`,
+      confirmText: 'Șterge',
+      cancelText: 'Anulează',
+      isDanger: true
+    });
+    if (!confirmed) return;
+    this.cloudflareService.deleteCredential(cred.id).subscribe({
+      next: () => { this.toast.success('Token Cloudflare șters.'); this.loadCloudflareCredentials(); },
+      error: (err) => this.toast.error(err.error?.message || 'Eroare la ștergere.')
+    });
   }
 
   loadGitCredentials(): void {

@@ -336,6 +336,66 @@
           </div>
         </div>
 
+        <!-- Cloudflare Tokens card -->
+        <div class="bg-[#0a0a0a] border border-zinc-850 rounded-lg p-5 space-y-4 shadow-sm font-mono mt-6">
+          <div class="border-b border-zinc-900 pb-2.5">
+            <h4 class="text-xs font-bold text-zinc-355 uppercase tracking-wider">Token-uri Cloudflare</h4>
+            <p class="text-[10px] text-zinc-550 mt-0.5 font-sans">Token-uri pentru DNS-ul domeniilor custom. Un token = un domeniu (include Zone ID + domeniul). Alegi token-ul când creezi un proiect, sau îl schimbi din setările proiectului.</p>
+          </div>
+
+          <!-- Existing credentials -->
+          @if (cloudflareCredentials().length === 0) {
+            <p class="text-[10px] text-zinc-600 py-1">Niciun token Cloudflare adăugat încă.</p>
+          } @else {
+            <div class="divide-y divide-zinc-900">
+              @for (c of cloudflareCredentials(); track c.id) {
+                <div class="flex items-center justify-between gap-3 py-2">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-950/30 border border-amber-900/40 text-amber-400 shrink-0">CF</span>
+                    <span class="text-xs text-white truncate">{{ c.label }}</span>
+                    <span class="text-[10px] text-zinc-600 truncate">{{ c.baseDomain || c.zoneId }}</span>
+                  </div>
+                  <button (click)="onDeleteCloudflareCredential(c)" class="px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-red-950/20 cursor-pointer shrink-0">Șterge</button>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Add credential -->
+          <div class="grid gap-3 sm:grid-cols-2 border-t border-zinc-900 pt-3">
+            <div class="space-y-1.5">
+              <label for="cf-label" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Etichetă</label>
+              <input id="cf-label" type="text" placeholder="ex. parapet-software.work"
+                [ngModel]="newCfLabel()" (ngModelChange)="newCfLabel.set($event)"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+            </div>
+            <div class="space-y-1.5">
+              <label for="cf-domain" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Domeniu de bază (opțional)</label>
+              <input id="cf-domain" type="text" placeholder="ex. parapet-software.work"
+                [ngModel]="newCfBaseDomain()" (ngModelChange)="newCfBaseDomain.set($event)"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+            </div>
+            <div class="space-y-1.5">
+              <label for="cf-token" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">API Token</label>
+              <input id="cf-token" type="password" placeholder="cfut_…"
+                [ngModel]="newCfToken()" (ngModelChange)="newCfToken.set($event)"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+            </div>
+            <div class="space-y-1.5">
+              <label for="cf-zone" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Zone ID</label>
+              <input id="cf-zone" type="text" placeholder="ex. ac4011807d97…"
+                [ngModel]="newCfZoneId()" (ngModelChange)="newCfZoneId.set($event)"
+                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+            </div>
+          </div>
+          <div class="flex items-center justify-end pt-1">
+            <button (click)="onAddCloudflareCredential()" [disabled]="addingCf()"
+              class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
+              {{ addingCf() ? 'Se adaugă...' : 'Adaugă token' }}
+            </button>
+          </div>
+        </div>
+
       </div>
     }
 

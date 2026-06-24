@@ -196,35 +196,22 @@
       </div>
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-2">
-      <!-- Cloudflare API Token -->
-      <div class="space-y-1.5">
-        <label for="proj-cf-token" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Cloudflare API Token</label>
-        <input
-          id="proj-cf-token"
-          type="password"
-          [placeholder]="cfHasToken() ? '•••••••• (nemodificat)' : 'cfut_...'"
-          [ngModel]="cfApiToken()"
-          (ngModelChange)="cfApiToken.set($event)"
-          [disabled]="savingCloudflare()"
-          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
-        />
-        <p class="text-[10px] text-zinc-600">Lasă gol pentru a păstra token-ul existent.</p>
-      </div>
-
-      <!-- Cloudflare Zone ID -->
-      <div class="space-y-1.5">
-        <label for="proj-cf-zone" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Cloudflare Zone ID</label>
-        <input
-          id="proj-cf-zone"
-          type="text"
-          placeholder="ex. ac4011807d97..."
-          [ngModel]="cfZoneId()"
-          (ngModelChange)="cfZoneId.set($event)"
-          [disabled]="savingCloudflare()"
-          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
-        />
-      </div>
+    <!-- Cloudflare credential (token + zone live on a workspace credential) -->
+    <div class="space-y-1.5">
+      <label for="proj-cf-cred" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Token Cloudflare</label>
+      <select
+        id="proj-cf-cred"
+        [ngModel]="cfCredentialId()"
+        (ngModelChange)="cfCredentialId.set($event)"
+        [disabled]="savingCloudflare()"
+        class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer"
+      >
+        <option value="">Fără Cloudflare</option>
+        @for (cf of cloudflareCredentials(); track cf.id) {
+          <option [value]="cf.id">{{ cf.label }}@if (cf.baseDomain) { · {{ cf.baseDomain }} }</option>
+        }
+      </select>
+      <p class="text-[10px] text-zinc-600">Token-urile se gestionează în <span class="text-zinc-400">Workspace → Setări → Cloudflare</span>. Fiecare include zona/domeniul.</p>
     </div>
 
     <div class="pt-2 flex justify-end">

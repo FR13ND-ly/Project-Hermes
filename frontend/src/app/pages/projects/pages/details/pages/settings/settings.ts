@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Details } from '../../details';
 import { ProjectService, AppInstance, ProjectWebhook, ProjectSshKey, UpdateProjectSettingsRequest } from '../../../../../../core/services/project.service';
+import { CloudflareService, CloudflareCredential } from '../../../../../../core/services/cloudflare.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 
@@ -16,6 +17,7 @@ import { ToastService } from '../../../../../../core/services/toast.service';
 export class Settings implements OnInit {
   readonly parent = inject(Details);
   private readonly projectService = inject(ProjectService);
+  private readonly cloudflareService = inject(CloudflareService);
   private readonly router = inject(Router);
   private readonly confirm = inject(ConfirmService);
   private readonly toast = inject(ToastService);
@@ -50,11 +52,10 @@ export class Settings implements OnInit {
   readonly generatingSshKey = signal(false);
 
   // Cloudflare / Ingress (project-level) settings
-  readonly cfApiToken = signal('');
-  readonly cfZoneId = signal('');
+  readonly cfCredentialId = signal('');
+  readonly cloudflareCredentials = signal<CloudflareCredential[]>([]);
   readonly cfIngressIp = signal('');
   readonly cfBaseDomain = signal('');
-  readonly cfHasToken = signal(false);
   readonly savingCloudflare = signal(false);
 
   constructor() {
@@ -82,13 +83,15 @@ export class Settings implements OnInit {
   loadCloudflareSettings(): void {
     const projectId = this.parent.projectId();
     if (!projectId) return;
+    this.cloudflareService.listCredentials().subscribe({
+      next: (list) => this.cloudflareCredentials.set(list || []),
+      error: () => this.cloudflareCredentials.set([])
+    });
     this.projectService.getProjectSettings(projectId).subscribe({
       next: (s) => {
-        this.cfZoneId.set(s.cloudflareZoneId || '');
+        this.cfCredentialId.set(s.cloudflareCredentialId || '');
         this.cfIngressIp.set(s.ingressIp || '');
         this.cfBaseDomain.set(s.baseDomain || '');
-        this.cfHasToken.set(s.hasCloudflareToken);
-        this.cfApiToken.set('');
       },
       error: () => {}
     });
@@ -99,19 +102,15 @@ export class Settings implements OnInit {
     if (!projectId) return;
     this.savingCloudflare.set(true);
     const payload: UpdateProjectSettingsRequest = {
-      cloudflareZoneId: this.cfZoneId().trim() || null,
+      cloudflareCredentialId: this.cfCredentialId() || null,
       ingressIp: this.cfIngressIp().trim() || null,
       baseDomain: this.cfBaseDomain().trim() || null,
     };
-    // Only send the token when the user typed a new one — otherwise the stored secret is kept.
-    const token = this.cfApiToken().trim();
-    if (token) payload.cloudflareApiToken = token;
 
     this.projectService.updateProjectSettings(projectId, payload).subscribe({
       next: (s) => {
         this.savingCloudflare.set(false);
-        this.cfHasToken.set(s.hasCloudflareToken);
-        this.cfApiToken.set('');
+        this.cfCredentialId.set(s.cloudflareCredentialId || '');
         this.toast.success('Setările Cloudflare / Ingress au fost salvate.');
       },
       error: (err) => {

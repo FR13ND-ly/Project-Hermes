@@ -43,6 +43,25 @@
         />
       </div>
 
+      @if (cloudflareCredentials().length > 0) {
+        <div class="space-y-1.5">
+          <label for="proj-cf-input" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Cloudflare <span class="text-zinc-600 normal-case font-normal">(opțional)</span></label>
+          <select
+            id="proj-cf-input"
+            [ngModel]="selectedCloudflareId()"
+            (ngModelChange)="selectedCloudflareId.set($event)"
+            [disabled]="loading()"
+            class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer"
+          >
+            <option value="">Fără Cloudflare</option>
+            @for (cf of cloudflareCredentials(); track cf.id) {
+              <option [value]="cf.id">{{ cf.label }}@if (cf.baseDomain) { · {{ cf.baseDomain }} }</option>
+            }
+          </select>
+          <p class="text-[10px] text-zinc-600">Asociază un token Cloudflare pentru DNS-ul domeniilor custom. Îl poți schimba oricând din setările proiectului.</p>
+        </div>
+      }
+
       <div class="pt-4 border-t border-zinc-900 flex justify-end gap-3">
         <a 
           routerLink="/projects"

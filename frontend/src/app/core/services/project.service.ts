@@ -11,17 +11,16 @@ export interface Project {
   created_at: string;
 }
 
-// Cloudflare / Ingress settings (project-level). The API token is never returned.
+// Cloudflare / Ingress settings (project-level). The Cloudflare token lives on a
+// workspace credential; the project just references one by id.
 export interface ProjectSettings {
-  cloudflareZoneId: string | null;
+  cloudflareCredentialId: string | null;
   ingressIp: string | null;
   baseDomain: string | null;
-  hasCloudflareToken: boolean;
 }
 
 export interface UpdateProjectSettingsRequest {
-  cloudflareApiToken?: string | null;
-  cloudflareZoneId?: string | null;
+  cloudflareCredentialId?: string | null;
   ingressIp?: string | null;
   baseDomain?: string | null;
 }
@@ -161,8 +160,8 @@ export class ProjectService {
     return this.api.get<Paginated<AppDetail>>(`/projects/${projectId}/apps?page=${page}&pageSize=${pageSize}`);
   }
 
-  createProject(name: string, description: string | null): Observable<Project> {
-    return this.api.post<Project>('/projects', { name, description });
+  createProject(name: string, description: string | null, cloudflareCredentialId?: string | null): Observable<Project> {
+    return this.api.post<Project>('/projects', { name, description, cloudflareCredentialId: cloudflareCredentialId || undefined });
   }
 
   createApp(payload: {
