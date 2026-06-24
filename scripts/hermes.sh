@@ -260,12 +260,19 @@ apply_stack() {
   # in one call so the backend rolls out only once.
   local ingress_ip="$HERMES_INGRESS_IP"
   [ -n "$ingress_ip" ] || ingress_ip="$(detect_node_ip)"
+  local public_proto="https"
+  if echo "$DASHBOARD_HOST" | grep -qE "localhost|127.0.0.1|192.168."; then
+    public_proto="http"
+  fi
+  local public_url="${public_proto}://${DASHBOARD_HOST}"
+
   if [ -n "$ingress_ip" ]; then
     $KUBECTL -n "$NS" set env deploy/hermes-backend \
-      HERMES_BASE_DOMAIN="$HERMES_BASE_DOMAIN" HERMES_INGRESS_IP="$ingress_ip" >/dev/null
+      HERMES_BASE_DOMAIN="$HERMES_BASE_DOMAIN" HERMES_INGRESS_IP="$ingress_ip" HERMES_PUBLIC_URL="$public_url" >/dev/null
     c "Custom domains will point at $ingress_ip (override with HERMES_INGRESS_IP)."
   else
-    $KUBECTL -n "$NS" set env deploy/hermes-backend HERMES_BASE_DOMAIN="$HERMES_BASE_DOMAIN" >/dev/null
+    $KUBECTL -n "$NS" set env deploy/hermes-backend \
+      HERMES_BASE_DOMAIN="$HERMES_BASE_DOMAIN" HERMES_PUBLIC_URL="$public_url" >/dev/null
     c "Could not auto-detect node IP — set HERMES_INGRESS_IP before adding custom domains."
   fi
   $KUBECTL -n "$NS" rollout status deploy/hermes-backend --timeout=180s

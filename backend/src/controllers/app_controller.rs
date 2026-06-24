@@ -162,12 +162,19 @@ pub async fn try_register_github_webhook(
         return;
     };
 
-    let proto = if host.contains("localhost") || host.contains("127.0.0.1") || host.contains("192.168.") {
-        "http"
+    let webhook_url = if let Ok(public_url) = std::env::var("HERMES_PUBLIC_URL") {
+        let trimmed = public_url.trim().trim_end_matches('/');
+        format!("{}/api/v1/apps/webhook", trimmed)
+    } else if let Ok(webhook_override) = std::env::var("HERMES_WEBHOOK_URL") {
+        webhook_override.trim().to_string()
     } else {
-        "https"
+        let proto = if host.contains("localhost") || host.contains("127.0.0.1") || host.contains("192.168.") {
+            "http"
+        } else {
+            "https"
+        };
+        format!("{}://{}/api/v1/apps/webhook", proto, host)
     };
-    let webhook_url = format!("{}://{}/api/v1/apps/webhook", proto, host);
 
     tokio::spawn(async move {
         let client = reqwest::Client::new();
