@@ -37,8 +37,12 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
-  // Active sub-tab state
-  readonly activeSubTab = signal<'telemetry' | 'logs' | 'general' | 'env' | 'advanced'>('telemetry');
+  // Active sub-tab state. Overview is the default landing tab (screenshot + key facts).
+  readonly activeSubTab = signal<'overview' | 'telemetry' | 'logs' | 'general' | 'env' | 'advanced'>('overview');
+
+  // Cache-buster for the preview <img>, bumped whenever a fresh screenshot lands.
+  readonly screenshotVersion = signal<number>(Date.now());
+  readonly recapturingScreenshot = signal(false);
 
   // Telemetry signals
   readonly activeInstanceId = signal<string | null>(null);
@@ -382,7 +386,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
     this.route.queryParams.subscribe(params => {
       const tab = params['tab'];
-      if (tab && ['telemetry', 'logs', 'general', 'env', 'advanced'].includes(tab)) {
+      if (tab && ['overview', 'telemetry', 'logs', 'general', 'env', 'advanced'].includes(tab)) {
         this.activeSubTab.set(tab as any);
       }
     });
@@ -421,6 +425,9 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         
         if (appId && (isCurrentInstance || belongsToApp)) {
           this.loadAppDetails();
+          // A status flip (e.g. Running) often means a fresh preview screenshot was
+          // just captured — bust the <img> cache so it reloads.
+          this.screenshotVersion.set(Date.now());
         }
       })
     );
@@ -431,14 +438,20 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         const appId = this.appId();
         
         if (appId && payload.app_id === appId) {
-          
+
           this.loadBuilds(true);
-          
+
           if (payload.build_id === this.selectedBuildId()) {
             this.fetchBuildLogs(payload.build_id);
           }
-          
+
           this.loadAppDetails();
+
+          // Deploy went live: jump to Overview (Vercel-style) and refresh the preview.
+          if (payload.status === 'succeeded' || payload.phase === 'running') {
+            this.activeSubTab.set('overview');
+            this.screenshotVersion.set(Date.now());
+          }
         }
       })
     );
@@ -576,7 +589,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  onSubTabChange(tab: 'telemetry' | 'logs' | 'general' | 'env' | 'advanced'): void {
+  onSubTabChange(tab: 'overview' | 'telemetry' | 'logs' | 'general' | 'env' | 'advanced'): void {
     this.activeSubTab.set(tab);
     if (tab !== 'logs') {
       this.disconnectBuildLogs();
@@ -1398,6 +1411,49 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.workspaceService.getCurrentWorkspace().subscribe({
       next: (res) => this.workspace.set(res),
       error: (err) => console.error('Failed to load workspace', err)
+    });
+  }
+
+  // --- Overview: preview screenshot ---
+  readonly hasScreenshot = computed(() => !!this.getSelectedInstance()?.screenshotCapturedAt);
+
+  // Tokenized <img> source; screenshotVersion() busts the cache after a fresh capture.
+  readonly screenshotUrl = computed(() => {
+    const appId = this.appId();
+    const inst = this.getSelectedInstance();
+    if (!appId || !inst) return '';
+    return this.projectService.getScreenshotUrl(appId, inst.id, this.screenshotVersion());
+  });
+
+  // The address a real user would visit (custom domain, else the mapped local port).
+  publicUrl(): string | null {
+    const inst = this.getSelectedInstance();
+    if (!inst) return null;
+    if (inst.assignedDomain) return `https://${inst.assignedDomain}`;
+    if (inst.externalPort) return `http://localhost:${inst.externalPort}`;
+    return null;
+  }
+
+  onRecaptureScreenshot(): void {
+    const appId = this.appId();
+    const inst = this.getSelectedInstance();
+    if (!appId || !inst || this.recapturingScreenshot()) return;
+
+    this.recapturingScreenshot.set(true);
+    this.projectService.recaptureScreenshot(appId, inst.id).subscribe({
+      next: () => {
+        this.toast.success('Screenshot capture started — it will refresh shortly.');
+        // The Chromium Job runs in the background; give it a few seconds, then reload.
+        setTimeout(() => {
+          this.recapturingScreenshot.set(false);
+          this.screenshotVersion.set(Date.now());
+          this.loadAppDetails();
+        }, 6000);
+      },
+      error: (err) => {
+        this.recapturingScreenshot.set(false);
+        this.toast.error(err.error?.message || 'Failed to start screenshot capture.');
+      }
     });
   }
 }

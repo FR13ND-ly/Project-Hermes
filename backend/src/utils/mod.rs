@@ -26,3 +26,4 @@ pub mod rate_limit;
 pub mod job_queue;
 pub mod leader;
 pub mod locks;
+pub mod screenshot;

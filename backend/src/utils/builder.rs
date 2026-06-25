@@ -2189,6 +2189,14 @@ async fn monitor_deploy_health(
 
         if healthy {
             let _ = update_status(pool, instance_id, AppStatus::Running).await;
+            // Capture a preview screenshot off the deploy path (Vercel-style). Best-effort:
+            // it hits the in-cluster Service, so it never blocks or fails the deploy.
+            tokio::spawn(crate::utils::screenshot::capture_instance_screenshot(
+                pool.clone(),
+                app_name.to_string(),
+                namespace.to_string(),
+                instance_id,
+            ));
             return None;
         }
 

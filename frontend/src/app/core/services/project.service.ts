@@ -44,6 +44,8 @@ export interface AppInstance {
   autoSleepAfterMinutes?: number;
   createdAt?: string;
   metaData?: any;
+  /** When the preview screenshot was last captured (null = none yet). */
+  screenshotCapturedAt?: string | null;
 }
 
 export interface AppDetail {
@@ -257,6 +259,17 @@ export class ProjectService {
   // Helper method for EventSource URL for Kaniko builder/cloner pod log SSE stream
   getBuildLogsStreamUrl(appId: string, buildId: string): string {
     return this.api.getStreamUrl(`/apps/${appId}/builds/${buildId}/logs/stream`);
+  }
+
+  // Tokenized URL for an <img src> — the screenshot endpoint authenticates via ?token=.
+  // `bust` forces the browser to refetch after a fresh capture.
+  getScreenshotUrl(appId: string, instanceId: string, bust?: string | number): string {
+    const base = this.api.getStreamUrl(`/apps/${appId}/instances/${instanceId}/screenshot`);
+    return bust ? `${base}&v=${encodeURIComponent(String(bust))}` : base;
+  }
+
+  recaptureScreenshot(appId: string, instanceId: string): Observable<any> {
+    return this.api.post<any>(`/apps/${appId}/instances/${instanceId}/screenshot`, {});
   }
 
   listEnvVariables(appInstanceId: string, page = 1, pageSize = DEFAULT_PAGE_SIZE): Observable<Paginated<EnvResponse>> {

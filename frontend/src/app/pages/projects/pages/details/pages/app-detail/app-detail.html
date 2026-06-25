@@ -159,7 +159,14 @@
 
           <!-- Sub-tab selector menu -->
           <div class="flex items-center bg-[#0a0a0a] border border-zinc-800 p-0.5 rounded font-mono text-[10px]">
-            <button 
+            <button
+              (click)="onSubTabChange('overview')"
+              class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
+              [class]="activeSubTab() === 'overview' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
+            >
+              Overview
+            </button>
+            <button
               (click)="onSubTabChange('telemetry')"
               class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
               [class]="activeSubTab() === 'telemetry' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
@@ -210,6 +217,140 @@
   }
 
   @if (app()) {
+
+    <!-- SUB-TAB 0: OVERVIEW -->
+    @if (activeSubTab() === 'overview') {
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 animate-fade-in">
+
+        <!-- Preview screenshot -->
+        <div class="lg:col-span-3 space-y-2">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Preview</h3>
+            <button
+              (click)="onRecaptureScreenshot()"
+              [disabled]="recapturingScreenshot() || getSelectedInstance()?.status !== 'running'"
+              class="px-2.5 py-1 rounded border border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 hover:text-white text-[10px] font-semibold cursor-pointer transition-all font-mono disabled:opacity-50 flex items-center gap-1.5"
+              title="Render a fresh screenshot of the running app"
+            >
+              @if (recapturingScreenshot()) {
+                <svg class="animate-spin h-3 w-3 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Capturing...
+              } @else {
+                ↻ Refresh
+              }
+            </button>
+          </div>
+
+          <div class="relative rounded-lg border border-zinc-800 bg-[#0a0a0a] overflow-hidden aspect-[16/10]">
+            @if (hasScreenshot()) {
+              <a [href]="publicUrl() || screenshotUrl()" target="_blank" class="block w-full h-full group">
+                <img [src]="screenshotUrl()" alt="Application preview" class="w-full h-full object-cover object-top transition-transform group-hover:scale-[1.01]" />
+              </a>
+            } @else {
+              <div class="absolute inset-0 flex flex-col items-center justify-center text-center gap-2 px-6">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.2" stroke="currentColor" class="w-10 h-10 text-zinc-700">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                </svg>
+                <p class="text-[11px] text-zinc-550 font-mono">
+                  @if (getSelectedInstance()?.status === 'running') {
+                    No preview yet — capture one with "↻ Refresh".
+                  } @else {
+                    A preview is captured automatically once the app is deployed and running.
+                  }
+                </p>
+              </div>
+            }
+          </div>
+          @if (getSelectedInstance()?.screenshotCapturedAt; as cap) {
+            <p class="text-[9px] text-zinc-600 font-mono">Captured {{ cap | date:'dd.MM.yyyy HH:mm' }}</p>
+          }
+        </div>
+
+        <!-- Key facts -->
+        <div class="lg:col-span-2 space-y-3">
+          <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-4 space-y-3 font-mono">
+            <h3 class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider border-b border-zinc-900 pb-2">Details</h3>
+
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-zinc-600">Status</span>
+              <span class="px-2 py-0.5 rounded text-[9px] font-bold border tracking-wider" [class]="parent.getAppStatusClass(app())">{{ parent.getAppStatus(app()) }}</span>
+            </div>
+
+            <div class="flex items-start justify-between gap-3 text-[11px]">
+              <span class="text-zinc-600 shrink-0">Public URL</span>
+              @if (publicUrl(); as url) {
+                <a [href]="url" target="_blank" class="text-indigo-400 hover:underline truncate text-right">{{ url }}</a>
+              } @else {
+                <span class="text-zinc-500 text-right">Not exposed</span>
+              }
+            </div>
+
+            @if (getSelectedInstance(); as inst) {
+              <div class="flex items-start justify-between gap-3 text-[11px]">
+                <span class="text-zinc-600 shrink-0">Internal</span>
+                <span class="text-zinc-300 truncate text-right select-all">{{ inst.networkAlias || stripHash(inst.containerName) }}:{{ inst.internalPort }}</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-zinc-600">Resources</span>
+                <span class="text-zinc-300">{{ inst.cpuLimit ? inst.cpuLimit + 'm' : 'Shared' }} CPU · {{ inst.memoryLimitMb ? inst.memoryLimitMb + ' MB' : 'Unlimited' }}</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-zinc-600">Replicas</span>
+                <span class="text-zinc-300">{{ inst.replicasMin ?? 1 }}–{{ inst.replicasMax ?? 1 }}</span>
+              </div>
+            }
+
+            <div class="flex items-start justify-between gap-3 text-[11px]">
+              <span class="text-zinc-600 shrink-0">Repository</span>
+              <span class="text-zinc-300 truncate text-right select-all">{{ app()?.git_repo_url }}</span>
+            </div>
+
+            @if (app()?.namespace) {
+              <div class="flex items-start justify-between gap-3 text-[11px]">
+                <span class="text-zinc-600 shrink-0">Namespace</span>
+                <span class="text-zinc-300 truncate text-right select-all">{{ app()?.namespace }}</span>
+              </div>
+            }
+
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-zinc-600">Created</span>
+              <span class="text-zinc-300">{{ app()?.created_at | date:'dd.MM.yyyy HH:mm' }}</span>
+            </div>
+          </div>
+
+          <!-- Latest deploy -->
+          @if (displayBuild(); as b) {
+            <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-4 space-y-2.5 font-mono">
+              <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
+                <h3 class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Latest deploy</h3>
+                <button (click)="onSubTabChange('logs')" class="text-[9px] text-zinc-500 hover:text-white cursor-pointer uppercase tracking-wider">Logs →</button>
+              </div>
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-zinc-600">Result</span>
+                <span class="text-zinc-300">{{ buildOutcomeLabel(b) }}</span>
+              </div>
+              @if (b.commitSha) {
+                <div class="flex items-start justify-between gap-3 text-[11px]">
+                  <span class="text-zinc-600 shrink-0">Commit</span>
+                  <span class="text-zinc-300 truncate text-right" [title]="b.commitMessage || ''">{{ b.commitSha.substring(0, 7) }}@if (b.commitMessage) { <span class="text-zinc-500"> · {{ b.commitMessage }}</span> }</span>
+                </div>
+              }
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-zinc-600">Branch</span>
+                <span class="text-zinc-300">{{ b.branchName }}</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-zinc-600">When</span>
+                <span class="text-zinc-300">{{ b.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
 
     <!-- SUB-TAB 1: TELEMETRY -->
     @if (activeSubTab() === 'telemetry') {

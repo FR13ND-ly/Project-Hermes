@@ -75,6 +75,8 @@ pub struct AppInstanceResponse {
     pub autoscale_cpu_percent: i32,
     pub auto_sleep_enabled: bool,
     pub auto_sleep_after_minutes: i32,
+    /// When the preview screenshot was last captured (None = not captured yet).
+    pub screenshot_captured_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Serialize)]

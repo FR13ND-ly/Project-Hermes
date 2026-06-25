@@ -61,4 +61,6 @@ pub struct AppInstance {
     pub autoscale_cpu_percent: i32,
     pub auto_sleep_enabled: bool,
     pub auto_sleep_after_minutes: i32,
+    pub screenshot_path: Option<String>,
+    pub screenshot_captured_at: Option<DateTime<Utc>>,
 }

@@ -2,7 +2,7 @@ use axum::{
     extract::{State, Path, Query, ws::{Message, WebSocket, WebSocketUpgrade}},
     http::{StatusCode, HeaderMap},
     Json,
-    response::{sse::{Event, Sse}, Response},
+    response::{sse::{Event, Sse}, IntoResponse, Response},
 };
 use uuid::Uuid;
 use futures_util::stream::Stream;
@@ -442,6 +442,7 @@ pub async fn create_app(
         autoscale_cpu_percent: 80,
         auto_sleep_enabled: false,
         auto_sleep_after_minutes: 30,
+        screenshot_captured_at: None,
     }];
 
     Ok((
@@ -572,6 +573,7 @@ pub async fn create_branch_instance(
             autoscale_cpu_percent,
             auto_sleep_enabled,
             auto_sleep_after_minutes,
+            screenshot_captured_at: None,
         }),
     ))
 }
@@ -610,6 +612,7 @@ pub async fn get_app_details(
         autoscale_cpu_percent: inst.autoscale_cpu_percent,
         auto_sleep_enabled: inst.auto_sleep_enabled,
         auto_sleep_after_minutes: inst.auto_sleep_after_minutes,
+        screenshot_captured_at: inst.screenshot_captured_at,
     }).collect();
 
     Ok(Json(AppDetailedResponse {
@@ -626,6 +629,71 @@ pub async fn get_app_details(
         start_command: app.start_command,
         created_at: app.created_at,
     }))
+}
+
+/// Serve an instance's preview screenshot PNG. Authenticated via the standard
+/// `?token=` query param so an `<img src>` can load it directly (same mechanism as
+/// the SSE streams). The bytes come off the shared backups PVC the capture Job wrote.
+pub async fn get_instance_screenshot(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path((_app_id, instance_id)): Path<(Uuid, Uuid)>,
+) -> Result<Response, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let path: Option<String> = sqlx::query_scalar(
+        "SELECT ai.screenshot_path FROM app_instances ai
+         JOIN apps a ON ai.app_id = a.id
+         WHERE ai.id = $1 AND a.workspace_id = $2"
+    )
+    .bind(instance_id).bind(ws_id).fetch_optional(&state.pool).await?
+    .ok_or_else(|| AppError::NotFound("Application instance not found.".to_string()))?;
+
+    let path = path.ok_or_else(|| AppError::NotFound("No screenshot has been captured for this instance yet.".to_string()))?;
+
+    let bytes = tokio::fs::read(&path).await
+        .map_err(|_| AppError::NotFound("The screenshot file is no longer available.".to_string()))?;
+
+    Ok((
+        StatusCode::OK,
+        [
+            (axum::http::header::CONTENT_TYPE, "image/png"),
+            (axum::http::header::CACHE_CONTROL, "no-cache"),
+        ],
+        bytes,
+    ).into_response())
+}
+
+/// Manually (re)capture an instance's preview screenshot. Best-effort and async — the
+/// capture Job runs in the background; the UI refreshes when screenshot_captured_at moves.
+pub async fn recapture_instance_screenshot(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path((_app_id, instance_id)): Path<(Uuid, Uuid)>,
+) -> Result<StatusCode, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let container_name: String = sqlx::query_scalar(
+        "SELECT ai.container_name FROM app_instances ai
+         JOIN apps a ON ai.app_id = a.id
+         WHERE ai.id = $1 AND a.workspace_id = $2"
+    )
+    .bind(instance_id).bind(ws_id).fetch_optional(&state.pool).await?
+    .ok_or_else(|| AppError::NotFound("Application instance not found.".to_string()))?;
+
+    let namespace = format!("hermes-ws-{}", ws_id);
+    tokio::spawn(crate::utils::screenshot::capture_instance_screenshot(
+        state.pool.clone(),
+        container_name,
+        namespace,
+        instance_id,
+    ));
+
+    Ok(StatusCode::ACCEPTED)
 }
 
 pub async fn delete_app_instance(
@@ -1802,6 +1870,7 @@ pub async fn list_project_apps(
             autoscale_cpu_percent: inst.autoscale_cpu_percent,
             auto_sleep_enabled: inst.auto_sleep_enabled,
             auto_sleep_after_minutes: inst.auto_sleep_after_minutes,
+            screenshot_captured_at: inst.screenshot_captured_at,
         }).collect();
 
         items.push(AppDetailedResponse {
