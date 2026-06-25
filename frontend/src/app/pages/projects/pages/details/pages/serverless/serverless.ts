@@ -205,13 +205,13 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     const projId = this.parent.projectId();
     if (!projId) return;
     const name = this.newName().trim();
-    if (!name) { this.toast.error('Numele instanței este obligatoriu.'); return; }
+    if (!name) { this.toast.error('Instance name is required.'); return; }
     this.creating.set(true);
     this.projectService.createInstance(projId, { name, runtime: this.newRuntime(), memoryLimitMb: this.newMemory() }).subscribe({
       next: (res) => {
         this.creating.set(false);
         this.showCreateModal.set(false);
-        this.toast.success('Instanța serverless a fost creată.');
+        this.toast.success('Serverless instance created.');
         this.loadInstances();
         this.selectInstance(res);
       },
@@ -236,7 +236,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
         this.savingSettings.set(false);
         this.selectedInstance.set(updated);
         this.routes.set(updated.routes || []);
-        this.toast.success('Setările instanței au fost salvate.');
+        this.toast.success('Instance settings saved.');
         this.loadInstances();
       },
       error: (err) => { this.savingSettings.set(false); this.toast.error(err.error?.message || 'Eroare la salvare.'); }
@@ -248,14 +248,14 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     const inst = this.selectedInstance();
     if (!projId || !inst) return;
     if ((this.routes() || []).length === 0) {
-      this.toast.error('Adaugă cel puțin o rută înainte de Deploy.');
+      this.toast.error('Add at least one route before deploying.');
       return;
     }
     this.deploying.set(true);
     this.projectService.deployFunction(projId, inst.id).subscribe({
       next: (res) => {
         this.deploying.set(false);
-        this.toast.success('Compilarea și deployment-ul au fost inițiate!');
+        this.toast.success('Build and deployment initiated!');
         const cur = this.selectedInstance();
         if (cur) this.selectedInstance.set({ ...cur, status: 'building' });
         this.loadInstances();
@@ -274,14 +274,14 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     const inst = this.selectedInstance();
     if (!projId || !inst) return;
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere instanță serverless',
-      message: `Sigur ștergi instanța „${inst.name}"? Toate rutele și resursele K8s asociate vor fi eliminate.`,
-      confirmText: 'Șterge', cancelText: 'Anulează', isDanger: true,
+      title: 'Delete serverless instance',
+      message: `Are you sure you want to delete instance "${inst.name}"? All associated routes and K8s resources will be removed.`,
+      confirmText: 'Delete', cancelText: 'Cancel', isDanger: true,
     });
     if (!confirmed) return;
     this.projectService.deleteFunction(projId, inst.id).subscribe({
-      next: () => { this.toast.success('Instanță ștearsă.'); this.deselectInstance(); this.loadInstances(); },
-      error: (err) => this.toast.error(err.error?.message || 'Eroare la ștergere.')
+      next: () => { this.toast.success('Instance deleted.'); this.deselectInstance(); this.loadInstances(); },
+      error: (err) => this.toast.error(err.error?.message || 'Failed to delete.')
     });
   }
 
@@ -357,8 +357,8 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     if (!projId || !inst) return;
     // Create a blank route, then open it in the editor.
     this.projectService.createRoute(projId, inst.id, { method: 'GET', routePath: '/noua-ruta-' + (this.routes().length + 1) }).subscribe({
-      next: (r) => { this.toast.success('Rută adăugată. Editeaz-o și apoi Deploy.'); this.loadRoutes(); this.selectRoute(r); },
-      error: (err) => this.toast.error(err.error?.message || 'Eroare la adăugarea rutei.')
+      next: (r) => { this.toast.success('Route added. Edit it and then Deploy.'); this.loadRoutes(); this.selectRoute(r); },
+      error: (err) => this.toast.error(err.error?.message || 'Failed to add route.')
     });
   }
 
@@ -391,7 +391,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
       next: (updated) => {
         this.savingRoute.set(false);
         this.selectedRoute.set(updated);
-        this.toast.success('Rută salvată. Lansează (Deploy) pentru a aplica.');
+        this.toast.success('Route saved. Deploy to apply.');
         this.loadRoutes();
       },
       error: (err) => { this.savingRoute.set(false); this.toast.error(err.error?.message || 'Eroare la salvarea rutei.'); }
@@ -403,18 +403,18 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     const inst = this.selectedInstance();
     if (!projId || !inst) return;
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere rută',
-      message: `Sigur ștergi ruta ${r.method} ${r.routePath}?`,
-      confirmText: 'Șterge', cancelText: 'Anulează', isDanger: true,
+      title: 'Delete route',
+      message: `Are you sure you want to delete route ${r.method} ${r.routePath}?`,
+      confirmText: 'Delete', cancelText: 'Cancel', isDanger: true,
     });
     if (!confirmed) return;
     this.projectService.deleteRoute(projId, inst.id, r.id).subscribe({
       next: () => {
-        this.toast.success('Rută ștearsă.');
+        this.toast.success('Route deleted.');
         if (this.selectedRoute()?.id === r.id) this.closeRouteEditor();
         this.loadRoutes();
       },
-      error: (err) => this.toast.error(err.error?.message || 'Eroare la ștergere.')
+      error: (err) => this.toast.error(err.error?.message || 'Failed to delete.')
     });
   }
 
@@ -438,11 +438,11 @@ export class ServerlessComponent implements OnInit, OnDestroy {
       next: (domain) => {
         this.addingDomain.set(false);
         this.showAddDomainModal.set(false);
-        this.toast.success(`Domeniul ${fqdn} a fost înregistrat!`);
+        this.toast.success(`Domain ${fqdn} registered!`);
         this.loadDomains();
         this.editAssignedDomain.set(domain.fqdn);
       },
-      error: (err) => { this.addingDomain.set(false); this.toast.error(err.error?.message || 'Eroare la înregistrarea domeniului.'); }
+      error: (err) => { this.addingDomain.set(false); this.toast.error(err.error?.message || 'Failed to register domain.'); }
     });
   }
 
@@ -495,7 +495,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
       next: () => {
         this.savingEnv.set(false);
         this.closeAddEnvPanel();
-        this.toast.success('Variabilă salvată. Lansează (Deploy) sau „Reload variabile".');
+        this.toast.success('Variable saved. Deploy or "Reload variables" to apply.');
         this.loadFunctionEnv();
       },
       error: (err) => { this.savingEnv.set(false); this.toast.error(err.error?.message || 'Eroare la salvare.'); }
@@ -507,13 +507,13 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     const inst = this.selectedInstance();
     if (!projId || !inst) return;
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere variabilă',
-      message: `Sigur ștergi „${env.key}"?`, confirmText: 'Șterge', cancelText: 'Anulează', isDanger: true,
+      title: 'Delete variable',
+      message: `Are you sure you want to delete "${env.key}"?`, confirmText: 'Delete', cancelText: 'Cancel', isDanger: true,
     });
     if (!confirmed) return;
     this.projectService.deleteFunctionEnv(projId, inst.id, env.id).subscribe({
-      next: () => { this.toast.success('Variabilă ștearsă.'); this.loadFunctionEnv(); },
-      error: (err) => this.toast.error(err.error?.message || 'Eroare la ștergere.')
+      next: () => { this.toast.success('Variable deleted.'); this.loadFunctionEnv(); },
+      error: (err) => this.toast.error(err.error?.message || 'Failed to delete.')
     });
   }
 
@@ -526,7 +526,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     if (!projId || !inst) return;
     this.reloadingEnv.set(true);
     this.projectService.reloadFunctionEnv(projId, inst.id).subscribe({
-      next: (updated) => { this.reloadingEnv.set(false); this.selectedInstance.set(updated); this.toast.success('Variabile reaplicate fără recompilare.'); },
+      next: (updated) => { this.reloadingEnv.set(false); this.selectedInstance.set(updated); this.toast.success('Variables reapplied without recompiling.'); },
       error: (err) => { this.reloadingEnv.set(false); this.toast.error(err.error?.message || 'Eroare la reload.'); }
     });
   }
@@ -550,8 +550,8 @@ export class ServerlessComponent implements OnInit, OnDestroy {
       ? this.projectService.unlinkFunctionProjectEnv(projId, inst.id, penv.id)
       : this.projectService.linkFunctionProjectEnv(projId, inst.id, penv.id);
     op.subscribe({
-      next: () => { this.togglingLinkId.set(null); this.loadFunctionProjectEnv(); this.toast.success(penv.linked ? 'Deconectată din pool.' : 'Conectată din pool. Deploy/Reload pentru a aplica.'); },
-      error: (err) => { this.togglingLinkId.set(null); this.toast.error(err.error?.message || 'Eroare la actualizarea legăturii.'); }
+      next: () => { this.togglingLinkId.set(null); this.loadFunctionProjectEnv(); this.toast.success(penv.linked ? 'Disconnected from pool.' : 'Connected from pool. Deploy/Reload to apply.'); },
+      error: (err) => { this.togglingLinkId.set(null); this.toast.error(err.error?.message || 'Failed to update link.'); }
     });
   }
 
