@@ -6,7 +6,7 @@
     <!-- Breadcrumbs -->
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2 text-xs text-zinc-500">
-        <a routerLink="/projects" class="hover:text-zinc-300">Proiecte</a>
+        <a routerLink="/projects" class="hover:text-zinc-300">Projects</a>
         <span>/</span>
         <span class="text-zinc-300 font-semibold font-mono">{{ project()?.name }}</span>
       </div>
@@ -20,7 +20,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3 h-3">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
-          Adaugă Aplicație
+          Add Application
         </button>
       }
     </div>
@@ -39,7 +39,7 @@
               [ngModel]="selectedApp()?.id" 
               (ngModelChange)="onSelectApp($event)"
               class="block w-full bg-black border border-zinc-800 text-zinc-300 text-xs font-semibold py-1.5 pl-3 pr-8 rounded focus:outline-none appearance-none cursor-pointer hover:border-zinc-500 transition-colors"
-              aria-label="Selectează aplicația activă"
+              aria-label="Select active application"
             >
               @for (app of apps(); track app.id) {
                 <option [value]="app.id">App: {{ app.name }}</option>
@@ -81,14 +81,14 @@
           <div class="space-y-4 max-w-4xl mx-auto">
             <div class="flex items-center justify-between">
               <div class="space-y-1">
-                <h2 class="text-lg font-bold text-white">Importă un Proiect</h2>
-                <p class="text-zinc-550 text-xs font-medium">Alege un repository de pe GitHub sau începe cu un template popular.</p>
+                <h2 class="text-lg font-bold text-white">Import a Project</h2>
+                <p class="text-zinc-550 text-xs font-medium">Choose a repository from GitHub or start with a popular template.</p>
               </div>
-              <button 
+              <button
                 (click)="showAddAppForm.set(false)"
                 class="px-3 py-1.5 rounded text-zinc-400 hover:text-white text-xs font-semibold border border-zinc-800 hover:bg-zinc-900 transition-all cursor-pointer"
               >
-                Anulează
+                Cancel
               </button>
             </div>
                     <!-- Center column -->
@@ -97,31 +97,31 @@
               <!-- GitHub Repository List (Full width) -->
               <div class="bg-[#0a0a0a] rounded-lg border border-zinc-800 p-5 space-y-4 shadow-xl">
                 <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Importă din GitHub</span>
+                  <span class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Import from GitHub</span>
                   <!-- Direct Custom Git URL Link fallback -->
-                  <button 
-                    (click)="onUseCustomGitUrl()" 
+                  <button
+                    (click)="onUseCustomGitUrl()"
                     class="text-[11px] text-zinc-400 hover:text-white underline cursor-pointer transition-colors font-mono"
                   >
-                    Sau folosește URL personalizat →
+                    Or use a custom URL →
                   </button>
                 </div>
                 
                 @if (credentials().length === 0) {
                   <!-- No git credentials yet -->
                   <div class="bg-black/40 border border-zinc-850 rounded-lg p-5 flex flex-col items-center text-center space-y-3">
-                    <h3 class="text-sm font-semibold text-white">Nicio credențială Git</h3>
+                    <h3 class="text-sm font-semibold text-white">No Git Credentials</h3>
                     <p class="text-zinc-400 text-[11px] leading-relaxed max-w-sm">
-                      Adaugă un token de acces (GitHub sau GitLab) în setările workspace-ului ca să poți răsfoi și importa repository-uri. Sau folosește un URL personalizat.
+                      Add an access token (GitHub or GitLab) in workspace settings to browse and import repositories. Or use a custom URL.
                     </p>
                     <a [routerLink]="['/workspace/settings']" class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold cursor-pointer">
-                      Adaugă credențială Git
+                      Add Git Credential
                     </a>
                   </div>
                 } @else {
                   <!-- Credential selector -->
                   <div class="flex items-center gap-2 bg-zinc-950 border border-zinc-900 p-3 rounded-lg">
-                    <label for="cred-select" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider shrink-0">Credențială</label>
+                    <label for="cred-select" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider shrink-0">Credential</label>
                     <select
                       id="cred-select"
                       [ngModel]="selectedCredentialId()"
@@ -144,7 +144,7 @@
                     <input
                       id="repo-search"
                       type="text"
-                      placeholder="Caută în repository-uri..."
+                      placeholder="Search repositories..."
                       [ngModel]="repoSearchQuery()"
                       (ngModelChange)="repoSearchQuery.set($event)"
                       class="block w-full pl-9 pr-3 py-2 text-xs bg-black border border-zinc-855 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
@@ -159,7 +159,7 @@
                           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                         </svg>
-                        <span class="text-xs text-zinc-550">Se încarcă repository-urile...</span>
+                        <span class="text-xs text-zinc-550">Loading repositories...</span>
                       </div>
                     } @else {
                       @for (repo of filteredRepos(); track repo.fullPath) {
@@ -171,10 +171,10 @@
                             <div class="min-w-0 flex-1">
                               <div class="flex items-center gap-1.5 flex-wrap">
                                 <span class="text-xs font-semibold text-white font-mono truncate max-w-[240px]">{{ repo.fullPath }}</span>
-                                <span class="px-1.5 py-0.2 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded text-[9px] font-medium tracking-wide">{{ repo.private ? 'Privat' : 'Public' }}</span>
+                                <span class="px-1.5 py-0.2 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded text-[9px] font-medium tracking-wide">{{ repo.private ? 'Private' : 'Public' }}</span>
                               </div>
                               @if (repo.defaultBranch) {
-                                <div class="text-[10px] text-zinc-550 mt-0.5">branch implicit: {{ repo.defaultBranch }}</div>
+                                <div class="text-[10px] text-zinc-550 mt-0.5">default branch: {{ repo.defaultBranch }}</div>
                               }
                             </div>
                           </div>
@@ -182,12 +182,12 @@
                             (click)="onImportRepo(repo)"
                             class="px-3 py-1 rounded bg-white hover:bg-zinc-200 text-black text-[11px] font-semibold transition-colors cursor-pointer ml-3 flex-shrink-0"
                           >
-                            Importă
+                            Import
                           </button>
                         </div>
                       } @empty {
                         <div class="text-center py-8 text-zinc-500 text-xs">
-                          Nu s-a găsit niciun repository care să corespundă căutării.
+                          No repositories found matching your search.
                         </div>
                       }
                     }
@@ -209,17 +209,17 @@
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
               </svg>
-              <span>Înapoi la selecție</span>
+              <span>Back to selection</span>
             </button>
 
             <div class="space-y-1">
-              <h2 class="text-lg font-bold text-white">Configurare Import Aplicație</h2>
+              <h2 class="text-lg font-bold text-white">Configure Application Import</h2>
               @if (selectedImportRepo()) {
                 <p class="text-zinc-500 text-xs">
-                  Se configurează repo-ul <span class="font-mono text-zinc-300">{{ selectedImportRepo()?.fullPath || selectedImportRepo()?.name }}</span>.
+                  Configuring repo <span class="font-mono text-zinc-300">{{ selectedImportRepo()?.fullPath || selectedImportRepo()?.name }}</span>.
                 </p>
               } @else {
-                <p class="text-zinc-500 text-xs">Se configurează din link Git URL personalizat.</p>
+                <p class="text-zinc-500 text-xs">Configuring from a custom Git URL.</p>
               }
             </div>
 
@@ -234,8 +234,8 @@
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                   </svg>
                   <div class="space-y-0.5">
-                    <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Analiză Repository</h4>
-                    <p class="text-[10px] text-zinc-550 font-medium">Se analizează structura codului pentru detectarea automată a tipului de proiect...</p>
+                    <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Repository Analysis</h4>
+                    <p class="text-[10px] text-zinc-550 font-medium">Analyzing code structure for automatic project type detection...</p>
                   </div>
                 </div>
               }
@@ -291,7 +291,7 @@
                     </div>
                     <div class="space-y-0.5">
                       <div class="flex items-center gap-2">
-                        <span class="text-[10px] uppercase font-bold tracking-wider opacity-75">Configurație Automată</span>
+                        <span class="text-[10px] uppercase font-bold tracking-wider opacity-75">Auto Configuration</span>
                         <span class="px-2 py-0.2 rounded text-[9px] font-bold uppercase font-mono border"
                               [class]="{
                                 'bg-cyan-950/40 border-cyan-800/40 text-cyan-300': detectedType() === 'dockerfile',
@@ -312,7 +312,7 @@
                     </div>
                   </div>
                   <p class="text-[10px] opacity-70 leading-normal pl-11">
-                    Portul intern, comenzile de build și start au fost pre-completate pe baza structurii repository-ului.
+                    The internal port, build and start commands have been pre-filled based on the repository structure.
                   </p>
                 </div>
               }
@@ -320,7 +320,7 @@
               <!-- Wizard stepper: Repo / Setări / Env -->
               <div class="flex items-center gap-2 pb-1">
                 <button type="button" (click)="createStep.set(1)" class="flex-1 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors" [class]="createStep() === 1 ? 'bg-white text-black' : 'bg-zinc-950 border border-zinc-850 text-zinc-500 hover:text-zinc-300'">1 · Repo</button>
-                <button type="button" (click)="createStep.set(2)" class="flex-1 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors" [class]="createStep() === 2 ? 'bg-white text-black' : 'bg-zinc-950 border border-zinc-850 text-zinc-500 hover:text-zinc-300'">2 · Setări</button>
+                <button type="button" (click)="createStep.set(2)" class="flex-1 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors" [class]="createStep() === 2 ? 'bg-white text-black' : 'bg-zinc-950 border border-zinc-850 text-zinc-500 hover:text-zinc-300'">2 · Settings</button>
                 <button type="button" (click)="createStep.set(3)" class="flex-1 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors" [class]="createStep() === 3 ? 'bg-white text-black' : 'bg-zinc-950 border border-zinc-850 text-zinc-500 hover:text-zinc-300'">3 · Env</button>
               </div>
 
@@ -332,13 +332,13 @@
                       <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
                     </svg>
                     <div class="min-w-0">
-                      <p class="text-xs font-bold text-cyan-200">{{ composeFilename() }} detectat</p>
-                      <p class="text-[10px] text-zinc-500">Pot face split automat în aplicații, baze de date și volume.</p>
+                      <p class="text-xs font-bold text-cyan-200">{{ composeFilename() }} detected</p>
+                      <p class="text-[10px] text-zinc-500">Can automatically split into apps, databases and volumes.</p>
                     </div>
                   </div>
                   <button type="button" (click)="openComposeSplit()" [disabled]="planningCompose()"
                     class="px-3 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-bold shadow cursor-pointer transition-colors disabled:opacity-50 shrink-0">
-                    {{ planningCompose() ? 'Se analizează...' : 'Split automat' }}
+                    {{ planningCompose() ? 'Analyzing...' : 'Auto Split' }}
                   </button>
                 </div>
               }
@@ -348,11 +348,11 @@
               <!-- Fields Grid -->
               <div class="grid gap-4 sm:grid-cols-2">
                 <div class="space-y-1.5">
-                  <label for="new-app-name" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Nume Aplicație</label>
-                  <input 
+                  <label for="new-app-name" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Application Name</label>
+                  <input
                     id="new-app-name"
-                    type="text" 
-                    placeholder="ex. magazin-frontend"
+                    type="text"
+                    placeholder="e.g. my-app"
                     [ngModel]="appName()"
                     (ngModelChange)="onAppNameChange($event)"
                     [disabled]="deployingApp()"
@@ -369,7 +369,7 @@
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                       </svg>
-                      <span>Se încarcă branch-urile...</span>
+                      <span>Loading branches...</span>
                     </div>
                   } @else if (branches().length > 0) {
                     <select
@@ -398,11 +398,11 @@
               </div>
         
               <div class="space-y-1.5">
-                <label for="new-app-git" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">URL Repository Git</label>
-                <input 
+                <label for="new-app-git" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Git Repository URL</label>
+                <input
                   id="new-app-git"
-                  type="text" 
-                  placeholder="https://github.com/utilizator/repo.git"
+                  type="text"
+                  placeholder="https://github.com/user/repo.git"
                   [ngModel]="gitRepository()"
                   (ngModelChange)="gitRepository.set($event)"
                   [disabled]="deployingApp() || !!selectedImportRepo()"
@@ -412,7 +412,7 @@
               </div>
 
               <div class="space-y-1.5">
-                <label for="new-app-git-subpath" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Subdirector Proiect (Opțional)</label>
+                <label for="new-app-git-subpath" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Project Subdirectory (Optional)</label>
                 <div class="flex gap-2">
                   @if (detectedSubdirectories().length > 0 && subpathSelectionMode() === 'select') {
                     <select
@@ -422,18 +422,18 @@
                       [disabled]="deployingApp()"
                       class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer font-mono"
                     >
-                      <option value="">Rădăcină (rădăcina proiectului)</option>
+                      <option value="">Root (project root)</option>
                       @for (sub of detectedSubdirectories(); track sub) {
                         <option [value]="sub">{{ sub }}/</option>
                       }
-                      <option value="custom">[Scrie subdirector personalizat...]</option>
+                      <option value="custom">[Enter custom subdirectory...]</option>
                     </select>
                   } @else {
                     <div class="relative flex-1">
-                      <input 
+                      <input
                         id="new-app-git-subpath"
-                        type="text" 
-                        placeholder="ex. frontend sau apps/api (lasă gol pentru rădăcină)"
+                        type="text"
+                        placeholder="e.g. frontend or apps/api (leave empty for root)"
                         [ngModel]="gitSubpath()"
                         (ngModelChange)="onSubpathInputChange($event)"
                         [disabled]="deployingApp()"
@@ -445,23 +445,23 @@
                           (click)="subpathSelectionMode.set('select')"
                           class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-500 hover:text-white transition-colors cursor-pointer"
                         >
-                          Revino la listă
+                          Back to list
                         </button>
                       }
                     </div>
                   }
                   @if (selectedImportRepo()) {
-                    <button 
+                    <button
                       type="button"
                       (click)="triggerAutoDetection()"
                       [disabled]="detectingType() || deployingApp()"
                       class="px-3 py-2 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold shrink-0 cursor-pointer transition-colors"
                     >
-                      {{ detectingType() ? 'Detectare...' : 'Re-detectează' }}
+                      {{ detectingType() ? 'Detecting...' : 'Re-detect' }}
                     </button>
                   }
                 </div>
-                <span class="text-[9px] text-zinc-600 block leading-normal">Util în monorepo-uri. Dacă folosești un subdirector, configurările (port, comenzi, variabile de mediu) vor fi auto-detectate din acel folder.</span>
+                <span class="text-[9px] text-zinc-600 block leading-normal">Useful in monorepos. If you use a subdirectory, settings (port, commands, environment variables) will be auto-detected from that folder.</span>
               </div>
               }
 
@@ -469,7 +469,7 @@
               @if (createStep() === 2) {
               <div class="grid gap-4 sm:grid-cols-2">
                 <div class="space-y-1.5">
-                  <label for="new-app-port" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Port Container Intern</label>
+                  <label for="new-app-port" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Internal Container Port</label>
                   <input 
                     id="new-app-port"
                     type="number" 
@@ -482,11 +482,11 @@
                 </div>
 
                 <div class="space-y-1.5">
-                  <label for="new-app-ext-port" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Port Extern (Opțional)</label>
-                  <input 
+                  <label for="new-app-ext-port" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">External Port (Optional)</label>
+                  <input
                     id="new-app-ext-port"
-                    type="number" 
-                    placeholder="Generat automat dacă e gol"
+                    type="number"
+                    placeholder="Auto-generated if empty"
                     [ngModel]="externalPort()"
                     (ngModelChange)="externalPort.set($event)"
                     [disabled]="deployingApp()"
@@ -496,23 +496,23 @@
               </div>
 
               <div class="border-t border-zinc-900 pt-4 space-y-4">
-                <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Rețea & pool</h3>
+                <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Network & pool</h3>
                 <div class="grid gap-4 sm:grid-cols-2">
                   <div class="space-y-1.5">
-                    <label for="new-app-netname" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Nume serviciu (rețea)</label>
+                    <label for="new-app-netname" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Service name (network)</label>
                     <input
                       id="new-app-netname"
                       type="text"
-                      placeholder="auto (recomandat)"
+                      placeholder="auto (recommended)"
                       [ngModel]="networkName()"
                       (ngModelChange)="networkName.set($event)"
                       [disabled]="deployingApp()"
                       class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
                     />
-                    <p class="text-[10px] text-zinc-600 font-sans">Adresa la care alte app-uri îl apelează. Gol = auto. Ex. <span class="text-zinc-400">backend</span> → http://backend:{{ internalPort() }}</p>
+                    <p class="text-[10px] text-zinc-600 font-sans">Address at which other apps can reach it. Empty = auto. E.g. <span class="text-zinc-400">backend</span> → http://backend:{{ internalPort() }}</p>
                   </div>
                   <div class="space-y-1.5">
-                    <label for="new-app-urlkey" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Cheie URL în pool</label>
+                    <label for="new-app-urlkey" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">URL key in pool</label>
                     <input
                       id="new-app-urlkey"
                       type="text"
@@ -526,16 +526,16 @@
                 </div>
                 <div class="flex items-center gap-2.5">
                   <input id="new-app-puburl" type="checkbox" [checked]="publishUrl()" (change)="publishUrl.set(!publishUrl())" [disabled]="deployingApp()" class="h-4 w-4 bg-black border border-zinc-800 rounded accent-white cursor-pointer" />
-                  <label for="new-app-puburl" class="text-xs text-zinc-300 font-sans cursor-pointer select-none">Publică URL-ul aplicației în pool (alte app-uri se pot lega de el)</label>
+                  <label for="new-app-puburl" class="text-xs text-zinc-300 font-sans cursor-pointer select-none">Publish the app URL to the pool (other apps can link to it)</label>
                 </div>
               </div>
 
               <div class="border-t border-zinc-900 pt-4 space-y-4">
-                <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Comenzi opționale (Build/Start)</h3>
-                
+                <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Optional Commands (Build/Start)</h3>
+
                 <div class="grid gap-4 sm:grid-cols-2">
                   <div class="space-y-1.5">
-                    <label for="new-app-build" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Comandă Build</label>
+                    <label for="new-app-build" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Build Command</label>
                     <input 
                       id="new-app-build"
                       type="text" 
@@ -548,7 +548,7 @@
                   </div>
         
                   <div class="space-y-1.5">
-                    <label for="new-app-start" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Comandă Start</label>
+                    <label for="new-app-start" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Start Command</label>
                     <input 
                       id="new-app-start"
                       type="text" 
@@ -570,8 +570,8 @@
               <div class="pt-4 border-t border-zinc-900 space-y-3">
                 <div class="flex items-center justify-between gap-2 flex-wrap">
                   <div>
-                    <h4 class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Variabile de Mediu</h4>
-                    <p class="text-[10px] text-zinc-600">Opțional · injectate în container la primul deploy</p>
+                    <h4 class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Environment Variables</h4>
+                    <p class="text-[10px] text-zinc-600">Optional · injected into the container on first deploy</p>
                   </div>
                   <div class="flex items-center gap-2">
                     <button
@@ -579,27 +579,27 @@
                       (click)="openCreateEnvModal()"
                       [disabled]="deployingApp()"
                       class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-semibold transition-colors cursor-pointer"
-                    >Din Proiect@if (selectedProjectEnvIds().length > 0) {<span class="ml-1 text-emerald-400">· {{ selectedProjectEnvIds().length }}</span>}</button>
+                    >From Project@if (selectedProjectEnvIds().length > 0) {<span class="ml-1 text-emerald-400">· {{ selectedProjectEnvIds().length }}</span>}</button>
                     <button
                       type="button"
                       (click)="newAppEnvJsonMode() ? newAppEnvJsonMode.set(false) : openNewAppEnvJson()"
                       [disabled]="deployingApp()"
                       class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-semibold transition-colors cursor-pointer"
-                    >{{ newAppEnvJsonMode() ? 'Înapoi la formular' : 'Editează ca JSON' }}</button>
+                    >{{ newAppEnvJsonMode() ? 'Back to form' : 'Edit as JSON' }}</button>
                     @if (!newAppEnvJsonMode()) {
                       <button
                         type="button"
                         (click)="addEnvRow()"
                         [disabled]="deployingApp()"
                         class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-semibold transition-colors cursor-pointer"
-                      >+ Adaugă Variabilă</button>
+                      >+ Add Variable</button>
                     }
                   </div>
                 </div>
 
                 @if (selectedProjectEnvIds().length > 0) {
                   <p class="text-[10px] text-zinc-500">
-                    <span class="text-emerald-400 font-semibold">{{ selectedProjectEnvIds().length }}</span> variabile conectate din pool-ul proiectului (referință vie).
+                    <span class="text-emerald-400 font-semibold">{{ selectedProjectEnvIds().length }}</span> variables linked from the project pool (live reference).
                   </p>
                 }
 
@@ -610,7 +610,7 @@
                       [ngModel]="newAppEnvJsonText()"
                       (ngModelChange)="newAppEnvJsonText.set($event)"
                       spellcheck="false"
-                      placeholder='{ "API_KEY": "valoare" }'
+                      placeholder='{ "API_KEY": "value" }'
                       class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-zinc-200 focus:outline-none focus:border-zinc-500 transition-colors font-mono resize-y"
                     ></textarea>
                     <div class="flex items-center justify-end">
@@ -619,7 +619,7 @@
                         (click)="applyNewAppEnvJson()"
                         [disabled]="deployingApp()"
                         class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
-                      >Aplică JSON</button>
+                      >Apply JSON</button>
                     </div>
                   </div>
                 } @else {
@@ -627,7 +627,7 @@
                   <div class="flex items-center gap-2">
                     <input
                       type="text"
-                      placeholder="CHEIE"
+                      placeholder="KEY"
                       [ngModel]="row.key"
                       (ngModelChange)="updateEnvRow($index, 'key', $event)"
                       [disabled]="deployingApp()"
@@ -635,7 +635,7 @@
                     />
                     <input
                       type="text"
-                      placeholder="valoare"
+                      placeholder="value"
                       [ngModel]="row.value"
                       (ngModelChange)="updateEnvRow($index, 'value', $event)"
                       [disabled]="deployingApp()"
@@ -647,14 +647,14 @@
                       [disabled]="deployingApp()"
                       class="px-2 py-2 rounded border text-[9px] font-bold uppercase transition-colors cursor-pointer shrink-0"
                       [class]="row.isSecret ? 'bg-zinc-900 border-zinc-700 text-zinc-300' : 'bg-zinc-950 border-zinc-850 text-zinc-600'"
-                      [title]="row.isSecret ? 'Secret (criptat)' : 'Plaintext'"
+                      [title]="row.isSecret ? 'Secret (encrypted)' : 'Plaintext'"
                     >{{ row.isSecret ? 'Secret' : 'Plain' }}</button>
                     <button
                       type="button"
                       (click)="removeEnvRow($index)"
                       [disabled]="deployingApp()"
                       class="p-2 rounded text-zinc-500 hover:text-red-400 hover:bg-red-950/20 transition-colors cursor-pointer shrink-0"
-                      title="Elimină"
+                      title="Remove"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -667,7 +667,7 @@
 
               <app-env-link-modal
                 [(open)]="showCreateEnvModal"
-                title="Conectează variabile la aplicație"
+                title="Link variables to application"
                 [vars]="projectEnvForModal()"
                 (toggle)="toggleCreateEnvSelection($event)"
               />
@@ -679,8 +679,8 @@
                   <div class="w-full max-w-3xl bg-[#0a0a0a] border border-zinc-800 rounded-lg shadow-2xl flex flex-col max-h-[85vh]" (click)="$event.stopPropagation()">
                     <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-900">
                       <div>
-                        <h3 class="text-xs font-bold text-white uppercase tracking-wider font-mono">Split din docker-compose</h3>
-                        <p class="text-[10px] text-zinc-500 mt-0.5">Bifează ce vrei să creezi și apasă „Editează" pentru a ajusta nume, porturi și variabile înainte de creare.</p>
+                        <h3 class="text-xs font-bold text-white uppercase tracking-wider font-mono">Split from docker-compose</h3>
+                        <p class="text-[10px] text-zinc-500 mt-0.5">Check what you want to create and click "Edit" to adjust names, ports and variables before creating.</p>
                       </div>
                       <button (click)="showComposePreview.set(false)" class="p-1.5 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white cursor-pointer">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -690,7 +690,7 @@
                     <div class="overflow-y-auto px-5 py-4 space-y-5 font-mono">
                       @if (plan.databases.length > 0) {
                         <div class="space-y-2">
-                          <p class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Baze de date</p>
+                          <p class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Databases</p>
                           @for (db of plan.databases; track db.service; let i = $index) {
                             <div class="rounded border border-zinc-850 bg-black">
                               <div class="flex items-center justify-between gap-3 p-2.5">
@@ -701,22 +701,22 @@
                                 </div>
                                 <div class="flex items-center gap-2 shrink-0">
                                   <span class="text-[9px] text-zinc-600">:{{ db.internalPort }}</span>
-                                  <button type="button" (click)="toggleDbExpand(i)" class="text-[9px] px-1.5 py-0.5 rounded border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-900 cursor-pointer">{{ expandedDbs()[i] ? 'Închide' : 'Editează' }}</button>
+                                  <button type="button" (click)="toggleDbExpand(i)" class="text-[9px] px-1.5 py-0.5 rounded border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-900 cursor-pointer">{{ expandedDbs()[i] ? 'Close' : 'Edit' }}</button>
                                 </div>
                               </div>
                               @if (expandedDbs()[i]) {
                                 <div class="px-2.5 pb-2.5 pt-1 border-t border-zinc-900 space-y-3 font-mono">
                                   <div class="grid gap-2 sm:grid-cols-3">
                                     <div class="space-y-1">
-                                      <label class="text-[8px] uppercase text-zinc-500">Nume</label>
+                                      <label class="text-[8px] uppercase text-zinc-500">Name</label>
                                       <input type="text" [ngModel]="db.name" (ngModelChange)="updateDbName(i, $event)" class="block w-full px-2 py-1.5 text-[11px] bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
                                     </div>
                                     <div class="space-y-1">
-                                      <label class="text-[8px] uppercase text-zinc-500">Versiune</label>
+                                      <label class="text-[8px] uppercase text-zinc-500">Version</label>
                                       <input type="text" [ngModel]="db.version" (ngModelChange)="updateDbVersion(i, $event)" class="block w-full px-2 py-1.5 text-[11px] bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
                                     </div>
                                     <div class="space-y-1">
-                                      <label class="text-[8px] uppercase text-zinc-500">Port intern</label>
+                                      <label class="text-[8px] uppercase text-zinc-500">Internal port</label>
                                       <input type="number" [ngModel]="db.internalPort" (ngModelChange)="updateDbInternalPort(i, $event)" class="block w-full px-2 py-1.5 text-[11px] bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
                                     </div>
                                   </div>
@@ -725,11 +725,11 @@
                                   <div class="pt-2 border-t border-zinc-900/60 space-y-2">
                                     <label class="flex items-center gap-2 cursor-pointer select-none">
                                       <input type="checkbox" [checked]="db.publishToEnv" (change)="updateDbPublishToEnv(i, !db.publishToEnv)" class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer" />
-                                      <span class="text-[10px] text-zinc-300">Publică string de conexiune în .env</span>
+                                      <span class="text-[10px] text-zinc-300">Publish connection string to .env</span>
                                     </label>
                                     @if (db.publishToEnv) {
                                       <div class="flex items-center gap-2 pl-6 animate-fade-in">
-                                        <label class="text-[9px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Nume cheie:</label>
+                                        <label class="text-[9px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Key name:</label>
                                         <input type="text" placeholder="DATABASE_URL (implicit)" [ngModel]="db.envKey" (ngModelChange)="updateDbEnvKey(i, $event)" class="block w-full max-w-xs px-2 py-1 text-[10px] bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 uppercase font-bold" />
                                       </div>
                                     }
@@ -743,7 +743,7 @@
 
                       @if (plan.apps.length > 0) {
                         <div class="space-y-2">
-                          <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Aplicații</p>
+                          <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Applications</p>
                           @for (app of plan.apps; track app.service; let i = $index) {
                             <div class="rounded border border-zinc-850 bg-black" [class.opacity-50]="!app.buildable">
                               <div class="flex items-center justify-between gap-3 p-2.5">
@@ -753,7 +753,7 @@
                                   @if (app.buildPath) {
                                     <span class="px-1.5 py-0.5 rounded text-[8px] bg-zinc-900 border border-zinc-800 text-zinc-400">build: {{ app.buildPath }}</span>
                                   } @else {
-                                    <span class="px-1.5 py-0.5 rounded text-[8px] bg-zinc-900 border border-zinc-800 text-zinc-500" [title]="'fără build context — nu poate fi construit din repo'">imagine</span>
+                                    <span class="px-1.5 py-0.5 rounded text-[8px] bg-zinc-900 border border-zinc-800 text-zinc-500" [title]="'no build context — cannot be built from repo'">image</span>
                                   }
                                   @if (app.dependsOn.length > 0) {
                                     <span class="text-[9px] text-zinc-600">→ {{ app.dependsOn.join(', ') }}</span>
@@ -764,7 +764,7 @@
                                   @if (app.buildable) {
                                     <button type="button" (click)="openAppEditor(i)" class="text-[10px] px-2 py-1 rounded border border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-900 cursor-pointer inline-flex items-center gap-1">
                                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Z" /></svg>
-                                      Editează
+                                      Edit
                                     </button>
                                   }
                                 </div>
@@ -775,17 +775,17 @@
                       }
 
                       @if (plan.apps.length === 0 && plan.databases.length === 0) {
-                        <p class="text-[11px] text-zinc-600 text-center py-6">Nu am găsit servicii în docker-compose.</p>
+                        <p class="text-[11px] text-zinc-600 text-center py-6">No services found in docker-compose.</p>
                       }
                     </div>
 
                     <div class="flex items-center justify-between gap-2 px-5 py-3 border-t border-zinc-900">
-                      <span class="text-[10px] text-zinc-500 font-sans">{{ composeSelectedCount() }} resurse selectate</span>
+                      <span class="text-[10px] text-zinc-500 font-sans">{{ composeSelectedCount() }} resources selected</span>
                       <div class="flex items-center gap-2">
-                        <button (click)="showComposePreview.set(false)" class="px-3 py-1.5 rounded text-zinc-400 hover:text-white text-xs font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer font-sans">Anulează</button>
+                        <button (click)="showComposePreview.set(false)" class="px-3 py-1.5 rounded text-zinc-400 hover:text-white text-xs font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer font-sans">Cancel</button>
                         <button (click)="onApplyComposeSplit()" [disabled]="applyingCompose() || composeSelectedCount() === 0"
                           class="px-4 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold shadow disabled:opacity-50 cursor-pointer font-sans">
-                          {{ applyingCompose() ? 'Se creează...' : 'Creează tot' }}
+                          {{ applyingCompose() ? 'Creating...' : 'Create All' }}
                         </button>
                       </div>
                     </div>
@@ -798,7 +798,7 @@
                     <div class="w-full max-w-3xl bg-[#0a0a0a] border border-zinc-800 rounded-lg shadow-2xl flex flex-col max-h-[90vh]" (click)="$event.stopPropagation()">
                       <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-900">
                         <div>
-                          <h3 class="text-sm font-bold text-white">Editează serviciul</h3>
+                          <h3 class="text-sm font-bold text-white">Edit service</h3>
                           <p class="text-xs text-zinc-500 mt-0.5 font-mono">{{ eApp.service }}</p>
                         </div>
                         <button (click)="closeAppEditor()" class="p-1.5 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white cursor-pointer">
@@ -808,8 +808,8 @@
 
                       <div class="flex items-center gap-1 px-6 pt-3 border-b border-zinc-900">
                         <button type="button" (click)="editorTab.set('general')" class="px-3 py-2 text-xs font-semibold border-b-2 -mb-px cursor-pointer transition-colors" [class]="editorTab() === 'general' ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'">General</button>
-                        <button type="button" (click)="editorTab.set('network')" class="px-3 py-2 text-xs font-semibold border-b-2 -mb-px cursor-pointer transition-colors" [class]="editorTab() === 'network' ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'">Rețea &amp; pool</button>
-                        <button type="button" (click)="editorTab.set('env')" class="px-3 py-2 text-xs font-semibold border-b-2 -mb-px cursor-pointer transition-colors" [class]="editorTab() === 'env' ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'">Variabile ({{ eApp.env.length }})</button>
+                        <button type="button" (click)="editorTab.set('network')" class="px-3 py-2 text-xs font-semibold border-b-2 -mb-px cursor-pointer transition-colors" [class]="editorTab() === 'network' ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'">Network &amp; pool</button>
+                        <button type="button" (click)="editorTab.set('env')" class="px-3 py-2 text-xs font-semibold border-b-2 -mb-px cursor-pointer transition-colors" [class]="editorTab() === 'env' ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'">Variables ({{ eApp.env.length }})</button>
                       </div>
 
                       <div class="overflow-y-auto px-6 py-5 min-h-[260px]">
@@ -817,20 +817,20 @@
                           <div class="space-y-4">
                             <div class="grid gap-3 sm:grid-cols-3">
                               <div class="space-y-1.5">
-                                <label class="text-[11px] font-medium text-zinc-400">Nume</label>
+                                <label class="text-[11px] font-medium text-zinc-400">Name</label>
                                 <input type="text" [ngModel]="eApp.name" (ngModelChange)="updateAppName(editingAppIndex()!, $event)" class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
                               </div>
                               <div class="space-y-1.5">
-                                <label class="text-[11px] font-medium text-zinc-400">Port intern</label>
+                                <label class="text-[11px] font-medium text-zinc-400">Internal port</label>
                                 <input type="number" [ngModel]="eApp.internalPort" (ngModelChange)="updateAppInternalPort(editingAppIndex()!, $event)" class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
                               </div>
                               <div class="space-y-1.5">
-                                <label class="text-[11px] font-medium text-zinc-400">Port extern <span class="text-zinc-600">(opțional)</span></label>
+                                <label class="text-[11px] font-medium text-zinc-400">External port <span class="text-zinc-600">(optional)</span></label>
                                 <input type="number" [ngModel]="eApp.externalPort" (ngModelChange)="updateAppExternalPort(editingAppIndex()!, $event)" placeholder="auto" class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
                               </div>
                             </div>
                             @if (eApp.volumes.length > 0) {
-                              <p class="text-xs text-zinc-600">Volume: {{ eApp.volumes.length }} (montate automat din compose).</p>
+                              <p class="text-xs text-zinc-600">Volumes: {{ eApp.volumes.length }} (auto-mounted from compose).</p>
                             }
                           </div>
                         }
@@ -839,18 +839,18 @@
                           <div class="space-y-4">
                             <div class="grid gap-3 sm:grid-cols-2">
                               <div class="space-y-1.5">
-                                <label class="text-[11px] font-medium text-zinc-400">Nume serviciu (rețea)</label>
-                                <input type="text" [ngModel]="eApp.networkName" (ngModelChange)="updateAppNetworkName(editingAppIndex()!, $event)" placeholder="auto (recomandat)" class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
-                                <p class="text-[11px] text-zinc-600">Adresa la care alte app-uri îl apelează. Gol = auto. Ex. <span class="font-mono">http://{{ eApp.networkName && eApp.networkName.length ? eApp.networkName : 'backend' }}:{{ eApp.internalPort }}</span></p>
+                                <label class="text-[11px] font-medium text-zinc-400">Service name (network)</label>
+                                <input type="text" [ngModel]="eApp.networkName" (ngModelChange)="updateAppNetworkName(editingAppIndex()!, $event)" placeholder="auto (recommended)" class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
+                                <p class="text-[11px] text-zinc-600">Address at which other apps can reach it. Empty = auto. E.g. <span class="font-mono">http://{{ eApp.networkName && eApp.networkName.length ? eApp.networkName : 'backend' }}:{{ eApp.internalPort }}</span></p>
                               </div>
                               <div class="space-y-1.5">
-                                <label class="text-[11px] font-medium text-zinc-400">Cheie URL în pool</label>
+                                <label class="text-[11px] font-medium text-zinc-400">URL key in pool</label>
                                 <input type="text" [ngModel]="eApp.urlEnvKey" (ngModelChange)="updateAppUrlEnvKey(editingAppIndex()!, $event)" [placeholder]="defaultUrlKey(eApp)" [disabled]="eApp.publishUrl === false" class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white uppercase focus:outline-none focus:border-zinc-500 disabled:opacity-40" />
                               </div>
                             </div>
                             <label class="flex items-start gap-3 p-3 rounded border border-zinc-850 bg-zinc-950/40 cursor-pointer">
                               <input type="checkbox" [checked]="eApp.publishUrl !== false" (change)="toggleComposeAppPublishUrl(editingAppIndex()!)" class="h-4 w-4 mt-0.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer" />
-                              <span class="text-xs text-zinc-300 select-none">Publică URL-ul în pool <span class="text-zinc-500">— alte app-uri se pot lega de el; auto pentru depends_on.</span></span>
+                              <span class="text-xs text-zinc-300 select-none">Publish URL to pool <span class="text-zinc-500">— other apps can link to it; automatic for depends_on.</span></span>
                             </label>
                           </div>
                         }
@@ -858,17 +858,17 @@
                         @if (editorTab() === 'env') {
                           <div class="space-y-2">
                             <div class="flex items-center justify-between">
-                              <p class="text-[11px] text-zinc-500">Variabile de mediu ale serviciului</p>
-                              <button type="button" (click)="addAppEnv(editingAppIndex()!)" class="text-[11px] px-2 py-1 rounded border border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-900 cursor-pointer">+ Adaugă</button>
+                              <p class="text-[11px] text-zinc-500">Service environment variables</p>
+                              <button type="button" (click)="addAppEnv(editingAppIndex()!)" class="text-[11px] px-2 py-1 rounded border border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-900 cursor-pointer">+ Add</button>
                             </div>
                             @if (eApp.env.length === 0) {
-                              <p class="text-xs text-zinc-700">Nicio variabilă.</p>
+                              <p class="text-xs text-zinc-700">No variables.</p>
                             }
                             @for (e of eApp.env; track $index; let j = $index) {
                               <div class="flex items-center gap-2">
-                                <input type="text" [ngModel]="e.key" (ngModelChange)="updateAppEnvKey(editingAppIndex()!, j, $event)" placeholder="CHEIE" class="flex-1 min-w-0 px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white uppercase focus:outline-none focus:border-zinc-500" />
+                                <input type="text" [ngModel]="e.key" (ngModelChange)="updateAppEnvKey(editingAppIndex()!, j, $event)" placeholder="KEY" class="flex-1 min-w-0 px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white uppercase focus:outline-none focus:border-zinc-500" />
                                 <span class="text-zinc-700">=</span>
-                                <input type="text" [ngModel]="e.value" (ngModelChange)="updateAppEnvValue(editingAppIndex()!, j, $event)" placeholder="valoare" class="flex-1 min-w-0 px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
+                                <input type="text" [ngModel]="e.value" (ngModelChange)="updateAppEnvValue(editingAppIndex()!, j, $event)" placeholder="value" class="flex-1 min-w-0 px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500" />
                                 <button type="button" (click)="removeAppEnv(editingAppIndex()!, j)" class="w-8 h-8 flex items-center justify-center rounded text-zinc-600 hover:text-red-400 hover:bg-red-950/30 cursor-pointer shrink-0">✕</button>
                               </div>
                             }
@@ -877,7 +877,7 @@
                       </div>
 
                       <div class="flex justify-end gap-2 px-6 py-4 border-t border-zinc-900">
-                        <button (click)="closeAppEditor()" class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold cursor-pointer">Gata</button>
+                        <button (click)="closeAppEditor()" class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold cursor-pointer">Done</button>
                       </div>
                     </div>
                   </div>
@@ -891,7 +891,7 @@
                   [disabled]="deployingApp()"
                   class="px-4 py-2 rounded text-zinc-400 hover:text-white text-xs font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer"
                 >
-                  {{ createStep() === 1 ? 'Înapoi la repo' : '← Înapoi' }}
+                  {{ createStep() === 1 ? 'Back to Repo' : '← Back' }}
                 </button>
 
                 @if (createStep() < 3) {
@@ -900,7 +900,7 @@
                     [disabled]="deployingApp() || (createStep() === 1 && (!appName() || !gitRepository()))"
                     class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
                   >
-                    Continuă →
+                    Continue →
                   </button>
                 } @else {
                   <button
@@ -909,13 +909,13 @@
                     class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                   >
                     @if (!deployingApp()) {
-                      <span>Lansează Aplicație</span>
+                      <span>Launch Application</span>
                     } @else {
                       <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      <span>Se lansează...</span>
+                      <span>Launching...</span>
                     }
                   </button>
                 }
@@ -931,7 +931,7 @@
       <div class="flex flex-col lg:flex-row gap-8 items-start pt-4">
         
         <!-- Sidebar Navigation -->
-        <nav class="w-full lg:w-60 shrink-0 flex flex-col gap-1 bg-[#060606]/70 border border-zinc-900 rounded-lg p-2.5 font-mono text-xs shadow-inner" role="tablist" aria-label="Meniu Detalii Proiect">
+        <nav class="w-full lg:w-60 shrink-0 flex flex-col gap-1 bg-[#060606]/70 border border-zinc-900 rounded-lg p-2.5 font-mono text-xs shadow-inner" role="tablist" aria-label="Project Details Menu">
           <a 
             [routerLink]="['/projects', projectId()]" 
             (click)="showAddAppForm.set(false)"
@@ -942,7 +942,7 @@
             <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
             </svg>
-            <span>Prezentare Generală</span>
+            <span>Overview</span>
           </a>
 
           <a 
@@ -955,7 +955,7 @@
             <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span>Aplicații</span>
+            <span>Applications</span>
           </a>
 
           <a 
@@ -968,7 +968,7 @@
             <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
             </svg>
-            <span>Baze de Date</span>
+            <span>Databases</span>
           </a>
 
           <a 
@@ -981,7 +981,7 @@
             <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
             </svg>
-            <span>Stocare</span>
+            <span>Storage</span>
           </a>
 
           <a 
@@ -994,7 +994,7 @@
             <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m-3.418 3.84a6 6 0 111.082-6.79q.416.74.793 1.526l2.124.707a2 2 0 011.332 1.332L21 12l-2.071 2.071a2 2 0 01-1.332 1.332L15.5 16l-1.082-3.84zm-3.082-1.84a1 1 0 100-2 1 1 0 000 2z" />
             </svg>
-            <span>Variabile Mediu</span>
+            <span>Environment Variables</span>
           </a>
 
           <a 
@@ -1007,7 +1007,7 @@
             <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
-            <span>Rutare & Rețea</span>
+            <span>Routing & Networking</span>
           </a>
 
           <a 
@@ -1059,7 +1059,7 @@
             <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            <span>Incidente & Alerte</span>
+            <span>Incidents & Alerts</span>
           </a>
 
           <a 
@@ -1073,7 +1073,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <span>Setări</span>
+            <span>Settings</span>
           </a>
         </nav>
 
@@ -1096,7 +1096,7 @@
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
     </svg>
-    <span class="text-zinc-500 text-[10px] font-mono uppercase tracking-widest">Se preiau datele proiectului...</span>
+    <span class="text-zinc-500 text-[10px] font-mono uppercase tracking-widest">Loading project data...</span>
   </div>
 }
 

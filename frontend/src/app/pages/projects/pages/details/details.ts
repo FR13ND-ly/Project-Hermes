@@ -129,11 +129,11 @@ export class Details implements OnInit, OnDestroy {
     try {
       parsed = JSON.parse(this.newAppEnvJsonText() || '{}');
     } catch {
-      this.toast.error('JSON invalid. Verifică sintaxa.');
+      this.toast.error('Invalid JSON. Check the syntax.');
       return;
     }
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      this.toast.error('JSON-ul trebuie să fie un obiect { "CHEIE": "valoare" }.');
+      this.toast.error('JSON must be an object { "KEY": "value" }.');
       return;
     }
     const rows: EnvVarInput[] = Object.entries(parsed).map(([key, value]) => ({
@@ -161,7 +161,7 @@ export class Details implements OnInit, OnDestroy {
   readonly repoSearchQuery = signal('');
   readonly selectedImportRepo = signal<GitRepo | null>(null);
 
-  // Create-app wizard: 1 = Repo, 2 = Setări, 3 = Env
+  // Create-app wizard: 1 = Repo, 2 = Settings, 3 = Env
   readonly createStep = signal(1);
   nextCreateStep(): void { this.createStep.update(s => Math.min(3, s + 1)); }
   prevCreateStep(): void { this.createStep.update(s => Math.max(1, s - 1)); }
@@ -207,7 +207,7 @@ export class Details implements OnInit, OnDestroy {
         this.loadingRepos.set(false);
       },
       error: () => {
-        this.toast.error('Eroare la încărcarea repository-urilor.');
+        this.toast.error('Failed to load repositories.');
         this.loadingRepos.set(false);
       }
     });
@@ -229,7 +229,7 @@ export class Details implements OnInit, OnDestroy {
         }
       },
       error: () => {
-        this.toast.error('Eroare la încărcarea branch-urilor.');
+        this.toast.error('Failed to load branches.');
         this.loadingBranches.set(false);
       }
     });
@@ -311,7 +311,7 @@ export class Details implements OnInit, OnDestroy {
         this.planningCompose.set(false);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Nu am putut analiza docker-compose.');
+        this.toast.error(err.error?.message || 'Failed to parse docker-compose.');
         this.planningCompose.set(false);
       }
     });
@@ -421,12 +421,12 @@ export class Details implements OnInit, OnDestroy {
         this.applyingCompose.set(false);
         this.showComposePreview.set(false);
         this.showAddAppForm.set(false);
-        this.toast.success('Stack-ul a fost creat din docker-compose (aplicații, baze de date, volume).');
+        this.toast.success('Stack created from docker-compose (apps, databases, volumes).');
         this.loadDetails(projectId);
         this.router.navigate(['/projects', projectId, 'apps']);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la crearea stack-ului.');
+        this.toast.error(err.error?.message || 'Failed to create the stack.');
         this.applyingCompose.set(false);
       }
     });
@@ -534,7 +534,7 @@ export class Details implements OnInit, OnDestroy {
       },
       error: (err) => {
         if (!silent) {
-          this.error.set(err.error?.message || 'Eroare la încărcarea detaliilor proiectului.');
+          this.error.set(err.error?.message || 'Failed to load project details.');
           this.loading.set(false);
         }
       }
@@ -550,7 +550,7 @@ export class Details implements OnInit, OnDestroy {
 
   onDeployApp(): void {
     if (!this.appName() || !this.gitRepository()) {
-      this.toast.error('Numele aplicației și repository-ul Git sunt obligatorii.');
+      this.toast.error('Application name and Git repository are required.');
       return;
     }
 
@@ -598,7 +598,7 @@ export class Details implements OnInit, OnDestroy {
         this.urlEnvKey.set('');
         this.selectedImportRepo.set(null);
         this.isCustomGitUrl.set(false);
-        this.toast.success('Aplicația a fost înregistrată pentru deployment cu succes!');
+        this.toast.success('Application successfully registered for deployment!');
         
         if (res && res.id) {
           this.router.navigate(['/projects', projectId, 'apps', res.id]);
@@ -607,7 +607,7 @@ export class Details implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la crearea aplicației.');
+        this.toast.error(err.error?.message || 'Failed to create application.');
         this.deployingApp.set(false);
       }
     });
@@ -659,13 +659,13 @@ export class Details implements OnInit, OnDestroy {
           this.newAppEnvRows.set([]);
         }
 
-        this.toast.success(`Tip proiect detectat: ${res.projectType.toUpperCase()}`);
+        this.toast.success(`Project type detected: ${res.projectType.toUpperCase()}`);
       },
       error: () => {
         this.detectingType.set(false);
         this.detectedType.set('generic');
-        this.detectedDescription.set('Tip proiect nespecificat sau subdirector invalid.');
-        this.toast.error('Nu s-a putut detecta tipul în subdirector.');
+        this.detectedDescription.set('Unknown project type or invalid subdirectory.');
+        this.toast.error('Could not detect project type in subdirectory.');
       }
     });
   }
@@ -715,29 +715,29 @@ export class Details implements OnInit, OnDestroy {
     }
   }
 
-  getAppStatus(app: AppDetail | null): 'ACTIV' | 'INACTIV' | 'CONSTRUIRE' | 'EȘUAT' | 'CRASHED' | 'OPRIT' {
-    if (!app || !app.instances || app.instances.length === 0) return 'INACTIV';
+  getAppStatus(app: AppDetail | null): 'RUNNING' | 'INACTIVE' | 'BUILDING' | 'FAILED' | 'CRASHED' | 'STOPPED' {
+    if (!app || !app.instances || app.instances.length === 0) return 'INACTIVE';
     const status = app.instances[0].status; // e.g. 'building', 'running', 'stopped', 'failed', 'crashed'
-    if (status === 'running') return 'ACTIV';
-    if (status === 'building') return 'CONSTRUIRE';
-    if (status === 'failed') return 'EȘUAT';
+    if (status === 'running') return 'RUNNING';
+    if (status === 'building') return 'BUILDING';
+    if (status === 'failed') return 'FAILED';
     if (status === 'crashed') return 'CRASHED';
-    if (status === 'stopped') return 'OPRIT';
-    return 'INACTIV';
+    if (status === 'stopped') return 'STOPPED';
+    return 'INACTIVE';
   }
 
   getAppStatusClass(app: AppDetail | null): string {
     const status = this.getAppStatus(app);
     switch (status) {
-      case 'ACTIV':
+      case 'RUNNING':
         return 'bg-emerald-950/20 border-emerald-900/30 text-emerald-400';
-      case 'CONSTRUIRE':
+      case 'BUILDING':
         return 'bg-amber-950/20 border-amber-900/30 text-amber-400 animate-pulse';
-      case 'EȘUAT':
+      case 'FAILED':
       case 'CRASHED':
         return 'bg-red-950/20 border-red-900/30 text-red-400';
-      case 'OPRIT':
-      case 'INACTIV':
+      case 'STOPPED':
+      case 'INACTIVE':
       default:
         return 'bg-zinc-950 border-zinc-900 text-zinc-500';
     }
@@ -746,15 +746,15 @@ export class Details implements OnInit, OnDestroy {
   getAppIndicatorClass(app: AppDetail | null): string {
     const status = this.getAppStatus(app);
     switch (status) {
-      case 'ACTIV':
+      case 'RUNNING':
         return 'bg-emerald-500';
-      case 'CONSTRUIRE':
+      case 'BUILDING':
         return 'bg-amber-500 animate-pulse';
-      case 'EȘUAT':
+      case 'FAILED':
       case 'CRASHED':
         return 'bg-red-500';
-      case 'OPRIT':
-      case 'INACTIV':
+      case 'STOPPED':
+      case 'INACTIVE':
       default:
         return 'bg-zinc-500';
     }
