@@ -75,7 +75,7 @@ export class Environments implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la încărcarea variabilelor de mediu.');
+        this.error.set(err.error?.message || 'Failed to load environment variables.');
         this.loading.set(false);
       }
     });
@@ -112,12 +112,12 @@ export class Environments implements OnInit {
       next: () => {
         this.savingProjectEnv.set(false);
         this.showProjectAddForm.set(false);
-        this.toast.success('Variabila de proiect a fost salvată!');
+        this.toast.success('Project variable saved!');
         this.loadProjectEnv();
       },
       error: (err) => {
         this.savingProjectEnv.set(false);
-        this.toast.error(err.error?.message || 'Eroare la salvare.');
+        this.toast.error(err.error?.message || 'Failed to save.');
       }
     });
   }
@@ -126,21 +126,21 @@ export class Environments implements OnInit {
     const projectId = this.parent.projectId();
     if (!projectId) return;
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Variabilă de Proiect',
-      message: 'Sigur doriți să ștergeți această variabilă? Va fi eliminată din toate aplicațiile care o folosesc.',
-      confirmText: 'Șterge',
-      cancelText: 'Anulează',
+      title: 'Delete Project Variable',
+      message: 'Are you sure you want to delete this variable? It will be removed from all applications that use it.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
 
     this.projectService.deleteProjectEnv(projectId, id).subscribe({
       next: () => {
-        this.toast.success('Variabila de proiect a fost ștearsă.');
+        this.toast.success('Project variable deleted.');
         this.loadProjectEnv();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la ștergere.');
+        this.toast.error(err.error?.message || 'Failed to delete.');
       }
     });
   }
@@ -168,7 +168,7 @@ export class Environments implements OnInit {
 
     this.projectService.revealProjectEnv(projectId, env.id).subscribe({
       next: (res) => this.projectRevealed.update(m => ({ ...m, [env.id]: res.value })),
-      error: (err) => this.toast.error(err.error?.message || 'Eroare la dezvăluirea valorii.')
+      error: (err) => this.toast.error(err.error?.message || 'Failed to reveal value.')
     });
   }
 
@@ -194,12 +194,12 @@ export class Environments implements OnInit {
       next: () => {
         this.savingRename.set(false);
         this.cancelRename();
-        this.toast.success('Cheia a fost redenumită.');
+        this.toast.success('Key renamed.');
         this.loadProjectEnv();
       },
       error: (err) => {
         this.savingRename.set(false);
-        this.toast.error(err.error?.message || 'Eroare la redenumire.');
+        this.toast.error(err.error?.message || 'Failed to rename.');
       }
     });
   }
@@ -261,12 +261,12 @@ export class Environments implements OnInit {
       next: () => {
         this.savingEnv.set(false);
         this.cancelAddForm();
-        this.toast.success(wasEditing ? 'Variabila a fost actualizată!' : 'Variabila a fost salvată!');
+        this.toast.success(wasEditing ? 'Variable updated!' : 'Variable saved!');
         this.load();
       },
       error: (err) => {
         this.savingEnv.set(false);
-        this.toast.error(err.error?.message || 'Eroare la salvare.');
+        this.toast.error(err.error?.message || 'Failed to save.');
       }
     });
   }
@@ -294,11 +294,11 @@ export class Environments implements OnInit {
     try {
       parsed = JSON.parse(this.jsonText());
     } catch {
-      this.toast.error('JSON invalid. Verificați sintaxa.');
+      this.toast.error('Invalid JSON. Check the syntax.');
       return;
     }
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      this.toast.error('JSON-ul trebuie să fie un obiect { "CHEIE": "valoare" }.');
+      this.toast.error('JSON must be an object { "KEY": "value" }.');
       return;
     }
 
@@ -313,40 +313,40 @@ export class Environments implements OnInit {
       next: () => {
         this.savingJson.set(false);
         this.jsonInstance.set(null);
-        this.toast.success('Variabilele au fost actualizate.');
+        this.toast.success('Variables updated.');
         this.load();
       },
       error: (err) => {
         this.savingJson.set(false);
-        this.toast.error(err.error?.message || 'Eroare la salvarea variabilelor.');
+        this.toast.error(err.error?.message || 'Failed to save variables.');
       }
     });
   }
 
   async deleteEnv(envId: string): Promise<void> {
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Variabilă de Mediu',
-      message: 'Sigur doriți să ștergeți această variabilă? Va fi aplicată la următoarea redeploiere.',
-      confirmText: 'Șterge',
-      cancelText: 'Anulează',
+      title: 'Delete Environment Variable',
+      message: 'Are you sure you want to delete this variable? Changes will apply on next redeploy.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
 
     this.projectService.deleteEnvVariable(envId).subscribe({
       next: () => {
-        this.toast.success('Variabila a fost ștearsă.');
+        this.toast.success('Variable deleted.');
         this.load();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la ștergere.');
+        this.toast.error(err.error?.message || 'Failed to delete.');
       }
     });
   }
 
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text).then(() => {
-      this.toast.success('Copiat în clipboard!');
+      this.toast.success('Copied to clipboard!');
     });
   }
 }
