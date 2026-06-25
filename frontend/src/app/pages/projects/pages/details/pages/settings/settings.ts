@@ -22,14 +22,8 @@ export class Settings implements OnInit {
   private readonly confirm = inject(ConfirmService);
   private readonly toast = inject(ToastService);
 
-  // Container resources, scaling & auto-sleep moved to App detail → Advanced
-  // (they are per app instance, not project-wide).
+  // Container settings are managed per-app in the App details view.
   readonly error = signal<string | null>(null);
-
-  // Destructive actions
-  readonly selectedInstanceToDelete = signal<AppInstance | null>(null);
-  readonly confirmName = signal('');
-  readonly deleting = signal(false);
 
   // Project deletion
   readonly confirmProjectName = signal('');
@@ -58,23 +52,7 @@ export class Settings implements OnInit {
   readonly cfBaseDomain = signal('');
   readonly savingCloudflare = signal(false);
 
-  constructor() {
-    effect(() => {
-      const details = this.parent.appDetail();
-      if (details && details.instances && details.instances.length > 0) {
-        // Default the instance to delete to the first one (reacts to async load).
-        if (!this.selectedInstanceToDelete()) {
-          this.selectedInstanceToDelete.set(details.instances[0]);
-        }
-      }
-    });
-  }
-
   ngOnInit(): void {
-    const details = this.parent.appDetail();
-    if (details && details.instances && details.instances.length > 0) {
-      this.selectedInstanceToDelete.set(details.instances[0]);
-    }
     this.loadWebhooks();
     this.loadSshKeys();
     this.loadCloudflareSettings();
@@ -116,53 +94,6 @@ export class Settings implements OnInit {
       error: (err) => {
         this.savingCloudflare.set(false);
         this.toast.error(err.error?.message || 'Failed to save Cloudflare settings.');
-      }
-    });
-  }
-
-  onSelectInstanceToDelete(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    const details = this.parent.appDetail();
-    if (details && details.instances) {
-      const found = details.instances.find(i => i.id === select.value);
-      if (found) {
-        this.selectedInstanceToDelete.set(found);
-      }
-    }
-  }
-
-  onDeleteInstance(): void {
-    const inst = this.selectedInstanceToDelete();
-    const appId = this.parent.appDetail()?.id;
-    const projectId = this.parent.projectId();
-    if (!inst || !appId || !projectId || this.confirmName() !== inst.containerName) return;
-
-    this.deleting.set(true);
-    this.error.set(null);
-
-    this.projectService.deleteAppInstance(appId, inst.id).subscribe({
-      next: () => {
-        this.deleting.set(false);
-        this.confirmName.set('');
-        this.toast.success(`Instance ${inst.containerName} deleted from Kubernetes.`);
-
-        // Compute what remains from the *current* list before the async reload,
-        // so the redirect decision doesn't read stale data.
-        const remaining = (this.parent.appDetail()?.instances ?? []).filter(i => i.id !== inst.id);
-
-        // Reload details parent component
-        this.parent.loadDetails(projectId);
-
-        // Redirect to dashboard if nothing is left, otherwise select the next one.
-        if (remaining.length === 0) {
-          this.router.navigate(['/dashboard']);
-        } else {
-          this.selectedInstanceToDelete.set(remaining[0]);
-        }
-      },
-      error: (err) => {
-        this.error.set(err.error?.message || 'Failed to delete instance.');
-        this.deleting.set(false);
       }
     });
   }
