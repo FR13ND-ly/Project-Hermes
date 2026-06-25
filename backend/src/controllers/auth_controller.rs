@@ -397,7 +397,7 @@ pub async fn reset_user_password(
     let hashed_password = crypto::hash_password(&temporary_password)?;
 
     sqlx::query!(
-        "UPDATE users SET password_hash = $1, status = 'pending_verification'::user_status, password_changed_at = NULL, updated_at = now() WHERE id = $2",
+        "UPDATE users SET password_hash = $1, status = 'pending_verification'::user_status, password_changed_at = now(), updated_at = now() WHERE id = $2",
         hashed_password, target_user_id
     )
     .execute(&state.pool)
