@@ -48,17 +48,17 @@ export class AuthManagement {
   readonly integrationSnippet = computed(() => {
     const i = this.integration();
     if (!i) return '';
-    return `// Express — Hermes BaaS auth (validare JWT locală cu secretul din env)
+    return `// Express — Hermes BaaS auth (local JWT validation with secret from env)
 import jwt from 'jsonwebtoken';
 
-const API_KEY = process.env.HERMES_APP_TOKEN;   // Cheia API generată în panou
+const API_KEY = process.env.HERMES_APP_TOKEN;   // API key generated in the panel
 const SECRET = process.env.${i.authSecretEnvKey};   // Secretul de semnare JWT
 const BAAS_ID = '${i.baasId}';
 const HERMES = '${i.apiBaseUrl}';
 
-// login: identifier + parolă -> { accessToken, refreshToken }
-// Trimite cheia API în header-ul Authorization ca să poți autoriza apelul
-// și să injectezi claims custom (ex. tenantId, plan) în access token.
+// login: identifier + password -> { accessToken, refreshToken }
+// Send the API key in the Authorization header to authorize the call
+// and inject custom claims (e.g. tenantId, plan) into the access token.
 async function login(identifier, password, additionalClaims = {}) {
   const r = await fetch(\`\${HERMES}/baas/\${BAAS_ID}/auth/login\`, {
     method: 'POST',
@@ -71,7 +71,7 @@ async function login(identifier, password, additionalClaims = {}) {
   return r.json(); // { accessToken, refreshToken, expiresIn, roles, permissions }
 }
 
-// access token-ul e scurt; reînnoiește-l cu refresh token-ul (single-use)
+// access token is short-lived; renew it with the refresh token (single-use)
 async function refresh(refreshToken) {
   const r = await fetch(\`\${HERMES}/baas/\${BAAS_ID}/auth/refresh\`, {
     method: 'POST',
@@ -84,7 +84,7 @@ async function refresh(refreshToken) {
   return r.json(); // { accessToken, refreshToken, ... }
 }
 
-// protejează rutele: verificare locală, zero apeluri către Hermes
+// protect routes: local verification, zero calls to Hermes
 export function requireUser(req, res, next) {
   const token = (req.headers.authorization || '').replace('Bearer ', '');
   try {
@@ -215,15 +215,15 @@ export const requireRole = (role) => (req, res, next) =>
     }
 
     if (this.publishAppId() && !this.appIdEnvKeyName().trim()) {
-      this.toast.error('Numele variabilei de mediu pentru App ID este obligatoriu dacă este bifat.');
+      this.toast.error('The environment variable name for App ID is required when checked.');
       return;
     }
     if (this.publishSecret() && !this.secretEnvKeyName().trim()) {
-      this.toast.error('Numele variabilei de mediu pentru Secret este obligatoriu dacă este bifat.');
+      this.toast.error('The environment variable name for Secret is required when checked.');
       return;
     }
     if (this.publishApiKey() && !this.apiKeyEnvKeyName().trim()) {
-      this.toast.error('Numele variabilei de mediu pentru API Key este obligatoriu dacă este bifat.');
+      this.toast.error('The environment variable name for API Key is required when checked.');
       return;
     }
 
@@ -259,22 +259,22 @@ export const requireRole = (role) => (req, res, next) =>
 
   async onDeleteService(svc: BaasService): Promise<void> {
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere serviciu de autentificare',
-      message: `Sigur ștergi „${svc.name}"? Toți utilizatorii, rolurile și cheile API asociate vor fi șterse definitiv.`,
-      confirmText: 'Șterge',
-      cancelText: 'Anulează',
+      title: 'Delete Authentication Service',
+      message: `Are you sure you want to delete "${svc.name}"? All associated users, roles, and API keys will be permanently deleted.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
     this.authMgmtService.deleteService(svc.id).subscribe({
       next: () => {
-        this.toast.success(`Serviciul „${svc.name}" a fost șters.`);
+        this.toast.success(`Service "${svc.name}" deleted.`);
         this.services.update(list => list.filter(s => s.id !== svc.id));
         if (this.selectedService()?.id === svc.id) {
           this.selectedService.set(this.services()[0] || null);
         }
       },
-      error: (err) => this.toast.error(err.error?.message || 'Eroare la ștergerea serviciului.')
+      error: (err) => this.toast.error(err.error?.message || 'Failed to delete service.')
     });
   }
 
@@ -306,7 +306,7 @@ export const requireRole = (role) => (req, res, next) =>
         this.loading.set(false);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la încărcarea datelor de integrare.');
+        this.toast.error(err.error?.message || 'Failed to load integration data.');
         this.loading.set(false);
       }
     });
@@ -317,10 +317,10 @@ export const requireRole = (role) => (req, res, next) =>
     if (!activeApp) return;
 
     const confirmed = await this.confirm.ask({
-      title: 'Rotește secretul BaaS',
-      message: 'Se generează un secret de semnare nou. Toate token-urile end-user existente devin invalide (utilizatorii trebuie să se reautentifice), iar aplicația preia noul secret la următorul reload. Continuați?',
-      confirmText: 'Rotește',
-      cancelText: 'Anulează',
+      title: 'Rotate BaaS Secret',
+      message: 'A new signing secret will be generated. All existing end-user tokens become invalid (users must re-authenticate), and the application picks up the new secret on the next reload. Continue?',
+      confirmText: 'Rotate',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
@@ -331,18 +331,18 @@ export const requireRole = (role) => (req, res, next) =>
         this.rotatingSecret.set(false);
         this.integration.update(i => i ? { ...i, authSecret: res.auth_secret } : i);
         this.revealSecret.set(true);
-        this.toast.success('Secretul a fost rotit. Token-urile end-user existente sunt acum invalide; reîncarcă aplicația ca să preia noul secret.');
+        this.toast.success('Secret rotated. Existing end-user tokens are now invalid; reload the application to pick up the new secret.');
       },
       error: (err) => {
         this.rotatingSecret.set(false);
-        this.toast.error(err.error?.message || 'Eroare la rotația secretului.');
+        this.toast.error(err.error?.message || 'Failed to rotate secret.');
       }
     });
   }
 
   copyText(text: string, label = 'Valoare'): void {
     navigator.clipboard.writeText(text).then(() => {
-      this.toast.success(`${label} copiat în clipboard!`);
+      this.toast.success(`${label} copied to clipboard!`);
     });
   }
 
@@ -365,7 +365,7 @@ export const requireRole = (role) => (req, res, next) =>
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la încărcarea utilizatorilor.');
+        this.error.set(err.error?.message || 'Failed to load users.');
         this.loading.set(false);
       }
     });
@@ -388,13 +388,13 @@ export const requireRole = (role) => (req, res, next) =>
     if (!activeApp) return;
 
     const nextStatus = user.status === 'active' ? 'suspended' : 'active';
-    const actionText = nextStatus === 'suspended' ? 'suspendați' : 'reactivați';
+    const actionText = nextStatus === 'suspended' ? 'suspend' : 'reactivate';
 
     const confirmed = await this.confirm.ask({
       title: `${nextStatus === 'suspended' ? 'Suspendare' : 'Reactivare'} Cont`,
-      message: `Sigur doriți să ${nextStatus === 'suspended' ? 'suspendați' : 'reactivați'} utilizatorul "${user.identifier}"? Conturile suspendate nu se mai pot autentifica în aplicație.`,
-      confirmText: nextStatus === 'suspended' ? 'Suspendă cont' : 'Activează cont',
-      cancelText: 'Anulează',
+      message: `Are you sure you want to ${nextStatus === 'suspended' ? 'suspend' : 'reactivate'} the user "${user.identifier}"? Suspended accounts can no longer authenticate in the application.`,
+      confirmText: nextStatus === 'suspended' ? 'Suspend account' : 'Activate account',
+      cancelText: 'Cancel',
       isDanger: nextStatus === 'suspended'
     });
     if (!confirmed) return;
@@ -424,14 +424,14 @@ export const requireRole = (role) => (req, res, next) =>
     if (!activeApp || !user || !pwd) return;
 
     if (pwd.length < 8) {
-      this.toast.error('Parola trebuie să aibă cel puțin 8 caractere.');
+      this.toast.error('Password must be at least 8 characters.');
       return;
     }
 
     this.resettingPassword.set(true);
     this.authMgmtService.resetUserPassword(activeApp.id, user.appUserId, pwd).subscribe({
       next: () => {
-        this.toast.success(`Parola utilizatorului "${user.identifier}" a fost resetată.`);
+        this.toast.success(`Password for "${user.identifier}" has been reset.`);
         this.showResetPasswordModal.set(false);
         this.resettingPassword.set(false);
         this.selectedUser.set(null);
@@ -487,9 +487,9 @@ export const requireRole = (role) => (req, res, next) =>
 
     const confirmed = await this.confirm.ask({
       title: 'Retragere Rol',
-      message: `Sigur doriți să retrageți rolul "${role}" de la utilizatorul "${user.identifier}"?`,
+      message: `Are you sure you want to revoke the role "${role}" from user "${user.identifier}"?`,
       confirmText: 'Retrage rol',
-      cancelText: 'Anulează',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
@@ -542,7 +542,7 @@ export const requireRole = (role) => (req, res, next) =>
         this.loading.set(false);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la încărcarea configurației.');
+        this.toast.error(err.error?.message || 'Failed to load configuration.');
         this.loading.set(false);
       }
     });
@@ -568,7 +568,7 @@ export const requireRole = (role) => (req, res, next) =>
     if (!activeApp) return;
 
     if (this.parseError()) {
-      this.toast.error('Corectați erorile de sintaxă JSON înainte de salvare.');
+      this.toast.error('Fix JSON syntax errors before saving.');
       return;
     }
 
@@ -583,12 +583,12 @@ export const requireRole = (role) => (req, res, next) =>
     this.savingConfig.set(true);
     this.authMgmtService.updateAuthConfig(activeApp.id, parsedConfig).subscribe({
       next: () => {
-        this.toast.success('Configurația rolurilor a fost salvată cu succes.');
+        this.toast.success('Roles configuration saved successfully.');
         this.rolesConfig.set(parsedConfig);
         this.savingConfig.set(false);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la salvarea configurației.');
+        this.toast.error(err.error?.message || 'Failed to save configuration.');
         this.savingConfig.set(false);
       }
     });
@@ -604,7 +604,7 @@ export const requireRole = (role) => (req, res, next) =>
     if (!roleName) return;
     const config = { ...this.rolesConfig() };
     if (config[roleName]) {
-      this.toast.error('Acest rol există deja.');
+      this.toast.error('This role already exists.');
       return;
     }
     config[roleName] = [];
@@ -625,7 +625,7 @@ export const requireRole = (role) => (req, res, next) =>
     const config = { ...this.rolesConfig() };
     if (!config[roleName]) return;
     if (config[roleName].includes(permName)) {
-      this.toast.error('Această permisiune este deja asociată acestui rol.');
+      this.toast.error('This permission is already associated with this role.');
       return;
     }
     config[roleName] = [...config[roleName], permName];
@@ -666,7 +666,7 @@ export const requireRole = (role) => (req, res, next) =>
         this.loading.set(false);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la încărcarea cheilor API.');
+        this.toast.error(err.error?.message || 'Failed to load API keys.');
         this.loading.set(false);
       }
     });
@@ -688,7 +688,7 @@ export const requireRole = (role) => (req, res, next) =>
       expiresAt: expiresAtStr
     }).subscribe({
       next: (res) => {
-        this.toast.success(`Cheia API "${name}" a fost generată.`);
+        this.toast.success(`API key "${name}" generated.`);
         this.newKeyName.set('');
         this.newKeyExpiresAt.set('');
         this.creatingKey.set(false);
@@ -709,16 +709,16 @@ export const requireRole = (role) => (req, res, next) =>
 
     const confirmed = await this.confirm.ask({
       title: 'Revocare Cheie API',
-      message: `Sigur doriți să revocați complet cheia API "${key.name}"? Serviciile externe ce folosesc această cheie vor pierde accesul instantaneu.`,
-      confirmText: 'Revocă cheie',
-      cancelText: 'Anulează',
+      message: `Are you sure you want to fully revoke the API key "${key.name}"? External services using this key will lose access immediately.`,
+      confirmText: 'Revoke key',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
 
     this.authMgmtService.deleteApiKey(activeApp.id, key.id).subscribe({
       next: () => {
-        this.toast.success(`Cheia API "${key.name}" a fost revocată.`);
+        this.toast.success(`API key "${key.name}" revoked.`);
         this.loadApiKeys();
       },
       error: (err) => {
@@ -732,7 +732,7 @@ export const requireRole = (role) => (req, res, next) =>
     if (!key) return;
 
     navigator.clipboard.writeText(key).then(() => {
-      this.toast.success('Cheia API a fost copiată în clipboard!');
+      this.toast.success('API key copied to clipboard!');
     });
   }
 

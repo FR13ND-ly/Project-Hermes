@@ -3,8 +3,8 @@
   <!-- Section Header + service selector/creator -->
   <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-900 pb-4 gap-4">
     <div>
-      <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Autentificare (BaaS)</h3>
-      <p class="text-xs text-zinc-550">Servicii de autentificare end-user — resurse de proiect, independente de aplicații.</p>
+      <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Authentication (BaaS)</h3>
+      <p class="text-xs text-zinc-550">End-user authentication services — project resources, independent of applications.</p>
     </div>
 
     <div class="flex items-center gap-2 flex-wrap">
@@ -22,8 +22,8 @@
           <button
             (click)="onDeleteService(svc)"
             class="px-2.5 py-1.5 rounded border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-red-400 hover:border-red-900/50 text-[10px] font-semibold transition-colors cursor-pointer"
-            title="Șterge serviciul"
-          >Șterge</button>
+            title="Delete service"
+          >Delete</button>
         }
       }
       <button 
@@ -33,7 +33,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-550">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
-        {{ showCreateForm() ? 'Închide Formular' : 'Serviciu Nou' }}
+        {{ showCreateForm() ? 'Close Form' : 'New Service' }}
       </button>
     </div>
   </div>
@@ -42,17 +42,17 @@
   @if (showCreateForm()) {
     <div class="bg-[#0a0a0a] p-5 rounded border border-zinc-900 space-y-4 shadow-sm animate-slide-in">
       <div class="border-b border-zinc-900 pb-2.5">
-        <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Creare Serviciu Autentificare Nou</h4>
+        <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Create New Authentication Service</h4>
       </div>
 
       <div class="grid gap-4 md:grid-cols-2">
         <!-- Service Name -->
         <div class="space-y-1.5">
-          <label for="service-name" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Nume Serviciu</label>
+          <label for="service-name" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Service Name</label>
           <input
             id="service-name"
             type="text"
-            placeholder="ex. Auth Serviciu, My BaaS"
+            placeholder="e.g. Auth Service, My BaaS"
             [ngModel]="newServiceName()"
             (ngModelChange)="newServiceName.set($event)"
             [disabled]="creatingService()"
@@ -63,7 +63,7 @@
 
       <!-- Publish variables to project env pool -->
       <div class="pt-4 border-t border-zinc-900 space-y-4">
-        <p class="text-[10px] text-zinc-500">Alegeți variabilele de mediu care doriți să fie adăugate în pool-ul proiectului la crearea serviciului. (Lăsați nebifat dacă doriți să nu le publicați automat).</p>
+        <p class="text-[10px] text-zinc-500">Choose which environment variables should be added to the project pool when creating the service. (Leave unchecked if you do not want them published automatically).</p>
 
         <!-- App ID publication -->
         <div class="space-y-2">
@@ -75,11 +75,11 @@
               [disabled]="creatingService()"
               class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
             />
-            <span class="text-[11px] font-semibold text-zinc-300">Publică App ID în .env proiect</span>
+            <span class="text-[11px] font-semibold text-zinc-300">Publish App ID to project .env</span>
           </label>
           @if (publishAppId()) {
             <div class="flex items-center gap-2 pl-6 animate-fade-in">
-              <label for="baas-appid-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Nume variabilă:</label>
+              <label for="baas-appid-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Variable name:</label>
               <input
                 id="baas-appid-key"
                 type="text"
@@ -103,11 +103,11 @@
               [disabled]="creatingService()"
               class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
             />
-            <span class="text-[11px] font-semibold text-zinc-300">Publică JWT Secret în .env proiect</span>
+            <span class="text-[11px] font-semibold text-zinc-300">Publish JWT Secret to project .env</span>
           </label>
           @if (publishSecret()) {
             <div class="flex items-center gap-2 pl-6 animate-fade-in">
-              <label for="baas-secret-key" class="text-[10px] font-bold text-zinc-555 uppercase tracking-wider shrink-0">Nume variabilă:</label>
+              <label for="baas-secret-key" class="text-[10px] font-bold text-zinc-555 uppercase tracking-wider shrink-0">Variable name:</label>
               <input
                 id="baas-secret-key"
                 type="text"
@@ -131,11 +131,11 @@
               [disabled]="creatingService()"
               class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
             />
-            <span class="text-[11px] font-semibold text-zinc-300">Publică Default API Key în .env proiect</span>
+            <span class="text-[11px] font-semibold text-zinc-300">Publish Default API Key to project .env</span>
           </label>
           @if (publishApiKey()) {
             <div class="flex items-center gap-2 pl-6 animate-fade-in">
-              <label for="baas-apikey-key" class="text-[10px] font-bold text-zinc-555 uppercase tracking-wider shrink-0">Nume variabilă:</label>
+              <label for="baas-apikey-key" class="text-[10px] font-bold text-zinc-555 uppercase tracking-wider shrink-0">Variable name:</label>
               <input
                 id="baas-apikey-key"
                 type="text"
@@ -158,7 +158,7 @@
           [disabled]="creatingService()"
           class="px-4 py-2 rounded border border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:text-white text-xs font-semibold cursor-pointer transition-colors"
         >
-          Anulează
+          Cancel
         </button>
         <button
           type="button"
@@ -169,7 +169,7 @@
           @if (creatingService()) {
             <span class="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
           }
-          Creează Serviciu
+          Create Service
         </button>
       </div>
     </div>
@@ -178,8 +178,8 @@
   @if (!selectedService()) {
     <!-- Zero State: no service yet -->
     <div class="bg-black/30 border border-zinc-900 rounded-lg p-12 text-center text-zinc-550 text-xs">
-      Niciun serviciu de autentificare în acest proiect. Creează unul mai sus ca să gestionezi utilizatori,
-      roluri și chei API — fără să ai nevoie de o aplicație.
+      No authentication service in this project. Create one above to manage users,
+      roles, and API keys — without needing an application.
     </div>
   } @else {
     
@@ -190,28 +190,28 @@
         class="pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer"
         [class]="activeTab() === 'users' ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
-        Utilizatori Înregistrați
+        Registered Users
       </button>
-      <button 
+      <button
         (click)="activeTab.set('roles')"
         class="pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer"
         [class]="activeTab() === 'roles' ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
-        Roluri & Permisiuni (JSON)
+        Roles & Permissions (JSON)
       </button>
       <button
         (click)="activeTab.set('api-keys')"
         class="pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer"
         [class]="activeTab() === 'api-keys' ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
-        Chei API Serviciu (S2S)
+        Service API Keys (S2S)
       </button>
       <button
         (click)="activeTab.set('integration')"
         class="pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer"
         [class]="activeTab() === 'integration' ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
-        Integrare
+        Integration
       </button>
     </div>
 
@@ -230,14 +230,14 @@
             </div>
             <input 
               type="text" 
-              placeholder="Caută utilizatori..."
+              placeholder="Search users..."
               [ngModel]="searchQuery()"
               (ngModelChange)="onSearchChange($event)"
               class="block w-full pl-8 pr-3 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-550 transition-colors font-mono"
             />
           </div>
           <div class="text-[10px] text-zinc-500 font-mono">
-            Total utilizatori: <span class="text-white font-bold">{{ totalUsers() }}</span>
+            Total users: <span class="text-white font-bold">{{ totalUsers() }}</span>
           </div>
         </div>
 
@@ -248,24 +248,24 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span class="text-zinc-550 text-[9px] uppercase tracking-widest">Se citește baza de date de utilizatori...</span>
+            <span class="text-zinc-550 text-[9px] uppercase tracking-widest">Reading user database...</span>
           </div>
         } @else {
           @if (filteredUsers().length === 0) {
             <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg p-10 text-center space-y-2">
-              <p class="text-xs text-zinc-500">Niciun utilizator găsit.</p>
-              <p class="text-[10px] text-zinc-650">Creați conturi prin intermediul API-ului public de înregistrare al aplicației.</p>
+              <p class="text-xs text-zinc-500">No users found.</p>
+              <p class="text-[10px] text-zinc-650">Create accounts via the application's public registration API.</p>
             </div>
           } @else {
             <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg overflow-hidden shadow-sm">
               <table class="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr class="border-b border-zinc-950 bg-black/60 text-zinc-550 uppercase tracking-wider text-[9px] font-bold">
-                    <th class="p-3">Identificator</th>
+                    <th class="p-3">Identifier</th>
                     <th class="p-3">Status</th>
-                    <th class="p-3">Ultima Conexiune</th>
-                    <th class="p-3">Roluri</th>
-                    <th class="p-3 text-right">Acțiuni</th>
+                    <th class="p-3">Last Login</th>
+                    <th class="p-3">Roles</th>
+                    <th class="p-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -281,7 +281,7 @@
                           class="px-2 py-0.5 rounded text-[8px] font-bold border uppercase font-mono"
                           [class]="user.status === 'active' ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-400' : 'bg-red-950/20 border-red-900/30 text-red-400'"
                         >
-                          {{ user.status === 'active' ? 'Activ' : 'Suspendat' }}
+                          {{ user.status === 'active' ? 'Active' : 'Suspended' }}
                         </span>
                       </td>
                       <!-- Last Login -->
@@ -296,7 +296,7 @@
                               {{ role }}
                             </span>
                           } @empty {
-                            <span class="text-[9px] text-zinc-600 font-mono">fără roluri</span>
+                            <span class="text-[9px] text-zinc-600 font-mono">no roles</span>
                           }
                         </div>
                       </td>
@@ -307,20 +307,20 @@
                             (click)="onOpenRoleModal(user)"
                             class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-bold uppercase cursor-pointer"
                           >
-                            Roluri
+                            Roles
                           </button>
-                          <button 
+                          <button
                             (click)="onOpenResetPassword(user)"
                             class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-bold uppercase cursor-pointer"
                           >
-                            Parolă
+                            Password
                           </button>
-                          <button 
+                          <button
                             (click)="onToggleUserStatus(user)"
                             class="px-2 py-0.5 rounded text-[10px] font-bold uppercase cursor-pointer border transition-colors"
                             [class]="user.status === 'active' ? 'border-red-900/30 hover:border-red-800 text-red-400 hover:bg-red-950/10' : 'border-emerald-900/30 hover:border-emerald-800 text-emerald-400 hover:bg-emerald-950/10'"
                           >
-                            {{ user.status === 'active' ? 'Suspendă' : 'Activează' }}
+                            {{ user.status === 'active' ? 'Suspend' : 'Activate' }}
                           </button>
                         </div>
                       </td>
@@ -333,7 +333,7 @@
             <!-- Pagination Controls -->
             <div class="flex items-center justify-between bg-[#0a0a0a] border border-zinc-900 rounded-lg p-3 text-xs font-mono">
               <div class="text-zinc-500 text-[10px]">
-                Pagina <span class="text-white font-bold">{{ currentPage() }}</span> din <span class="text-white font-bold">{{ totalPages() }}</span>
+                Page <span class="text-white font-bold">{{ currentPage() }}</span> of <span class="text-white font-bold">{{ totalPages() }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <button 
@@ -341,14 +341,14 @@
                   [disabled]="currentPage() <= 1"
                   class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer uppercase text-[9px] font-bold transition-all"
                 >
-                  Înapoi
+                  Previous
                 </button>
-                <button 
+                <button
                   (click)="onPageChange(currentPage() + 1)"
                   [disabled]="currentPage() >= totalPages()"
                   class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer uppercase text-[9px] font-bold transition-all"
                 >
-                  Înainte
+                  Next
                 </button>
               </div>
             </div>
@@ -364,8 +364,8 @@
           <!-- Tab Header & Toggle -->
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-900 pb-3">
             <div>
-              <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Configurare Reguli de Acces (RBAC)</h4>
-              <p class="text-[10px] text-zinc-550 mt-1 font-sans">Configurați permisiunile publice asociate fiecărui rol de utilizator.</p>
+              <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Access Control Configuration (RBAC)</h4>
+              <p class="text-[10px] text-zinc-550 mt-1 font-sans">Configure the public permissions associated with each user role.</p>
             </div>
             
             <!-- Toggle Switch Mode -->
@@ -375,14 +375,14 @@
                 class="px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300 cursor-pointer font-bold transition-all"
                 [class]="rolesEditMode() === 'visual' ? 'bg-zinc-900 text-white!' : ''"
               >
-                Editor Vizual
+                Visual Editor
               </button>
-              <button 
+              <button
                 (click)="rolesEditMode.set('json')"
                 class="px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300 cursor-pointer font-bold transition-all"
                 [class]="rolesEditMode() === 'json' ? 'bg-zinc-900 text-white!' : ''"
               >
-                Cod JSON Brut
+                Raw JSON
               </button>
             </div>
           </div>
@@ -395,7 +395,7 @@
               <div class="flex gap-2 bg-black border border-zinc-900 p-3 rounded-md max-w-sm">
                 <input 
                   type="text" 
-                  placeholder="Nume rol nou (ex. editor)..." 
+                  placeholder="New role name (e.g. editor)..."
                   [ngModel]="newVisualRoleName()"
                   (ngModelChange)="newVisualRoleName.set($event)"
                   (keyup.enter)="onAddVisualRole()"
@@ -406,7 +406,7 @@
                   [disabled]="!newVisualRoleName().trim()"
                   class="px-3.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold cursor-pointer disabled:opacity-40 shrink-0 transition-all font-sans"
                 >
-                  Adaugă
+                  Add
                 </button>
               </div>
 
@@ -421,7 +421,7 @@
                         <button 
                           (click)="onRemoveVisualRole(roleName)"
                           class="p-1 rounded text-zinc-650 hover:text-red-400 hover:bg-zinc-900 transition-all cursor-pointer"
-                          title="Șterge acest rol"
+                          title="Delete this role"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -437,13 +437,13 @@
                             <button 
                               (click)="onRemoveVisualPermission(roleName, perm)"
                               class="text-zinc-600 hover:text-red-400 font-bold font-sans cursor-pointer"
-                              title="Elimină permisiunea"
+                              title="Remove permission"
                             >
                               ×
                             </button>
                           </span>
                         } @empty {
-                          <span class="text-[10px] text-zinc-650 italic font-mono pl-1">fără permisiuni</span>
+                          <span class="text-[10px] text-zinc-650 italic font-mono pl-1">no permissions</span>
                         }
                       </div>
                     </div>
@@ -452,7 +452,7 @@
                     <div class="flex gap-1.5 pt-2 border-t border-zinc-900/50">
                       <input 
                         type="text" 
-                        placeholder="Adaugă permisiune..." 
+                        placeholder="Add permission..."
                         [ngModel]="newVisualPermissionName()[roleName] || ''"
                         (ngModelChange)="updateVisualPermissionName(roleName, $event)"
                         (keyup.enter)="onAddVisualPermission(roleName)"
@@ -494,7 +494,7 @@
                     <svg class="h-3.5 w-3.5 shrink-0 text-red-400 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
-                    <span>Eroare sintaxă JSON: {{ err }}</span>
+                    <span>JSON syntax error: {{ err }}</span>
                   </div>
                 }
               </div>
@@ -513,9 +513,9 @@
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span>Se salvează...</span>
+                <span>Saving...</span>
               } @else {
-                <span>Salvează Rolurile</span>
+                <span>Save Roles</span>
               }
             </button>
           </div>
@@ -530,7 +530,7 @@
         <!-- Left: Keys list table (2/3 width) -->
         <div class="md:col-span-2 space-y-4">
           <div class="border-b border-zinc-900 pb-2.5">
-            <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Chei API Active (Server-to-Server)</h4>
+            <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Active API Keys (Server-to-Server)</h4>
           </div>
 
           @if (loading()) {
@@ -543,18 +543,18 @@
           } @else {
             @if (apiKeys().length === 0) {
               <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg p-10 text-center text-zinc-550 text-xs font-mono">
-                Nicio cheie API generată pentru această aplicație.
+                No API keys generated for this application.
               </div>
             } @else {
               <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg overflow-hidden shadow-sm font-mono text-[11px]">
                 <table class="w-full text-left border-collapse">
                   <thead>
                     <tr class="border-b border-zinc-950 bg-black/60 text-zinc-550 uppercase tracking-wider text-[9px] font-bold">
-                      <th class="p-3">Nume</th>
+                      <th class="p-3">Name</th>
                       <th class="p-3">Prefix</th>
-                      <th class="p-3">Creată</th>
-                      <th class="p-3">Expiră</th>
-                      <th class="p-3 text-right">Acțiune</th>
+                      <th class="p-3">Created</th>
+                      <th class="p-3">Expires</th>
+                      <th class="p-3 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -563,13 +563,13 @@
                         <td class="p-3 font-semibold text-zinc-300">{{ key.name }}</td>
                         <td class="p-3 text-zinc-450 select-all font-mono">{{ key.keyPrefix }}..</td>
                         <td class="p-3 text-zinc-550">{{ key.createdAt | date:'shortDate' }}</td>
-                        <td class="p-3 text-zinc-550">{{ key.expiresAt ? (key.expiresAt | date:'shortDate') : 'Niciodată' }}</td>
+                        <td class="p-3 text-zinc-550">{{ key.expiresAt ? (key.expiresAt | date:'shortDate') : 'Never' }}</td>
                         <td class="p-3 text-right">
                           <button 
                             (click)="onDeleteApiKey(key)"
                             class="px-2 py-0.5 rounded border border-zinc-900 hover:border-red-900 text-zinc-650 hover:text-red-400 hover:bg-red-950/10 text-[9px] font-bold uppercase transition-colors cursor-pointer"
                           >
-                            Revocă
+                            Revoke
                           </button>
                         </td>
                       </tr>
@@ -584,17 +584,17 @@
         <!-- Right: Generate Key Form (1/3 width) -->
         <div class="md:col-span-1 space-y-4">
           <div class="border-b border-zinc-900 pb-2.5">
-            <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Generare Cheie Nouă</h4>
+            <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Generate New Key</h4>
           </div>
 
           <div class="bg-[#0a0a0a] border border-zinc-800 p-4 rounded-lg space-y-4 shadow-sm">
             <!-- Name Input -->
             <div class="space-y-1.5">
-              <label for="key-name" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-mono">Nume Cheie API</label>
-              <input 
+              <label for="key-name" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-mono">API Key Name</label>
+              <input
                 id="key-name"
-                type="text" 
-                placeholder="ex. Microserviciu Plăți, Server Sync"
+                type="text"
+                placeholder="e.g. Payment Microservice, Sync Server"
                 [ngModel]="newKeyName()"
                 (ngModelChange)="newKeyName.set($event)"
                 [disabled]="creatingKey()"
@@ -604,7 +604,7 @@
 
             <!-- Expiry input -->
             <div class="space-y-1.5">
-              <label for="key-expiry" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-mono">Dată Expirare (Opțional)</label>
+              <label for="key-expiry" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-mono">Expiry Date (Optional)</label>
               <input 
                 id="key-expiry"
                 type="date" 
@@ -625,9 +625,9 @@
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span>Se generează...</span>
+                <span>Generating...</span>
               } @else {
-                <span>Generează Cheie API</span>
+                <span>Generate API Key</span>
               }
             </button>
           </div>
@@ -649,11 +649,11 @@
                 </svg>
               </div>
               <div class="space-y-1 w-full">
-                <h4 class="text-xs font-bold text-zinc-200 uppercase tracking-wider font-mono">Publicat automat în pool</h4>
+                <h4 class="text-xs font-bold text-zinc-200 uppercase tracking-wider font-mono">Automatically published to pool</h4>
                 <p class="text-[11px] text-zinc-400 leading-relaxed font-sans">
-                  <span class="font-mono text-zinc-300">HERMES_AUTH_SECRET</span>, <span class="font-mono text-zinc-300">HERMES_AUTH_APP_ID</span> și
-                  <span class="font-mono text-zinc-300">HERMES_AUTH_API_URL</span> sunt publicate automat în pool-ul proiectului — nu trebuie să apeși nimic.
-                  Le poți conecta la orice instanță din tab-ul „Variabile" → „Din Proiect".
+                  <span class="font-mono text-zinc-300">HERMES_AUTH_SECRET</span>, <span class="font-mono text-zinc-300">HERMES_AUTH_APP_ID</span> and
+                  <span class="font-mono text-zinc-300">HERMES_AUTH_API_URL</span> are automatically published to the project pool — no action needed.
+                  You can link them to any instance from the "Variables" → "From Project" tab.
                 </p>
               </div>
             </div>
@@ -661,8 +661,8 @@
 
           <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 space-y-4 shadow-sm">
             <div class="border-b border-zinc-900 pb-3">
-              <h4 class="text-xs font-bold text-zinc-200 uppercase tracking-wider">Integrare Auth (validare locală)</h4>
-              <p class="text-[10px] text-zinc-550 mt-0.5 font-sans leading-relaxed">Aplicația ta validează token-urile <strong>local</strong>, cu secretul de mai jos — fără apeluri către Hermes. Secretul e deja injectat în env ca <span class="font-mono text-zinc-300">{{ i.authSecretEnvKey }}</span>.</p>
+              <h4 class="text-xs font-bold text-zinc-200 uppercase tracking-wider">Auth Integration (local validation)</h4>
+              <p class="text-[10px] text-zinc-550 mt-0.5 font-sans leading-relaxed">Your app validates tokens <strong>locally</strong>, using the secret below — no calls to Hermes. The secret is already injected into env as <span class="font-mono text-zinc-300">{{ i.authSecretEnvKey }}</span>.</p>
             </div>
 
             <!-- Service ID -->
@@ -670,7 +670,7 @@
               <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Service ID (BaaS)</span>
               <div class="flex items-center gap-2">
                 <code class="flex-1 px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ i.baasId }}</code>
-                <button (click)="copyText(i.baasId, 'Service ID')" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copiază</button>
+                <button (click)="copyText(i.baasId, 'Service ID')" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copy</button>
               </div>
             </div>
 
@@ -679,16 +679,16 @@
               <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">{{ i.authSecretEnvKey }}</span>
               <div class="flex items-center gap-2">
                 <code class="flex-1 px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ revealSecret() ? i.authSecret : '••••••••••••••••••••••••••••' }}</code>
-                <button (click)="revealSecret.set(!revealSecret())" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">{{ revealSecret() ? 'Ascunde' : 'Arată' }}</button>
-                <button (click)="copyText(i.authSecret, 'Secret')" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copiază</button>
-                <button (click)="rotateAuthSecret()" [disabled]="rotatingSecret()" class="px-2.5 py-2 rounded bg-amber-950/40 hover:bg-amber-900/50 border border-amber-900/50 text-amber-300 hover:text-amber-200 text-[10px] font-semibold cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed" title="Generează un secret nou; token-urile end-user existente devin invalide">{{ rotatingSecret() ? 'Se rotește...' : 'Rotește' }}</button>
+                <button (click)="revealSecret.set(!revealSecret())" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">{{ revealSecret() ? 'Hide' : 'Show' }}</button>
+                <button (click)="copyText(i.authSecret, 'Secret')" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copy</button>
+                <button (click)="rotateAuthSecret()" [disabled]="rotatingSecret()" class="px-2.5 py-2 rounded bg-amber-950/40 hover:bg-amber-900/50 border border-amber-900/50 text-amber-300 hover:text-amber-200 text-[10px] font-semibold cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed" title="Generate a new secret; existing end-user tokens become invalid">{{ rotatingSecret() ? 'Rotating...' : 'Rotate' }}</button>
               </div>
-              <p class="text-[9px] text-amber-500/80 font-sans">Secret de semnare — tratează-l ca pe o parolă. Conectează-l în aplicații din modalul „Din Proiect" (e deja în pool). La rotație, token-urile end-user existente devin invalide.</p>
+              <p class="text-[9px] text-amber-500/80 font-sans">Signing secret — treat it like a password. Link it to apps via the "From Project" modal (it's already in the pool). On rotation, existing end-user tokens become invalid.</p>
             </div>
 
             <!-- Endpoints -->
             <div class="space-y-2 pt-1">
-              <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Endpoint-uri</span>
+              <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Endpoints</span>
               @for (ep of [
                 { label: 'Register', url: i.registerEndpoint },
                 { label: 'Login', url: i.loginEndpoint },
@@ -700,7 +700,7 @@
                 <div class="flex items-center gap-2">
                   <span class="w-24 text-[10px] text-zinc-500 shrink-0">{{ ep.label }}</span>
                   <code class="flex-1 px-2.5 py-1.5 text-[11px] bg-black border border-zinc-850 rounded text-zinc-400 select-all truncate">{{ ep.url }}</code>
-                  <button (click)="copyText(ep.url, ep.label)" class="px-2 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-500 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copiază</button>
+                  <button (click)="copyText(ep.url, ep.label)" class="px-2 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-500 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copy</button>
                 </div>
               }
             </div>
@@ -709,13 +709,13 @@
           <!-- Snippet -->
           <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 space-y-3 shadow-sm">
             <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
-              <h4 class="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">Exemplu de integrare (Express)</h4>
-              <button (click)="copyText(integrationSnippet(), 'Snippet')" class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer">Copiază</button>
+              <h4 class="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">Integration example (Express)</h4>
+              <button (click)="copyText(integrationSnippet(), 'Snippet')" class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer">Copy</button>
             </div>
             <pre class="text-[11px] leading-relaxed text-zinc-300 bg-black border border-zinc-900 rounded p-3.5 overflow-x-auto whitespace-pre">{{ integrationSnippet() }}</pre>
           </div>
         } @else if (!loading()) {
-          <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-10 text-center text-[11px] text-zinc-600">Selectează o aplicație pentru a vedea datele de integrare.</div>
+          <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-10 text-center text-[11px] text-zinc-600">Select an application to view integration data.</div>
         }
       </div>
     }
@@ -725,13 +725,13 @@
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-fade-in font-mono">
         <div class="w-full max-w-md bg-[#0a0a0a] border border-zinc-800 rounded-lg shadow-2xl p-6 space-y-6">
           <div class="space-y-1">
-            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Resetare Parolă Utilizator</h3>
-            <p class="text-zinc-550 text-xs leading-relaxed font-sans">Introduceți o nouă parolă pentru utilizatorul <span class="text-zinc-300 font-bold font-mono select-all">{{ user.identifier }}</span>.</p>
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Reset User Password</h3>
+            <p class="text-zinc-550 text-xs leading-relaxed font-sans">Enter a new password for user <span class="text-zinc-300 font-bold font-mono select-all">{{ user.identifier }}</span>.</p>
           </div>
 
           <!-- Password input -->
           <div class="space-y-1.5">
-            <label for="reset-pwd-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Noua Parolă (minim 8 caractere)</label>
+            <label for="reset-pwd-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">New Password (minimum 8 characters)</label>
             <input 
               id="reset-pwd-input"
               type="password" 
@@ -750,14 +750,14 @@
               [disabled]="resettingPassword()"
               class="px-4 py-2 rounded text-zinc-400 hover:text-white text-xs font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer"
             >
-              Anulează
+              Cancel
             </button>
-            <button 
+            <button
               (click)="onResetPasswordSubmit()"
               [disabled]="!newPassword().trim() || resettingPassword()"
               class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow disabled:opacity-50 transition-all cursor-pointer"
             >
-              Resetează Parola
+              Reset Password
             </button>
           </div>
         </div>
@@ -769,13 +769,13 @@
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-fade-in font-mono">
         <div class="w-full max-w-md bg-[#0a0a0a] border border-zinc-800 rounded-lg shadow-2xl p-6 space-y-5">
           <div class="space-y-1 border-b border-zinc-900 pb-3">
-            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Administrare Roluri Utilizator</h3>
-            <p class="text-zinc-550 text-xs font-sans">Rolurile active pentru <span class="text-zinc-300 font-bold font-mono">{{ user.identifier }}</span></p>
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Manage User Roles</h3>
+            <p class="text-zinc-550 text-xs font-sans">Active roles for <span class="text-zinc-300 font-bold font-mono">{{ user.identifier }}</span></p>
           </div>
 
           <!-- Active Roles list with revoke buttons -->
           <div class="space-y-2">
-            <span class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider block">Roluri asociate în prezent</span>
+            <span class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider block">Currently assigned roles</span>
             <div class="flex flex-wrap gap-2 p-3 bg-black border border-zinc-900 rounded-md min-h-[48px] items-center">
               @for (role of user.roles; track role) {
                 <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] bg-zinc-900 border border-zinc-800 text-zinc-300 font-mono uppercase">
@@ -783,20 +783,20 @@
                   <button 
                     (click)="onRemoveRole(role)"
                     class="text-zinc-650 hover:text-red-400 font-bold cursor-pointer font-sans"
-                    title="Șterge rolul"
+                    title="Remove role"
                   >
                     ×
                   </button>
                 </span>
               } @empty {
-                <span class="text-[10px] text-zinc-650 font-sans italic">Niciun rol alocat. Utilizatorul are doar acces public general.</span>
+                <span class="text-[10px] text-zinc-650 font-sans italic">No roles assigned. User has only general public access.</span>
               }
             </div>
           </div>
 
           <!-- Assign new role form -->
           <div class="space-y-2.5 pt-2 border-t border-zinc-900">
-            <span class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider block">Alocă Rol Nou</span>
+            <span class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider block">Assign New Role</span>
             <div class="flex gap-2">
               <input 
                 type="text" 
@@ -812,7 +812,7 @@
                 [disabled]="!newRoleName().trim() || assigningRole()"
                 class="px-4 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow disabled:opacity-50 transition-all cursor-pointer shrink-0 font-sans"
               >
-                Alocă
+                Assign
               </button>
             </div>
           </div>
@@ -822,7 +822,7 @@
               (click)="showRoleModal.set(false); selectedUser.set(null)"
               class="px-4 py-1.5 rounded text-zinc-400 hover:text-white text-xs font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer font-sans"
             >
-              Închide
+              Close
             </button>
           </div>
         </div>
@@ -834,8 +834,8 @@
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xs animate-fade-in font-mono">
         <div class="w-full max-w-lg bg-[#0a0a0a] border border-zinc-800 rounded-lg shadow-2xl p-6 space-y-6">
           <div class="space-y-1">
-            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Cheie API Generată</h3>
-            <p class="text-zinc-500 text-xs font-sans">Cheia de acces server-to-server a fost creată cu succes.</p>
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider">API Key Generated</h3>
+            <p class="text-zinc-500 text-xs font-sans">The server-to-server access key was created successfully.</p>
           </div>
 
           <!-- Danger alert warning -->
@@ -844,24 +844,24 @@
               <svg class="h-4 w-4 text-red-400 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
-              Avertisment de securitate critic
+              Critical Security Warning
             </div>
             <p class="text-[11px] text-zinc-400 mt-0.5">
-              Aceasta este singura dată când puteți vedea această cheie. Odată ce închideți această fereastră, ea nu va mai fi recuperabilă! 
-              Copiați cheia acum și păstrați-o într-un manager securizat de secrete.
+              This is the only time you will be able to see this key. Once you close this window, it will no longer be recoverable!
+              Copy the key now and store it in a secure secrets manager.
             </p>
           </div>
 
           <!-- Secret token display -->
           <div class="space-y-2">
-            <span class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider block">Token de acces API</span>
+            <span class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider block">API Access Token</span>
             <div class="p-4 bg-black border border-zinc-900 rounded font-mono text-xs text-white select-all break-all pr-12 relative shadow-inner">
               {{ generatedKeySecret() }}
               
               <button 
                 (click)="copyApiKeySecret()"
                 class="absolute right-3 top-3 p-1 rounded bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white cursor-pointer transition-colors"
-                title="Copiază cheia în clipboard"
+                title="Copy key to clipboard"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5A3.375 3.375 0 006.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0015 2.25h-1.5a2.251 2.251 0 00-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5a9 9 0 00-9-9z" />
@@ -875,7 +875,7 @@
               (click)="showGeneratedKeyModal.set(false); generatedKeySecret.set(null)"
               class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow cursor-pointer transition-colors font-sans"
             >
-              Am salvat cheia, închide fereastra
+              I've saved the key, close window
             </button>
           </div>
         </div>
