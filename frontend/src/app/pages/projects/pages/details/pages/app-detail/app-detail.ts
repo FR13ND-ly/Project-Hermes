@@ -1483,18 +1483,24 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  onRemoveDomain(id: string): void {
-    this.confirm.confirm('Are you sure you want to remove this domain association?').subscribe(ok => {
-      if (!ok) return;
-      this.domainService.removeDomain(id).subscribe({
-        next: () => {
-          this.toast.success('Domain association removed.');
-          this.loadDomains();
-        },
-        error: (err) => {
-          this.toast.error(err.error?.message || 'Failed to remove domain.');
-        }
-      });
+  async onRemoveDomain(id: string): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: 'Remove Domain Association',
+      message: 'Are you sure you want to remove this domain association?',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      isDanger: true
+    });
+    if (!confirmed) return;
+
+    this.domainService.removeDomain(id).subscribe({
+      next: () => {
+        this.toast.success('Domain association removed.');
+        this.loadDomains();
+      },
+      error: (err) => {
+        this.toast.error(err.error?.message || 'Failed to remove domain.');
+      }
     });
   }
 }
