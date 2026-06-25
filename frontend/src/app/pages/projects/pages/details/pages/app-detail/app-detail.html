@@ -398,6 +398,83 @@
             </div>
           </div>
 
+          <!-- Domains & Routing Card -->
+          <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 space-y-4 font-mono shadow-sm">
+            <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+              <div class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Domains & Routing</h3>
+              </div>
+              <button 
+                (click)="onOpenAddDomainModal()" 
+                class="px-2 py-0.5 rounded border border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-[9px] text-zinc-450 hover:text-white uppercase font-bold tracking-wide transition-all cursor-pointer"
+              >
+                + Add Domain
+              </button>
+            </div>
+
+            <div class="space-y-3.5 text-xs">
+              <!-- Custom Domains -->
+              <div class="space-y-2">
+                <span class="text-[10px] text-zinc-550 uppercase font-bold tracking-wider">Custom Domains</span>
+                @for (dom of domains(); track dom.id) {
+                  <div class="bg-black/35 border border-zinc-900 p-2.5 rounded flex items-center justify-between gap-3 shadow-inner">
+                    <div class="space-y-0.5 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <a [href]="'https://' + dom.fqdn" target="_blank" class="text-indigo-400 hover:underline font-bold truncate select-all">{{ dom.fqdn }}</a>
+                        <span class="px-1 py-0.1 rounded text-[6px] border font-mono uppercase font-bold"
+                              [ngClass]="{
+                                'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': dom.status === 'active',
+                                'bg-amber-950/20 border-amber-900/30 text-amber-400': dom.status === 'pending_verification',
+                                'bg-red-950/20 border-red-900/30 text-red-400': dom.status === 'failed'
+                              }">
+                          {{ dom.status }}
+                        </span>
+                      </div>
+                      <div class="text-[9px] text-zinc-600 font-mono">
+                        SSL: {{ dom.isSsl ? 'Active (Auto-TLS)' : 'Off' }} · Max body: {{ dom.clientMaxBodySize }}MB
+                      </div>
+                    </div>
+                    <button 
+                      (click)="onRemoveDomain(dom.id)"
+                      class="p-1 rounded bg-black hover:bg-red-950/30 text-zinc-550 hover:text-red-400 border border-zinc-900 hover:border-red-900/30 cursor-pointer transition-colors"
+                      title="Remove Domain Association"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                      </svg>
+                    </button>
+                  </div>
+                } @empty {
+                  <div class="text-[9px] text-zinc-650 font-mono italic">No custom domains associated.</div>
+                }
+              </div>
+
+              <!-- Mapped Routing Links (Default) -->
+              <div class="space-y-2 border-t border-zinc-950 pt-3">
+                <span class="text-[10px] text-zinc-550 uppercase font-bold tracking-wider">Default / local routes</span>
+                <div class="space-y-2">
+                  @for (inst of app()?.instances; track inst.id) {
+                    <div class="flex items-center justify-between text-[11px]">
+                      <span class="text-zinc-600 font-mono">{{ inst.branchName }}:</span>
+                      <div class="flex items-center gap-1.5 min-w-0">
+                        @if (inst.assignedDomain) {
+                          <a [href]="'https://' + inst.assignedDomain" target="_blank" class="text-indigo-400 hover:underline truncate max-w-[150px] font-mono select-all">{{ inst.assignedDomain }}</a>
+                        } @else if (inst.externalPort) {
+                          <a [href]="'http://localhost:' + inst.externalPort" target="_blank" class="text-indigo-400 hover:underline truncate font-mono select-all">localhost:{{ inst.externalPort }}</a>
+                        } @else {
+                          <span class="text-zinc-650 italic">None</span>
+                        }
+                      </div>
+                    </div>
+                  } @empty {
+                    <div class="text-[9px] text-zinc-650 font-mono italic">No active routes. Expose application or deploy a branch.</div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Build History Card -->
           <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 space-y-4 font-mono shadow-sm">
             <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">

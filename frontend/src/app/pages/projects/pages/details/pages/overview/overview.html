@@ -57,74 +57,6 @@
     </div>
   </div>
 
-  <!-- Uptime Status Board (2.f) -->
-  <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 shadow-sm space-y-4">
-    <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Service Status</h3>
-      </div>
-      <div class="text-[10px] text-zinc-550 font-mono">Real-time status since service creation</div>
-    </div>
-
-    <div class="space-y-3">
-      @for (app of parent.apps(); track app.id) {
-        <div class="p-3 bg-black/40 border border-zinc-900 hover:border-zinc-850 rounded-md transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div class="space-y-0.5 shrink-0">
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-bold text-zinc-200">{{ app.name }}</span>
-              <span
-                class="px-1.5 py-0.2 rounded text-[7px] font-mono uppercase font-bold border"
-                [ngClass]="{
-                  'bg-emerald-950/25 border-emerald-900/30 text-emerald-400': getAppStatus(app) === 'running',
-                  'bg-amber-950/25 border-amber-900/30 text-amber-400': getAppStatus(app) === 'building',
-                  'bg-zinc-900 border-zinc-800 text-zinc-500': getAppStatus(app) === 'stopped'
-                }"
-              >{{ getStatusLabel(app) }}</span>
-            </div>
-            <div class="text-[9px] text-zinc-500 font-mono">Active instances: {{ (app.instances || []).length }}</div>
-          </div>
-
-          <div class="flex items-center gap-2 flex-1 justify-end min-w-0">
-            <div class="flex items-center gap-[4px] select-none">
-              @for (bar of getUptimeBars(app); track bar.daysAgo) {
-                <div
-                  class="group relative w-[8px] h-4 rounded-[2px] transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
-                  [ngClass]="{
-                    'bg-emerald-500 hover:bg-emerald-400': !bar.isToday || getAppStatus(app) === 'running',
-                    'bg-amber-500 hover:bg-amber-400': bar.isToday && getAppStatus(app) === 'building',
-                    'bg-zinc-700 hover:bg-zinc-600': bar.isToday && getAppStatus(app) === 'stopped'
-                  }"
-                >
-                  <!-- Tooltip -->
-                  <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 bg-zinc-950 border border-zinc-850 rounded px-2 py-1 text-[8px] font-mono text-zinc-300 whitespace-nowrap shadow-2xl pointer-events-none">
-                    <div class="font-bold text-center">
-                      @if (bar.isToday) { Today } @else { {{ bar.daysAgo }} days ago }
-                    </div>
-                    <div class="text-[7px] text-zinc-550 mt-0.5 text-center">
-                      @if (bar.isToday) {
-                        {{ getStatusLabel(app) }}
-                      } @else {
-                        No incidents recorded
-                      }
-                    </div>
-                  </div>
-                </div>
-              }
-            </div>
-
-            <span class="text-[10px] text-zinc-400 font-mono ml-2 shrink-0">{{ getDaysActive(app) }}d</span>
-          </div>
-        </div>
-      } @empty {
-        <div class="text-center py-6 text-xs text-zinc-650 font-mono">
-          No applications configured for uptime display.
-        </div>
-      }
-    </div>
-  </div>
-
-
   <!-- Main Split Layout: Apps on left, Databases & Quick Links on right -->
   <div class="grid gap-6 lg:grid-cols-3">
     
@@ -158,14 +90,45 @@
             <!-- App details -->
             <div class="flex-grow flex flex-col justify-between min-w-0 py-0.5">
               <div class="space-y-2">
-                <div class="flex items-center gap-2.5 flex-wrap">
-                  <h4 (click)="onViewApp(app, 'telemetry')" class="text-xs font-bold text-white hover:underline cursor-pointer select-all truncate">
-                    {{ app.name }}
-                  </h4>
-                  <span class="px-1.5 py-0.2 rounded text-[8px] border font-mono uppercase font-bold"
-                        [class]="parent.getAppStatusClass(app)">
-                    {{ parent.getAppStatus(app) }}
-                  </span>
+                <div class="flex items-center justify-between gap-2.5 flex-wrap">
+                  <div class="flex items-center gap-2">
+                    <h4 (click)="onViewApp(app, 'telemetry')" class="text-xs font-bold text-white hover:underline cursor-pointer select-all truncate">
+                      {{ app.name }}
+                    </h4>
+                    <span class="px-1.5 py-0.2 rounded text-[8px] border font-mono uppercase font-bold"
+                          [class]="parent.getAppStatusClass(app)">
+                      {{ parent.getAppStatus(app) }}
+                    </span>
+                  </div>
+
+                  <!-- Integrated Uptime Status Bars -->
+                  <div class="flex items-center gap-[4px] select-none shrink-0 font-mono">
+                    @for (bar of getUptimeBars(app); track bar.daysAgo) {
+                      <div
+                        class="group relative w-[8px] h-4 rounded-[2px] transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
+                        [ngClass]="{
+                          'bg-emerald-500 hover:bg-emerald-400': !bar.isToday || getAppStatus(app) === 'running',
+                          'bg-amber-500 hover:bg-amber-400': bar.isToday && getAppStatus(app) === 'building',
+                          'bg-zinc-700 hover:bg-zinc-600': bar.isToday && getAppStatus(app) === 'stopped'
+                        }"
+                      >
+                        <!-- Tooltip -->
+                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 bg-zinc-950 border border-zinc-850 rounded px-2 py-1 text-[8px] font-mono text-zinc-300 whitespace-nowrap shadow-2xl pointer-events-none">
+                          <div class="font-bold text-center">
+                            @if (bar.isToday) { Today } @else { {{ bar.daysAgo }} days ago }
+                          </div>
+                          <div class="text-[7px] text-zinc-550 mt-0.5 text-center">
+                            @if (bar.isToday) {
+                              {{ getStatusLabel(app) }}
+                            } @else {
+                              No incidents
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    }
+                    <span class="text-[10px] text-zinc-500 ml-1.5 shrink-0">{{ getDaysActive(app) }}d</span>
+                  </div>
                 </div>
                 <div class="text-[10px] text-zinc-550 select-all font-mono truncate max-w-md">{{ app.git_repo_url }}</div>
 

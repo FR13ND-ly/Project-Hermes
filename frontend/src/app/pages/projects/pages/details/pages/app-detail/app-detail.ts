@@ -6,7 +6,7 @@ import { Details } from '../../details';
 import { ProjectService, AppDetail, AppBuild, EnvResponse, AppInstance, ProjectEnvResponse } from '../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
-import { DomainService } from '../../../../../../core/services/domain.service';
+import { DomainService, Domain } from '../../../../../../core/services/domain.service';
 import { WorkspaceService, Workspace } from '../../../../../../core/services/workspace.service';
 import { WebSocketService } from '../../../../../../core/services/websocket.service';
 import { Subscription, interval } from 'rxjs';
@@ -43,6 +43,8 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   // Cache-buster for the preview <img>, bumped whenever a fresh screenshot lands.
   readonly screenshotVersion = signal<number>(Date.now());
   readonly recapturingScreenshot = signal(false);
+  readonly domains = signal<Domain[]>([]);
+  readonly loadingDomains = signal(false);
 
   // Telemetry signals
   readonly activeInstanceId = signal<string | null>(null);
@@ -473,6 +475,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         // Load envs and builds
         this.loadBuilds();
         this.loadEnvVariables();
+        this.loadDomains();
 
         this.buildCommand.set(res.buildCommand || '');
         this.startCommand.set(res.startCommand || '');
@@ -1368,6 +1371,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         this.addingDomain.set(false);
         this.showAddDomainModal.set(false);
         this.toast.success(`Domain "${fqdnVal}" has been associated successfully!`);
+        this.loadDomains();
       },
       error: (err) => {
         this.toast.error(err.error?.message || 'Failed to associate domain.');
@@ -1454,6 +1458,43 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         this.recapturingScreenshot.set(false);
         this.toast.error(err.error?.message || 'Failed to start screenshot capture.');
       }
+    });
+  }
+
+  loadDomains(): void {
+    const projectId = this.parent.projectId();
+    if (!projectId) return;
+
+    this.loadingDomains.set(true);
+    this.domainService.listDomains(1, 1000, projectId).subscribe({
+      next: (res) => {
+        const instances = this.app()?.instances || [];
+        const instanceIds = new Set(instances.map(inst => inst.id));
+        const filtered = (res?.items || []).filter(dom => 
+          dom.targetType === 'app' && dom.targetId && instanceIds.has(dom.targetId)
+        );
+        this.domains.set(filtered);
+        this.loadingDomains.set(false);
+      },
+      error: () => {
+        this.domains.set([]);
+        this.loadingDomains.set(false);
+      }
+    });
+  }
+
+  onRemoveDomain(id: string): void {
+    this.confirm.confirm('Are you sure you want to remove this domain association?').subscribe(ok => {
+      if (!ok) return;
+      this.domainService.removeDomain(id).subscribe({
+        next: () => {
+          this.toast.success('Domain association removed.');
+          this.loadDomains();
+        },
+        error: (err) => {
+          this.toast.error(err.error?.message || 'Failed to remove domain.');
+        }
+      });
     });
   }
 }
