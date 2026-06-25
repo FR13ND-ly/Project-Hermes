@@ -146,7 +146,7 @@ export class Databases implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la încărcarea bazelor de date.');
+        this.error.set(err.error?.message || 'Failed to load databases.');
         this.loading.set(false);
         this.stopTicker();
       }
@@ -193,11 +193,11 @@ export class Databases implements OnInit, OnDestroy {
         this.publishToEnv.set(false);
         this.showCreateForm.set(false);
         this.provisioning.set(false);
-        this.toast.success('Baza de date a fost adăugată cu succes!');
+        this.toast.success('Database created successfully!');
         this.loadDatabases();
       },
       error: (err) => {
-        const msg = err.error?.error?.message || err.error?.message || 'Eroare la crearea bazei de date.';
+        const msg = err.error?.error?.message || err.error?.message || 'Failed to create database.';
         this.error.set(msg);
         this.toast.error(msg);
         this.provisioning.set(false);
@@ -226,35 +226,35 @@ export class Databases implements OnInit, OnDestroy {
         }));
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Nu aveți permisiunea de a decripta credențialele.');
+        this.toast.error(err.error?.message || 'You do not have permission to decrypt the credentials.');
       }
     });
   }
 
   async onDeleteDatabase(dbId: string): Promise<void> {
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Bază de Date',
-      message: 'Sigur doriți să ștergeți această bază de date? Datele stocate vor fi șterse definitiv!',
-      confirmText: 'Șterge definitiv',
-      cancelText: 'Anulează',
+      title: 'Delete Database',
+      message: 'Are you sure you want to delete this database? All stored data will be permanently destroyed!',
+      confirmText: 'Delete permanently',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
 
     this.dbService.deleteDatabase(dbId).subscribe({
       next: () => {
-        this.toast.success('Baza de date a fost ștearsă.');
+        this.toast.success('Database deleted.');
         this.loadDatabases();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la ștergerea bazei de date.');
+        this.toast.error(err.error?.message || 'Failed to delete database.');
       }
     });
   }
 
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text).then(() => {
-      this.toast.success('Copiat în clipboard!');
+      this.toast.success('Copied to clipboard!');
     });
   }
 }
