@@ -134,13 +134,13 @@
               type="number"
               min="0"
               step="1"
-              placeholder="0 = nelimitat"
+              placeholder="0 = unlimited"
               [ngModel]="maxFileSizeMb()"
               (ngModelChange)="maxFileSizeMb.set($event)"
               [disabled]="creatingBucket()"
               class="block w-32 px-2.5 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
             />
-            <span class="text-[10px] text-zinc-600">0 = nelimitat</span>
+            <span class="text-[10px] text-zinc-600">0 = unlimited</span>
           </div>
           <label class="flex items-center gap-2.5 cursor-pointer select-none">
             <input

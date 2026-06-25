@@ -102,7 +102,7 @@
           }
         </div>
         <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 text-[11px] text-zinc-400 font-sans">
-          <p>Memorie: {{ inst.memoryLimitMb ? inst.memoryLimitMb + ' MB' : 'Nelimitat' }} · Autoscalare 0→5 (scale-to-zero).</p>
+          <p>Memory: {{ inst.memoryLimitMb ? inst.memoryLimitMb + ' MB' : 'Unlimited' }} · Autoscale 0→5 (scale-to-zero).</p>
           <p class="text-zinc-600 mt-1">Build logs are in the "Builds" tab.</p>
         </div>
       </div>
@@ -176,7 +176,7 @@
             <div class="space-y-1.5">
               <label class="text-[10px] font-semibold text-zinc-400 uppercase">Memory Limit</label>
               <select [ngModel]="editMemory()" (ngModelChange)="editMemory.set($event)" class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 cursor-pointer">
-                <option [ngValue]="0">Nelimitat</option>
+                <option [ngValue]="0">Unlimited</option>
                 <option [ngValue]="128">128 MB</option>
                 <option [ngValue]="256">256 MB</option>
                 <option [ngValue]="512">512 MB</option>
@@ -405,7 +405,7 @@
             <option value="python">Python 3.11 (Flask)</option>
           </select>
           <select [ngModel]="newMemory()" (ngModelChange)="newMemory.set($event)" class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 cursor-pointer">
-            <option [ngValue]="0">Memorie: Nelimitat</option>
+            <option [ngValue]="0">Memory: Unlimited</option>
             <option [ngValue]="128">Memorie: 128 MB</option>
             <option [ngValue]="256">Memorie: 256 MB</option>
             <option [ngValue]="512">Memorie: 512 MB</option>
