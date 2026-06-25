@@ -545,6 +545,7 @@ export class Details implements OnInit, OnDestroy {
     const found = this.apps().find(a => a.id === appId);
     if (found) {
       this.selectedApp.set(found);
+      this.router.navigate([`/projects/${this.projectId()}/apps/${appId}`]);
     }
   }
 
@@ -758,6 +759,11 @@ export class Details implements OnInit, OnDestroy {
       default:
         return 'bg-zinc-500';
     }
+  }
+
+  get isInAppDetailContext(): boolean {
+    const urlParts = this.router.url.split('?')[0].split('/');
+    return urlParts.length >= 5 && urlParts[3] === 'apps' && !!urlParts[4];
   }
 
   get activeTab(): string {

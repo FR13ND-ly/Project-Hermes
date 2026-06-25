@@ -30,7 +30,7 @@
       <div class="flex items-center gap-3">
         <h1 class="text-xl font-bold tracking-tight text-white">{{ project()?.name }}</h1>
         
-        @if (apps().length > 0 && !showAddAppForm()) {
+        @if (isInAppDetailContext && apps().length > 0 && !showAddAppForm()) {
           <div class="h-4 w-px bg-zinc-850"></div>
           
           <!-- Vercel-style App Selector -->
@@ -55,7 +55,7 @@
       </div>
 
       <!-- App Metadata Summary -->
-      @if (selectedApp() && !showAddAppForm()) {
+      @if (isInAppDetailContext && selectedApp() && !showAddAppForm()) {
         <div class="flex items-center gap-4 text-xs text-zinc-550">
           <span class="flex items-center gap-1.5">
             <span class="w-1.5 h-1.5 rounded-full" [class]="getAppIndicatorClass(selectedApp())"></span>
