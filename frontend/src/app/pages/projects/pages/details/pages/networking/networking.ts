@@ -154,7 +154,7 @@ export class Networking implements OnInit, OnDestroy {
           routingType: 'ingress',
           status: 'active',
           connectedApp: fn.name,
-          branchName: 'Funcție Serverless',
+          branchName: 'Serverless Function',
           port: fn.externalPort || undefined,
           rawObject: fn
         });
@@ -163,7 +163,7 @@ export class Networking implements OnInit, OnDestroy {
 
     // 3. Custom/attached domains — use the backend-resolved target (no guessing).
     const typeLabel: Record<string, string> = {
-      app: 'Aplicație', serverless: 'Funcție Serverless', database: 'Bază de date', custom: 'Custom'
+      app: 'Application', serverless: 'Serverless Function', database: 'Database', custom: 'Custom'
     };
     domains.forEach(d => {
       routes.push({
@@ -238,7 +238,7 @@ export class Networking implements OnInit, OnDestroy {
           const updated = (res?.items || []).find(d => d.id === currentSelected.id);
           if (updated) {
             const typeLabel: Record<string, string> = {
-              app: 'Aplicație', serverless: 'Funcție Serverless', database: 'Bază de date', custom: 'Custom'
+              app: 'Application', serverless: 'Serverless Function', database: 'Database', custom: 'Custom'
             };
             this.selectedRoute.set({
               id: updated.id,
@@ -255,7 +255,7 @@ export class Networking implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        console.error('Eroare la încărcarea domeniilor', err);
+        console.error('Failed to load domains', err);
         this.loadingDomains.set(false);
       }
     });
@@ -263,13 +263,13 @@ export class Networking implements OnInit, OnDestroy {
 
   onAddDomain(): void {
     if (!this.fqdn().trim()) {
-      this.errorMsg.set('Domeniul (FQDN) este obligatoriu.');
+      this.errorMsg.set('Domain (FQDN) is required.');
       return;
     }
 
     const targetType = this.newTargetType();
     if (targetType !== 'custom' && !this.selectedTargetId()) {
-      this.errorMsg.set('Selectați resursa la care conectați domeniul.');
+      this.errorMsg.set('Select the resource to connect the domain to.');
       return;
     }
 
@@ -305,11 +305,11 @@ export class Networking implements OnInit, OnDestroy {
         this.nginxRootPath.set('');
         this.nginxConfigContent.set('');
         this.selectedTargetId.set('');
-        this.toast.success('Domeniul a fost adăugat cu succes!');
+        this.toast.success('Domain added successfully!');
         this.loadDomains();
       },
       error: (err) => {
-        this.errorMsg.set(err.error?.message || 'Eroare la adăugarea domeniului.');
+        this.errorMsg.set(err.error?.message || 'Failed to add domain.');
         this.submittingDomain.set(false);
       }
     });
@@ -318,33 +318,33 @@ export class Networking implements OnInit, OnDestroy {
   onVerifyDomain(id: string): void {
     this.domainService.verifyAndSyncDomain(id).subscribe({
       next: () => {
-        this.toast.success('Procesul de verificare și sincronizare DNS/SSL a fost lansat.');
+        this.toast.success('DNS/SSL verification and sync process started.');
         this.loadDomains();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la verificarea domeniului.');
+        this.toast.error(err.error?.message || 'Failed to verify domain.');
       }
     });
   }
 
   async onRemoveDomain(id: string): Promise<void> {
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Domeniu',
-      message: 'Sigur doriți să ștergeți acest domeniu custom? Această acțiune va șterge rutele Nginx și DNS.',
-      confirmText: 'Șterge',
-      cancelText: 'Anulează',
+      title: 'Delete Domain',
+      message: 'Are you sure you want to delete this custom domain? This will remove Nginx and DNS routes.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
 
     this.domainService.removeDomain(id).subscribe({
       next: () => {
-        this.toast.success('Domeniul custom a fost eliminat.');
+        this.toast.success('Custom domain removed.');
         this.deselectRoute();
         this.loadDomains();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la eliminarea domeniului.');
+        this.toast.error(err.error?.message || 'Failed to remove domain.');
       }
     });
   }
@@ -388,11 +388,11 @@ export class Networking implements OnInit, OnDestroy {
     }).subscribe({
       next: () => {
         this.updatingSettings.set(false);
-        this.toast.success('Configurația domeniului a fost actualizată!');
+        this.toast.success('Domain configuration updated!');
         this.loadDomains();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la actualizarea configurației.');
+        this.toast.error(err.error?.message || 'Failed to update configuration.');
         this.updatingSettings.set(false);
       }
     });
@@ -457,7 +457,7 @@ export class Networking implements OnInit, OnDestroy {
   copyPort(port: number | null | undefined): void {
     if (port === null || port === undefined) return;
     navigator.clipboard.writeText(port.toString()).then(() => {
-      this.toast.success('Portul public a fost copiat în clipboard!');
+      this.toast.success('Public port copied to clipboard!');
     });
   }
 }
