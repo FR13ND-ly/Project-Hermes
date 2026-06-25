@@ -2,16 +2,16 @@
   
   <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
     <div>
-      <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Aplicații în Proiect</h3>
-      <p class="text-[10px] text-zinc-500 font-mono mt-0.5">Listă completă a serviciilor active și a configurărilor lor</p>
+      <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Project Applications</h3>
+      <p class="text-[10px] text-zinc-500 font-mono mt-0.5">Complete list of active services and their configurations</p>
     </div>
 
     <div class="flex items-center gap-3">
       <button 
         (click)="refreshApps()" 
         class="text-zinc-550 hover:text-zinc-300 p-1.5 rounded border border-zinc-900 bg-black hover:border-zinc-500 transition-all cursor-pointer"
-        title="Reîncarcă"
-        aria-label="Reîncarcă lista de aplicații"
+        title="Refresh"
+        aria-label="Refresh application list"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -25,7 +25,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
-        Adaugă Aplicație
+        Add Application
       </button>
     </div>
   </div>
@@ -36,7 +36,7 @@
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
       </svg>
-      <span class="text-xs text-zinc-550 font-medium">Se încarcă lista de aplicații...</span>
+      <span class="text-xs text-zinc-550 font-medium">Loading application list...</span>
     </div>
   } @else {
     <div class="grid gap-4 md:grid-cols-1">
@@ -60,19 +60,19 @@
 
               @if (parent.selectedApp()?.id === app.id) {
                 <span class="px-1.5 py-0.2 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded text-[9px] font-medium tracking-wide">
-                  Selectată
+                  Selected
                 </span>
               }
             </div>
             
             <div class="flex flex-col gap-1 text-[10px] text-zinc-550 font-mono mt-2">
               <div class="flex items-center gap-2">
-                <span class="text-zinc-600">Repo Git:</span>
+                <span class="text-zinc-600">Git Repo:</span>
                 <span class="text-zinc-300 truncate max-w-[280px] hover:text-white transition-colors cursor-pointer select-all">{{ app.git_repo_url }}</span>
               </div>
               <div class="flex items-center gap-4 mt-0.5">
                 <div>
-                  <span class="text-zinc-600">Port Intern:</span>
+                  <span class="text-zinc-600">Internal Port:</span>
                   <span class="text-zinc-300 ml-1">{{ app.instances.length > 0 ? app.instances[0].internalPort : 8080 }}</span>
                 </div>
                 @if (app.instances.length > 0 && app.instances[0].externalPort) {
@@ -88,11 +88,11 @@
                   </div>
                 }
                 <div>
-                  <span class="text-zinc-600">Instanțe:</span>
+                  <span class="text-zinc-600">Instances:</span>
                   <span class="text-zinc-300 ml-1 font-bold">{{ app.instances.length || 0 }}</span>
                 </div>
                 <div>
-                  <span class="text-zinc-600">Creat la:</span>
+                  <span class="text-zinc-600">Created:</span>
                   <span class="text-zinc-300 ml-1">{{ app.created_at | date:'shortDate' }}</span>
                 </div>
               </div>
@@ -105,36 +105,36 @@
               (click)="onViewDetails(app, 'telemetry')"
               class="px-2.5 py-1.5 rounded text-[10px] font-semibold border transition-all cursor-pointer bg-black border-zinc-850 hover:border-zinc-500 hover:text-white text-zinc-450"
             >
-              Telemetrie
+              Telemetry
             </button>
-            <button 
+            <button
               (click)="onViewDetails(app, 'logs')"
               class="px-2.5 py-1.5 rounded text-[10px] font-semibold border transition-all cursor-pointer bg-black border-zinc-850 hover:border-zinc-500 hover:text-white text-zinc-450"
             >
-              Logs & Consolă
+              Logs & Console
             </button>
-            <button 
+            <button
               (click)="onViewDetails(app, 'env')"
               class="px-2.5 py-1.5 rounded text-[10px] font-semibold border transition-all cursor-pointer bg-black border-zinc-855 hover:border-zinc-500 hover:text-white text-zinc-450"
             >
-              Variabile Mediu
+              Env Variables
             </button>
-            <button 
+            <button
               (click)="onDeleteApp(app)"
               class="px-2.5 py-1.5 rounded text-[10px] font-semibold border transition-all cursor-pointer bg-black hover:bg-red-950/20 border-zinc-855 hover:border-red-900/40 text-red-500 hover:text-red-400"
             >
-              Șterge
+              Delete
             </button>
           </div>
         </div>
       } @empty {
         <div class="bg-[#0a0a0a] rounded-lg border border-zinc-850 p-12 text-center space-y-4">
-          <p class="text-xs text-zinc-550">Nu există nicio aplicație înregistrată în acest proiect.</p>
-          <button 
+          <p class="text-xs text-zinc-550">No applications registered in this project.</p>
+          <button
             (click)="onAddApp()"
             class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold transition-colors cursor-pointer"
           >
-            Adaugă Prima Aplicație
+            Add First Application
           </button>
         </div>
       }

@@ -41,10 +41,10 @@ export class Apps implements OnInit {
 
   async onDeleteApp(app: AppDetail): Promise<void> {
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Completă Aplicație',
-      message: `Sigur doriți să ștergeți complet aplicația "${app.name}"? Această acțiune este ireversibilă și va distruge toate instanțele active și datele asociate.`,
-      confirmText: 'Șterge Aplicația',
-      cancelText: 'Anulează',
+      title: 'Delete Application Completely',
+      message: `Are you sure you want to completely delete the application "${app.name}"? This action is irreversible and will destroy all active instances and associated data.`,
+      confirmText: 'Delete Application',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
@@ -52,14 +52,14 @@ export class Apps implements OnInit {
     this.loading.set(true);
     this.projectService.deleteApp(app.id).subscribe({
       next: () => {
-        this.toast.success(`Aplicația "${app.name}" a fost ștearsă cu succes.`);
+        this.toast.success(`Application "${app.name}" has been deleted successfully.`);
         if (this.parent.selectedApp()?.id === app.id) {
           this.parent.selectedApp.set(null);
         }
         this.refreshApps();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la ștergerea aplicației.');
+        this.toast.error(err.error?.message || 'Failed to delete application.');
         this.loading.set(false);
       }
     });
