@@ -3,9 +3,9 @@
   <!-- Header Title & Filters -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-4 gap-4">
     <div>
-      <h2 class="text-sm font-bold text-white uppercase tracking-wider font-mono">Incidente & Alerte Proiect</h2>
+      <h2 class="text-sm font-bold text-white uppercase tracking-wider font-mono">Project Incidents & Alerts</h2>
       <p class="text-[11px] text-zinc-500 mt-1">
-        Monitorizarea stării instanțelor și istoricul incidentelor detectate de sistemul de health check.
+        Instance health monitoring and incident history detected by the health check system.
       </p>
     </div>
     
@@ -16,7 +16,7 @@
         [class]="filter() === 'all' ? 'bg-zinc-900 border border-zinc-800 text-white font-bold' : 'text-zinc-500 hover:text-zinc-300'"
         class="px-3 py-1 rounded transition-colors cursor-pointer"
       >
-        Toate ({{ incidents().length }})
+        All ({{ incidents().length }})
       </button>
       <button 
         (click)="filter.set('active')" 
@@ -30,7 +30,7 @@
         [class]="filter() === 'resolved' ? 'bg-zinc-900 border border-zinc-800 text-white font-bold' : 'text-zinc-500 hover:text-zinc-300'"
         class="px-3 py-1 rounded transition-colors cursor-pointer"
       >
-        Rezolvate ({{ resolvedCount() }})
+        Resolved ({{ resolvedCount() }})
       </button>
     </div>
   </div>
@@ -41,7 +41,7 @@
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
       </svg>
-      <span class="text-xs text-zinc-500 font-mono">Se încarcă incidentele...</span>
+      <span class="text-xs text-zinc-500 font-mono">Loading incidents...</span>
     </div>
   } @else if (filteredIncidents().length === 0) {
     <div class="flex flex-col items-center justify-center border border-dashed border-zinc-800 rounded-lg p-12 text-center space-y-4">
@@ -51,14 +51,14 @@
         </svg>
       </div>
       <div class="space-y-1">
-        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Fără Incidente</h3>
+        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">No Incidents</h3>
         <p class="text-[11px] text-zinc-500 max-w-sm">
           @if (filter() === 'active') {
-            Nu există incidente active în acest moment. Sistemele rulează stabil.
+            No active incidents at this time. Systems are running stably.
           } @else if (filter() === 'resolved') {
-            Nu s-a găsit niciun incident rezolvat în istoric.
+            No resolved incidents found in history.
           } @else {
-            Nu a fost raportat niciun incident pentru acest proiect până în prezent.
+            No incidents have been reported for this project yet.
           }
         </p>
       </div>
@@ -90,12 +90,12 @@
                   <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                 </span>
                 <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-red-950/60 text-red-400 border border-red-900/50 uppercase tracking-wider">
-                  ACTIV
+                  ACTIVE
                 </span>
               } @else {
                 <span class="inline-block w-2 h-2 rounded-full bg-zinc-500"></span>
                 <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-zinc-900 text-zinc-400 border border-zinc-800 uppercase tracking-wider">
-                  REZOLVAT
+                  RESOLVED
                 </span>
               }
 
@@ -106,7 +106,7 @@
               <span class="text-zinc-500">&mdash;</span>
 
               <div class="flex items-center gap-1 text-zinc-300">
-                <span class="text-zinc-500">Instanță:</span>
+                <span class="text-zinc-500">Instance:</span>
                 <span class="font-bold font-sans">{{ incident.instanceName }}</span>
               </div>
             </div>
@@ -114,10 +114,10 @@
             <!-- Timestamps & Actions -->
             <div class="flex items-center justify-between md:justify-end gap-4">
               <div class="text-[10px] text-zinc-500 space-y-0.5 text-left md:text-right">
-                <div>Pornit: {{ incident.createdAt | date:'dd MMM yyyy, HH:mm:ss' }}</div>
+                <div>Started: {{ incident.createdAt | date:'dd MMM yyyy, HH:mm:ss' }}</div>
                 @if (incident.resolvedAt) {
                   <div class="text-zinc-400">
-                    Rezolvat: {{ incident.resolvedAt | date:'dd MMM yyyy, HH:mm:ss' }} 
+                    Resolved: {{ incident.resolvedAt | date:'dd MMM yyyy, HH:mm:ss' }} 
                     <span class="text-emerald-500 font-bold ml-1">({{ getDuration(incident.createdAt, incident.resolvedAt) }})</span>
                   </div>
                 }
@@ -139,7 +139,7 @@
                       <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                     </svg>
                   }
-                  Rezolvă
+                  Resolve
                 </button>
               }
             </div>
@@ -154,7 +154,7 @@
                 </svg>
               </div>
               <div class="space-y-1">
-                <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">Mesaj Alertă</div>
+                <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">Alert Message</div>
                 <div class="text-zinc-300 font-mono text-[11px] bg-black/45 px-3 py-2 rounded border border-zinc-900 select-all leading-relaxed whitespace-pre-wrap">
                   {{ incident.message }}
                 </div>

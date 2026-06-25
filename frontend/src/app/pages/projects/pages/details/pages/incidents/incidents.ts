@@ -100,7 +100,7 @@ export class Incidents implements OnInit, OnDestroy {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la încărcarea incidentelor.');
+        this.error.set(err.error?.message || 'Failed to load incidents.');
         this.loading.set(false);
       }
     });
@@ -113,10 +113,10 @@ export class Incidents implements OnInit, OnDestroy {
 
   async onResolveIncident(incident: Incident): Promise<void> {
     const confirmed = await this.confirm.ask({
-      title: 'Rezolvare Incident',
-      message: `Sigur doriți să marcați incidentul din instanța "${incident.instanceName}" ca rezolvat manual?`,
-      confirmText: 'Rezolvă',
-      cancelText: 'Anulează',
+      title: 'Resolve Incident',
+      message: `Are you sure you want to manually mark the incident in instance "${incident.instanceName}" as resolved?`,
+      confirmText: 'Resolve',
+      cancelText: 'Cancel',
       isDanger: false
     });
     if (!confirmed) return;
@@ -124,12 +124,12 @@ export class Incidents implements OnInit, OnDestroy {
     this.resolvingId.set(incident.id);
     this.incidentService.resolveIncident(incident.id).subscribe({
       next: () => {
-        this.toast.success('Incidentul a fost marcat ca rezolvat.');
+        this.toast.success('Incident marked as resolved.');
         this.resolvingId.set(null);
         this.loadIncidents();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la rezolvarea incidentului.');
+        this.toast.error(err.error?.message || 'Failed to resolve incident.');
         this.resolvingId.set(null);
       }
     });
