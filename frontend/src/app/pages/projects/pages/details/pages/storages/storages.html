@@ -6,8 +6,8 @@
     <!-- Section Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-900 pb-4 gap-4">
       <div>
-        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Stocare Obiecte & Buckete</h3>
-        <p class="text-xs text-zinc-555">Gestionați fișierele statice, media și regulile de stocare pentru workspace-ul dumneavoastră.</p>
+        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Object Storage & Buckets</h3>
+        <p class="text-xs text-zinc-555">Manage static files, media and storage rules for your workspace.</p>
       </div>
       
       <div class="flex items-center gap-3">
@@ -18,7 +18,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-550">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
-          {{ showCreateForm() ? 'Închide Formular' : 'Creare Bucket Nou' }}
+          {{ showCreateForm() ? 'Close Form' : 'Create New Bucket' }}
         </button>
       </div>
     </div>
@@ -48,7 +48,7 @@
           <!-- Max Size Limit -->
           <div class="space-y-1.5">
             <div class="flex items-center justify-between">
-              <label class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Limită Stocare</label>
+              <label class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Storage Limit</label>
               <span class="text-white text-xs font-bold font-mono">{{ maxBucketSizeGb() }} GB</span>
             </div>
             <input 
@@ -64,7 +64,7 @@
           </div>
         </div>
 
-        <p class="text-[10px] text-zinc-600 pt-1">Bucket-urile sunt private — accesul la fișiere se face securizat, cu app_id/secret_key.</p>
+        <p class="text-[10px] text-zinc-600 pt-1">Buckets are private — file access is secured with app_id/secret_key.</p>
 
         <!-- Publish to project env pool -->
         <div class="pt-4 border-t border-zinc-900 space-y-4">
@@ -78,11 +78,11 @@
                 [disabled]="creatingBucket()"
                 class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
               />
-              <span class="text-[11px] font-semibold text-zinc-300">Adaugă App ID în .env proiect</span>
+              <span class="text-[11px] font-semibold text-zinc-300">Add App ID to project .env</span>
             </label>
             @if (publishAppId()) {
               <div class="flex items-center gap-2 pl-6 animate-fade-in">
-                <label for="bucket-appid-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Nume variabilă (.env):</label>
+                <label for="bucket-appid-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Variable name (.env):</label>
                 <input
                   id="bucket-appid-key"
                   type="text"
@@ -106,11 +106,11 @@
                 [disabled]="creatingBucket()"
                 class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
               />
-              <span class="text-[11px] font-semibold text-zinc-300">Adaugă Secret Key în .env proiect</span>
+              <span class="text-[11px] font-semibold text-zinc-300">Add Secret Key to project .env</span>
             </label>
             @if (publishSecretKey()) {
               <div class="flex items-center gap-2 pl-6 animate-fade-in">
-                <label for="bucket-secret-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Nume variabilă (.env):</label>
+                <label for="bucket-secret-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Variable name (.env):</label>
                 <input
                   id="bucket-secret-key"
                   type="text"
@@ -128,7 +128,7 @@
         <!-- Per-file size limit + custom processing override -->
         <div class="pt-4 border-t border-zinc-900 space-y-3">
           <div class="flex items-center gap-2">
-            <label for="bucket-max-file" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Mărime max. / fișier (MB):</label>
+            <label for="bucket-max-file" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Max size / file (MB):</label>
             <input
               id="bucket-max-file"
               type="number"
@@ -150,8 +150,8 @@
               [disabled]="creatingBucket()"
               class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
             />
-            <span class="text-[11px] font-semibold text-zinc-300">Permite opțiuni custom la upload</span>
-            <span class="text-[10px] text-zinc-600">— aplicația care încarcă (prin API) poate suprascrie regulile de procesare.</span>
+            <span class="text-[11px] font-semibold text-zinc-300">Allow custom upload options</span>
+            <span class="text-[10px] text-zinc-600">— the uploading application (via API) can override processing rules.</span>
           </label>
         </div>
 
@@ -162,7 +162,7 @@
             [disabled]="creatingBucket()"
             class="px-3.5 py-1.5 rounded text-zinc-450 hover:text-white text-xs font-semibold border border-zinc-900 hover:bg-zinc-900 transition-colors cursor-pointer"
           >
-            Anulează
+            Cancel
           </button>
 
           <button 
@@ -171,13 +171,13 @@
             class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
           >
             @if (!creatingBucket()) {
-              <span>Creează Bucket</span>
+              <span>Create Bucket</span>
             } @else {
               <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              <span>Se creează...</span>
+              <span>Creating...</span>
             }
           </button>
         </div>
@@ -191,7 +191,7 @@
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <span class="text-zinc-550 text-[10px] uppercase tracking-widest">Se încarcă configurațiile de stocare...</span>
+        <span class="text-zinc-550 text-[10px] uppercase tracking-widest">Loading storage configurations...</span>
       </div>
     } @else {
       @if (buckets().length === 0) {
@@ -202,12 +202,12 @@
             </svg>
           </div>
           <h4 class="text-xs font-bold text-zinc-200 mb-1.5 uppercase tracking-wider">Niciun Bucket de Stocare</h4>
-          <p class="text-xs text-zinc-500 mb-6">Creați un bucket pentru a putea stoca imagini, cod sau alte resurse statice.</p>
+          <p class="text-xs text-zinc-500 mb-6">Create a bucket to store images, code or other static resources.</p>
           <button 
             (click)="showCreateForm.set(true)"
             class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer"
           >
-            Creează Primul Bucket
+            Create First Bucket
           </button>
         </div>
       } @else {
@@ -217,10 +217,10 @@
               <tr class="border-b border-zinc-900 bg-black/60 text-zinc-500 uppercase tracking-wider text-[9px] font-bold">
                 <th class="p-3.5">Nume Bucket</th>
                 <th class="p-3.5">Tip Acces</th>
-                <th class="p-3.5">Limită</th>
-                <th class="p-3.5">Politică Anonimă</th>
+                <th class="p-3.5">Limit</th>
+                <th class="p-3.5">Anonymous Policy</th>
                 <th class="p-3.5">Creat la</th>
-                <th class="p-3.5 text-right">Acțiuni</th>
+                <th class="p-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -250,7 +250,7 @@
                       [class.bg-emerald-500]="bucket.isPublic"
                       [class.bg-zinc-800]="!bucket.isPublic"
                     ></span>
-                    {{ bucket.isPublic ? 'Public direct' : 'Semnat / Închis' }}
+                    {{ bucket.isPublic ? 'Public direct' : 'Signed / Closed' }}
                   </td>
 
                   <td class="p-3.5 text-zinc-500 font-mono">
@@ -269,7 +269,7 @@
                         (click)="onDeleteBucket(bucket)"
                         class="px-2.5 py-1 rounded border border-zinc-900 text-zinc-600 hover:text-red-400 hover:border-red-900/50 hover:bg-red-950/10 text-[10px] font-semibold transition-all cursor-pointer"
                       >
-                        Șterge
+                        Delete
                       </button>
                     </div>
                   </td>
@@ -285,20 +285,20 @@
     <div class="bg-[#0a0a0a] rounded border border-zinc-900 shadow-sm">
       <div class="border-b border-zinc-900 px-5 py-3.5">
         <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Volume Persistente (PVC)</h3>
-        <p class="text-[10px] text-zinc-555 mt-0.5">Create automat la build din directivele <code>VOLUME</code> ale aplicațiilor. Răsfoiește conținutul lor aici.</p>
+        <p class="text-[10px] text-zinc-555 mt-0.5">Automatically created at build from application <code>VOLUME</code> directives. Browse their contents here.</p>
       </div>
       @if (loadingPvcs()) {
-        <div class="px-5 py-6 text-center text-[11px] text-zinc-600">Se încarcă volumele...</div>
+        <div class="px-5 py-6 text-center text-[11px] text-zinc-600">Loading volumes...</div>
       } @else if (pvcs().length === 0) {
-        <div class="px-5 py-6 text-center text-[11px] text-zinc-600">Niciun volum persistent. Apar aici când o aplicație declară <code>VOLUME</code> în Dockerfile.</div>
+        <div class="px-5 py-6 text-center text-[11px] text-zinc-600">No persistent volumes. They appear here when an application declares <code>VOLUME</code> in its Dockerfile.</div>
       } @else {
         <table class="w-full text-left text-xs">
           <thead>
             <tr class="border-b border-zinc-900 text-zinc-600 uppercase tracking-wider text-[9px]">
-              <th class="p-3.5">Aplicație</th>
+              <th class="p-3.5">Application</th>
               <th class="p-3.5">Cale Container</th>
-              <th class="p-3.5">Sursă</th>
-              <th class="p-3.5 text-right">Acțiuni</th>
+              <th class="p-3.5">Source</th>
+              <th class="p-3.5 text-right">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-zinc-900">
@@ -327,7 +327,7 @@
 
     <!-- CASE 2b: Selected PVC — browsed in the SAME detail layout as buckets -->
     <div class="flex items-center gap-3 border-b border-zinc-900 pb-4">
-      <button (click)="deselectBucket()" class="p-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-455 hover:text-white cursor-pointer transition-colors" title="Înapoi la listă">
+      <button (click)="deselectBucket()" class="p-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-455 hover:text-white cursor-pointer transition-colors" title="Back to list">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
           <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
@@ -347,7 +347,7 @@
       <div class="bg-[#0a0a0a] border border-zinc-900 rounded p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shadow-inner">
         <div class="flex items-center gap-2 overflow-x-auto py-1 shrink-0 max-w-full">
           @if (currentPath() !== '/') {
-            <button (click)="onNavigateBack()" class="p-1 rounded bg-black hover:bg-zinc-900 border border-zinc-800 text-zinc-440 hover:text-white cursor-pointer transition-colors" title="Înapoi">
+            <button (click)="onNavigateBack()" class="p-1 rounded bg-black hover:bg-zinc-900 border border-zinc-800 text-zinc-440 hover:text-white cursor-pointer transition-colors" title="Back">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
               </svg>
@@ -361,14 +361,14 @@
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
-          <input type="text" placeholder="Caută fișiere..." [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" class="px-3 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-550 font-mono w-40" />
+          <input type="text" placeholder="Search files..." [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" class="px-3 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-550 font-mono w-40" />
           <div class="flex rounded border border-zinc-800 overflow-hidden">
             <button (click)="viewMode.set('grid')" class="px-2.5 py-1.5 text-xs cursor-pointer" [class]="viewMode() === 'grid' ? 'bg-zinc-900 text-white' : 'text-zinc-650 hover:text-zinc-400'" title="Grid">▦</button>
-            <button (click)="viewMode.set('list')" class="px-2.5 py-1.5 text-xs cursor-pointer" [class]="viewMode() === 'list' ? 'bg-zinc-900 text-white' : 'text-zinc-650 hover:text-zinc-400'" title="Listă">≣</button>
+            <button (click)="viewMode.set('list')" class="px-2.5 py-1.5 text-xs cursor-pointer" [class]="viewMode() === 'list' ? 'bg-zinc-900 text-white' : 'text-zinc-650 hover:text-zinc-400'" title="List">≣</button>
           </div>
           <button (click)="showFolderForm.set(!showFolderForm())" class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer">+ Dosar</button>
           <label class="px-2.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold cursor-pointer">
-            {{ uploading() ? 'Încărcare ' + uploadProgress() + '%' : 'Încarcă' }}
+            {{ uploading() ? 'Uploading ' + uploadProgress() + '%' : 'Upload' }}
             <input type="file" class="hidden" (change)="onPvcFileSelected($event)" [disabled]="uploading()" />
           </label>
         </div>
@@ -378,8 +378,8 @@
       @if (showFolderForm()) {
         <div class="bg-[#0a0a0a] border border-zinc-900 rounded p-3 flex items-center gap-2 animate-fade-in">
           <input type="text" placeholder="Nume director nou" [ngModel]="newFolderName()" (ngModelChange)="newFolderName.set($event)" (keyup.enter)="createPvcFolder()" class="flex-1 px-3 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-550 font-mono" />
-          <button (click)="createPvcFolder()" [disabled]="!newFolderName().trim()" class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold disabled:opacity-50 cursor-pointer">Creează</button>
-          <button (click)="showFolderForm.set(false); newFolderName.set('')" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-white text-xs cursor-pointer">Anulează</button>
+          <button (click)="createPvcFolder()" [disabled]="!newFolderName().trim()" class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold disabled:opacity-50 cursor-pointer">Create</button>
+          <button (click)="showFolderForm.set(false); newFolderName.set('')" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-white text-xs cursor-pointer">Cancel</button>
         </div>
       }
 
@@ -389,7 +389,7 @@
 
       <!-- Listings -->
       @if (loadingFiles()) {
-        <div class="px-5 py-8 text-center text-[11px] text-zinc-600">Se încarcă...</div>
+        <div class="px-5 py-8 text-center text-[11px] text-zinc-600">Loading...</div>
       } @else if (currentItems().length === 0) {
         <div class="px-5 py-8 text-center text-[11px] text-zinc-600">Director gol.</div>
       } @else if (viewMode() === 'grid') {
@@ -411,9 +411,9 @@
                 <span class="text-[9px] text-zinc-600">{{ item.isFolder ? '' : formatBytes(item.sizeBytes || 0) }}</span>
                 <div class="flex items-center gap-2">
                   @if (!item.isFolder) {
-                    <button (click)="downloadPvcItem(item)" class="text-[11px] text-zinc-400 hover:text-white cursor-pointer" title="Descarcă">↓</button>
+                    <button (click)="downloadPvcItem(item)" class="text-[11px] text-zinc-400 hover:text-white cursor-pointer" title="Download">↓</button>
                   }
-                  <button (click)="deletePvcItem(item)" class="text-[11px] text-zinc-500 hover:text-red-400 cursor-pointer" title="Șterge">✕</button>
+                  <button (click)="deletePvcItem(item)" class="text-[11px] text-zinc-500 hover:text-red-400 cursor-pointer" title="Delete">✕</button>
                 </div>
               </div>
             </div>
@@ -435,9 +435,9 @@
                   <td class="p-3 text-zinc-600 font-mono text-[10px]">{{ item.isFolder ? '' : formatBytes(item.sizeBytes || 0) }}</td>
                   <td class="p-3 text-right space-x-3">
                     @if (!item.isFolder) {
-                      <button (click)="downloadPvcItem(item)" class="text-[10px] text-zinc-400 hover:text-white cursor-pointer">Descarcă</button>
+                      <button (click)="downloadPvcItem(item)" class="text-[10px] text-zinc-400 hover:text-white cursor-pointer">Download</button>
                     }
-                    <button (click)="deletePvcItem(item)" class="text-[10px] text-zinc-500 hover:text-red-400 cursor-pointer">Șterge</button>
+                    <button (click)="deletePvcItem(item)" class="text-[10px] text-zinc-500 hover:text-red-400 cursor-pointer">Delete</button>
                   </td>
                 </tr>
               }
@@ -458,7 +458,7 @@
         <button 
           (click)="deselectBucket()"
           class="p-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-455 hover:text-white cursor-pointer transition-colors"
-          title="Înapoi la listă"
+          title="Back to list"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -469,7 +469,7 @@
             <h3 class="text-xs font-bold text-white uppercase tracking-wider">{{ bucket.name }}</h3>
             <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border border-purple-900 bg-purple-950/20 text-purple-400 uppercase">Private</span>
           </div>
-          <p class="text-[10px] text-zinc-555 font-mono mt-0.5">slug: {{ bucket.slug }} | limită: {{ formatBytes(bucket.maxBucketSizeBytes) }}@if (bucket.maxFileSizeBytes > 0) { <span> | max/fișier: {{ formatBytes(bucket.maxFileSizeBytes) }}</span> }@if (bucket.allowCustomProcessing) { <span class="text-emerald-500"> · opțiuni custom</span> }</p>
+          <p class="text-[10px] text-zinc-555 font-mono mt-0.5">slug: {{ bucket.slug }} | limit: {{ formatBytes(bucket.maxBucketSizeBytes) }}@if (bucket.maxFileSizeBytes > 0) { <span> | max/file: {{ formatBytes(bucket.maxFileSizeBytes) }}</span> }@if (bucket.allowCustomProcessing) { <span class="text-emerald-500"> · custom options</span> }</p>
         </div>
       </div>
     </div>
@@ -481,7 +481,7 @@
         class="px-4 py-2 text-xs font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
         [class]="activeTab() === 'files' ? 'border-white text-white bg-zinc-950/20' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
-        Fișiere Stocate
+        Stored Files
       </button>
       <button 
         (click)="activeTab.set('logs')"
@@ -495,7 +495,7 @@
         class="px-4 py-2 text-xs font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
         [class]="activeTab() === 'settings' ? 'border-white text-white bg-zinc-950/20' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
-        Setări Bucket
+        Bucket Settings
       </button>
       <button 
         (click)="activeTab.set('api')"
@@ -519,7 +519,7 @@
               <button 
                 (click)="onNavigateBack()"
                 class="p-1 rounded bg-black hover:bg-zinc-900 border border-zinc-800 text-zinc-440 hover:text-white cursor-pointer transition-colors"
-                title="Mergi înapoi"
+                title="Go back"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -560,7 +560,7 @@
               </div>
               <input 
                 type="text" 
-                placeholder="Caută fișiere..."
+                placeholder="Search files..."
                 [ngModel]="searchQuery()"
                 (ngModelChange)="searchQuery.set($event)"
                 class="block w-full pl-8 pr-3 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-550 transition-colors font-mono"
@@ -572,7 +572,7 @@
                 (click)="viewMode.set('grid')"
                 class="p-1 rounded cursor-pointer"
                 [class]="viewMode() === 'grid' ? 'bg-zinc-900 text-white' : 'text-zinc-650 hover:text-zinc-400'"
-                title="Vizualizare Grid"
+                title="Grid View"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
@@ -582,7 +582,7 @@
                 (click)="viewMode.set('list')"
                 class="p-1 rounded cursor-pointer"
                 [class]="viewMode() === 'list' ? 'bg-zinc-900 text-white' : 'text-zinc-650 hover:text-zinc-400'"
-                title="Vizualizare Listă"
+                title="List View"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 5.25h16.5m-16.5-10.5h16.5" />
@@ -599,7 +599,7 @@
               <div class="flex items-center gap-1.5 animate-fade-in">
                 <input 
                   type="text" 
-                  placeholder="Nume dosar..."
+                  placeholder="Folder name..."
                   [ngModel]="newFolderName()"
                   (ngModelChange)="newFolderName.set($event)"
                   (keyup.enter)="onCreateFolder()"
@@ -610,7 +610,7 @@
                   [disabled]="!newFolderName().trim()"
                   class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white text-[10px] font-bold cursor-pointer disabled:opacity-50"
                 >
-                  Creează
+                  Create
                 </button>
                 <button 
                   (click)="showFolderForm.set(false); newFolderName.set('')"
@@ -627,7 +627,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-550">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 10.5v6m3-3H9m4.06-7.19l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
                 </svg>
-                Dosar nou
+                New folder
               </button>
             }
           </div>
@@ -646,7 +646,7 @@
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
-              Încarcă fișier
+              Upload file
             </label>
           </div>
         </div>
@@ -660,7 +660,7 @@
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Se transferă datele...
+                Transferring data...
               </span>
               <span>{{ uploadProgress() }}%</span>
             </div>
@@ -677,7 +677,7 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span class="text-zinc-650 text-[8px] uppercase tracking-wider font-semibold">Se citesc fișierele din bucket...</span>
+            <span class="text-zinc-650 text-[8px] uppercase tracking-wider font-semibold">Reading files from bucket...</span>
           </div>
         } @else {
           @if (currentItems().length === 0) {
@@ -685,8 +685,8 @@
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-zinc-655 mx-auto">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
               </svg>
-              <p class="text-xs text-zinc-500 font-mono">Acest dosar virtual este gol.</p>
-              <p class="text-[10px] text-zinc-600 font-mono">Încărcați un fișier în zona din dreapta sus sau creați subdosare virtuale.</p>
+              <p class="text-xs text-zinc-500 font-mono">This virtual folder is empty.</p>
+              <p class="text-[10px] text-zinc-600 font-mono">Upload a file using the button in the top right, or create virtual subfolders.</p>
             </div>
           }
 
@@ -705,7 +705,7 @@
                           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                         <span class="text-[8px] font-bold text-zinc-300 tracking-wider">
-                          {{ item.status === 'processing' ? stageLabel(item.processingStage) : 'SE ÎNCARCĂ...' }}
+                          {{ item.status === 'processing' ? stageLabel(item.processingStage) : 'UPLOADING...' }}
                         </span>
                       </div>
                     }
@@ -717,7 +717,7 @@
                           <img [src]="item.virtualUrl" class="max-h-full max-w-full object-contain rounded-sm select-none" alt="{{ item.name }}" />
                           <div class="absolute bottom-1 right-1 bg-black/80 border border-zinc-800 rounded px-1.5 py-0.5 text-[8px] font-bold text-zinc-300 uppercase flex items-center gap-1 font-sans">
                             <span class="inline-block w-1.5 h-1.5 rounded-full bg-purple-400"></span>
-                            Variante
+                            Variants
                           </div>
                         </div>
                       } @else {
@@ -756,12 +756,12 @@
                       <div class="flex items-center justify-between text-[9px] text-zinc-550">
                         <span>{{ formatBytes(item.sizeBytes) }}</span>
                         @if (item.isOptimized) {
-                          <span class="text-emerald-500 font-bold" title="Optimizat">OPTIMIZAT</span>
+                          <span class="text-emerald-500 font-bold" title="Optimized">OPTIMIZED</span>
                         }
                       </div>
                     } @else {
                       <div class="text-[9px] text-zinc-650">
-                        {{ item.hasVariants ? 'Imagine (Variante)' : 'Dosar virtual' }}
+                        {{ item.hasVariants ? 'Image (Variants)' : 'Virtual folder' }}
                       </div>
                     }
                   </div>
@@ -770,30 +770,30 @@
                     @if (item.status === 'processing' || item.status === 'pending_upload') {
                       <div class="flex items-center gap-1.5 w-full justify-between">
                         <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider pl-1.5 animate-pulse">
-                          {{ item.status === 'processing' ? stageLabel(item.processingStage) : 'Încărcare...' }}
+                          {{ item.status === 'processing' ? stageLabel(item.processingStage) : 'Uploading...' }}
                         </span>
                         @if (item.id) {
                           <button 
                             (click)="onCancelUpload(item)" 
                             class="px-2 py-0.5 rounded bg-red-955/20 text-red-400 hover:bg-red-900/40 hover:text-red-200 text-[9px] font-bold uppercase text-center cursor-pointer border border-red-900/60"
                           >
-                            Anulează
+                            Cancel
                           </button>
                         }
                       </div>
                     } @else if (item.isFolder) {
                       <div class="flex items-center gap-1.5 w-full justify-between">
-                        <button 
-                          (click)="onNavigate(item.filePath)" 
+                        <button
+                          (click)="onNavigate(item.filePath)"
                           class="px-2.5 py-1 rounded bg-zinc-900 text-zinc-400 hover:text-white text-[9px] font-bold w-full uppercase text-center cursor-pointer border border-zinc-800"
                         >
-                          Deschide
+                          Open
                         </button>
                         @if (item.id) {
-                          <button 
-                            (click)="onDeleteFile(item)" 
+                          <button
+                            (click)="onDeleteFile(item)"
                             class="p-1 rounded hover:bg-red-950/20 text-zinc-700 hover:text-red-400 cursor-pointer transition-colors"
-                            title="Șterge dosar/imagine"
+                            title="Delete folder/image"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -808,7 +808,7 @@
                             <button 
                               (click)="copyPublicUrl(item)" 
                               class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white cursor-pointer transition-colors"
-                              title="Copiază URL public"
+                              title="Copy public URL"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
@@ -819,7 +819,7 @@
                               [href]="item.virtualUrl" 
                               target="_blank" 
                               class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white cursor-pointer transition-colors flex items-center"
-                              title="Deschide în tab nou"
+                              title="Open in new tab"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
@@ -832,7 +832,7 @@
                           <button 
                             (click)="onDeleteFile(item)" 
                             class="p-1 rounded hover:bg-red-950/20 text-zinc-700 hover:text-red-400 cursor-pointer transition-colors"
-                            title="Șterge fișier"
+                            title="Delete file"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -853,10 +853,10 @@
               <table class="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr class="border-b border-zinc-900 bg-black/60 text-zinc-500 uppercase tracking-wider text-[9px] font-bold">
-                    <th class="p-3">Nume</th>
-                    <th class="p-3">Tip</th>
-                    <th class="p-3">Dimensiune</th>
-                    <th class="p-3 text-right">Acțiuni</th>
+                    <th class="p-3">Name</th>
+                    <th class="p-3">Type</th>
+                    <th class="p-3">Size</th>
+                    <th class="p-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -879,7 +879,7 @@
                             }
                             {{ item.name }}
                             @if (item.hasVariants) {
-                              <span class="text-[8px] text-purple-400 font-bold uppercase tracking-wider ml-1 bg-purple-950/20 px-1 py-0.2 rounded border border-purple-900/50">[Variante]</span>
+                              <span class="text-[8px] text-purple-400 font-bold uppercase tracking-wider ml-1 bg-purple-950/20 px-1 py-0.2 rounded border border-purple-900/50">[Variants]</span>
                             }
                           </span>
                         } @else {
@@ -896,42 +896,42 @@
                                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                {{ item.status === 'processing' ? 'PROCESARE' : 'ÎNCĂRCARE' }}
+                                {{ item.status === 'processing' ? 'PROCESSING' : 'UPLOADING' }}
                               </span>
                             }
                           </span>
                         }
                       </td>
-                      <td class="p-3 text-zinc-550">{{ item.isFolder ? (item.hasVariants ? 'Variante Imagine' : 'Folder') : (item.mimeType || 'unknown') }}</td>
+                      <td class="p-3 text-zinc-550">{{ item.isFolder ? (item.hasVariants ? 'Image Variants' : 'Folder') : (item.mimeType || 'unknown') }}</td>
                       <td class="p-3 text-zinc-400">{{ item.isFolder ? '-' : formatBytes(item.sizeBytes) }}</td>
                       <td class="p-3 text-right">
                         <div class="flex items-center justify-end gap-2">
                           @if (item.status === 'processing' || item.status === 'pending_upload') {
                             <div class="flex items-center justify-end gap-2">
                               <span class="text-[9px] font-bold text-zinc-650 uppercase tracking-widest mr-1.5 animate-pulse">
-                                {{ item.status === 'processing' ? stageLabel(item.processingStage) : 'Încărcare...' }}
+                                {{ item.status === 'processing' ? stageLabel(item.processingStage) : 'Uploading...' }}
                               </span>
                               @if (item.id) {
                                 <button 
                                   (click)="onCancelUpload(item)" 
                                   class="px-2 py-0.5 rounded bg-red-955/20 text-red-400 hover:bg-red-900/40 hover:text-red-200 text-[10px] font-bold uppercase cursor-pointer border border-red-900/50"
                                 >
-                                  Anulează
+                                  Cancel
                                 </button>
                               }
                             </div>
                           } @else if (item.isFolder) {
-                            <button (click)="onNavigate(item.filePath)" class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-zinc-350 hover:text-white cursor-pointer">Deschide</button>
+                            <button (click)="onNavigate(item.filePath)" class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-zinc-350 hover:text-white cursor-pointer">Open</button>
                             @if (item.id) {
-                              <button (click)="onDeleteFile(item)" class="px-2 py-0.5 rounded hover:bg-red-950/20 text-zinc-555 hover:text-red-400 text-[10px] font-bold uppercase cursor-pointer">Șterge</button>
+                              <button (click)="onDeleteFile(item)" class="px-2 py-0.5 rounded hover:bg-red-950/20 text-zinc-555 hover:text-red-400 text-[10px] font-bold uppercase cursor-pointer">Delete</button>
                             }
                           } @else {
                             @if (item.virtualUrl) {
                               <button (click)="copyPublicUrl(item)" class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-450 hover:text-white text-[10px] font-bold uppercase cursor-pointer">URL</button>
-                              <a [href]="item.virtualUrl" target="_blank" class="px-2 py-0.5 rounded bg-black border border-zinc-850 text-zinc-555 hover:text-white text-[10px] font-bold uppercase">Vezi</a>
+                              <a [href]="item.virtualUrl" target="_blank" class="px-2 py-0.5 rounded bg-black border border-zinc-850 text-zinc-555 hover:text-white text-[10px] font-bold uppercase">View</a>
                             }
                             @if (item.id) {
-                              <button (click)="onDeleteFile(item)" class="px-2 py-0.5 rounded hover:bg-red-950/20 text-zinc-555 hover:text-red-400 text-[10px] font-bold uppercase cursor-pointer">Șterge</button>
+                              <button (click)="onDeleteFile(item)" class="px-2 py-0.5 rounded hover:bg-red-950/20 text-zinc-555 hover:text-red-400 text-[10px] font-bold uppercase cursor-pointer">Delete</button>
                             }
                           }
                         </div>
@@ -960,7 +960,7 @@
       <div class="space-y-4 animate-fade-in">
         <div class="border border-zinc-900 bg-black rounded p-5 shadow-inner">
           <div class="flex items-center justify-between border-b border-zinc-900 pb-3 mb-4">
-            <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Jurnal Audit Bucket</h4>
+            <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Bucket Audit Log</h4>
             <span class="text-[9px] text-zinc-650 bg-zinc-950 px-2 py-0.5 rounded uppercase font-semibold">Live Events</span>
           </div>
 
@@ -980,7 +980,7 @@
                 <span class="text-zinc-350 font-sans">{{ log.message }}</span>
               </div>
             } @empty {
-              <div class="text-center py-10 text-xs text-zinc-650 font-mono">Nicio activitate înregistrată încă pe acest bucket.</div>
+              <div class="text-center py-10 text-xs text-zinc-650 font-mono">No activity recorded yet on this bucket.</div>
             }
           </div>
         </div>
@@ -994,11 +994,11 @@
           
           <!-- Column A: General Config -->
           <div class="bg-[#0a0a0a] border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-            <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Configurări Generale</h4>
-            
+            <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">General Config</h4>
+
             <!-- Bucket Display Name -->
             <div class="space-y-1.5">
-              <label for="edit-name" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Nume Bucket</label>
+              <label for="edit-name" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Bucket Name</label>
               <input 
                 id="edit-name"
                 type="text" 
@@ -1011,7 +1011,7 @@
             <!-- Bucket size slider -->
             <div class="space-y-1.5 pt-1.5">
               <div class="flex items-center justify-between">
-                <label class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Limită Maximă Bucket</label>
+                <label class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Maximum Bucket Limit</label>
                 <span class="text-white text-xs font-bold font-mono">{{ editMaxSizeGb() }} GB</span>
               </div>
               <input
@@ -1027,18 +1027,18 @@
 
             <!-- Per-file size limit -->
             <div class="space-y-1.5 pt-1.5">
-              <label class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block">Mărime max. / fișier (MB)</label>
+              <label class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block">Max size / file (MB)</label>
               <div class="flex items-center gap-2">
                 <input
                   type="number"
                   min="0"
                   step="1"
-                  placeholder="0 = nelimitat"
+                  placeholder="0 = unlimited"
                   [ngModel]="editMaxFileSizeMb()"
                   (ngModelChange)="editMaxFileSizeMb.set($event)"
                   class="block w-32 px-2.5 py-1.5 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
                 />
-                <span class="text-[10px] text-zinc-600">0 = nelimitat</span>
+                <span class="text-[10px] text-zinc-600">0 = unlimited</span>
               </div>
             </div>
 
@@ -1050,8 +1050,8 @@
                 (change)="editAllowCustomProcessing.set(!editAllowCustomProcessing())"
                 class="h-3.5 w-3.5 mt-0.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
               />
-              <span class="text-[11px] font-semibold text-zinc-300">Permite opțiuni custom la upload
-                <span class="block text-[10px] font-normal text-zinc-600">Aplicația care încarcă (prin API/token) poate suprascrie regulile de procesare per fișier.</span>
+              <span class="text-[11px] font-semibold text-zinc-300">Allow custom upload options
+                <span class="block text-[10px] font-normal text-zinc-600">The uploading application (via API/token) can override per-file processing rules.</span>
               </span>
             </label>
 
@@ -1062,12 +1062,12 @@
             
             <!-- Type restrictions -->
             <div class="bg-[#0a0a0a] border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-              <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Limitări Tipuri Fișiere</h4>
+              <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">File Type Limits</h4>
               
               <div class="grid grid-cols-2 gap-3 pt-1">
                 <div class="flex items-center gap-2">
                   <input type="checkbox" id="allow-img" [ngModel]="allowImages()" (ngModelChange)="allowImages.set($event)" class="w-3.5 h-3.5 bg-black rounded border-zinc-800 accent-white cursor-pointer" />
-                  <label for="allow-img" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Imagini</label>
+                  <label for="allow-img" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Images</label>
                 </div>
                 <div class="flex items-center gap-2">
                   <input type="checkbox" id="allow-code" [ngModel]="allowTextCssJs()" (ngModelChange)="allowTextCssJs.set($event)" class="w-3.5 h-3.5 bg-black rounded border-zinc-800 accent-white cursor-pointer" />
@@ -1075,7 +1075,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                   <input type="checkbox" id="allow-pdf" [ngModel]="allowPdfs()" (ngModelChange)="allowPdfs.set($event)" class="w-3.5 h-3.5 bg-black rounded border-zinc-800 accent-white cursor-pointer" />
-                  <label for="allow-pdf" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Documente PDF</label>
+                  <label for="allow-pdf" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">PDF Documents</label>
                 </div>
                 <div class="flex items-center gap-2">
                   <input type="checkbox" id="allow-arc" [ngModel]="allowArchives()" (ngModelChange)="allowArchives.set($event)" class="w-3.5 h-3.5 bg-black rounded border-zinc-800 accent-white cursor-pointer" />
@@ -1083,34 +1083,34 @@
                 </div>
                 <div class="flex items-center gap-2 col-span-2">
                   <input type="checkbox" id="allow-oth" [ngModel]="allowOthers()" (ngModelChange)="allowOthers.set($event)" class="w-3.5 h-3.5 bg-black rounded border-zinc-850 accent-white cursor-pointer" />
-                  <label for="allow-oth" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Alte tipuri binare generice</label>
+                  <label for="allow-oth" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Other generic binary types</label>
                 </div>
               </div>
             </div>
 
             <!-- Image processing rules -->
             <div class="bg-[#0a0a0a] border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-              <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Optimizare Imagini automată</h4>
+              <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Automatic Image Optimization</h4>
               
               <div class="grid gap-4 grid-cols-2">
                 <div class="space-y-1">
-                  <label for="opt-format" class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider">Format țintă</label>
+                  <label for="opt-format" class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider">Target format</label>
                   <select 
                     id="opt-format" 
                     [ngModel]="convertImageTo()"
                     (ngModelChange)="convertImageTo.set($event)"
                     class="block w-full px-2.5 py-1.5 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
                   >
-                    <option value="original">Păstrează Original</option>
-                    <option value="webp">Optimizează la WebP</option>
-                    <option value="avif">Optimizează la Avif</option>
-                    <option value="jpg">Optimizează la JPG</option>
+                    <option value="original">Keep Original</option>
+                    <option value="webp">Optimize to WebP</option>
+                    <option value="avif">Optimize to Avif</option>
+                    <option value="jpg">Optimize to JPG</option>
                   </select>
                 </div>
                 
                 <div class="space-y-1">
                   <div class="flex items-center justify-between">
-                    <label class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider">Calitate compresie</label>
+                    <label class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider">Compression quality</label>
                     <span class="text-white text-xs font-bold font-mono">{{ imageQuality() }}%</span>
                   </div>
                   <input 
@@ -1128,12 +1128,12 @@
               <!-- Custom output variants (name + max width + format) -->
               <div class="space-y-2 border-t border-zinc-900/60 pt-3">
                 <div class="flex items-center justify-between">
-                  <label class="text-[9px] font-semibold text-zinc-555 uppercase tracking-wider block">Variante custom (nume · lățime · format)</label>
-                  <button type="button" (click)="addVariant()" class="px-2 py-0.5 rounded text-[10px] font-semibold text-zinc-300 border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer">+ Adaugă variantă</button>
+                  <label class="text-[9px] font-semibold text-zinc-555 uppercase tracking-wider block">Custom variants (name · width · format)</label>
+                  <button type="button" (click)="addVariant()" class="px-2 py-0.5 rounded text-[10px] font-semibold text-zinc-300 border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer">+ Add variant</button>
                 </div>
 
                 @if (customVariants().length === 0) {
-                  <p class="text-[10px] text-zinc-600 italic py-1">Nicio variantă definită — se salvează doar originalul. Adaugă variante pentru a genera copii redimensionate.</p>
+                  <p class="text-[10px] text-zinc-600 italic py-1">No variants defined — only the original is saved. Add variants to generate resized copies.</p>
                 }
 
                 @for (v of customVariants(); track $index) {
@@ -1167,7 +1167,7 @@
                       <option value="avif">avif</option>
                       <option value="jpg">jpg</option>
                     </select>
-                    <button type="button" (click)="removeVariant($index)" title="Șterge varianta" class="shrink-0 w-6 h-6 flex items-center justify-center rounded text-zinc-500 hover:text-red-400 hover:bg-red-950/30 transition-colors cursor-pointer">✕</button>
+                    <button type="button" (click)="removeVariant($index)" title="Delete variant" class="shrink-0 w-6 h-6 flex items-center justify-center rounded text-zinc-500 hover:text-red-400 hover:bg-red-950/30 transition-colors cursor-pointer">✕</button>
                   </div>
                 }
               </div>
@@ -1175,13 +1175,13 @@
               <!-- Force square aspect ratio -->
               <div class="flex items-center gap-2 pt-2">
                 <input type="checkbox" id="force-sq" [ngModel]="forceSquare()" (ngModelChange)="forceSquare.set($event)" class="w-3.5 h-3.5 bg-black rounded border-zinc-800 accent-white cursor-pointer" />
-                <label for="force-sq" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Forțează aspect pătratic (Crop/Resize 1:1)</label>
+                <label for="force-sq" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Force square aspect ratio (Crop/Resize 1:1)</label>
               </div>
             </div>
 
             <!-- Text compression -->
             <div class="bg-[#0a0a0a] border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-              <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Pre-compresie fișiere text (CSS/JS/HTML)</h4>
+              <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Text pre-compression (CSS/JS/HTML)</h4>
               
               <div class="flex items-center gap-6 pt-1">
                 <div class="flex items-center gap-2">
@@ -1201,12 +1201,12 @@
         <!-- Rotated secret_key (shown once) -->
         @if (rotatedSecret()) {
           <div class="bg-amber-950/20 border border-amber-900/40 rounded-lg p-3 space-y-2">
-            <span class="text-[9px] font-bold text-amber-400 uppercase tracking-wider">Noul SECRET_KEY (afișat o singură dată)</span>
+            <span class="text-[9px] font-bold text-amber-400 uppercase tracking-wider">New SECRET_KEY (shown once)</span>
             <div class="flex items-center gap-2">
               <code class="flex-1 px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ rotatedSecret() }}</code>
-              <button (click)="copyToClipboard(rotatedSecret()!)" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copiază</button>
+              <button (click)="copyToClipboard(rotatedSecret()!)" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copy</button>
             </div>
-            <p class="text-[9px] text-amber-500/80 font-sans">app_id-ul rămâne neschimbat. Aplicațiile care folosesc cheia veche au nevoie de reload manual.</p>
+            <p class="text-[9px] text-amber-500/80 font-sans">The app_id remains unchanged. Applications using the old key need a manual reload.</p>
           </div>
         }
 
@@ -1217,15 +1217,15 @@
               (click)="onDeleteBucket(bucket)"
               class="px-3 py-1.5 rounded border border-zinc-900 hover:border-red-900 text-zinc-550 hover:text-red-400 hover:bg-red-950/10 text-xs font-semibold transition-colors cursor-pointer"
             >
-              Șterge definitiv acest Bucket
+              Delete this Bucket permanently
             </button>
             <button
               (click)="onRotateBucketCredentials(bucket)"
               [disabled]="rotatingCreds()"
               class="px-3 py-1.5 rounded border border-amber-900/50 bg-amber-950/30 hover:bg-amber-900/40 text-amber-300 hover:text-amber-200 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Generează un secret_key nou (app_id-ul rămâne)"
+              title="Generate a new secret_key (app_id stays the same)"
             >
-              {{ rotatingCreds() ? 'Se rotește...' : 'Rotește Credențiale' }}
+              {{ rotatingCreds() ? 'Rotating...' : 'Rotate Credentials' }}
             </button>
           </div>
 
@@ -1234,7 +1234,7 @@
               (click)="selectBucket(bucket)"
               class="px-3.5 py-1.5 rounded text-zinc-450 hover:text-white text-xs font-semibold border border-zinc-900 hover:bg-zinc-900 transition-colors cursor-pointer"
             >
-              Resetează
+              Reset
             </button>
             <button 
               (click)="onSaveSettings()"
@@ -1242,13 +1242,13 @@
               class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
             >
               @if (!savingSettings()) {
-                <span>Salvează Setările</span>
+                <span>Save Settings</span>
               } @else {
                 <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span>Se salvează...</span>
+                <span>Saving...</span>
               }
             </button>
           </div>
@@ -1266,30 +1266,30 @@
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-purple-400">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
             </svg>
-            <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Integrare API — Conectare Aplicații Externe</h4>
+            <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">API Integration — Connecting External Applications</h4>
           </div>
           <p class="text-xs text-zinc-500 leading-relaxed font-sans">
-            Bucket-urile sunt private. Aplicațiile externe accesează fișierele cu perechea
+            Buckets are private. External applications access files using the bucket's
             <span class="font-mono text-zinc-300">app_id</span> / <span class="font-mono text-zinc-300">secret_key</span>
-            a bucket-ului, publicată automat în pool-ul de mediu al proiectului.
+            pair, automatically published to the project environment pool.
           </p>
         </div>
 
         <!-- Bucket credentials (key pair) -->
         <div class="bg-[#0a0a0a] border border-zinc-900 rounded p-5 space-y-2 shadow-sm">
-          <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Credențiale Bucket</h4>
+          <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Bucket Credentials</h4>
           <p class="text-[11px] text-zinc-500 leading-relaxed font-sans">
-            Accesul se face cu perechea <span class="font-mono text-zinc-300">app_id</span> /
-            <span class="font-mono text-zinc-300">secret_key</span>, publicată automat în pool-ul de mediu al
-            proiectului ca <span class="font-mono text-zinc-300">BUCKET_&lt;slug&gt;_APP_ID</span> și
-            <span class="font-mono text-zinc-300">BUCKET_&lt;slug&gt;_SECRET_KEY</span>. O poți regenera din
-            tab-ul <span class="text-zinc-300">„Setări"</span> → „Rotește Credențiale".
+            Access is done with the <span class="font-mono text-zinc-300">app_id</span> /
+            <span class="font-mono text-zinc-300">secret_key</span> pair, automatically published to the project
+            environment pool as <span class="font-mono text-zinc-300">BUCKET_&lt;slug&gt;_APP_ID</span> and
+            <span class="font-mono text-zinc-300">BUCKET_&lt;slug&gt;_SECRET_KEY</span>. You can regenerate it from
+            the <span class="text-zinc-300">"Settings"</span> tab → "Rotate Credentials".
           </p>
         </div>
 
         <!-- Code Snippets -->
         <div class="space-y-4">
-            <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Exemple de Utilizare</h4>
+            <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Usage Examples</h4>
 
             <!-- .env snippet -->
             <div class="bg-[#0a0a0a] border border-zinc-900 rounded overflow-hidden shadow-sm">
@@ -1298,7 +1298,7 @@
                 <button
                   (click)="copyToClipboard(getEnvSnippet())"
                   class="text-[9px] text-zinc-600 hover:text-white cursor-pointer font-semibold uppercase tracking-wider"
-                >Copiază</button>
+                >Copy</button>
               </div>
               <pre class="p-4 text-[11px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ getEnvSnippet() }}</pre>
             </div>
@@ -1306,11 +1306,11 @@
             <!-- cURL Upload -->
             <div class="bg-[#0a0a0a] border border-zinc-900 rounded overflow-hidden shadow-sm">
               <div class="flex items-center justify-between bg-black/60 border-b border-zinc-900 px-4 py-2">
-                <span class="text-[9px] font-bold text-zinc-555 uppercase tracking-wider">cURL — Upload Fișier</span>
+                <span class="text-[9px] font-bold text-zinc-555 uppercase tracking-wider">cURL — Upload File</span>
                 <button
                   (click)="copyToClipboard(getUploadSnippet())"
                   class="text-[9px] text-zinc-600 hover:text-white cursor-pointer font-semibold uppercase tracking-wider"
-                >Copiază</button>
+                >Copy</button>
               </div>
               <pre class="p-4 text-[11px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ getUploadSnippet() }}</pre>
             </div>
@@ -1318,11 +1318,11 @@
             <!-- Node.js snippet -->
             <div class="bg-[#0a0a0a] border border-zinc-900 rounded overflow-hidden shadow-sm">
               <div class="flex items-center justify-between bg-black/60 border-b border-zinc-900 px-4 py-2">
-                <span class="text-[9px] font-bold text-zinc-555 uppercase tracking-wider">Node.js — Upload Fișier</span>
+                <span class="text-[9px] font-bold text-zinc-555 uppercase tracking-wider">Node.js — Upload File</span>
                 <button
                   (click)="copyToClipboard(getNodeSnippet())"
                   class="text-[9px] text-zinc-600 hover:text-white cursor-pointer font-semibold uppercase tracking-wider"
-                >Copiază</button>
+                >Copy</button>
               </div>
               <pre class="p-4 text-[11px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ getNodeSnippet() }}</pre>
             </div>
@@ -1330,11 +1330,11 @@
             <!-- List Files -->
             <div class="bg-[#0a0a0a] border border-zinc-900 rounded overflow-hidden shadow-sm">
               <div class="flex items-center justify-between bg-black/60 border-b border-zinc-900 px-4 py-2">
-                <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">cURL — Listare Fișiere</span>
+                <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">cURL — List Files</span>
                 <button
                   (click)="copyToClipboard(getListSnippet())"
                   class="text-[9px] text-zinc-600 hover:text-white cursor-pointer font-semibold uppercase tracking-wider"
-                >Copiază</button>
+                >Copy</button>
               </div>
               <pre class="p-4 text-[11px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ getListSnippet() }}</pre>
             </div>
@@ -1342,11 +1342,11 @@
             <!-- Download Private File -->
             <div class="bg-[#0a0a0a] border border-zinc-900 rounded overflow-hidden shadow-sm">
               <div class="flex items-center justify-between bg-black/60 border-b border-zinc-900 px-4 py-2">
-                <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">cURL — Descărcare Fișier Privat</span>
+                <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">cURL — Download Private File</span>
                 <button
                   (click)="copyToClipboard(getDownloadSnippet())"
                   class="text-[9px] text-zinc-600 hover:text-white cursor-pointer font-semibold uppercase tracking-wider"
-                >Copiază</button>
+                >Copy</button>
               </div>
               <pre class="p-4 text-[11px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ getDownloadSnippet() }}</pre>
             </div>

@@ -244,14 +244,14 @@ export class Storages implements OnInit, OnDestroy {
         } else if (event.type === HttpEventType.Response) {
           this.uploading.set(false);
           this.uploadProgress.set(0);
-          this.toast.success(`Fișierul "${file.name}" a fost încărcat.`);
+          this.toast.success(`File "${file.name}" uploaded.`);
           this.loadPvcDir(this.currentPath());
         }
       },
       error: (err) => {
         this.uploading.set(false);
         this.uploadProgress.set(0);
-        this.toast.error(err.error?.message || 'Eroare la încărcarea fișierului.');
+        this.toast.error(err.error?.message || 'Failed to upload file.');
       }
     });
   }
@@ -275,17 +275,17 @@ export class Storages implements OnInit, OnDestroy {
     const pvc = this.selectedPvc();
     if (!pvc) return;
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere',
-      message: `Sigur ștergi "${item.name}"?`,
-      confirmText: 'Șterge',
-      cancelText: 'Anulează',
+      title: 'Delete',
+      message: `Are you sure you want to delete "${item.name}"?`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
     const path = item.filePath.startsWith('/') ? item.filePath : `/${item.filePath}`;
     this.volumeService.deleteFile(pvc.id, path).subscribe({
-      next: () => { this.toast.success('Șters cu succes.'); this.loadPvcDir(this.currentPath()); },
-      error: (err) => this.toast.error(err.error?.message || 'Eroare la ștergere.')
+      next: () => { this.toast.success('Deleted successfully.'); this.loadPvcDir(this.currentPath()); },
+      error: (err) => this.toast.error(err.error?.message || 'Failed to delete.')
     });
   }
 
@@ -307,7 +307,7 @@ export class Storages implements OnInit, OnDestroy {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la încărcarea bucket-urilor.');
+        this.error.set(err.error?.message || 'Failed to load buckets.');
         this.loading.set(false);
       }
     });
@@ -384,7 +384,7 @@ export class Storages implements OnInit, OnDestroy {
         this.checkAndStartPolling();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la încărcarea fișierelor.');
+        this.toast.error(err.error?.message || 'Failed to load files.');
         this.loadingFiles.set(false);
         this.stopPolling();
       }
@@ -475,13 +475,13 @@ export class Storages implements OnInit, OnDestroy {
 
     this.storageService.updateBucket(bucket.id, payload).subscribe({
       next: (updatedBucket) => {
-        this.toast.success('Setările bucket-ului au fost salvate cu succes.');
+        this.toast.success('Bucket settings saved successfully.');
         this.selectedBucket.set(updatedBucket);
         this.savingSettings.set(false);
         this.loadBuckets(); // reload list
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la salvarea setărilor.');
+        this.toast.error(err.error?.message || 'Failed to save settings.');
         this.savingSettings.set(false);
       }
     });
@@ -496,7 +496,7 @@ export class Storages implements OnInit, OnDestroy {
     if (bucket) {
       logs.push({
         time: new Date(bucket.createdAt),
-        message: `Sesiune inițializată: Bucket-ul "${bucket.name}" a fost creat cu tip acces "${bucket.accessType.toUpperCase()}"`,
+        message: `Session initialized: Bucket "${bucket.name}" created with access type "${bucket.accessType.toUpperCase()}"`,
         type: 'info'
       });
     }
@@ -505,14 +505,14 @@ export class Storages implements OnInit, OnDestroy {
       const uploadTime = new Date(file.createdAt);
       logs.push({
         time: uploadTime,
-        message: `Fișier încărcat cu succes: "${file.filePath}" (${this.formatBytes(file.sizeBytes)} | Type: ${file.mimeType})`,
+        message: `File uploaded successfully: "${file.filePath}" (${this.formatBytes(file.sizeBytes)} | Type: ${file.mimeType})`,
         type: 'success'
       });
 
       if (file.isOptimized) {
         logs.push({
           time: new Date(uploadTime.getTime() + 1500),
-          message: `Procesare imagine finalizată: "${file.filePath}" optimizat la WebP/Avif`,
+          message: `Image processing complete: "${file.filePath}" optimized to WebP/Avif`,
           type: 'info'
         });
       }
@@ -520,7 +520,7 @@ export class Storages implements OnInit, OnDestroy {
       if (file.compression && file.compression !== 'none') {
         logs.push({
           time: new Date(uploadTime.getTime() + 800),
-          message: `Optimizare text: "${file.filePath}" pre-comprimat în format ${file.compression.toUpperCase()}`,
+          message: `Text optimization: "${file.filePath}" pre-compressed in ${file.compression.toUpperCase()} format`,
           type: 'info'
         });
       }
@@ -724,11 +724,11 @@ export class Storages implements OnInit, OnDestroy {
     }
 
     if (this.publishAppId() && !this.appIdEnvKeyName().trim()) {
-      this.toast.error('Numele variabilei de mediu pentru App ID este obligatoriu dacă este bifat.');
+      this.toast.error('The environment variable name for App ID is required when checked.');
       return;
     }
     if (this.publishSecretKey() && !this.secretKeyEnvKeyName().trim()) {
-      this.toast.error('Numele variabilei de mediu pentru Secret Key este obligatoriu dacă este bifat.');
+      this.toast.error('The environment variable name for Secret Key is required when checked.');
       return;
     }
 
@@ -770,10 +770,10 @@ export class Storages implements OnInit, OnDestroy {
 
   async onDeleteBucket(bucket: StorageBucket): Promise<void> {
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Bucket de Stocare',
-      message: `Sigur doriți să ștergeți complet bucket-ul "${bucket.name}"? Toate fișierele conținute, folderele virtuale, configurațiile Nginx și DNS atașate vor fi distruse definitiv!`,
-      confirmText: 'Șterge definitiv',
-      cancelText: 'Anulează',
+      title: 'Delete Storage Bucket',
+      message: `Are you sure you want to completely delete bucket "${bucket.name}"? All contained files, virtual folders, attached Nginx and DNS configurations will be permanently destroyed!`,
+      confirmText: 'Delete permanently',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
@@ -781,12 +781,12 @@ export class Storages implements OnInit, OnDestroy {
     this.loading.set(true);
     this.storageService.deleteBucket(bucket.id).subscribe({
       next: () => {
-        this.toast.success(`Bucket-ul "${bucket.name}" a fost șters.`);
+        this.toast.success(`Bucket "${bucket.name}" deleted.`);
         this.deselectBucket();
         this.loadBuckets();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la ștergerea bucket-ului.');
+        this.toast.error(err.error?.message || 'Failed to delete bucket.');
         this.loading.set(false);
       }
     });
@@ -794,10 +794,10 @@ export class Storages implements OnInit, OnDestroy {
 
   async onRotateBucketCredentials(bucket: StorageBucket): Promise<void> {
     const confirmed = await this.confirm.ask({
-      title: 'Rotește credențialele bucket-ului',
-      message: `Se generează un secret_key nou pentru "${bucket.name}" (app_id-ul rămâne neschimbat). Aplicațiile care folosesc cheia veche vor fi respinse până le reîncarci manual. Continuați?`,
-      confirmText: 'Rotește',
-      cancelText: 'Anulează',
+      title: 'Rotate bucket credentials',
+      message: `A new secret_key will be generated for "${bucket.name}" (app_id remains unchanged). Applications using the old key will be rejected until manually reloaded. Continue?`,
+      confirmText: 'Rotate',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
@@ -808,11 +808,11 @@ export class Storages implements OnInit, OnDestroy {
       next: (res) => {
         this.rotatingCreds.set(false);
         this.rotatedSecret.set(res.secret_key);
-        this.toast.success('Credențiale rotite. Salvează noul secret_key — nu va mai fi afișat. Aplicațiile au nevoie de reload manual.');
+        this.toast.success('Credentials rotated. Save the new secret_key — it will not be shown again. Applications need a manual reload.');
       },
       error: (err) => {
         this.rotatingCreds.set(false);
-        this.toast.error(err.error?.message || 'Eroare la rotația credențialelor.');
+        this.toast.error(err.error?.message || 'Failed to rotate credentials.');
       }
     });
   }
@@ -878,7 +878,7 @@ export class Storages implements OnInit, OnDestroy {
 
     // Enforce the per-file size limit client-side before opening an upload session.
     if (bucket.maxFileSizeBytes > 0 && file.size > bucket.maxFileSizeBytes) {
-      this.toast.error(`Fișierul "${file.name}" (${this.formatBytes(file.size)}) depășește limita de ${this.formatBytes(bucket.maxFileSizeBytes)} per fișier.`);
+      this.toast.error(`File "${file.name}" (${this.formatBytes(file.size)}) exceeds the limit of ${this.formatBytes(bucket.maxFileSizeBytes)} per file.`);
       return;
     }
 
@@ -903,7 +903,7 @@ export class Storages implements OnInit, OnDestroy {
               this.uploadProgress.set(percent);
             } else if (event.type === HttpEventType.Response) {
               this.uploading.set(false);
-              this.toast.success(`Fișierul "${file.name}" a fost încărcat cu succes!`);
+              this.toast.success(`File "${file.name}" uploaded successfully!`);
               this.loadObjects();
             }
           },
@@ -915,7 +915,7 @@ export class Storages implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.uploading.set(false);
-        this.toast.error(err.error?.message || 'Eroare la inițializarea sesiunii.');
+        this.toast.error(err.error?.message || 'Failed to initialize session.');
       }
     });
   }
@@ -923,21 +923,21 @@ export class Storages implements OnInit, OnDestroy {
   async onDeleteFile(item: VirtualItem): Promise<void> {
     if (!item.id) return;
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Fișier',
-      message: `Sigur doriți să ștergeți fișierul "${item.name}"? Această acțiune este ireversibilă și va șterge fișierele comprimate și variantele de pe disk/S3!`,
-      confirmText: 'Șterge',
-      cancelText: 'Anulează',
+      title: 'Delete File',
+      message: `Are you sure you want to delete file "${item.name}"? This action is irreversible and will delete compressed files and variants from disk/S3!`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
 
     this.storageService.deleteObject(item.id).subscribe({
       next: () => {
-        this.toast.success(`Fișierul "${item.name}" a fost eliminat.`);
+        this.toast.success(`File "${item.name}" removed.`);
         this.loadObjects();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la ștergerea fișierului.');
+        this.toast.error(err.error?.message || 'Failed to delete file.');
       }
     });
   }
@@ -945,21 +945,21 @@ export class Storages implements OnInit, OnDestroy {
   async onCancelUpload(item: VirtualItem): Promise<void> {
     if (!item.id) return;
     const confirmed = await this.confirm.ask({
-      title: 'Anulare Încărcare',
-      message: `Sigur doriți să anulați încărcarea/procesarea fișierului "${item.name}"?`,
-      confirmText: 'Anulează',
-      cancelText: 'Păstrează',
+      title: 'Cancel Upload',
+      message: `Are you sure you want to cancel the upload/processing of file "${item.name}"?`,
+      confirmText: 'Cancel',
+      cancelText: 'Keep',
       isDanger: true
     });
     if (!confirmed) return;
 
     this.storageService.deleteObject(item.id).subscribe({
       next: () => {
-        this.toast.success(`Încărcarea fișierului "${item.name}" a fost anulată.`);
+        this.toast.success(`Upload of file "${item.name}" cancelled.`);
         this.loadObjects();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la anularea încărcării.');
+        this.toast.error(err.error?.message || 'Failed to cancel upload.');
       }
     });
   }
@@ -1023,9 +1023,9 @@ export class Storages implements OnInit, OnDestroy {
   // Human label for the live processing stage surfaced via polling.
   stageLabel(stage?: string | null): string {
     if (!stage) return 'Procesare...';
-    if (stage.startsWith('variant:')) return `Variantă: ${stage.slice('variant:'.length)}`;
+    if (stage.startsWith('variant:')) return `Variant: ${stage.slice('variant:'.length)}`;
     const map: Record<string, string> = {
-      analyzing: 'Analiză fișier',
+      analyzing: 'Analyzing file',
       converting: 'Conversie format',
       compressing: 'Compresie',
       finalizing: 'Finalizare / sync',
@@ -1046,13 +1046,13 @@ export class Storages implements OnInit, OnDestroy {
   copyPublicUrl(item: VirtualItem): void {
     if (!item.virtualUrl) return;
     navigator.clipboard.writeText(item.virtualUrl).then(() => {
-      this.toast.success('Adresa a fost copiată în clipboard!');
+      this.toast.success('Address copied to clipboard!');
     });
   }
 
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text).then(() => {
-      this.toast.success('Copiat în clipboard!');
+      this.toast.success('Copied to clipboard!');
     });
   }
 
@@ -1078,7 +1078,7 @@ export class Storages implements OnInit, OnDestroy {
 
   getUploadSnippet(): string {
     const slug = this.selectedBucket()?.slug || '';
-    return `# 1. Inițializare upload\ncurl -X POST ${environment.apiBaseUrl}/storage/upload/init \\\n  -H "Authorization: Bearer YOUR_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{"bucketSlug": "${slug}", "filePath": "/images/photo.jpg", "mimeType": "image/jpeg"}' \n\n# 2. Upload cu ID-ul primit\ncurl -X PUT ${environment.apiBaseUrl}/storage/upload/{file_id} \\\n  -H "Content-Type: application/octet-stream" \\\n  --data-binary @photo.jpg`;
+    return `# 1. Initialize upload\ncurl -X POST ${environment.apiBaseUrl}/storage/upload/init \\\n  -H "Authorization: Bearer YOUR_TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{"bucketSlug": "${slug}", "filePath": "/images/photo.jpg", "mimeType": "image/jpeg"}' \n\n# 2. Upload with received ID\ncurl -X PUT ${environment.apiBaseUrl}/storage/upload/{file_id} \\\n  -H "Content-Type: application/octet-stream" \\\n  --data-binary @photo.jpg`;
   }
 
   getNodeSnippet(): string {
