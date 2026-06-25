@@ -80,7 +80,7 @@ export class WorkspaceSettings implements OnInit {
     const token = this.newCfToken().trim();
     const zoneId = this.newCfZoneId().trim();
     if (!label || !token || !zoneId) {
-      this.toast.error('Eticheta, token-ul și Zone ID-ul sunt obligatorii.');
+      this.toast.error('Label, token and Zone ID are required.');
       return;
     }
     this.addingCf.set(true);
@@ -94,28 +94,28 @@ export class WorkspaceSettings implements OnInit {
         this.newCfToken.set('');
         this.newCfZoneId.set('');
         this.newCfBaseDomain.set('');
-        this.toast.success('Token-ul Cloudflare a fost adăugat.');
+        this.toast.success('Cloudflare token added.');
         this.loadCloudflareCredentials();
       },
       error: (err) => {
         this.addingCf.set(false);
-        this.toast.error(err.error?.message || 'Eroare la adăugarea token-ului Cloudflare.');
+        this.toast.error(err.error?.message || 'Failed to add Cloudflare token.');
       }
     });
   }
 
   async onDeleteCloudflareCredential(cred: CloudflareCredential): Promise<void> {
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere token Cloudflare',
-      message: `Sigur ștergi "${cred.label}"? Proiectele care îl folosesc rămân fără DNS Cloudflare până asociezi altul.`,
-      confirmText: 'Șterge',
-      cancelText: 'Anulează',
+      title: 'Delete Cloudflare Token',
+      message: `Are you sure you want to delete "${cred.label}"? Projects using it will lose Cloudflare DNS until another token is assigned.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
     this.cloudflareService.deleteCredential(cred.id).subscribe({
-      next: () => { this.toast.success('Token Cloudflare șters.'); this.loadCloudflareCredentials(); },
-      error: (err) => this.toast.error(err.error?.message || 'Eroare la ștergere.')
+      next: () => { this.toast.success('Cloudflare token deleted.'); this.loadCloudflareCredentials(); },
+      error: (err) => this.toast.error(err.error?.message || 'Failed to delete.')
     });
   }
 
@@ -130,7 +130,7 @@ export class WorkspaceSettings implements OnInit {
     const label = this.newCredLabel().trim();
     const token = this.newCredToken().trim();
     if (!label || !token) {
-      this.toast.error('Eticheta și token-ul sunt obligatorii.');
+      this.toast.error('Label and token are required.');
       return;
     }
     this.addingCred.set(true);
@@ -147,28 +147,28 @@ export class WorkspaceSettings implements OnInit {
         this.newCredToken.set('');
         this.newCredHost.set('');
         this.newCredSkipTls.set(false);
-        this.toast.success('Credențiala Git a fost adăugată.');
+        this.toast.success('Git credential added.');
         this.loadGitCredentials();
       },
       error: (err) => {
         this.addingCred.set(false);
-        this.toast.error(err.error?.message || 'Eroare la adăugarea credențialei (token invalid?).');
+        this.toast.error(err.error?.message || 'Failed to add credential (invalid token?).');
       }
     });
   }
 
   async onDeleteCredential(cred: GitCredential): Promise<void> {
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere credențială Git',
-      message: `Sigur ștergi credențiala "${cred.label}"? Aplicațiile care o folosesc nu vor mai putea clona până la realocare.`,
-      confirmText: 'Șterge',
-      cancelText: 'Anulează',
+      title: 'Delete Git Credential',
+      message: `Are you sure you want to delete the credential "${cred.label}"? Applications using it will no longer be able to clone until reassigned.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
     this.gitService.deleteCredential(cred.id).subscribe({
-      next: () => { this.toast.success('Credențială ștearsă.'); this.loadGitCredentials(); },
-      error: (err) => this.toast.error(err.error?.message || 'Eroare la ștergere.')
+      next: () => { this.toast.success('Credential deleted.'); this.loadGitCredentials(); },
+      error: (err) => this.toast.error(err.error?.message || 'Failed to delete.')
     });
   }
 
@@ -180,7 +180,7 @@ export class WorkspaceSettings implements OnInit {
     // Load usage
     this.workspaceService.getUsage().subscribe({
       next: (res) => this.usage.set(res),
-      error: (err) => console.error('Eroare la încărcarea cotelor de resurse.', err)
+      error: (err) => console.error('Failed to load resource quotas.', err)
     });
 
     // Load members
@@ -197,7 +197,7 @@ export class WorkspaceSettings implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la încărcarea detaliilor workspace-ului.');
+        this.error.set(err.error?.message || 'Failed to load workspace details.');
         this.loading.set(false);
       }
     });
@@ -205,7 +205,7 @@ export class WorkspaceSettings implements OnInit {
 
   onSaveSettings(): void {
     if (!this.wsName().trim()) {
-      this.error.set('Numele workspace-ului este obligatoriu.');
+      this.error.set('Workspace name is required.');
       return;
     }
 
@@ -221,11 +221,11 @@ export class WorkspaceSettings implements OnInit {
     }).subscribe({
       next: (res) => {
         this.saving.set(false);
-        this.successMsg.set('Setările spațiului de lucru au fost actualizate cu succes.');
+        this.successMsg.set('Workspace settings updated successfully.');
         this.loadData();
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la salvarea setărilor.');
+        this.error.set(err.error?.message || 'Failed to save settings.');
         this.saving.set(false);
       }
     });
@@ -239,7 +239,7 @@ export class WorkspaceSettings implements OnInit {
         this.loadingMembers.set(false);
       },
       error: (err) => {
-        console.error('Eroare la încărcarea membrilor.', err);
+        console.error('Failed to load members.', err);
         this.loadingMembers.set(false);
       }
     });
@@ -249,20 +249,20 @@ export class WorkspaceSettings implements OnInit {
     const email = this.newMemberEmail().trim();
     const role = this.newMemberRole();
     if (!email) {
-      this.toast.error('Adresa de email este obligatorie.');
+      this.toast.error('Email address is required.');
       return;
     }
 
     this.invitingMember.set(true);
     this.workspaceService.addMember(email, role).subscribe({
       next: () => {
-        this.toast.success('Membru adăugat cu succes!');
+        this.toast.success('Member added successfully!');
         this.newMemberEmail.set('');
         this.invitingMember.set(false);
         this.loadMembers();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la adăugarea membrului.');
+        this.toast.error(err.error?.message || 'Failed to add member.');
         this.invitingMember.set(false);
       }
     });
@@ -274,39 +274,39 @@ export class WorkspaceSettings implements OnInit {
     
     this.workspaceService.updateMemberRole(member.userId, newRole).subscribe({
       next: () => {
-        this.toast.success('Rolul membrului a fost actualizat.');
+        this.toast.success('Member role updated.');
         this.loadMembers();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la modificarea rolului.');
+        this.toast.error(err.error?.message || 'Failed to update role.');
       }
     });
   }
 
   async onRemoveMember(member: WorkspaceMember): Promise<void> {
     const confirmed = await this.confirm.ask({
-      title: 'Excludere Membru',
-      message: `Sigur doriți să eliminați utilizatorul "${member.username}" (${member.email}) din acest workspace?`,
-      confirmText: 'Elimină',
-      cancelText: 'Anulează',
+      title: 'Remove Member',
+      message: `Are you sure you want to remove "${member.username}" (${member.email}) from this workspace?`,
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
 
     this.workspaceService.removeMember(member.userId).subscribe({
       next: () => {
-        this.toast.success('Membrul a fost eliminat.');
+        this.toast.success('Member has been removed.');
         this.loadMembers();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la eliminarea membrului.');
+        this.toast.error(err.error?.message || 'Failed to remove member.');
       }
     });
   }
 
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text).then(() => {
-      this.toast.success('Copiat în clipboard!');
+      this.toast.success('Copied to clipboard!');
     });
   }
 }

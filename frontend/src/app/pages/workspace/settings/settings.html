@@ -2,8 +2,8 @@
   
   <!-- Section Header -->
   <div class="border-b border-zinc-900 pb-4">
-    <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Setări Spațiu de Lucru</h3>
-    <p class="text-xs text-zinc-550">Administrează cotele de resurse și configurațiile de infrastructură (Cloudflare / Ingress IP) ale workspace-ului curent.</p>
+    <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Workspace Settings</h3>
+    <p class="text-xs text-zinc-550">Manage resource quotas and infrastructure configuration (Cloudflare / Ingress IP) for the current workspace.</p>
   </div>
 
   <!-- Loading State -->
@@ -13,7 +13,7 @@
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
-      <span class="text-zinc-550 text-[9px] uppercase font-mono tracking-widest">Se încarcă detaliile...</span>
+      <span class="text-zinc-550 text-[9px] uppercase font-mono tracking-widest">Loading details...</span>
     </div>
   }
 
@@ -46,14 +46,14 @@
         [class]="activeSubTab() === 'general' ? 'border-b-2 border-white text-white pb-1.5 font-bold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-1.5 transition-all'"
         class="cursor-pointer"
       >
-        Configurații Generale
+        General Settings
       </button>
-      <button 
-        (click)="activeSubTab.set('members')" 
+      <button
+        (click)="activeSubTab.set('members')"
         [class]="activeSubTab() === 'members' ? 'border-b-2 border-white text-white pb-1.5 font-bold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-1.5 transition-all'"
         class="cursor-pointer"
       >
-        Membrii Echipei ({{ members().length }})
+        Team Members ({{ members().length }})
       </button>
     </div>
 
@@ -73,12 +73,12 @@
                     </svg>
                   </div>
                   <div>
-                    <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Alocare Memorie RAM</h3>
-                    <p class="text-[9px] text-zinc-500 font-mono">Limite RAM Kubernetes</p>
+                    <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">RAM Allocation</h3>
+                    <p class="text-[9px] text-zinc-500 font-mono">Kubernetes RAM Limits</p>
                   </div>
                 </div>
                 <span class="text-lg font-bold text-white font-mono">
-                  {{ usage()?.usedMemoryMb }} <span class="text-xs text-zinc-500 font-sans">/ @if (usage()?.maxMemoryMb === 0) { Nelimitat } @else { {{ usage()?.maxMemoryMb }} MB }</span>
+                  {{ usage()?.usedMemoryMb }} <span class="text-xs text-zinc-500 font-sans">/ @if (usage()?.maxMemoryMb === 0) { Unlimited } @else { {{ usage()?.maxMemoryMb }} MB }</span>
                 </span>
               </div>
 
@@ -96,8 +96,8 @@
                   ></div>
                 </div>
                 <div class="flex items-center justify-between text-[10px] text-zinc-550 font-mono">
-                  <span>Consumat: @if (usage()?.maxMemoryMb === 0) { - } @else { {{ ((usage()!.usedMemoryMb / usage()!.maxMemoryMb) * 100) | number:'1.0-1' }}% }</span>
-                  <span>Rămas: @if (usage()?.maxMemoryMb === 0) { Nelimitat } @else { {{ usage()!.maxMemoryMb - usage()!.usedMemoryMb }} MB }</span>
+                  <span>Used: @if (usage()?.maxMemoryMb === 0) { - } @else { {{ ((usage()!.usedMemoryMb / usage()!.maxMemoryMb) * 100) | number:'1.0-1' }}% }</span>
+                  <span>Remaining: @if (usage()?.maxMemoryMb === 0) { Unlimited } @else { {{ usage()!.maxMemoryMb - usage()!.usedMemoryMb }} MB }</span>
                 </div>
               </div>
             </div>
@@ -112,12 +112,12 @@
                     </svg>
                   </div>
                   <div>
-                    <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Stocare Persistentă (PVC)</h3>
-                    <p class="text-[9px] text-zinc-500 font-mono">Limite Volume Stocare</p>
+                    <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Persistent Storage (PVC)</h3>
+                    <p class="text-[9px] text-zinc-500 font-mono">Storage Volume Limits</p>
                   </div>
                 </div>
                 <span class="text-lg font-bold text-white font-mono">
-                  {{ usage()?.usedStorageGb }} <span class="text-xs text-zinc-500 font-sans">/ @if (usage()?.maxStorageGb === 0) { Nelimitat } @else { {{ usage()?.maxStorageGb }} GB }</span>
+                  {{ usage()?.usedStorageGb }} <span class="text-xs text-zinc-500 font-sans">/ @if (usage()?.maxStorageGb === 0) { Unlimited } @else { {{ usage()?.maxStorageGb }} GB }</span>
                 </span>
               </div>
 
@@ -135,8 +135,8 @@
                   ></div>
                 </div>
                 <div class="flex items-center justify-between text-[10px] text-zinc-550 font-mono">
-                  <span>Consumat: @if (usage()?.maxStorageGb === 0) { - } @else { {{ ((usage()!.usedStorageGb / usage()!.maxStorageGb) * 100) | number:'1.0-1' }}% }</span>
-                  <span>Rămas: @if (usage()?.maxStorageGb === 0) { Nelimitat } @else { {{ usage()!.maxStorageGb - usage()!.usedStorageGb }} GB }</span>
+                  <span>Used: @if (usage()?.maxStorageGb === 0) { - } @else { {{ ((usage()!.usedStorageGb / usage()!.maxStorageGb) * 100) | number:'1.0-1' }}% }</span>
+                  <span>Remaining: @if (usage()?.maxStorageGb === 0) { Unlimited } @else { {{ usage()!.maxStorageGb - usage()!.usedStorageGb }} GB }</span>
                 </div>
               </div>
             </div>
@@ -151,12 +151,12 @@
                     </svg>
                   </div>
                   <div>
-                    <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Alocare CPU</h3>
-                    <p class="text-[9px] text-zinc-500 font-mono">Limite CPU Kubernetes</p>
+                    <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">CPU Allocation</h3>
+                    <p class="text-[9px] text-zinc-500 font-mono">Kubernetes CPU Limits</p>
                   </div>
                 </div>
                 <span class="text-lg font-bold text-white font-mono">
-                  {{ usage()?.usedCpuMillicores }} <span class="text-xs text-zinc-500 font-sans">/ @if (usage()?.maxCpuMillicores === 0) { Nelimitat } @else { {{ usage()?.maxCpuMillicores }} m }</span>
+                  {{ usage()?.usedCpuMillicores }} <span class="text-xs text-zinc-500 font-sans">/ @if (usage()?.maxCpuMillicores === 0) { Unlimited } @else { {{ usage()?.maxCpuMillicores }} m }</span>
                 </span>
               </div>
 
@@ -174,8 +174,8 @@
                   ></div>
                 </div>
                 <div class="flex items-center justify-between text-[10px] text-zinc-550 font-mono">
-                  <span>Consumat: @if (usage()?.maxCpuMillicores === 0) { - } @else { {{ ((usage()!.usedCpuMillicores / usage()!.maxCpuMillicores) * 100) | number:'1.0-1' }}% }</span>
-                  <span>Rămas: @if (usage()?.maxCpuMillicores === 0) { Nelimitat } @else { {{ usage()!.maxCpuMillicores - usage()!.usedCpuMillicores }} m }</span>
+                  <span>Used: @if (usage()?.maxCpuMillicores === 0) { - } @else { {{ ((usage()!.usedCpuMillicores / usage()!.maxCpuMillicores) * 100) | number:'1.0-1' }}% }</span>
+                  <span>Remaining: @if (usage()?.maxCpuMillicores === 0) { Unlimited } @else { {{ usage()!.maxCpuMillicores - usage()!.usedCpuMillicores }} m }</span>
                 </div>
               </div>
             </div>
@@ -186,18 +186,18 @@
         <div class="bg-[#0a0a0a] p-6 rounded-lg border border-zinc-800 space-y-6 shadow-sm">
           
           <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
-            <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Setări Generale & Limitări</h4>
+            <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">General Settings & Limits</h4>
             <span class="text-[9px] text-zinc-600 font-mono select-all cursor-pointer font-bold">ID: {{ workspace()?.id }}</span>
           </div>
 
           <div class="grid gap-4 sm:grid-cols-3">
             <!-- Name -->
             <div class="space-y-1.5">
-              <label for="ws-name-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Nume Workspace</label>
-              <input 
+              <label for="ws-name-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Workspace Name</label>
+              <input
                 id="ws-name-input"
-                type="text" 
-                placeholder="ex. Proiecte Hermes"
+                type="text"
+                placeholder="e.g. My Projects"
                 [ngModel]="wsName()"
                 (ngModelChange)="wsName.set($event)"
                 [disabled]="saving()"
@@ -207,7 +207,7 @@
 
             <!-- Max Memory limit -->
             <div class="space-y-1.5">
-              <label for="ws-mem-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Limită RAM Maximă (MB)</label>
+              <label for="ws-mem-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Max RAM Limit (MB)</label>
               <input 
                 id="ws-mem-input"
                 type="number" 
@@ -220,7 +220,7 @@
 
             <!-- Max Storage limit -->
             <div class="space-y-1.5">
-              <label for="ws-store-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Limită Stocare PVC (GB)</label>
+              <label for="ws-store-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Max PVC Storage Limit (GB)</label>
               <input
                 id="ws-store-input"
                 type="number"
@@ -233,7 +233,7 @@
 
             <!-- Max CPU limit -->
             <div class="space-y-1.5">
-              <label for="ws-cpu-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Limită CPU Maximă (millicores, 0 = nelimitat)</label>
+              <label for="ws-cpu-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Max CPU Limit (millicores, 0 = unlimited)</label>
               <input
                 id="ws-cpu-input"
                 type="number"
@@ -242,11 +242,11 @@
                 [disabled]="saving()"
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
-              <p class="text-[9px] text-zinc-600 font-mono">1000m = 1 vCPU. Se aplică ca ResourceQuota pe namespace (requests + limits).</p>
+              <p class="text-[9px] text-zinc-600 font-mono">1000m = 1 vCPU. Applied as a ResourceQuota on the namespace (requests + limits).</p>
             </div>
           </div>
 
-          <p class="text-[10px] text-zinc-600 pt-1">Setările Cloudflare / Ingress s-au mutat la nivel de proiect — vezi tab-ul „Setări" din fiecare proiect.</p>
+          <p class="text-[10px] text-zinc-600 pt-1">Cloudflare / Ingress settings have moved to project level — see the "Settings" tab in each project.</p>
 
           <!-- Submit Button -->
           <div class="pt-4 border-t border-zinc-900 flex justify-end">
@@ -256,13 +256,13 @@
               class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
             >
               @if (!saving()) {
-                <span>Salvează Setările</span>
+                <span>Save Settings</span>
               } @else {
                 <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span>Se salvează...</span>
+                <span>Saving...</span>
               }
             </button>
           </div>
@@ -272,13 +272,13 @@
         <!-- Git Credentials card -->
         <div class="bg-[#0a0a0a] border border-zinc-850 rounded-lg p-5 space-y-4 shadow-sm font-mono mt-6">
           <div class="border-b border-zinc-900 pb-2.5">
-            <h4 class="text-xs font-bold text-zinc-355 uppercase tracking-wider">Credențiale Git</h4>
-            <p class="text-[10px] text-zinc-550 mt-0.5 font-sans">Token-uri de acces (GitHub / GitLab) folosite la importul și clonarea repository-urilor. Alegi credențiala când creezi o aplicație.</p>
+            <h4 class="text-xs font-bold text-zinc-355 uppercase tracking-wider">Git Credentials</h4>
+            <p class="text-[10px] text-zinc-550 mt-0.5 font-sans">Access tokens (GitHub / GitLab) used when importing and cloning repositories. Select a credential when creating an application.</p>
           </div>
 
           <!-- Existing credentials -->
           @if (gitCredentials().length === 0) {
-            <p class="text-[10px] text-zinc-600 py-1">Nicio credențială adăugată încă.</p>
+            <p class="text-[10px] text-zinc-600 py-1">No credentials added yet.</p>
           } @else {
             <div class="divide-y divide-zinc-900">
               @for (c of gitCredentials(); track c.id) {
@@ -288,7 +288,7 @@
                     <span class="text-xs text-white truncate">{{ c.label }}</span>
                     <span class="text-[10px] text-zinc-600 truncate">{{ c.host }}{{ c.username ? ' · @' + c.username : '' }}</span>
                   </div>
-                  <button (click)="onDeleteCredential(c)" class="px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-red-950/20 cursor-pointer shrink-0">Șterge</button>
+                  <button (click)="onDeleteCredential(c)" class="px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-red-950/20 cursor-pointer shrink-0">Delete</button>
                 </div>
               }
             </div>
@@ -305,14 +305,14 @@
               </select>
             </div>
             <div class="space-y-1.5">
-              <label for="cred-host" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Host (opțional)</label>
+              <label for="cred-host" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Host (optional)</label>
               <input id="cred-host" type="text" placeholder="github.com / gitlab.com"
                 [ngModel]="newCredHost()" (ngModelChange)="newCredHost.set($event)"
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
             <div class="space-y-1.5">
-              <label for="cred-label" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Etichetă</label>
-              <input id="cred-label" type="text" placeholder="ex. GitHub personal"
+              <label for="cred-label" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Label</label>
+              <input id="cred-label" type="text" placeholder="e.g. GitHub personal"
                 [ngModel]="newCredLabel()" (ngModelChange)="newCredLabel.set($event)"
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
@@ -327,11 +327,11 @@
             <label class="flex items-center gap-2 cursor-pointer select-none">
               <input type="checkbox" [ngModel]="newCredSkipTls()" (ngModelChange)="newCredSkipTls.set($event)"
                 class="w-3.5 h-3.5 accent-white cursor-pointer" />
-              <span class="text-[10px] text-zinc-500 font-sans">Acceptă certificate SSL auto-semnate <span class="text-zinc-650">(self-hosted)</span></span>
+              <span class="text-[10px] text-zinc-500 font-sans">Accept self-signed SSL certificates <span class="text-zinc-650">(self-hosted)</span></span>
             </label>
             <button (click)="onAddCredential()" [disabled]="addingCred()"
               class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
-              {{ addingCred() ? 'Se verifică...' : 'Adaugă credențială' }}
+              {{ addingCred() ? 'Verifying...' : 'Add Credential' }}
             </button>
           </div>
         </div>
@@ -339,13 +339,13 @@
         <!-- Cloudflare Tokens card -->
         <div class="bg-[#0a0a0a] border border-zinc-850 rounded-lg p-5 space-y-4 shadow-sm font-mono mt-6">
           <div class="border-b border-zinc-900 pb-2.5">
-            <h4 class="text-xs font-bold text-zinc-355 uppercase tracking-wider">Token-uri Cloudflare</h4>
-            <p class="text-[10px] text-zinc-550 mt-0.5 font-sans">Token-uri pentru DNS-ul domeniilor custom. Un token = un domeniu (include Zone ID + domeniul). Alegi token-ul când creezi un proiect, sau îl schimbi din setările proiectului.</p>
+            <h4 class="text-xs font-bold text-zinc-355 uppercase tracking-wider">Cloudflare Tokens</h4>
+            <p class="text-[10px] text-zinc-550 mt-0.5 font-sans">Tokens for custom domain DNS. One token = one domain (includes Zone ID + domain). Select a token when creating a project, or change it from project settings.</p>
           </div>
 
           <!-- Existing credentials -->
           @if (cloudflareCredentials().length === 0) {
-            <p class="text-[10px] text-zinc-600 py-1">Niciun token Cloudflare adăugat încă.</p>
+            <p class="text-[10px] text-zinc-600 py-1">No Cloudflare tokens added yet.</p>
           } @else {
             <div class="divide-y divide-zinc-900">
               @for (c of cloudflareCredentials(); track c.id) {
@@ -355,7 +355,7 @@
                     <span class="text-xs text-white truncate">{{ c.label }}</span>
                     <span class="text-[10px] text-zinc-600 truncate">{{ c.baseDomain || c.zoneId }}</span>
                   </div>
-                  <button (click)="onDeleteCloudflareCredential(c)" class="px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-red-950/20 cursor-pointer shrink-0">Șterge</button>
+                  <button (click)="onDeleteCloudflareCredential(c)" class="px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-red-950/20 cursor-pointer shrink-0">Delete</button>
                 </div>
               }
             </div>
@@ -364,14 +364,14 @@
           <!-- Add credential -->
           <div class="grid gap-3 sm:grid-cols-2 border-t border-zinc-900 pt-3">
             <div class="space-y-1.5">
-              <label for="cf-label" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Etichetă</label>
-              <input id="cf-label" type="text" placeholder="ex. parapet-software.work"
+              <label for="cf-label" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Label</label>
+              <input id="cf-label" type="text" placeholder="e.g. parapet-software.work"
                 [ngModel]="newCfLabel()" (ngModelChange)="newCfLabel.set($event)"
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
             <div class="space-y-1.5">
-              <label for="cf-domain" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Domeniu de bază (opțional)</label>
-              <input id="cf-domain" type="text" placeholder="ex. parapet-software.work"
+              <label for="cf-domain" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Base domain (optional)</label>
+              <input id="cf-domain" type="text" placeholder="e.g. parapet-software.work"
                 [ngModel]="newCfBaseDomain()" (ngModelChange)="newCfBaseDomain.set($event)"
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
@@ -383,7 +383,7 @@
             </div>
             <div class="space-y-1.5">
               <label for="cf-zone" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Zone ID</label>
-              <input id="cf-zone" type="text" placeholder="ex. ac4011807d97…"
+              <input id="cf-zone" type="text" placeholder="e.g. ac4011807d97…"
                 [ngModel]="newCfZoneId()" (ngModelChange)="newCfZoneId.set($event)"
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
@@ -391,7 +391,7 @@
           <div class="flex items-center justify-end pt-1">
             <button (click)="onAddCloudflareCredential()" [disabled]="addingCf()"
               class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
-              {{ addingCf() ? 'Se adaugă...' : 'Adaugă token' }}
+              {{ addingCf() ? 'Adding...' : 'Add Token' }}
             </button>
           </div>
         </div>
@@ -405,15 +405,15 @@
         <!-- Add Member Form Card -->
         <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
           <div>
-            <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Adaugă Membru Nou</h4>
-            <p class="text-[10px] text-zinc-500 mt-1">Introduceți e-mailul unui cont existent pentru a-l adăuga în acest workspace.</p>
+            <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Add New Member</h4>
+            <p class="text-[10px] text-zinc-500 mt-1">Enter the email of an existing account to add them to this workspace.</p>
           </div>
           
           <div class="flex flex-col sm:flex-row gap-3 text-xs">
             <div class="flex-1">
               <input 
                 type="email" 
-                placeholder="email@utilizator.ro"
+                placeholder="user@example.com"
                 [ngModel]="newMemberEmail()"
                 (ngModelChange)="newMemberEmail.set($event)"
                 class="block w-full px-3 py-2 bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
@@ -442,12 +442,12 @@
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                 </svg>
-                <span>Se adaugă...</span>
+                <span>Adding...</span>
               } @else {
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
-                <span>Adaugă în Echipă</span>
+                <span>Add to Team</span>
               }
             </button>
           </div>
@@ -456,7 +456,7 @@
         <!-- Members List Card -->
         <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg overflow-hidden shadow-sm">
           <div class="p-4 bg-zinc-950/40 border-b border-zinc-900">
-            <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Membrii Activi</h4>
+            <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Active Members</h4>
           </div>
 
           @if (loadingMembers()) {
@@ -465,17 +465,17 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>
-              <span class="text-[10px] text-zinc-500 font-mono">Se încarcă lista membrilor...</span>
+              <span class="text-[10px] text-zinc-500 font-mono">Loading member list...</span>
             </div>
           } @else {
             <div class="overflow-x-auto">
               <table class="w-full text-left border-collapse text-xs font-mono">
                 <thead>
                   <tr class="bg-zinc-950/80 border-b border-zinc-900 text-[10px] text-zinc-550 uppercase tracking-wider">
-                    <th class="p-3 font-bold">Utilizator (Username)</th>
+                    <th class="p-3 font-bold">User (Username)</th>
                     <th class="p-3 font-bold">E-mail</th>
-                    <th class="p-3 font-bold">Rol Workspace</th>
-                    <th class="p-3 font-bold text-right">Acțiuni</th>
+                    <th class="p-3 font-bold">Workspace Role</th>
+                    <th class="p-3 font-bold text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-900/40">
@@ -486,7 +486,7 @@
                           <span class="w-1.5 h-1.5 rounded-full" [class]="member.roleName === 'owner' ? 'bg-purple-500 shadow-sm shadow-purple-500/50' : 'bg-zinc-500'"></span>
                           <span class="font-bold text-zinc-300 text-xs">{{ member.username }}</span>
                           @if (member.email === auth.currentUser()?.email) {
-                            <span class="text-[9px] px-1 py-0.2 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 font-sans">Tu</span>
+                            <span class="text-[9px] px-1 py-0.2 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 font-sans">You</span>
                           }
                         </div>
                       </td>
@@ -513,7 +513,7 @@
                         @if (member.roleName !== 'owner' && member.email !== auth.currentUser()?.email) {
                           <button 
                             (click)="onRemoveMember(member)"
-                            title="Elimină Membru"
+                            title="Remove Member"
                             class="p-1.5 rounded border border-red-955/30 hover:bg-red-955/20 text-red-500/80 hover:text-red-400 cursor-pointer transition-all"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-3.5 h-3.5">
