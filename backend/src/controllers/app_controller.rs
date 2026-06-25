@@ -849,7 +849,7 @@ pub async fn redeploy_app_instance(
     })?;
 
     let meta = sqlx::query!(
-        "SELECT ai.id, ai.branch_name, a.git_repository, a.build_command
+        "SELECT ai.id, ai.branch_name, a.git_repository, a.build_command, ai.container_name, ai.app_id
          FROM app_instances ai
          JOIN apps a ON ai.app_id = a.id
          WHERE ai.id = $1 AND a.workspace_id = $2",
@@ -876,6 +876,15 @@ pub async fn redeploy_app_instance(
     )
     .execute(&state.pool)
     .await?;
+
+    crate::utils::event_broadcaster::broadcast_event(
+        crate::utils::event_broadcaster::SystemEvent::InstanceStatusChanged {
+            workspace_id: ws_id,
+            instance_id: meta.id,
+            container_name: meta.container_name.clone(),
+            status: "building".to_string(),
+        }
+    );
 
     let _ = crate::utils::job_queue::enqueue_build(
         &state.pool,
@@ -1599,9 +1608,10 @@ pub async fn cancel_build(
     })?;
 
     let build = sqlx::query!(
-        "SELECT ab.status, ab.app_instance_id, a.workspace_id
+        "SELECT ab.status, ab.app_instance_id, a.workspace_id, ai.container_name
          FROM app_builds ab
          JOIN apps a ON ab.app_id = a.id
+         JOIN app_instances ai ON ab.app_instance_id = ai.id
          WHERE ab.id = $1 AND ab.app_id = $2 AND a.workspace_id = $3",
         build_id, app_id, ws_id
     )
@@ -1627,6 +1637,15 @@ pub async fn cancel_build(
     )
     .execute(&state.pool)
     .await?;
+
+    crate::utils::event_broadcaster::broadcast_event(
+        crate::utils::event_broadcaster::SystemEvent::InstanceStatusChanged {
+            workspace_id: build.workspace_id,
+            instance_id: build.app_instance_id,
+            container_name: build.container_name.clone(),
+            status: "stopped".to_string(),
+        }
+    );
 
     // Tear down the builder pod immediately.
     let namespace = format!("hermes-ws-{}", build.workspace_id);
@@ -1714,7 +1733,7 @@ pub async fn retry_build(
     })?;
 
     let meta = sqlx::query!(
-        "SELECT ab.app_instance_id, ai.branch_name, a.git_repository, a.build_command
+        "SELECT ab.app_instance_id, ai.branch_name, a.git_repository, a.build_command, ai.container_name, a.workspace_id
          FROM app_builds ab
          JOIN app_instances ai ON ab.app_instance_id = ai.id
          JOIN apps a ON ab.app_id = a.id
@@ -1743,6 +1762,15 @@ pub async fn retry_build(
     )
     .execute(&state.pool)
     .await?;
+
+    crate::utils::event_broadcaster::broadcast_event(
+        crate::utils::event_broadcaster::SystemEvent::InstanceStatusChanged {
+            workspace_id: meta.workspace_id,
+            instance_id: meta.app_instance_id,
+            container_name: meta.container_name.clone(),
+            status: "building".to_string(),
+        }
+    );
 
     let _ = crate::utils::job_queue::enqueue_build(
         &state.pool,

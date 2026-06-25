@@ -99,6 +99,7 @@ export class BuildIndicator implements OnInit, OnDestroy {
     for (const evt of ['build_status_changed', 'instance_status_changed', 'database_status_changed', 'serverless_function_updated']) {
       this.sub.add(this.wsService.onEvent<any>(evt).subscribe(() => this.load()));
     }
+    this.sub.add(this.wsService.onResync().subscribe(() => this.load()));
     this.tickTimer = setInterval(() => this.now.set(Date.now()), 1000);
   }
 

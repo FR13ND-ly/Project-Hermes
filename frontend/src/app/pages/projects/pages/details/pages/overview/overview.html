@@ -17,7 +17,7 @@
   <!-- Status / Stats Counter Grid -->
   <div class="grid gap-4 grid-cols-2 md:grid-cols-4">
     <!-- Stat 1: Apps Count -->
-    <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 flex flex-col justify-between h-20 shadow-sm">
+    <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
       <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Applications</span>
       <div class="flex items-baseline justify-between mt-1">
         <span class="text-xl font-extrabold text-white">{{ parent.apps().length }}</span>
@@ -30,7 +30,7 @@
     </div>
 
     <!-- Stat 2: Running Pods -->
-    <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 flex flex-col justify-between h-20 shadow-sm">
+    <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
       <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Active Instances (K8s Pods)</span>
       <div class="flex items-baseline justify-between mt-1">
         <span class="text-xl font-extrabold text-white">{{ totalRunningPods }}</span>
@@ -39,7 +39,7 @@
     </div>
 
     <!-- Stat 3: Databases -->
-    <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 flex flex-col justify-between h-20 shadow-sm">
+    <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
       <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Databases</span>
       <div class="flex items-baseline justify-between mt-1">
         <span class="text-xl font-extrabold text-white">{{ databases().length }}</span>
@@ -48,79 +48,28 @@
     </div>
 
     <!-- Stat 4: Workspace Limits -->
-    <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 flex flex-col justify-between h-20 shadow-sm">
+    <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
       <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Workspace RAM Limit</span>
       <div class="flex items-baseline justify-between mt-1">
-        <span class="text-sm font-extrabold text-zinc-300">Autoscaled</span>
-        <span class="text-[8px] text-zinc-550 font-semibold">Quota K8s</span>
+        @if (workspaceUsage(); as usage) {
+          <span class="text-sm font-extrabold text-white">
+            @if (usage.maxMemoryMb > 0) {
+              {{ usage.usedMemoryMb }} / {{ usage.maxMemoryMb }} MB
+            } @else {
+              {{ usage.usedMemoryMb }} MB (Uncapped)
+            }
+          </span>
+          <span class="text-[8px] text-zinc-500 font-semibold shrink-0">
+            @if (usage.maxMemoryMb > 0) {
+              {{ ((usage.usedMemoryMb / usage.maxMemoryMb) * 100) | number:'1.0-0' }}% used
+            } @else {
+              No limit
+            }
+          </span>
+        } @else {
+          <span class="text-sm font-extrabold text-zinc-300">Loading...</span>
+        }
       </div>
-    </div>
-  </div>
-
-  <!-- Uptime Status Board (2.f) -->
-  <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 shadow-sm space-y-4">
-    <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Service Status</h3>
-      </div>
-      <div class="text-[10px] text-zinc-550 font-mono">Real-time status since service creation</div>
-    </div>
-
-    <div class="space-y-3">
-      @for (app of parent.apps(); track app.id) {
-        <div class="p-3 bg-black/40 border border-zinc-900 hover:border-zinc-850 rounded-md transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div class="space-y-0.5 shrink-0">
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-bold text-zinc-200">{{ app.name }}</span>
-              <span
-                class="px-1.5 py-0.2 rounded text-[7px] font-mono uppercase font-bold border"
-                [ngClass]="{
-                  'bg-emerald-950/25 border-emerald-900/30 text-emerald-400': getAppStatus(app) === 'running',
-                  'bg-amber-950/25 border-amber-900/30 text-amber-400': getAppStatus(app) === 'building',
-                  'bg-zinc-900 border-zinc-800 text-zinc-500': getAppStatus(app) === 'stopped'
-                }"
-              >{{ getStatusLabel(app) }}</span>
-            </div>
-            <div class="text-[9px] text-zinc-500 font-mono">Active instances: {{ (app.instances || []).length }}</div>
-          </div>
-
-          <div class="flex items-center gap-2 flex-1 justify-end min-w-0">
-            <div class="flex items-center gap-[4px] select-none">
-              @for (bar of getUptimeBars(app); track bar.daysAgo) {
-                <div
-                  class="group relative w-[8px] h-4 rounded-[2px] transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
-                  [ngClass]="{
-                    'bg-emerald-500 hover:bg-emerald-400': !bar.isToday || getAppStatus(app) === 'running',
-                    'bg-amber-500 hover:bg-amber-400': bar.isToday && getAppStatus(app) === 'building',
-                    'bg-zinc-700 hover:bg-zinc-600': bar.isToday && getAppStatus(app) === 'stopped'
-                  }"
-                >
-                  <!-- Tooltip -->
-                  <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 bg-zinc-950 border border-zinc-850 rounded px-2 py-1 text-[8px] font-mono text-zinc-300 whitespace-nowrap shadow-2xl pointer-events-none">
-                    <div class="font-bold text-center">
-                      @if (bar.isToday) { Today } @else { {{ bar.daysAgo }} days ago }
-                    </div>
-                    <div class="text-[7px] text-zinc-500 mt-0.5 text-center">
-                      @if (bar.isToday) {
-                        {{ getStatusLabel(app) }}
-                      } @else {
-                        No incidents recorded
-                      }
-                    </div>
-                  </div>
-                </div>
-              }
-            </div>
-
-            <span class="text-[10px] text-zinc-400 font-mono ml-2 shrink-0">{{ getDaysActive(app) }}d</span>
-          </div>
-        </div>
-      } @empty {
-        <div class="text-center py-6 text-xs text-zinc-650 font-mono">
-          No applications configured for uptime display.
-        </div>
-      }
     </div>
   </div>
 
@@ -136,63 +85,82 @@
         </a>
       </div>
 
-      <div class="space-y-3">
+      <div class="space-y-4">
         @for (app of parent.apps(); track app.id) {
-          <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-850 hover:border-zinc-700 transition-colors flex flex-col gap-3 shadow-inner">
-            <div class="flex items-start justify-between gap-4">
-              <div class="space-y-1">
+          <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-850 hover:border-zinc-700 transition-all flex flex-col md:flex-row gap-4 shadow-sm group">
+            
+            <!-- Vercel-style Screenshot Preview or Sleek Gradient Placeholder -->
+            <div class="relative w-full h-32 md:w-48 rounded border border-zinc-900 overflow-hidden bg-black flex items-center justify-center shrink-0">
+              @if (getAppScreenshot(app); as screenshot) {
+                <img [src]="screenshot" alt="App Preview" class="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300" />
+              } @else {
+                <div class="w-full h-full bg-gradient-to-br from-zinc-900 via-black to-zinc-950 flex flex-col items-center justify-center gap-1.5 select-none">
+                  <svg class="w-6 h-6 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 9.75L16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+                  </svg>
+                  <span class="text-[8px] font-bold text-zinc-650 uppercase tracking-widest font-mono">{{ app.name }}</span>
+                </div>
+              }
+            </div>
+
+            <!-- App details -->
+            <div class="flex-grow flex flex-col justify-between min-w-0 py-0.5">
+              <div class="space-y-2">
                 <div class="flex items-center gap-2.5 flex-wrap">
-                  <h4 (click)="onViewApp(app, 'telemetry')" class="text-xs font-bold text-white hover:underline cursor-pointer select-all">
+                  <h4 (click)="onViewApp(app, 'telemetry')" class="text-xs font-bold text-white hover:underline cursor-pointer select-all truncate">
                     {{ app.name }}
                   </h4>
-                  <span class="px-1.5 py-0.2 rounded text-[8px] border font-mono uppercase"
+                  <span class="px-1.5 py-0.2 rounded text-[8px] border font-mono uppercase font-bold"
                         [class]="parent.getAppStatusClass(app)">
                     {{ parent.getAppStatus(app) }}
                   </span>
                 </div>
-                <div class="text-[10px] text-zinc-550 truncate max-w-[320px] select-all">{{ app.git_repo_url }}</div>
+                <div class="text-[10px] text-zinc-550 select-all font-mono truncate max-w-md">{{ app.git_repo_url }}</div>
+
+                <!-- Instances details -->
+                @if (app.instances.length > 0) {
+                  <div class="flex flex-col gap-1 pt-1.5">
+                    @for (inst of app.instances; track inst.id) {
+                      <div class="flex items-center justify-between text-[10px] text-zinc-550">
+                        <div class="flex items-center gap-2 min-w-0">
+                          <span class="w-1 h-1 rounded-full bg-emerald-500"></span>
+                          <span class="text-zinc-400 font-bold truncate max-w-[100px] font-mono">{{ inst.branchName }}</span>
+                          @if (inst.assignedDomain) {
+                            <a [href]="'http://' + inst.assignedDomain" target="_blank" class="text-zinc-450 hover:text-cyan-400 underline font-mono select-all truncate max-w-[150px]">
+                              {{ inst.assignedDomain }}
+                            </a>
+                          }
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0 ml-4">
+                          <span>CPU: {{ inst.cpuLimit || 500 }}m</span>
+                          <span>RAM: {{ inst.memoryLimitMb || 1024 }}Mi</span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <div class="text-[9px] text-zinc-650 border-t border-zinc-900/30 pt-2 font-mono">
+                    No active instances at this time.
+                  </div>
+                }
               </div>
-              <div class="flex items-center gap-2">
-                <button (click)="onViewApp(app, 'logs')" class="px-2 py-1 rounded bg-black hover:bg-zinc-950 text-zinc-400 hover:text-white text-[9px] font-bold border border-zinc-850 uppercase tracking-wide">
+
+              <!-- Action buttons -->
+              <div class="flex items-center gap-2 mt-4 md:mt-2">
+                <button (click)="onViewApp(app, 'logs')" class="px-2.5 py-1 rounded bg-black hover:bg-zinc-950 text-zinc-400 hover:text-white text-[9px] font-bold border border-zinc-850 uppercase tracking-wide cursor-pointer">
                   Logs
                 </button>
-                <button (click)="onViewApp(app, 'telemetry')" class="px-2 py-1 rounded bg-white hover:bg-zinc-200 text-black text-[9px] font-bold border border-white uppercase tracking-wide">
-                  Details →
+                <button (click)="onViewApp(app, 'telemetry')" class="px-2.5 py-1 rounded bg-white hover:bg-zinc-200 text-black text-[9px] font-bold border border-white uppercase tracking-wide cursor-pointer">
+                  Manage →
                 </button>
               </div>
             </div>
 
-            <!-- Instances & Domains details -->
-            @if (app.instances.length > 0) {
-              <div class="border-t border-zinc-900/50 pt-2 flex flex-col gap-1.5">
-                @for (inst of app.instances; track inst.id) {
-                  <div class="flex items-center justify-between text-[10px] text-zinc-500">
-                    <div class="flex items-center gap-2">
-                      <span class="w-1 h-1 rounded-full bg-emerald-500"></span>
-                      <span class="text-zinc-400 font-bold truncate max-w-[140px]">{{ inst.branchName }}</span>
-                      @if (inst.assignedDomain) {
-                        <a [href]="'http://' + inst.assignedDomain" target="_blank" class="text-zinc-450 hover:text-cyan-400 underline select-all truncate max-w-[180px]">
-                          {{ inst.assignedDomain }}
-                        </a>
-                      }
-                    </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                      <span>CPU: {{ inst.cpuLimit || 500 }}m</span>
-                      <span>RAM: {{ inst.memoryLimitMb || 1024 }}Mi</span>
-                    </div>
-                  </div>
-                }
-              </div>
-            } @else {
-              <div class="text-[9px] text-zinc-650 border-t border-zinc-900/50 pt-2">
-                No active instances at this time.
-              </div>
-            }
           </div>
         } @empty {
           <div class="bg-black/30 border border-zinc-900 p-8 rounded-lg text-center space-y-3">
             <p class="text-xs text-zinc-550">No applications configured in this project.</p>
-            <button (click)="parent.showAddAppForm.set(true)" class="px-3 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 text-white text-[10px] font-bold tracking-wider uppercase">
+            <button (click)="parent.showAddAppForm.set(true)" class="px-3 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 text-white text-[10px] font-bold tracking-wider uppercase cursor-pointer">
               Add Application
             </button>
           </div>
@@ -200,9 +168,70 @@
       </div>
     </div>
 
-    <!-- Right Column (1/3 width): Databases Summary & Shortcuts -->
+    <!-- Right Column (1/3 width): Links, Databases & Shortcuts -->
     <div class="space-y-6">
       
+      <!-- Project Domains & Public Links -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
+          <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Project Domains & Links</h3>
+          <a [routerLink]="['/projects', parent.projectId(), 'networking']" class="text-[10px] text-zinc-400 hover:text-white underline">
+            Manage →
+          </a>
+        </div>
+
+        <div class="space-y-3 font-mono">
+          <!-- Apps Links -->
+          @for (app of parent.apps(); track app.id) {
+            @for (inst of app.instances; track inst.id) {
+              @if (inst.assignedDomain) {
+                <div class="bg-[#0a0a0a] p-3 rounded-lg border border-zinc-850 flex items-center justify-between gap-3 shadow-inner">
+                  <div class="space-y-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">{{ app.name }} ({{ inst.branchName }})</span>
+                    </div>
+                    <a [href]="'http://' + inst.assignedDomain" target="_blank" class="text-[11px] text-indigo-400 hover:text-indigo-300 hover:underline select-all truncate block">
+                      http://{{ inst.assignedDomain }}
+                    </a>
+                  </div>
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" [class.animate-pulse]="inst.status === 'running'"></span>
+                </div>
+              }
+            }
+          }
+
+          <!-- Custom Domains -->
+          @for (dom of domains(); track dom.id) {
+            @if (dom.targetType === 'custom') {
+              <div class="bg-[#0a0a0a] p-3 rounded-lg border border-zinc-850 flex items-center justify-between gap-3 shadow-inner">
+                <div class="space-y-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Custom Domain</span>
+                    <span class="px-1 py-0.2 rounded text-[7px] border font-mono uppercase font-bold"
+                          [ngClass]="{
+                            'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': dom.status === 'active',
+                            'bg-amber-950/20 border-amber-900/30 text-amber-400': dom.status === 'pending_verification',
+                            'bg-red-950/20 border-red-900/30 text-red-400': dom.status === 'failed'
+                          }">
+                      {{ dom.status }}
+                    </span>
+                  </div>
+                  <a [href]="'https://' + dom.fqdn" target="_blank" class="text-[11px] text-indigo-400 hover:text-indigo-300 hover:underline select-all truncate block">
+                    https://{{ dom.fqdn }}
+                  </a>
+                </div>
+              </div>
+            }
+          }
+
+          @if (totalLinksCount === 0 && !loadingDomains()) {
+            <div class="bg-black/30 border border-zinc-900 p-6 rounded-lg text-center text-xs text-zinc-650">
+              No active public domains.
+            </div>
+          }
+        </div>
+      </div>
+
       <!-- Databases listing -->
       <div class="space-y-4">
         <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
@@ -240,7 +269,7 @@
                         'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': db.status === 'running',
                         'bg-amber-950/20 border-amber-900/30 text-amber-400': db.status === 'provisioning',
                         'bg-red-950/20 border-red-900/30 text-red-400': db.status === 'failed',
-                        'bg-zinc-950 border-zinc-900 text-zinc-550': db.status === 'stopped'
+                        'bg-zinc-950 border-zinc-900 text-zinc-555': db.status === 'stopped'
                       }">
                   {{ db.status }}
                 </span>
