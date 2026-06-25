@@ -34,7 +34,7 @@ export class Deployments implements OnInit, OnDestroy {
   private connectedInstanceId: string | null = null;
 
   constructor() {
-    // Conectează automat fluxul de logs când prima instanță este disponibilă
+    // Auto-connect log stream when the first instance becomes available
     effect(() => {
       const app = this.parent.appDetail();
       if (app && app.instances?.length > 0) {
@@ -85,7 +85,7 @@ export class Deployments implements OnInit, OnDestroy {
 
     this.disconnectLogs();
     this.connectedInstanceId = instanceId;
-    this.logs.set(['[Console] Se conectează la fluxul de logs (WebSocket)...']);
+    this.logs.set(['[Console] Connecting to log stream (WebSocket)...']);
 
     const wsUrl = this.projectService.getLogsWsUrl(appId, instanceId);
     const socket = new WebSocket(wsUrl);
@@ -93,7 +93,7 @@ export class Deployments implements OnInit, OnDestroy {
 
     socket.onopen = () => {
       this.sseConnected.set(true);
-      this.logs.update(lines => [...lines, '[Console] Conexiune WebSocket stabilă. Recepționare logs în timp real:']);
+      this.logs.update(lines => [...lines, '[Console] WebSocket connection established. Receiving real-time logs:']);
     };
 
     socket.onmessage = (event) => {
@@ -108,7 +108,7 @@ export class Deployments implements OnInit, OnDestroy {
     socket.onclose = () => {
       if (this.logsSocket !== socket) return;
       this.sseConnected.set(false);
-      this.logs.update(lines => [...lines, '[Aviz] Conexiunea la stream a fost întreruptă. Se reconectează...']);
+      this.logs.update(lines => [...lines, '[Notice] Stream connection interrupted. Reconnecting...']);
       this.logsReconnectTimer = setTimeout(() => {
         if (this.logsSocket === socket && this.connectedInstanceId === instanceId) {
           this.connectLogs(instanceId);
@@ -152,11 +152,11 @@ export class Deployments implements OnInit, OnDestroy {
 
     this.projectService.getBuildDetails(appId, build.id).subscribe({
       next: (res) => {
-        this.selectedBuildLogs.set(res.logs || 'Nu există loguri înregistrate pentru acest build.');
+        this.selectedBuildLogs.set(res.logs || 'No logs recorded for this build.');
         this.loadingBuildLogs.set(false);
       },
       error: () => {
-        this.selectedBuildLogs.set('Eroare la încărcarea logurilor de build.');
+        this.selectedBuildLogs.set('Failed to load build logs.');
         this.loadingBuildLogs.set(false);
       }
     });
