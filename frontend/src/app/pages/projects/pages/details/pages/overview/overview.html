@@ -48,30 +48,82 @@
     </div>
 
     <!-- Stat 4: Workspace Limits -->
-    <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
+    <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 flex flex-col justify-between h-20 shadow-sm">
       <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Workspace RAM Limit</span>
       <div class="flex items-baseline justify-between mt-1">
-        @if (workspaceUsage(); as usage) {
-          <span class="text-sm font-extrabold text-white">
-            @if (usage.maxMemoryMb > 0) {
-              {{ usage.usedMemoryMb }} / {{ usage.maxMemoryMb }} MB
-            } @else {
-              {{ usage.usedMemoryMb }} MB (Uncapped)
-            }
-          </span>
-          <span class="text-[8px] text-zinc-500 font-semibold shrink-0">
-            @if (usage.maxMemoryMb > 0) {
-              {{ ((usage.usedMemoryMb / usage.maxMemoryMb) * 100) | number:'1.0-0' }}% used
-            } @else {
-              No limit
-            }
-          </span>
-        } @else {
-          <span class="text-sm font-extrabold text-zinc-300">Loading...</span>
-        }
+        <span class="text-sm font-extrabold text-zinc-300">Autoscaled</span>
+        <span class="text-[8px] text-zinc-550 font-semibold">Quota K8s</span>
       </div>
     </div>
   </div>
+
+  <!-- Uptime Status Board (2.f) -->
+  <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 shadow-sm space-y-4">
+    <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Service Status</h3>
+      </div>
+      <div class="text-[10px] text-zinc-550 font-mono">Real-time status since service creation</div>
+    </div>
+
+    <div class="space-y-3">
+      @for (app of parent.apps(); track app.id) {
+        <div class="p-3 bg-black/40 border border-zinc-900 hover:border-zinc-850 rounded-md transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="space-y-0.5 shrink-0">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-zinc-200">{{ app.name }}</span>
+              <span
+                class="px-1.5 py-0.2 rounded text-[7px] font-mono uppercase font-bold border"
+                [ngClass]="{
+                  'bg-emerald-950/25 border-emerald-900/30 text-emerald-400': getAppStatus(app) === 'running',
+                  'bg-amber-950/25 border-amber-900/30 text-amber-400': getAppStatus(app) === 'building',
+                  'bg-zinc-900 border-zinc-800 text-zinc-500': getAppStatus(app) === 'stopped'
+                }"
+              >{{ getStatusLabel(app) }}</span>
+            </div>
+            <div class="text-[9px] text-zinc-500 font-mono">Active instances: {{ (app.instances || []).length }}</div>
+          </div>
+
+          <div class="flex items-center gap-2 flex-1 justify-end min-w-0">
+            <div class="flex items-center gap-[4px] select-none">
+              @for (bar of getUptimeBars(app); track bar.daysAgo) {
+                <div
+                  class="group relative w-[8px] h-4 rounded-[2px] transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
+                  [ngClass]="{
+                    'bg-emerald-500 hover:bg-emerald-400': !bar.isToday || getAppStatus(app) === 'running',
+                    'bg-amber-500 hover:bg-amber-400': bar.isToday && getAppStatus(app) === 'building',
+                    'bg-zinc-700 hover:bg-zinc-600': bar.isToday && getAppStatus(app) === 'stopped'
+                  }"
+                >
+                  <!-- Tooltip -->
+                  <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 bg-zinc-950 border border-zinc-850 rounded px-2 py-1 text-[8px] font-mono text-zinc-300 whitespace-nowrap shadow-2xl pointer-events-none">
+                    <div class="font-bold text-center">
+                      @if (bar.isToday) { Today } @else { {{ bar.daysAgo }} days ago }
+                    </div>
+                    <div class="text-[7px] text-zinc-550 mt-0.5 text-center">
+                      @if (bar.isToday) {
+                        {{ getStatusLabel(app) }}
+                      } @else {
+                        No incidents recorded
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <span class="text-[10px] text-zinc-400 font-mono ml-2 shrink-0">{{ getDaysActive(app) }}d</span>
+          </div>
+        </div>
+      } @empty {
+        <div class="text-center py-6 text-xs text-zinc-650 font-mono">
+          No applications configured for uptime display.
+        </div>
+      }
+    </div>
+  </div>
+
 
   <!-- Main Split Layout: Apps on left, Databases & Quick Links on right -->
   <div class="grid gap-6 lg:grid-cols-3">
@@ -171,66 +223,6 @@
     <!-- Right Column (1/3 width): Links, Databases & Shortcuts -->
     <div class="space-y-6">
       
-      <!-- Project Domains & Public Links -->
-      <div class="space-y-4">
-        <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
-          <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Project Domains & Links</h3>
-          <a [routerLink]="['/projects', parent.projectId(), 'networking']" class="text-[10px] text-zinc-400 hover:text-white underline">
-            Manage →
-          </a>
-        </div>
-
-        <div class="space-y-3 font-mono">
-          <!-- Apps Links -->
-          @for (app of parent.apps(); track app.id) {
-            @for (inst of app.instances; track inst.id) {
-              @if (inst.assignedDomain) {
-                <div class="bg-[#0a0a0a] p-3 rounded-lg border border-zinc-850 flex items-center justify-between gap-3 shadow-inner">
-                  <div class="space-y-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">{{ app.name }} ({{ inst.branchName }})</span>
-                    </div>
-                    <a [href]="'http://' + inst.assignedDomain" target="_blank" class="text-[11px] text-indigo-400 hover:text-indigo-300 hover:underline select-all truncate block">
-                      http://{{ inst.assignedDomain }}
-                    </a>
-                  </div>
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" [class.animate-pulse]="inst.status === 'running'"></span>
-                </div>
-              }
-            }
-          }
-
-          <!-- Custom Domains -->
-          @for (dom of domains(); track dom.id) {
-            @if (dom.targetType === 'custom') {
-              <div class="bg-[#0a0a0a] p-3 rounded-lg border border-zinc-850 flex items-center justify-between gap-3 shadow-inner">
-                <div class="space-y-1 min-w-0">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Custom Domain</span>
-                    <span class="px-1 py-0.2 rounded text-[7px] border font-mono uppercase font-bold"
-                          [ngClass]="{
-                            'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': dom.status === 'active',
-                            'bg-amber-950/20 border-amber-900/30 text-amber-400': dom.status === 'pending_verification',
-                            'bg-red-950/20 border-red-900/30 text-red-400': dom.status === 'failed'
-                          }">
-                      {{ dom.status }}
-                    </span>
-                  </div>
-                  <a [href]="'https://' + dom.fqdn" target="_blank" class="text-[11px] text-indigo-400 hover:text-indigo-300 hover:underline select-all truncate block">
-                    https://{{ dom.fqdn }}
-                  </a>
-                </div>
-              </div>
-            }
-          }
-
-          @if (totalLinksCount === 0 && !loadingDomains()) {
-            <div class="bg-black/30 border border-zinc-900 p-6 rounded-lg text-center text-xs text-zinc-650">
-              No active public domains.
-            </div>
-          }
-        </div>
-      </div>
 
       <!-- Databases listing -->
       <div class="space-y-4">
