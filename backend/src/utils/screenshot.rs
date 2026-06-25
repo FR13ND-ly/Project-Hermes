@@ -52,7 +52,8 @@ async fn try_capture(
         .await?
         .ok_or_else(|| AppError::NotFound("Instance no longer exists.".to_string()))?;
 
-    let url = format!("http://{}.{}.svc.cluster.local:{}", app_name, namespace, port);
+    let host = format!("{}.{}.svc.cluster.local", app_name, namespace);
+    let url = format!("http://{}:{}", host, port);
     let out_path = screenshot_path_for(instance_id);
 
     let client = K8sManager::get_client().await?;
@@ -67,14 +68,27 @@ async fn try_capture(
     // before the shot, and `--run-all-compositor-stages-before-draw` forces the frame to
     // be painted first — without it the screenshot is taken pre-paint and comes out blank
     // white. The single-quoted URL/paths are safe: both are server-controlled (UUID + DNS).
+    // We add a pre-flight TCP check via nc (netcat) to wait for the service to accept connections.
     let command = format!(
         "mkdir -p {dir}/{sub} && \
+         echo '=== Waiting for service {host}:{port} to accept connections ===' && \
+         for i in $(seq 1 15); do \
+           if nc -z -w 2 '{host}' {port}; then \
+             echo '=== Service is reachable! ===' && \
+             break; \
+           fi; \
+           echo '=== Service not reachable yet, retrying... ===' && \
+           sleep 1; \
+         done && \
+         echo '=== Starting Chromium capture ===' && \
          chromium-browser --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
          --hide-scrollbars --force-color-profile=srgb --window-size=1280,800 \
          --run-all-compositor-stages-before-draw --virtual-time-budget=15000 \
          --screenshot='{out}' '{url}'",
         dir = PVC_MOUNT,
         sub = SCREENSHOTS_SUBDIR,
+        host = host,
+        port = port,
         out = out_path,
         url = url
     );
@@ -89,6 +103,14 @@ async fn try_capture(
         "hermes-backups",
     )
     .await?;
+
+    // Print the job logs to the console to assist in debugging blank/white pages.
+    tracing::info!(
+        %instance_id,
+        %exit_code,
+        "Chromium job output logs:\n====================\n{}\n====================",
+        logs
+    );
 
     if exit_code != 0 {
         let detail = logs
