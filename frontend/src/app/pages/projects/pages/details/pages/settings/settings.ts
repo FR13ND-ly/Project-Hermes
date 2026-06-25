@@ -111,11 +111,11 @@ export class Settings implements OnInit {
       next: (s) => {
         this.savingCloudflare.set(false);
         this.cfCredentialId.set(s.cloudflareCredentialId || '');
-        this.toast.success('Setările Cloudflare / Ingress au fost salvate.');
+        this.toast.success('Cloudflare / Ingress settings saved.');
       },
       error: (err) => {
         this.savingCloudflare.set(false);
-        this.toast.error(err.error?.message || 'Eroare la salvarea setărilor Cloudflare.');
+        this.toast.error(err.error?.message || 'Failed to save Cloudflare settings.');
       }
     });
   }
@@ -144,7 +144,7 @@ export class Settings implements OnInit {
       next: () => {
         this.deleting.set(false);
         this.confirmName.set('');
-        this.toast.success(`Instanța ${inst.containerName} a fost ștearsă din Kubernetes.`);
+        this.toast.success(`Instance ${inst.containerName} deleted from Kubernetes.`);
 
         // Compute what remains from the *current* list before the async reload,
         // so the redirect decision doesn't read stale data.
@@ -161,7 +161,7 @@ export class Settings implements OnInit {
         }
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la ștergerea instanței.');
+        this.error.set(err.error?.message || 'Failed to delete instance.');
         this.deleting.set(false);
       }
     });
@@ -173,10 +173,10 @@ export class Settings implements OnInit {
     if (!projectId || !project || this.confirmProjectName() !== project.name) return;
 
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Completă Proiect',
-      message: `Sigur doriți să ștergeți complet proiectul "${project.name}"? Această acțiune va șterge ireversibil toate aplicațiile, instanțele, bazele de date, stocările și variabilele de mediu din Kubernetes și baza de date.`,
-      confirmText: 'Șterge Proiect',
-      cancelText: 'Anulează',
+      title: 'Delete Project Completely',
+      message: `Are you sure you want to completely delete project "${project.name}"? This will irreversibly delete all applications, instances, databases, storages and environment variables from Kubernetes and the database.`,
+      confirmText: 'Delete Project',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
@@ -188,11 +188,11 @@ export class Settings implements OnInit {
       next: () => {
         this.deletingProject.set(false);
         this.confirmProjectName.set('');
-        this.toast.success(`Proiectul "${project.name}" a fost șters cu succes.`);
+        this.toast.success(`Project "${project.name}" deleted successfully.`);
         this.router.navigate(['/projects']);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la ștergerea proiectului.');
+        this.error.set(err.error?.message || 'Failed to delete project.');
         this.deletingProject.set(false);
       }
     });
@@ -210,7 +210,7 @@ export class Settings implements OnInit {
         this.loadingWebhooks.set(false);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la încărcarea webhook-urilor.');
+        this.toast.error(err.error?.message || 'Failed to load webhooks.');
         this.loadingWebhooks.set(false);
       }
     });
@@ -225,13 +225,13 @@ export class Settings implements OnInit {
     const webhookType = this.newWebhookType();
 
     if (!name || !url) {
-      this.toast.error('Toate câmpurile sunt obligatorii.');
+      this.toast.error('All fields are required.');
       return;
     }
 
     this.projectService.createWebhook(projectId, { name, url, webhookType }).subscribe({
       next: () => {
-        this.toast.success('Webhook-ul a fost adăugat cu succes.');
+        this.toast.success('Webhook added successfully.');
         this.newWebhookName.set('');
         this.newWebhookUrl.set('');
         this.loadWebhooks();
@@ -247,21 +247,21 @@ export class Settings implements OnInit {
     if (!projectId) return;
 
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Integrare Webhook',
-      message: 'Sigur doriți să ștergeți această integrare? Nu veți mai primi alerte pe acest canal!',
-      confirmText: 'Șterge',
-      cancelText: 'Anulează',
+      title: 'Delete Webhook Integration',
+      message: 'Are you sure you want to delete this integration? You will no longer receive alerts on this channel!',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
 
     this.projectService.deleteWebhook(projectId, webhookId).subscribe({
       next: () => {
-        this.toast.success('Integrarea a fost ștearsă.');
+        this.toast.success('Integration deleted.');
         this.loadWebhooks();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la ștergerea webhook-ului.');
+        this.toast.error(err.error?.message || 'Failed to delete webhook.');
       }
     });
   }
@@ -278,7 +278,7 @@ export class Settings implements OnInit {
         this.loadingSshKeys.set(false);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la încărcarea cheilor SSH.');
+        this.toast.error(err.error?.message || 'Failed to load SSH keys.');
         this.loadingSshKeys.set(false);
       }
     });
@@ -293,12 +293,12 @@ export class Settings implements OnInit {
     const privateKey = this.autoGenerateSsh() ? null : this.newSshKeyPrivateKey().trim();
 
     if (!name || !host) {
-      this.toast.error('Numele și host-ul sunt obligatorii.');
+      this.toast.error('Name and host are required.');
       return;
     }
 
     if (!this.autoGenerateSsh() && !privateKey) {
-      this.toast.error('Cheia privată trebuie introdusă dacă nu generați automat.');
+      this.toast.error('Private key must be provided if not generating automatically.');
       return;
     }
 
@@ -309,7 +309,7 @@ export class Settings implements OnInit {
       privateKey
     }).subscribe({
       next: () => {
-        this.toast.success('Cheia SSH a fost configurată cu succes.');
+        this.toast.success('SSH key configured successfully.');
         this.newSshKeyName.set('');
         this.newSshKeyHost.set('');
         this.newSshKeyPrivateKey.set('');
@@ -328,28 +328,28 @@ export class Settings implements OnInit {
     if (!projectId) return;
 
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Cheie SSH Proiect',
-      message: 'Sigur doriți să ștergeți această cheie SSH? Aplicațiile care folosesc acest host nu se vor mai putea clona la următorul build!',
-      confirmText: 'Șterge Cheie',
-      cancelText: 'Anulează',
+      title: 'Delete Project SSH Key',
+      message: 'Are you sure you want to delete this SSH key? Applications using this host will no longer be able to clone on the next build!',
+      confirmText: 'Delete Key',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
 
     this.projectService.deleteProjectSshKey(projectId, keyId).subscribe({
       next: () => {
-        this.toast.success('Cheia SSH a fost ștearsă.');
+        this.toast.success('SSH key deleted.');
         this.loadSshKeys();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la ștergerea cheii SSH.');
+        this.toast.error(err.error?.message || 'Failed to delete SSH key.');
       }
     });
   }
 
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text).then(() => {
-      this.toast.success('Cheia publică a fost copiată.');
+      this.toast.success('Public key copied.');
     }).catch(() => {
       this.toast.error('Nu s-a putut copia cheia.');
     });

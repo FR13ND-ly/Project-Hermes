@@ -6,13 +6,13 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.43l-1.003.828c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.43l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.991l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.645-.869L9.594 3.94zM12 15a3 3 0 100-6 3 3 0 000 6z" />
         </svg>
       </div>
-      <h4 class="text-xs font-bold text-zinc-200 mb-1 uppercase tracking-wider font-mono">Fără Aplicație</h4>
-      <p class="text-xs text-zinc-550 mb-4">Setările de container necesită o aplicație activă. Adăugați una mai întâi.</p>
-      <button 
+      <h4 class="text-xs font-bold text-zinc-200 mb-1 uppercase tracking-wider font-mono">No Application</h4>
+      <p class="text-xs text-zinc-550 mb-4">Container settings require an active application. Add one first.</p>
+      <button
         (click)="parent.showAddAppForm.set(true)"
         class="px-3.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer font-mono"
       >
-        Adaugă Aplicație
+        Add Application
       </button>
     </div>
   } @else {
@@ -23,8 +23,8 @@
     <!-- Destructive Zone Card -->
     <div class="bg-[#0a0a0a] p-5 rounded-lg border border-red-900/30 space-y-4 shadow-sm">
       <div class="border-b border-zinc-900 pb-2.5">
-        <h3 class="text-xs font-bold text-red-500 uppercase tracking-wider">Zonă Periculoasă</h3>
-        <p class="text-xs text-zinc-550">Elimină instanțe sau branch-uri active din cluster. Acțiunile sunt ireversibile.</p>
+        <h3 class="text-xs font-bold text-red-500 uppercase tracking-wider">Danger Zone</h3>
+        <p class="text-xs text-zinc-550">Remove active instances or branches from the cluster. Actions are irreversible.</p>
       </div>
   
       @if (error()) {
@@ -37,12 +37,12 @@
       }
   
       @if (parent.appDetail()?.instances?.length === 0) {
-        <p class="text-xs text-zinc-550 py-2">Nu există instanțe active în această aplicație pentru a fi șterse.</p>
+        <p class="text-xs text-zinc-550 py-2">No active instances in this application to delete.</p>
       } @else {
         <div class="space-y-4">
           <!-- Instance selector to delete -->
           <div class="space-y-1.5">
-            <label for="delete-instance-select" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Alege Instanța de Șters</label>
+            <label for="delete-instance-select" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Choose Instance to Delete</label>
             <div class="relative">
               <select 
                 id="delete-instance-select"
@@ -66,18 +66,18 @@
           @if (selectedInstanceToDelete()) {
             <div class="space-y-4 pt-1">
               <div class="p-3 rounded border border-red-900/40 bg-red-950/10 text-red-400 text-xs leading-relaxed">
-                <strong>Atenție:</strong> Sunteți pe cale să ștergeți instanța <strong>{{ selectedInstanceToDelete()?.containerName }}</strong> (Branch: {{ selectedInstanceToDelete()?.branchName }}).
-                Traficul va fi întrerupt imediat, containerul va fi distrus, iar stocarea locală va fi pierdută.
+                <strong>Warning:</strong> You are about to delete instance <strong>{{ selectedInstanceToDelete()?.containerName }}</strong> (Branch: {{ selectedInstanceToDelete()?.branchName }}).
+                Traffic will be interrupted immediately, the container will be destroyed, and local storage will be lost.
               </div>
   
               <div class="space-y-1.5">
                 <label for="confirm-delete-input" class="text-xs text-zinc-400 block">
-                  Introduceți numele instanței <strong class="text-white font-mono select-all">{{ selectedInstanceToDelete()?.containerName }}</strong> pentru a confirma ștergerea:
+                  Enter the instance name <strong class="text-white font-mono select-all">{{ selectedInstanceToDelete()?.containerName }}</strong> to confirm deletion:
                 </label>
                 <input 
                   id="confirm-delete-input"
                   type="text" 
-                  placeholder="Nume instanță"
+                  placeholder="Instance name"
                   [ngModel]="confirmName()"
                   (ngModelChange)="confirmName.set($event)"
                   [disabled]="deleting()"
@@ -90,16 +90,16 @@
                   (click)="onDeleteInstance()"
                   [disabled]="confirmName() !== selectedInstanceToDelete()?.containerName || deleting()"
                   class="px-4 py-2 rounded bg-red-600 hover:bg-red-500 text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-                  aria-label="Șterge instanța definitiv"
+                  aria-label="Delete instance permanently"
                 >
                   @if (!deleting()) {
-                    <span>Șterge Instanța Definitiv</span>
+                    <span>Delete Instance Permanently</span>
                   } @else {
                     <svg class="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span>Se șterge...</span>
+                    <span>Deleting...</span>
                   }
                 </button>
               </div>
@@ -110,22 +110,22 @@
     </div>
   }
 
-  <!-- Zonă Periculoasă: Ștergere Proiect (always visible) -->
+  <!-- Danger Zone: Delete Project (always visible) -->
   <div class="bg-[#0a0a0a] p-5 rounded-lg border border-red-900/30 space-y-4 shadow-sm font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-xs font-bold text-red-500 uppercase tracking-wider">Ștergere Proiect</h3>
-      <p class="text-xs text-zinc-550">Elimină complet proiectul și toate resursele asociate din sistem. Acțiunea este ireversibilă.</p>
+      <h3 class="text-xs font-bold text-red-500 uppercase tracking-wider">Delete Project</h3>
+      <p class="text-xs text-zinc-550">Completely removes the project and all associated resources from the system. This action is irreversible.</p>
     </div>
 
     <div class="space-y-4">
       <div class="p-3 rounded border border-red-900/40 bg-red-950/10 text-red-400 text-xs leading-relaxed">
-        <strong>Atenție:</strong> Sunteți pe cale să ștergeți proiectul <strong>{{ parent.project()?.name }}</strong>.
-        Toate aplicațiile, instanțele K8s, bazele de date și configurațiile acestui proiect vor fi distruse imediat.
+        <strong>Warning:</strong> You are about to delete project <strong>{{ parent.project()?.name }}</strong>.
+        All applications, K8s instances, databases and configurations of this project will be destroyed immediately.
       </div>
 
       <div class="space-y-1.5">
         <label for="confirm-project-delete-input" class="text-xs text-zinc-400 block">
-          Introduceți numele proiectului <strong class="text-white font-mono select-all">{{ parent.project()?.name }}</strong> pentru a confirma ștergerea:
+          Enter the project name <strong class="text-white font-mono select-all">{{ parent.project()?.name }}</strong> to confirm deletion:
         </label>
         <input 
           id="confirm-project-delete-input"
@@ -143,16 +143,16 @@
           (click)="onDeleteProject()"
           [disabled]="confirmProjectName() !== parent.project()?.name || deletingProject()"
           class="px-4 py-2 rounded bg-red-600 hover:bg-red-500 text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-          aria-label="Șterge proiectul definitiv"
+          aria-label="Delete project permanently"
         >
           @if (!deletingProject()) {
-            <span>Șterge Proiectul Definitiv</span>
+            <span>Delete Project Permanently</span>
           } @else {
             <svg class="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span>Se șterge...</span>
+            <span>Deleting...</span>
           }
         </button>
       </div>
@@ -163,7 +163,7 @@
   <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Integrare Cloudflare & Ingress</h3>
-      <p class="text-xs text-zinc-550">Configurația DNS folosită la atașarea domeniilor pentru resursele acestui proiect.</p>
+      <p class="text-xs text-zinc-550">DNS configuration used when attaching domains for this project's resources.</p>
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2">
@@ -183,7 +183,7 @@
 
       <!-- Base Domain -->
       <div class="space-y-1.5">
-        <label for="proj-domain" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Domeniu de Bază (Base Domain)</label>
+        <label for="proj-domain" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Base Domain</label>
         <input
           id="proj-domain"
           type="text"
@@ -206,12 +206,12 @@
         [disabled]="savingCloudflare()"
         class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer"
       >
-        <option value="">Fără Cloudflare</option>
+        <option value="">No Cloudflare</option>
         @for (cf of cloudflareCredentials(); track cf.id) {
           <option [value]="cf.id">{{ cf.label }}@if (cf.baseDomain) { · {{ cf.baseDomain }} }</option>
         }
       </select>
-      <p class="text-[10px] text-zinc-600">Token-urile se gestionează în <span class="text-zinc-400">Workspace → Setări → Cloudflare</span>. Fiecare include zona/domeniul.</p>
+      <p class="text-[10px] text-zinc-600">Tokens are managed in <span class="text-zinc-400">Workspace → Settings → Cloudflare</span>. Each includes the zone/domain.</p>
     </div>
 
     <div class="pt-2 flex justify-end">
@@ -221,13 +221,13 @@
         class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
       >
         @if (!savingCloudflare()) {
-          <span>Salvează Cloudflare</span>
+          <span>Save Cloudflare</span>
         } @else {
           <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <span>Se salvează...</span>
+          <span>Saving...</span>
         }
       </button>
     </div>
@@ -236,8 +236,8 @@
   <!-- Webhooks Integrations Card -->
   <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Integrări Webhooks (Slack & Discord)</h3>
-      <p class="text-xs text-zinc-550">Trimiteți alerte automate în timp real la apariția incidentelor pe Slack sau Discord.</p>
+      <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Webhook Integrations (Slack & Discord)</h3>
+      <p class="text-xs text-zinc-550">Send automatic real-time alerts when incidents occur on Slack or Discord.</p>
     </div>
 
     <!-- Webhook Creation Form -->
@@ -249,7 +249,7 @@
           <label class="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Nume Integrare</label>
           <input 
             type="text" 
-            placeholder="ex. Canal Alerte Producție"
+            placeholder="e.g. Production Alerts Channel"
             [ngModel]="newWebhookName()"
             (ngModelChange)="newWebhookName.set($event)"
             class="w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 font-mono"
@@ -258,7 +258,7 @@
 
         <!-- Type selector -->
         <div class="space-y-1.5">
-          <label class="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Tip Platformă</label>
+          <label class="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Platform Type</label>
           <select 
             [ngModel]="newWebhookType()"
             (ngModelChange)="newWebhookType.set($event)"
@@ -289,7 +289,7 @@
           [disabled]="!newWebhookName().trim() || !newWebhookUrl().trim()"
           class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow disabled:opacity-50 cursor-pointer font-sans"
         >
-          Adaugă Integrare
+          Add Integration
         </button>
       </div>
     </div>
@@ -300,11 +300,11 @@
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
       </svg>
-      <span class="text-xs text-zinc-550">Se încarcă integrările...</span>
+      <span class="text-xs text-zinc-550">Loading integrations...</span>
     </div>
 
     <div *ngIf="!loadingWebhooks() && webhooks().length === 0" class="flex flex-col items-center justify-center py-6 text-center text-zinc-550 text-xs italic">
-      Nu există webhook-uri înregistrate în acest proiect.
+      No webhooks registered in this project.
     </div>
 
     <div *ngIf="!loadingWebhooks() && webhooks().length > 0" class="overflow-x-auto">
@@ -315,7 +315,7 @@
             <th class="pb-2 px-2">Tip</th>
             <th class="pb-2 px-2">URL Webhook</th>
             <th class="pb-2 px-2">Status</th>
-            <th class="pb-2 px-2 text-right">Acțiuni</th>
+            <th class="pb-2 px-2 text-right">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-zinc-950 text-zinc-350">
@@ -333,7 +333,7 @@
                 (click)="onDeleteWebhook(wh.id)"
                 class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-red-400 text-[10px] border border-zinc-850 transition-colors cursor-pointer"
               >
-                Elimină
+                Remove
               </button>
             </td>
           </tr>
@@ -346,19 +346,19 @@
   <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Chei SSH Proiect (Deploy Keys)</h3>
-      <p class="text-xs text-zinc-550">Configurați chei SSH pentru ca Hermes să se poată conecta la repository-uri Git private sau dependințe din GitLab, Bitbucket și alte servere.</p>
+      <p class="text-xs text-zinc-550">Configure SSH keys so Hermes can connect to private Git repositories or dependencies from GitLab, Bitbucket and other servers.</p>
     </div>
 
     <!-- SSH Key Creation Form -->
     <div class="p-4 rounded border border-zinc-850 bg-black/40 space-y-4">
-      <h4 class="text-xs font-bold text-zinc-350">Adăugare / Generare Cheie SSH Nouă</h4>
+      <h4 class="text-xs font-bold text-zinc-350">Add / Generate New SSH Key</h4>
       <div class="grid gap-4 md:grid-cols-2">
         <!-- Name -->
         <div class="space-y-1.5">
           <label class="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Nume Cheie</label>
           <input 
             type="text" 
-            placeholder="ex. Cheie GitLab Producție"
+            placeholder="e.g. Production GitLab Key"
             [ngModel]="newSshKeyName()"
             (ngModelChange)="newSshKeyName.set($event)"
             class="w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 font-mono"
@@ -387,12 +387,12 @@
           (ngModelChange)="autoGenerateSsh.set($event)"
           class="accent-white cursor-pointer h-3.5 w-3.5"
         />
-        <label for="auto-gen-ssh-chk" class="cursor-pointer font-sans select-none">Generează automat o pereche nouă de chei securizate (Recomandat)</label>
+        <label for="auto-gen-ssh-chk" class="cursor-pointer font-sans select-none">Automatically generate a new secure key pair (Recommended)</label>
       </div>
 
       <!-- Custom Private Key Textarea -->
       <div *ngIf="!autoGenerateSsh()" class="space-y-1.5 animate-fade-in">
-        <label class="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Cheie Privată SSH (OpenSSH Private Key)</label>
+        <label class="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">SSH Private Key (OpenSSH Private Key)</label>
         <textarea 
           placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----"
           [ngModel]="newSshKeyPrivateKey()"
@@ -413,9 +413,9 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
             </svg>
-            <span>Se configurează...</span>
+            <span>Configuring...</span>
           } @else {
-            <span>Configurează Cheie SSH</span>
+            <span>Configure SSH Key</span>
           }
         </button>
       </div>
@@ -427,11 +427,11 @@
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
       </svg>
-      <span class="text-xs text-zinc-550">Se încarcă cheile SSH...</span>
+      <span class="text-xs text-zinc-550">Loading SSH keys...</span>
     </div>
 
     <div *ngIf="!loadingSshKeys() && sshKeys().length === 0" class="flex flex-col items-center justify-center py-6 text-center text-zinc-550 text-xs italic">
-      Nu există chei SSH înregistrate în acest proiect.
+      No SSH keys registered in this project.
     </div>
 
     <div *ngIf="!loadingSshKeys() && sshKeys().length > 0" class="overflow-x-auto">
@@ -440,8 +440,8 @@
           <tr class="border-b border-zinc-900 text-zinc-550 uppercase tracking-wider text-[9px] font-mono pb-2">
             <th class="pb-2 px-2">Nume</th>
             <th class="pb-2 px-2">Host Git</th>
-            <th class="pb-2 px-2">Cheie Publică (Deploy Key)</th>
-            <th class="pb-2 px-2 text-right">Acțiuni</th>
+            <th class="pb-2 px-2">Public Key (Deploy Key)</th>
+            <th class="pb-2 px-2 text-right">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-zinc-950 text-zinc-350">
@@ -459,17 +459,17 @@
                   (click)="copyToClipboard(key.publicKey)"
                   class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 text-zinc-400 hover:text-white transition-colors cursor-pointer text-[10px]"
                 >
-                  Copiază
+                  Copy
                 </button>
               </div>
-              <p class="text-[9px] text-zinc-650 mt-1">Adăugați această cheie ca <strong>Deploy Key / Access Key</strong> cu drepturi de citire în setările repository-ului Git.</p>
+              <p class="text-[9px] text-zinc-650 mt-1">Add this key as a <strong>Deploy Key / Access Key</strong> with read permissions in your Git repository settings.</p>
             </td>
             <td class="py-2.5 px-2 text-right align-top">
               <button 
                 (click)="onDeleteSshKey(key.id)"
                 class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-red-400 text-[10px] border border-zinc-850 transition-colors cursor-pointer"
               >
-                Elimină
+                Remove
               </button>
             </td>
           </tr>
