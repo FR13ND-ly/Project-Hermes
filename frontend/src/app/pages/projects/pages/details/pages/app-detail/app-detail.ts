@@ -99,10 +99,10 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
   // Build lifecycle stepper
   readonly buildPhaseSteps = [
-    { key: 'queued', label: 'În coadă' },
-    { key: 'cloning', label: 'Clonare cod' },
-    { key: 'building', label: 'Construire imagine' },
-    { key: 'deploying', label: 'Deploy cluster' },
+    { key: 'queued', label: 'Queued' },
+    { key: 'cloning', label: 'Cloning code' },
+    { key: 'building', label: 'Building image' },
+    { key: 'deploying', label: 'Deploying to cluster' },
     { key: 'running', label: 'Live' },
   ];
 
@@ -143,13 +143,13 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       v = build.status;
     }
     switch (v) {
-      case 'cancelled': return 'Build anulat';
-      case 'timed_out': return 'Build expirat (timeout)';
-      case 'superseded': return 'Înlocuit de un build mai nou';
-      case 'crashed': return 'Aplicația a crăpat la pornire';
-      case 'failed': return build.status === 'succeeded' ? 'Deploy eșuat (build OK)' : 'Build eșuat';
-      case 'queued': return 'În coadă';
-      default: return 'Build eșuat';
+      case 'cancelled': return 'Build cancelled';
+      case 'timed_out': return 'Build timed out';
+      case 'superseded': return 'Superseded by a newer build';
+      case 'crashed': return 'Application crashed on startup';
+      case 'failed': return build.status === 'succeeded' ? 'Deploy failed (build OK)' : 'Build failed';
+      case 'queued': return 'Queued';
+      default: return 'Build failed';
     }
   }
 
@@ -165,8 +165,8 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.projectService.rollbackBuild(appId, build.id).subscribe({
       next: () => {
         this.rollingBackId.set(null);
-        this.toast.success('Rollback pornit — acest build devine cel activ (LIVE).');
-        this.pushSystemLog(`⏪ Rollback la build ${build.id.substring(0, 8)} — se re-deployează imaginea acestui build...`);
+        this.toast.success('Rollback started — this build becomes the active (LIVE) one.');
+        this.pushSystemLog(`⏪ Rollback to build ${build.id.substring(0, 8)} — re-deploying this build's image...`);
         // Select the rolled-back build so it's highlighted; the LIVE badge follows
         // once the builds list refreshes against the instance's new image.
         this.onViewBuildLogs(build);
@@ -175,7 +175,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.rollingBackId.set(null);
-        this.toast.error(err.error?.message || err.error?.error?.message || 'Eroare la rollback.');
+        this.toast.error(err.error?.message || err.error?.error?.message || 'Rollback failed.');
       }
     });
   }
@@ -188,12 +188,12 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.projectService.cancelBuild(appId, build.id).subscribe({
       next: () => {
         this.cancellingBuild.set(false);
-        this.toast.success('Build-ul a fost anulat.');
+        this.toast.success('Build has been cancelled.');
         this.loadAppDetails();
       },
       error: (err) => {
         this.cancellingBuild.set(false);
-        this.toast.error(err.error?.message || err.error?.error?.message || 'Eroare la anularea build-ului.');
+        this.toast.error(err.error?.message || err.error?.error?.message || 'Failed to cancel build.');
       }
     });
   }
@@ -206,13 +206,13 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.projectService.retryBuild(appId, build.id).subscribe({
       next: () => {
         this.retryingBuild.set(false);
-        this.toast.success('Build-ul a fost repornit cu aceeași configurație.');
+        this.toast.success('Build has been restarted with the same configuration.');
         this.selectedBuildId.set(null);
         this.loadAppDetails();
       },
       error: (err) => {
         this.retryingBuild.set(false);
-        this.toast.error(err.error?.message || err.error?.error?.message || 'Eroare la repornirea build-ului.');
+        this.toast.error(err.error?.message || err.error?.error?.message || 'Failed to restart build.');
       }
     });
   }
@@ -485,7 +485,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la încărcarea detaliilor aplicației.');
+        this.error.set(err.error?.message || 'Failed to load application details.');
         this.loading.set(false);
       }
     });
@@ -597,11 +597,11 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       next: () => {
         this.newBranchName.set('');
         this.deployingBranch.set(false);
-        this.toast.success('Deployment-ul de branch a fost lansat cu succes!');
+        this.toast.success('Branch deployment launched successfully!');
         this.loadAppDetails();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la crearea deploymentului.');
+        this.toast.error(err.error?.message || 'Failed to create deployment.');
         this.deployingBranch.set(false);
       }
     });
@@ -612,10 +612,10 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     if (!appId) return;
 
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Instanță (Pod)',
-      message: 'Sigur doriți să ștergeți această instanță? Kubernetes o va reporni automat dacă este asociată unui deployment activ, altfel va fi oprită.',
-      confirmText: 'Șterge Pod',
-      cancelText: 'Anulează',
+      title: 'Delete Instance (Pod)',
+      message: 'Are you sure you want to delete this instance? Kubernetes will restart it automatically if it belongs to an active deployment, otherwise it will be stopped.',
+      confirmText: 'Delete Pod',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
@@ -625,11 +625,11 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         if (this.activeInstanceId() === instanceId) {
           this.activeInstanceId.set(null);
         }
-        this.toast.success('Instanța a fost oprită.');
+        this.toast.success('Instance has been stopped.');
         this.loadAppDetails();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la opritul instanței.');
+        this.toast.error(err.error?.message || 'Failed to stop instance.');
       }
     });
   }
@@ -675,7 +675,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
     this.disconnectLogs();
     this.connectedInstanceId = instanceId;
-    this.logs.set(['[Console] Se conectează la fluxul de logs (WebSocket)...']);
+    this.logs.set(['[Console] Connecting to log stream (WebSocket)...']);
 
     const wsUrl = this.projectService.getLogsWsUrl(appId, instanceId);
     const socket = new WebSocket(wsUrl);
@@ -683,7 +683,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
     socket.onopen = () => {
       this.sseConnected.set(true);
-      this.logs.update(lines => [...lines, '[Console] Conexiune WebSocket stabilă. Recepționare logs în timp real:']);
+      this.logs.update(lines => [...lines, '[Console] WebSocket connection established. Receiving real-time logs:']);
     };
 
     socket.onmessage = (event) => {
@@ -699,7 +699,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       // Ignore if this socket was already replaced or intentionally closed.
       if (this.logsSocket !== socket) return;
       this.sseConnected.set(false);
-      this.logs.update(lines => [...lines, '[Aviz] Conexiunea la stream a fost întreruptă. Se reconectează...']);
+      this.logs.update(lines => [...lines, '[Notice] Stream connection interrupted. Reconnecting...']);
       this.logsReconnectTimer = setTimeout(() => {
         if (this.logsSocket === socket && this.connectedInstanceId === instanceId) {
           this.connectLogs(instanceId);
@@ -825,7 +825,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
     this.projectService.getBuildDetails(appId, buildId).subscribe({
       next: (res) => {
-        this.selectedBuildLogs.set(res.logs || 'Nu există loguri înregistrate pentru acest build.');
+        this.selectedBuildLogs.set(res.logs || 'No logs recorded for this build.');
         this.loadingBuildLogs.set(false);
         if (this.autoScroll()) {
           this.scrollToBottom();
@@ -838,7 +838,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         }
       },
       error: () => {
-        this.selectedBuildLogs.set('Eroare la încărcarea logurilor de build.');
+        this.selectedBuildLogs.set('Failed to load build logs.');
         this.loadingBuildLogs.set(false);
         this.disconnectBuildLogs();
       }
@@ -850,7 +850,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     if (!appId) return;
 
     this.disconnectBuildLogs();
-    this.selectedBuildLogs.set('[Console] Se conectează la fluxul de build live...');
+    this.selectedBuildLogs.set('[Console] Connecting to live build stream...');
 
     const streamUrl = this.projectService.getBuildLogsStreamUrl(appId, buildId);
     this.buildLogsEventSource = new EventSource(streamUrl);
@@ -858,7 +858,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.buildLogsEventSource.onmessage = (event) => {
       if (event.data) {
         this.selectedBuildLogs.update(logs => {
-          if (logs === '[Console] Se conectează la fluxul de build live...') {
+          if (logs === '[Console] Connecting to live build stream...') {
             return event.data + '\n';
           }
           return logs + event.data + '\n';
@@ -879,7 +879,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       // Retrieve full logs from database
       this.projectService.getBuildDetails(appId, buildId).subscribe({
         next: (res) => {
-          this.selectedBuildLogs.set(res.logs || 'Nu există loguri înregistrate pentru acest build.');
+          this.selectedBuildLogs.set(res.logs || 'No logs recorded for this build.');
           if (this.autoScroll()) {
             this.scrollToBottom();
           }
@@ -978,16 +978,16 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         this.togglingLinkId.set(null);
         if (!env.linked && res?.replacedLocalKey) {
           // "Linking wins": a conflicting local var with the same key was removed.
-          this.toast.info(`Variabila locală ${res.replacedLocalKey} a fost înlocuită de cea din pool (linkarea câștigă).`);
+          this.toast.info(`Local variable ${res.replacedLocalKey} was replaced by the pool variable (link wins).`);
           this.loadAppDetails();
         } else {
-          this.toast.success(env.linked ? 'Variabilă deconectată.' : 'Variabilă conectată.');
+          this.toast.success(env.linked ? 'Variable unlinked.' : 'Variable linked.');
         }
         this.loadAvailableProjectEnv();
       },
       error: (err) => {
         this.togglingLinkId.set(null);
-        this.toast.error(err.error?.message || 'Eroare la actualizarea legăturii.');
+        this.toast.error(err.error?.message || 'Failed to update link.');
       }
     });
   }
@@ -1040,11 +1040,11 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         this.editingEnvId.set(null);
         this.showCreateEnvForm.set(false);
         this.settingEnv.set(false);
-        this.toast.success(wasEditing ? 'Variabila de mediu a fost actualizată!' : 'Variabila de mediu a fost salvată!');
+        this.toast.success(wasEditing ? 'Environment variable updated!' : 'Environment variable saved!');
         this.loadEnvVariables();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la salvarea variabilei.');
+        this.toast.error(err.error?.message || 'Failed to save variable.');
         this.settingEnv.set(false);
       }
     });
@@ -1072,11 +1072,11 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     try {
       parsed = JSON.parse(this.jsonText());
     } catch {
-      this.toast.error('JSON invalid. Verificați sintaxa.');
+      this.toast.error('Invalid JSON. Check the syntax.');
       return;
     }
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      this.toast.error('JSON-ul trebuie să fie un obiect { "CHEIE": "valoare" }.');
+      this.toast.error('JSON must be an object { "KEY": "value" }.');
       return;
     }
 
@@ -1091,40 +1091,40 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       next: () => {
         this.savingJson.set(false);
         this.jsonEditMode.set(false);
-        this.toast.success('Variabilele de mediu au fost actualizate.');
+        this.toast.success('Environment variables updated.');
         this.loadEnvVariables();
       },
       error: (err) => {
         this.savingJson.set(false);
-        this.toast.error(err.error?.message || 'Eroare la salvarea variabilelor.');
+        this.toast.error(err.error?.message || 'Failed to save variables.');
       }
     });
   }
 
   async onDeleteEnv(envId: string): Promise<void> {
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Variabilă de Mediu',
-      message: 'Sigur doriți să ștergeți această variabilă? Modificarea va fi aplicată containerelor la următorul redeploy.',
-      confirmText: 'Șterge',
-      cancelText: 'Anulează',
+      title: 'Delete Environment Variable',
+      message: 'Are you sure you want to delete this variable? The change will be applied to containers on the next redeploy.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
 
     this.projectService.deleteEnvVariable(envId).subscribe({
       next: () => {
-        this.toast.success('Variabila de mediu a fost ștearsă.');
+        this.toast.success('Environment variable deleted.');
         this.loadEnvVariables();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la ștergere.');
+        this.toast.error(err.error?.message || 'Failed to delete.');
       }
     });
   }
 
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text).then(() => {
-      this.toast.success('Copiat!');
+      this.toast.success('Copied!');
     });
   }
 
@@ -1153,12 +1153,12 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       next: () => {
         this.savingSettings.set(false);
         this.saveSettingsSuccess.set(true);
-        this.toast.success('Setările aplicației au fost salvate și redeploierea a început.');
+        this.toast.success('Application settings saved and redeploy started.');
         this.loadAppDetails();
         setTimeout(() => this.saveSettingsSuccess.set(false), 4000);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la actualizarea setărilor.');
+        this.toast.error(err.error?.message || 'Failed to update settings.');
         this.savingSettings.set(false);
       }
     });
@@ -1169,10 +1169,10 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     if (!appData) return;
 
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Completă Aplicație',
-      message: `Sigur doriți să ștergeți complet aplicația "${appData.name}"? Această acțiune este ireversibilă și va distruge toate instanțele active, build-urile și configurațiile de rutare din Kubernetes.`,
-      confirmText: 'Șterge Aplicația',
-      cancelText: 'Anulează',
+      title: 'Delete Application Completely',
+      message: `Are you sure you want to completely delete the application "${appData.name}"? This action is irreversible and will destroy all active instances, builds and routing configurations in Kubernetes.`,
+      confirmText: 'Delete Application',
+      cancelText: 'Cancel',
       isDanger: true,
       matchText: appData.name
     });
@@ -1181,14 +1181,14 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.projectService.deleteApp(appData.id).subscribe({
       next: () => {
-        this.toast.success(`Aplicația "${appData.name}" a fost ștearsă.`);
+        this.toast.success(`Application "${appData.name}" has been deleted.`);
         if (this.parent.selectedApp()?.id === appData.id) {
           this.parent.selectedApp.set(null);
         }
         this.router.navigate([`/projects/${this.parent.projectId()}/apps`]);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la ștergerea aplicației.');
+        this.toast.error(err.error?.message || 'Failed to delete application.');
         this.loading.set(false);
       }
     });
@@ -1249,11 +1249,11 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.projectService.stopAppInstance(appId, instanceId).subscribe({
       next: () => {
         this.stoppingInstance.set(false);
-        this.toast.success('Instanța a fost oprită (scale 0).');
+        this.toast.success('Instance stopped (scale 0).');
         this.loadAppDetails();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la oprirea instanței.');
+        this.toast.error(err.error?.message || 'Failed to stop instance.');
         this.stoppingInstance.set(false);
       }
     });
@@ -1268,11 +1268,11 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.projectService.startAppInstance(appId, instanceId).subscribe({
       next: () => {
         this.startingInstance.set(false);
-        this.toast.success('Instanța a fost pornită (scale 1).');
+        this.toast.success('Instance started (scale 1).');
         this.loadAppDetails();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la pornirea instanței.');
+        this.toast.error(err.error?.message || 'Failed to start instance.');
         this.startingInstance.set(false);
       }
     });
@@ -1288,13 +1288,13 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.projectService.redeployAppInstance(appId, instanceId).subscribe({
       next: () => {
         this.redeployingInstance.set(false);
-        this.toast.success('Rebuild pornit — se reconstruiește imaginea din Git.');
-        this.pushSystemLog('🔨 Redeploy (rebuild) declanșat — se reconstruiește imaginea din Git...');
+        this.toast.success('Rebuild started — rebuilding image from Git.');
+        this.pushSystemLog('🔨 Redeploy (rebuild) triggered — rebuilding image from Git...');
         this.loadAppDetails();
         this.loadBuilds(true);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || err.error?.error?.message || 'Eroare la pornirea rebuild-ului.');
+        this.toast.error(err.error?.message || err.error?.error?.message || 'Failed to start rebuild.');
         this.redeployingInstance.set(false);
       }
     });
@@ -1310,12 +1310,12 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.projectService.reloadAppInstance(appId, instanceId).subscribe({
       next: () => {
         this.reloadingInstance.set(false);
-        this.toast.success('Reload lansat — se re-aplică imaginea curentă cu env-ul actualizat.');
-        this.pushSystemLog('🔄 Reload declanșat — se re-aplică imaginea curentă cu configurația și env-ul actualizate...');
+        this.toast.success('Reload launched — re-applying current image with updated env.');
+        this.pushSystemLog('🔄 Reload triggered — re-applying current image with updated configuration and env...');
         this.loadAppDetails();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || err.error?.error?.message || 'Eroare la reload.');
+        this.toast.error(err.error?.message || err.error?.error?.message || 'Reload failed.');
         this.reloadingInstance.set(false);
       }
     });
@@ -1324,7 +1324,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   onOpenAddDomainModal(): void {
     const container = this.getSelectedInstanceContainerName();
     if (!container) {
-      this.toast.error('Această aplicație nu are nicio instanță activă (pod) lansată. Lansați un build mai întâi.');
+      this.toast.error('This application has no active instance (pod) running. Launch a build first.');
       return;
     }
     this.appDomainFqdn.set('');
@@ -1335,11 +1335,11 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     const fqdnVal = this.appDomainFqdn().trim();
     const instanceId = this.activeInstanceId() || this.app()?.instances?.[0]?.id || null;
     if (!fqdnVal) {
-      this.toast.error('Numele domeniului este obligatoriu.');
+      this.toast.error('Domain name is required.');
       return;
     }
     if (!instanceId) {
-      this.toast.error('Nu s-a putut asocia deoarece aplicația nu are o instanță activă.');
+      this.toast.error('Could not associate because the application has no active instance.');
       return;
     }
 
@@ -1354,10 +1354,10 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       next: () => {
         this.addingDomain.set(false);
         this.showAddDomainModal.set(false);
-        this.toast.success(`Domeniul "${fqdnVal}" a fost asociat cu succes!`);
+        this.toast.success(`Domain "${fqdnVal}" has been associated successfully!`);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la asocierea domeniului.');
+        this.toast.error(err.error?.message || 'Failed to associate domain.');
         this.addingDomain.set(false);
       }
     });
@@ -1389,7 +1389,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    this.toast.success('Logurile au fost descărcate cu succes!');
+    this.toast.success('Logs downloaded successfully!');
   }
 
 
@@ -1397,7 +1397,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   loadWorkspace(): void {
     this.workspaceService.getCurrentWorkspace().subscribe({
       next: (res) => this.workspace.set(res),
-      error: (err) => console.error('Eroare la încărcarea workspace-ului', err)
+      error: (err) => console.error('Failed to load workspace', err)
     });
   }
 }

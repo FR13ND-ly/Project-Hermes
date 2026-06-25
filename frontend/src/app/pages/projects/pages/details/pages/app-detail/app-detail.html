@@ -7,7 +7,7 @@
         [routerLink]="['/projects', parent.projectId(), 'apps']"
         class="inline-flex items-center gap-1.5 text-[10px] font-bold text-zinc-550 hover:text-white uppercase tracking-wider transition-colors cursor-pointer group"
       >
-        <span class="transform group-hover:-translate-x-0.5 transition-transform">←</span> Înapoi la Aplicații
+        <span class="transform group-hover:-translate-x-0.5 transition-transform">←</span> Back to Applications
       </a>
     </div>
 
@@ -17,7 +17,7 @@
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
         </svg>
-        <span class="text-xs text-zinc-550 font-mono">Se încarcă detaliile serviciului...</span>
+        <span class="text-xs text-zinc-550 font-mono">Loading service details...</span>
       </div>
     }
 
@@ -41,7 +41,7 @@
               <span class="text-zinc-300 ml-1 select-all">{{ app()?.git_repo_url }}</span>
             </div>
             <div>
-              <span class="text-zinc-600">Creat:</span>
+              <span class="text-zinc-600">Created:</span>
               <span class="text-zinc-300 ml-1">{{ app()?.created_at | date:'dd.MM.yyyy HH:mm' }}</span>
             </div>
             @if (app()?.namespace) {
@@ -52,12 +52,12 @@
             }
             @if (getSelectedInstance(); as inst) {
               <div>
-                <span class="text-zinc-600">Adresă internă:</span>
-                <span class="text-zinc-300 ml-1 select-all font-mono" title="Adresa la care alte aplicații din proiect ajung la aceasta">http://{{ inst.networkAlias || stripHash(inst.containerName) }}:{{ inst.internalPort }}</span>
+                <span class="text-zinc-600">Internal address:</span>
+                <span class="text-zinc-300 ml-1 select-all font-mono" title="The address at which other applications in the project reach this one">http://{{ inst.networkAlias || stripHash(inst.containerName) }}:{{ inst.internalPort }}</span>
               </div>
               @if (inst.assignedDomain) {
                 <div>
-                  <span class="text-zinc-600">Link public:</span>
+                  <span class="text-zinc-600">Public link:</span>
                   <a
                     [href]="'https://' + inst.assignedDomain"
                     target="_blank"
@@ -77,7 +77,7 @@
               (click)="onReloadInstance()"
               [disabled]="reloadingInstance() || redeployingInstance() || getSelectedInstance()?.status === 'building'"
               class="px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 font-mono disabled:opacity-55"
-              title="Re-aplică imaginea curentă cu env-ul actualizat (fără rebuild)"
+              title="Re-applies the current image with updated env (no rebuild)"
             >
               @if (reloadingInstance()) {
                 <svg class="animate-spin h-3.5 w-3.5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -98,7 +98,7 @@
               (click)="onRedeployInstance()"
               [disabled]="redeployingInstance() || reloadingInstance() || getSelectedInstance()?.status === 'building'"
               class="px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 font-mono disabled:opacity-55"
-              title="Rebuild complet: clonează din Git, reconstruiește imaginea și redeployează"
+              title="Full rebuild: clone from Git, rebuild image and redeploy"
             >
               @if (redeployingInstance()) {
                 <svg class="animate-spin h-3.5 w-3.5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -126,7 +126,7 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                   </svg>
-                  Oprire...
+                  Stopping...
                 } @else {
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-red-500">
                     <rect x="6" y="6" width="12" height="12" rx="1.5" />
@@ -145,7 +145,7 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                   </svg>
-                  Pornire...
+                  Starting...
                 } @else {
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-emerald-500">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
@@ -164,14 +164,14 @@
               class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
               [class]="activeSubTab() === 'telemetry' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
             >
-              Telemetrie
+              Telemetry
             </button>
-            <button 
+            <button
               (click)="onSubTabChange('logs')"
               class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
               [class]="activeSubTab() === 'logs' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
             >
-              Logs & Consolă
+              Logs & Console
             </button>
             <button
               (click)="onSubTabChange('general')"
@@ -185,14 +185,14 @@
               class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
               [class]="activeSubTab() === 'env' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
             >
-              Variabile Mediu
+              Env Variables
             </button>
             <button
               (click)="onSubTabChange('advanced')"
               class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
               [class]="activeSubTab() === 'advanced' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
             >
-              Avansat
+              Advanced
             </button>
           </div>
         </div>
@@ -222,8 +222,8 @@
             <!-- Controls & Header -->
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3">
               <div>
-                <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Telemetrie Instanță (Prometheus)</h3>
-                <p class="text-[10px] text-zinc-550 font-mono mt-0.5">Urmărire în timp real a consumului K8s</p>
+                <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Instance Telemetry (Prometheus)</h3>
+                <p class="text-[10px] text-zinc-550 font-mono mt-0.5">Real-time K8s resource usage tracking</p>
               </div>
 
               <div class="flex items-center gap-3">
@@ -248,7 +248,7 @@
                 <!-- Range -->
                 <div class="flex items-center gap-2">
                   @if (metricsSimulated()) {
-                    <span class="px-1.5 py-0.5 rounded bg-amber-950/30 border border-amber-900/40 text-[8px] font-bold uppercase tracking-wider text-amber-400" title="Prometheus indisponibil — nu există date reale de afișat">Date indisponibile</span>
+                    <span class="px-1.5 py-0.5 rounded bg-amber-950/30 border border-amber-900/40 text-[8px] font-bold uppercase tracking-wider text-amber-400" title="Prometheus unavailable — no real data to display">Data unavailable</span>
                   }
                   <div class="flex items-center rounded bg-black border border-zinc-800 p-0.5 font-mono text-[9px]">
                     @for (r of ['1h', '24h', '7d']; track r) {
@@ -273,7 +273,7 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                   </svg>
-                  <span class="text-zinc-500 text-[9px] uppercase font-mono tracking-widest">Interogare Prometheus...</span>
+                  <span class="text-zinc-500 text-[9px] uppercase font-mono tracking-widest">Querying Prometheus...</span>
                 </div>
               }
 
@@ -281,14 +281,14 @@
                 <!-- CPU -->
                 <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
                   <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
-                    <span>Utilizare CPU (Milicores)</span>
-                    <span class="text-white font-mono font-bold">{{ cpuCurrent() | number:'1.0-1' }}m / @if (cpuLimit() === 0) { Nelimitat } @else { {{ cpuLimit() }}m }</span>
+                    <span>CPU Usage (Millicores)</span>
+                    <span class="text-white font-mono font-bold">{{ cpuCurrent() | number:'1.0-1' }}m / @if (cpuLimit() === 0) { Unlimited } @else { {{ cpuLimit() }}m }</span>
                   </div>
                   <div class="space-y-1">
                     <div class="w-full h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
                       <div class="h-full transition-all" [class]="cpuUsedPct() >= 90 ? 'bg-red-500' : 'bg-emerald-500'" [style.width.%]="cpuUsedPct()"></div>
                     </div>
-                    <div class="text-[9px] text-zinc-600 font-mono text-right">@if (cpuLimit() === 0) { Nelimitat } @else { {{ cpuUsedPct() }}% din cota alocată }</div>
+                    <div class="text-[9px] text-zinc-600 font-mono text-right">@if (cpuLimit() === 0) { Unlimited } @else { {{ cpuUsedPct() }}% of allocated quota }</div>
                   </div>
                   <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[120px] relative">
                     @if (cpuValues().length > 1) {
@@ -303,7 +303,7 @@
                         <path [attr.d]="getSvgPath(cpuValues())" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"></path>
                       </svg>
                     } @else {
-                      <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">Date indisponibile în acest interval</div>
+                      <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">No data for this interval</div>
                     }
                   </div>
                 </div>
@@ -311,14 +311,14 @@
                 <!-- RAM -->
                 <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
                   <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
-                    <span>Utilizare Memorie RAM</span>
-                    <span class="text-white font-mono font-bold">{{ memCurrent() | number:'1.0-1' }} / @if (memLimit() === 0) { Nelimitat } @else { {{ memLimit() }} MB }</span>
+                    <span>RAM Memory Usage</span>
+                    <span class="text-white font-mono font-bold">{{ memCurrent() | number:'1.0-1' }} / @if (memLimit() === 0) { Unlimited } @else { {{ memLimit() }} MB }</span>
                   </div>
                   <div class="space-y-1">
                     <div class="w-full h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
                       <div class="h-full transition-all" [class]="memUsedPct() >= 90 ? 'bg-red-500' : 'bg-emerald-500'" [style.width.%]="memUsedPct()"></div>
                     </div>
-                    <div class="text-[9px] text-zinc-600 font-mono text-right">@if (memLimit() === 0) { Nelimitat } @else { {{ memUsedPct() }}% din cota alocată }</div>
+                    <div class="text-[9px] text-zinc-600 font-mono text-right">@if (memLimit() === 0) { Unlimited } @else { {{ memUsedPct() }}% of allocated quota }</div>
                   </div>
                   <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[120px] relative">
                     @if (memValues().length > 1) {
@@ -333,7 +333,7 @@
                         <path [attr.d]="getSvgPath(memValues())" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linecap="round"></path>
                       </svg>
                     } @else {
-                      <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">Date indisponibile în acest interval</div>
+                      <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">No data for this interval</div>
                     }
                   </div>
                 </div>
@@ -341,7 +341,7 @@
                 <!-- Inbound Network (network_rx) -->
                 <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
                   <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
-                    <span>Trafic Rețea - Inbound (Descarcă)</span>
+                    <span>Network Traffic - Inbound (Download)</span>
                     @if (netRxValues().length > 0) {
                       <span class="text-white font-mono font-bold">{{ netRxValues()[netRxValues().length - 1] | number:'1.0-1' }} KB/s</span>
                     }
@@ -359,7 +359,7 @@
                         <path [attr.d]="getSvgPath(netRxValues())" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round"></path>
                       </svg>
                     } @else {
-                      <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">Date indisponibile în acest interval</div>
+                      <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">No data for this interval</div>
                     }
                   </div>
                 </div>
@@ -367,7 +367,7 @@
                 <!-- Outbound Network (network_tx) -->
                 <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
                   <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
-                    <span>Trafic Rețea - Outbound (Încarcă)</span>
+                    <span>Network Traffic - Outbound (Upload)</span>
                     @if (netTxValues().length > 0) {
                       <span class="text-white font-mono font-bold">{{ netTxValues()[netTxValues().length - 1] | number:'1.0-1' }} KB/s</span>
                     }
@@ -385,7 +385,7 @@
                         <path [attr.d]="getSvgPath(netTxValues())" fill="none" stroke="#818cf8" stroke-width="1.8" stroke-linecap="round"></path>
                       </svg>
                     } @else {
-                      <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">Date indisponibile în acest interval</div>
+                      <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">No data for this interval</div>
                     }
                   </div>
                 </div>
@@ -393,7 +393,7 @@
                 <!-- Disk Read (fs_read) -->
                 <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
                   <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
-                    <span>Citire Disc (Disk Read)</span>
+                    <span>Disk Read</span>
                     @if (fsReadValues().length > 0) {
                       <span class="text-white font-mono font-bold">{{ fsReadValues()[fsReadValues().length - 1] | number:'1.0-1' }} KB/s</span>
                     }
@@ -411,7 +411,7 @@
                         <path [attr.d]="getSvgPath(fsReadValues())" fill="none" stroke="#f43f5e" stroke-width="1.8" stroke-linecap="round"></path>
                       </svg>
                     } @else {
-                      <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">Date indisponibile în acest interval</div>
+                      <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">No data for this interval</div>
                     }
                   </div>
                 </div>
@@ -419,7 +419,7 @@
                 <!-- Disk Write (fs_write) -->
                 <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
                   <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
-                    <span>Scriere Disc (Disk Write)</span>
+                    <span>Disk Write</span>
                     @if (fsWriteValues().length > 0) {
                       <span class="text-white font-mono font-bold">{{ fsWriteValues()[fsWriteValues().length - 1] | number:'1.0-1' }} KB/s</span>
                     }
@@ -437,7 +437,7 @@
                         <path [attr.d]="getSvgPath(fsWriteValues())" fill="none" stroke="#fb7185" stroke-width="1.8" stroke-linecap="round"></path>
                       </svg>
                     } @else {
-                      <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">Date indisponibile în acest interval</div>
+                      <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">No data for this interval</div>
                     }
                   </div>
                 </div>
@@ -446,7 +446,7 @@
           </div>
         } @else {
           <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-12 text-center text-zinc-550 text-xs font-mono">
-            Nicio instanță activă pentru această aplicație. Porniți aplicația pentru a vizualiza datele de telemetrie.
+            No active instance for this application. Start the application to view telemetry data.
           </div>
         }
       </div>
@@ -459,7 +459,7 @@
         <div class="bg-[#0a0a0a] p-4 rounded-lg border mb-4 animate-fade-in font-mono"
              [class]="isBuildFailed(build) ? 'border-red-900/40' : 'border-zinc-800'">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Ciclu de Viață Build</h3>
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Build Lifecycle</h3>
             <div class="flex items-center gap-3">
               <span class="text-[9px] font-mono text-zinc-600">{{ build.branchName }} · {{ build.id.substring(0, 8) }}</span>
               @if (isBuildInProgress(build)) {
@@ -478,7 +478,7 @@
                       <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   }
-                  Anulează
+                  Cancel
                 </button>
               }
             </div>
@@ -527,7 +527,7 @@
                     <span class="px-1.5 py-0.2 rounded bg-red-950/40 border border-red-900/40 text-[8px] font-bold text-red-400 font-mono uppercase">{{ build.failureCategory }}</span>
                   }
                 </div>
-                <div class="text-[11px] text-red-300/80 mt-0.5 font-sans">{{ build.failureReason || 'Cauză necunoscută — consultă log-urile de mai jos pentru detalii.' }}</div>
+                <div class="text-[11px] text-red-300/80 mt-0.5 font-sans">{{ build.failureReason || 'Unknown cause — check the logs below for details.' }}</div>
               </div>
               <button
                 (click)="onRetryBuild(build)"
@@ -544,7 +544,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                   </svg>
                 }
-                Reîncearcă
+                Retry
               </button>
             </div>
           }
@@ -558,7 +558,7 @@
           
           <!-- Live log selector card -->
           <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm">
-            <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Consolă Activă</h3>
+            <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Active Console</h3>
             <button 
               (click)="onBackToLiveLogs()"
               class="w-full text-left p-3 rounded border text-xs transition-all flex items-center justify-between cursor-pointer"
@@ -568,8 +568,8 @@
               [class.bg-black]="selectedBuildId()"
             >
               <div class="space-y-0.5">
-                <span class="font-bold text-zinc-200" [class.text-white]="!selectedBuildId()">Ieșire Standard (Live)</span>
-                <p class="text-[9px] text-zinc-550">stdout în timp real</p>
+                <span class="font-bold text-zinc-200" [class.text-white]="!selectedBuildId()">Standard Output (Live)</span>
+                <p class="text-[9px] text-zinc-550">Real-time stdout</p>
               </div>
               <div class="flex items-center gap-1.5">
                 <span class="relative flex h-2 w-2">
@@ -579,7 +579,7 @@
                   <span class="relative inline-flex rounded-full h-2 w-2" [class]="(sseConnected() && !selectedBuildId()) ? 'bg-emerald-500' : 'bg-zinc-700'"></span>
                 </span>
                 <span class="text-[9px] font-bold" [class]="(sseConnected() && !selectedBuildId()) ? 'text-emerald-400' : 'text-zinc-550'">
-                  {{ (sseConnected() && !selectedBuildId()) ? 'LIVE' : 'INACTIV' }}
+                  {{ (sseConnected() && !selectedBuildId()) ? 'LIVE' : 'INACTIVE' }}
                 </span>
               </div>
             </button>
@@ -588,7 +588,7 @@
           <!-- Build logs list -->
           <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm flex flex-col">
             <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
-              <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Istoric Build-uri</h3>
+              <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Build History</h3>
               <button 
                 (click)="loadBuilds()" 
                 class="text-zinc-500 hover:text-zinc-300 p-1.5 rounded border border-zinc-900 bg-black hover:border-zinc-500 transition-all cursor-pointer"
@@ -609,7 +609,7 @@
             }
 
             @if (!buildsLoading() && builds().length === 0) {
-              <div class="py-8 text-center text-xs text-zinc-550 font-medium">Niciun build înregistrat.</div>
+              <div class="py-8 text-center text-xs text-zinc-550 font-medium">No builds recorded.</div>
             }
 
             @if (!buildsLoading() && builds().length > 0) {
@@ -625,7 +625,7 @@
                     <div class="w-full space-y-1">
                       <div class="flex items-center justify-between gap-2">
                         <span class="font-bold text-zinc-200 truncate max-w-[110px] block" [class.text-white]="selectedBuildId() === build.id">
-                          {{ build.commitMessage || 'Lansare Manuală' }}
+                          {{ build.commitMessage || 'Manual Launch' }}
                         </span>
                         <div class="flex items-center gap-1 shrink-0">
                           @if (build.isLive) {
@@ -681,11 +681,11 @@
           <div class="flex items-center justify-between bg-[#0a0a0a]/50 p-3 rounded-lg border border-zinc-900">
             <div>
               <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">
-                {{ selectedBuildId() ? 'Loguri Build (ID: ' + selectedBuildId()?.substring(0, 8) + ')' : 'Consolă Live (Stdout)' }}
+                {{ selectedBuildId() ? 'Build Logs (ID: ' + selectedBuildId()?.substring(0, 8) + ')' : 'Live Console (Stdout)' }}
                 @if (selectedBuild()?.isLive) {
                   <span class="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[8px] font-bold border bg-emerald-950/30 border-emerald-800/50 text-emerald-300 uppercase align-middle">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Aplicat acum (Live)
+                    Applied now (Live)
                   </span>
                 }
                 @if (selectedBuild()?.status === 'building') {
@@ -695,7 +695,7 @@
                 }
               </h3>
               <p class="text-[10px] text-zinc-550 mt-0.5">
-                {{ selectedBuildId() ? 'Etape compilare din containerul Kaniko și Cloner' : 'Stdout realtime din container' }}
+                {{ selectedBuildId() ? 'Compilation steps from Kaniko and Cloner containers' : 'Real-time stdout from container' }}
               </p>
             </div>
             
@@ -703,7 +703,7 @@
               <!-- Search bar inside logs -->
               <input 
                 type="text" 
-                placeholder="Filtrează logs..." 
+                placeholder="Filter logs..." 
                 [ngModel]="logSearchQuery()"
                 (ngModelChange)="logSearchQuery.set($event)"
                 class="bg-black border border-zinc-850 text-zinc-300 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 w-32 sm:w-44 font-mono"
@@ -713,7 +713,7 @@
               <button 
                 (click)="onDownloadLogs()"
                 class="p-1.5 rounded border border-zinc-850 bg-black hover:border-zinc-500 text-zinc-500 hover:text-white transition-colors cursor-pointer"
-                title="Descarcă logurile complete"
+                title="Download complete logs"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -724,7 +724,7 @@
                 <button
                   (click)="onRollbackBuild(selectedBuild()!)"
                   [disabled]="rollingBackId() === selectedBuild()!.id"
-                  title="Redeployează imaginea acestui build"
+                  title="Redeploy this build's image"
                   class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border border-zinc-700 bg-black hover:border-zinc-400 text-zinc-300 hover:text-white transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                 >
                   @if (rollingBackId() === selectedBuild()!.id) {
@@ -746,7 +746,7 @@
                   (click)="onBackToLiveLogs()"
                   class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase transition-all bg-white hover:bg-zinc-200 text-black shadow cursor-pointer border border-white"
                 >
-                  ← Înapoi
+                  ← Back
                 </button>
               } @else {
                 <button 
@@ -771,7 +771,7 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                   </svg>
-                  <span class="text-zinc-550 text-[10px]">Se încarcă logurile de build...</span>
+                  <span class="text-zinc-550 text-[10px]">Loading build logs...</span>
                 </div>
               } @else {
                 <div class="whitespace-pre-wrap leading-relaxed text-zinc-200">{{ filteredBuildLogs() }}</div>
@@ -792,8 +792,8 @@
 
         <div class="flex items-center justify-between border-b border-zinc-900 pb-3">
           <div>
-            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Variabile de Mediu</h3>
-            <p class="text-[10px] text-zinc-550 mt-0.5">Injectate în instanța selectată a aplicației</p>
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Environment Variables</h3>
+            <p class="text-[10px] text-zinc-550 mt-0.5">Injected into the selected application instance</p>
           </div>
 
           <div class="flex items-center gap-2">
@@ -801,13 +801,13 @@
               (click)="openJsonEditor()"
               class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold transition-all cursor-pointer"
             >
-              Editează ca JSON
+              Edit as JSON
             </button>
             <button
               (click)="onToggleCreateEnvForm()"
               class="px-2.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer"
             >
-              {{ showCreateEnvForm() ? 'Închide' : 'Adaugă Variabilă' }}
+              {{ showCreateEnvForm() ? 'Close' : 'Add Variable' }}
             </button>
           </div>
         </div>
@@ -817,7 +817,7 @@
           <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-3 shadow-sm">
             <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
               <h4 class="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">Editor JSON (.env)</h4>
-              <span class="text-[9px] text-amber-500/80">Rescrie TOATE variabilele instanței · secretele nu sunt afișate</span>
+              <span class="text-[9px] text-amber-500/80">Overwrites ALL instance variables · secrets not shown</span>
             </div>
             <textarea
               rows="12"
@@ -831,14 +831,14 @@
                 (click)="closeJsonEditor()"
                 class="px-3 py-1.5 rounded text-zinc-400 hover:text-white text-xs font-semibold border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer"
               >
-                Anulează
+                Cancel
               </button>
               <button
                 (click)="saveJsonEnvs()"
                 [disabled]="savingJson()"
                 class="px-3.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
               >
-                {{ savingJson() ? 'Se salvează...' : 'Aplică JSON' }}
+                {{ savingJson() ? 'Saving...' : 'Apply JSON' }}
               </button>
             </div>
           </div>
@@ -850,7 +850,7 @@
             @if (editingEnvId()) {
               <!-- Edit header -->
               <div class="flex items-center gap-2">
-                <span class="text-[11px] font-bold text-zinc-200 uppercase tracking-wider font-mono">Editează variabila</span>
+                <span class="text-[11px] font-bold text-zinc-200 uppercase tracking-wider font-mono">Edit variable</span>
                 <span class="font-mono text-xs text-white">{{ envKey() }}</span>
               </div>
             } @else {
@@ -860,19 +860,19 @@
                   (click)="addEnvMode.set('new')"
                   class="px-3 py-1.5 rounded transition-all cursor-pointer"
                   [class]="addEnvMode() === 'new' ? 'bg-white text-black' : 'text-zinc-500 hover:text-zinc-300'"
-                >Variabilă nouă</button>
+                >New variable</button>
                 <button
                   (click)="addEnvMode.set('project')"
                   class="px-3 py-1.5 rounded transition-all cursor-pointer"
                   [class]="addEnvMode() === 'project' ? 'bg-white text-black' : 'text-zinc-500 hover:text-zinc-300'"
-                >Din proiect</button>
+                >From project</button>
               </div>
             }
 
             @if (addEnvMode() === 'new') {
               <div class="grid gap-4 sm:grid-cols-2">
                 <div class="space-y-1.5">
-                  <label for="env-key-in" class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Cheie</label>
+                  <label for="env-key-in" class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Key</label>
                   <input
                     id="env-key-in"
                     type="text"
@@ -884,11 +884,11 @@
                   />
                 </div>
                 <div class="space-y-1.5">
-                  <label for="env-val-in" class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Valoare</label>
+                  <label for="env-val-in" class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Value</label>
                   <input
                     id="env-val-in"
                     [type]="isSecret() ? 'password' : 'text'"
-                    [placeholder]="editingEnvId() && isSecret() ? 'valoare nouă (secret)' : 'ex. secret_value_123'"
+                    [placeholder]="editingEnvId() && isSecret() ? 'new value (secret)' : 'e.g. secret_value_123'"
                     [ngModel]="envVal()"
                     (ngModelChange)="envVal.set($event)"
                     class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
@@ -905,13 +905,13 @@
                     (change)="isSecret.set(!isSecret())"
                     class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
                   />
-                  <label for="secret-chk" class="text-[10px] font-semibold text-zinc-400 cursor-pointer select-none">Variabilă Secretă (Criptată)</label>
+                  <label for="secret-chk" class="text-[10px] font-semibold text-zinc-400 cursor-pointer select-none">Secret Variable (Encrypted)</label>
                 </div>
                 <p class="text-[9px] text-zinc-600 pl-6 leading-relaxed">
                   @if (isSecret()) {
-                    Disponibilă doar la <strong>runtime</strong> (injectată ca secret în container).
+                    Available only at <strong>runtime</strong> (injected as a secret into the container).
                   } @else {
-                    Disponibilă la <strong>runtime</strong> și la <strong>build</strong> (ex. VITE_*, NEXT_PUBLIC_* pentru aplicații frontend).
+                    Available at <strong>runtime</strong> and at <strong>build</strong> (e.g. VITE_*, NEXT_PUBLIC_* for frontend applications).
                   }
                 </p>
               </div>
@@ -920,19 +920,19 @@
                 <button
                   (click)="onToggleCreateEnvForm()"
                   class="px-3.5 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-900 text-xs font-semibold cursor-pointer"
-                >Anulează</button>
+                >Cancel</button>
                 <button
                   (click)="onSaveEnv()"
                   [disabled]="settingEnv() || !envKey().trim()"
                   class="px-3.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
                 >
-                  {{ settingEnv() ? 'Se salvează...' : (editingEnvId() ? 'Salvează modificările' : 'Salvează Variabila') }}
+                  {{ settingEnv() ? 'Saving...' : (editingEnvId() ? 'Save changes' : 'Save Variable') }}
                 </button>
               </div>
             } @else {
-              <p class="text-[9px] text-zinc-550 leading-relaxed">Conectează variabile partajate din pool-ul proiectului (referință vie — schimbările se propagă automat).</p>
+              <p class="text-[9px] text-zinc-550 leading-relaxed">Connect shared variables from the project pool (live reference — changes propagate automatically).</p>
               @if (availableProjectEnv().length === 0) {
-                <p class="text-[10px] text-zinc-600 py-3">Niciun env la nivel de proiect. Adaugă-le din tab-ul „Environments" al proiectului.</p>
+                <p class="text-[10px] text-zinc-600 py-3">No project-level env. Add them from the project's "Environments" tab.</p>
               } @else {
                 <div class="divide-y divide-zinc-900 max-h-72 overflow-y-auto">
                   @for (penv of availableProjectEnv(); track penv.id) {
@@ -953,7 +953,7 @@
                           ? 'px-2.5 py-1 rounded text-[10px] font-semibold border border-emerald-900/50 bg-emerald-950/30 text-emerald-400 hover:bg-emerald-950/50 cursor-pointer disabled:opacity-50 shrink-0'
                           : 'px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 cursor-pointer disabled:opacity-50 shrink-0'"
                       >
-                        {{ penv.linked ? 'Conectată ✓' : 'Conectează' }}
+                        {{ penv.linked ? 'Connected ✓' : 'Connect' }}
                       </button>
                     </div>
                   }
@@ -976,10 +976,10 @@
             <table class="w-full text-left border-collapse text-xs">
               <thead>
                 <tr class="border-b border-zinc-900 text-zinc-500 font-bold bg-black uppercase tracking-wider text-[9px]">
-                  <th class="p-3.5">Cheie</th>
-                  <th class="p-3.5">Valoare</th>
-                  <th class="p-3.5">Tip</th>
-                  <th class="p-3.5 text-right">Acțiuni</th>
+                  <th class="p-3.5">Key</th>
+                  <th class="p-3.5">Value</th>
+                  <th class="p-3.5">Type</th>
+                  <th class="p-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-zinc-900">
@@ -1007,7 +1007,7 @@
                         <button
                           (click)="onToggleReveal(env.id)"
                           class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white transition-colors cursor-pointer"
-                          title="Arată/Ascunde"
+                          title="Show/Hide"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
@@ -1017,7 +1017,7 @@
                         <button
                           (click)="copyToClipboard(env.value || '')"
                           class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white transition-colors cursor-pointer"
-                          title="Copiază valoarea"
+                          title="Copy value"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5A3.375 3.375 0 006.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0015 2.25h-1.5a2.251 2.251 0 00-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125h1.5A1.125 1.125 0 008.625 10.125v-1.5C8.625 8.004 8.121 7.5 7.5 7.5z" />
@@ -1027,7 +1027,7 @@
                       <button
                         (click)="startEditEnv(env)"
                         class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white transition-colors cursor-pointer"
-                        title="Editează"
+                        title="Edit"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
@@ -1036,7 +1036,7 @@
                       <button
                         (click)="onDeleteEnv(env.id)"
                         class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-red-400 transition-colors cursor-pointer"
-                        title="Șterge"
+                        title="Delete"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -1052,7 +1052,7 @@
                     <td class="p-3.5 font-mono">
                       <div class="flex items-center gap-2">
                         <span class="font-bold text-zinc-300">{{ penv.key }}</span>
-                        <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 shrink-0">din proiect</span>
+                        <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 shrink-0">from project</span>
                         @if (penv.source !== 'manual') {
                           <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-450 shrink-0">{{ penv.source }}</span>
                         }
@@ -1077,7 +1077,7 @@
                         <button
                           (click)="copyToClipboard(penv.value || '')"
                           class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white transition-colors cursor-pointer"
-                          title="Copiază valoarea"
+                          title="Copy value"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5A3.375 3.375 0 006.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0015 2.25h-1.5a2.251 2.251 0 00-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125h1.5A1.125 1.125 0 008.625 10.125v-1.5C8.625 8.004 8.121 7.5 7.5 7.5z" />
@@ -1088,7 +1088,7 @@
                         (click)="onToggleProjectEnvLink(penv)"
                         [disabled]="togglingLinkId() === penv.id"
                         class="px-2 py-1 rounded border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
-                        title="Deconectează variabila din proiect"
+                        title="Disconnect variable from project"
                       >
                         {{ togglingLinkId() === penv.id ? '...' : 'Unlink' }}
                       </button>
@@ -1098,7 +1098,7 @@
 
                 @if (envVariables().length === 0 && linkedProjectEnv().length === 0) {
                   <tr>
-                    <td colspan="4" class="p-8 text-center text-zinc-550 font-medium">Nu există nicio variabilă definită.</td>
+                    <td colspan="4" class="p-8 text-center text-zinc-550 font-medium">No variables defined.</td>
                   </tr>
                 }
               </tbody>
@@ -1115,14 +1115,14 @@
         <!-- Resource Limits Settings -->
         <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
           <div class="border-b border-zinc-900 pb-2.5">
-            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Cote Resurse Container (Kubernetes)</h3>
-            <p class="text-[10px] text-zinc-550 mt-0.5 font-mono">Setările vor forța o redeploiere asincronă a serviciului</p>
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Container Resource Quotas (Kubernetes)</h3>
+            <p class="text-[10px] text-zinc-550 mt-0.5 font-mono">Settings will trigger an asynchronous service redeployment</p>
           </div>
 
           <div class="grid gap-4 sm:grid-cols-2">
             <!-- CPU Limit -->
             <div class="space-y-1.5">
-              <label for="cpu-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Limită CPU (Millicores)</label>
+              <label for="cpu-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">CPU Limit (Millicores)</label>
               <input 
                 id="cpu-lim"
                 type="number" 
@@ -1132,12 +1132,12 @@
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
                 required
               />
-              <span class="text-[9px] text-zinc-600 block">ex: 500m reprezintă 0.5 nuclee CPU (vCPU). Setați 0 pentru Nelimitat.</span>
+              <span class="text-[9px] text-zinc-600 block">e.g.: 500m = 0.5 CPU cores (vCPU). Set 0 for Unlimited.</span>
             </div>
 
             <!-- Memory Limit -->
             <div class="space-y-1.5">
-              <label for="mem-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Limită RAM (MB)</label>
+              <label for="mem-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">RAM Limit (MB)</label>
               <input 
                 id="mem-lim"
                 type="number" 
@@ -1147,7 +1147,7 @@
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
                 required
               />
-              <span class="text-[9px] text-zinc-600 block">Minim recomandat: 256 MB. Setați 0 pentru Nelimitat.</span>
+              <span class="text-[9px] text-zinc-600 block">Minimum recommended: 256 MB. Set 0 for Unlimited.</span>
             </div>
           </div>
 
@@ -1157,7 +1157,7 @@
               [disabled]="savingSettings()"
               class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
             >
-              {{ savingSettings() ? 'Se salvează...' : 'Salvează Setările' }}
+              {{ savingSettings() ? 'Saving...' : 'Save Settings' }}
             </button>
           </div>
         </div>
@@ -1165,8 +1165,8 @@
         <!-- Scaling & Availability Settings -->
         <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
           <div class="border-b border-zinc-900 pb-2.5">
-            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Scalare & Disponibilitate</h3>
-            <p class="text-[10px] text-zinc-550 mt-0.5 font-mono">Numărul de replici, autoscaling și auto-sleep pentru această aplicație. Se aplică la următorul deploy.</p>
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Scaling & Availability</h3>
+            <p class="text-[10px] text-zinc-550 mt-0.5 font-mono">Number of replicas, autoscaling and auto-sleep for this application. Applied on the next deploy.</p>
           </div>
 
           <!-- Replica range -->
@@ -1183,7 +1183,7 @@
                 [disabled]="savingSettings()"
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
               />
-              <span class="text-[9px] text-zinc-600 block">Numărul de pod-uri rulate mereu.</span>
+              <span class="text-[9px] text-zinc-600 block">Number of pods always running.</span>
             </div>
 
             <div class="space-y-1.5">
@@ -1198,13 +1198,13 @@
                 [disabled]="savingSettings()"
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
               />
-              <span class="text-[9px] text-zinc-600 block">Dacă Max &gt; Min, se activează autoscaler-ul (HPA).</span>
+              <span class="text-[9px] text-zinc-600 block">If Max &gt; Min, the autoscaler (HPA) is enabled.</span>
             </div>
           </div>
 
           <!-- Autoscale CPU target -->
           <div class="space-y-1.5 border-t border-zinc-900/40 pt-3">
-            <label for="autoscale-cpu" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Autoscale la CPU (%)</label>
+            <label for="autoscale-cpu" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Autoscale at CPU (%)</label>
             <input
               id="autoscale-cpu"
               type="number"
@@ -1215,7 +1215,7 @@
               [disabled]="savingSettings()"
               class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
             />
-            <span class="text-[9px] text-zinc-600 block">Când Max &gt; Min, autoscaler-ul adaugă pod-uri (până la Max) când CPU-ul mediu depășește acest prag.</span>
+            <span class="text-[9px] text-zinc-600 block">When Max &gt; Min, the autoscaler adds pods (up to Max) when average CPU exceeds this threshold.</span>
           </div>
 
           <!-- Auto-sleep -->
@@ -1228,11 +1228,11 @@
                 [disabled]="savingSettings()"
                 class="accent-white w-3.5 h-3.5 cursor-pointer"
               />
-              <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Auto-sleep (oprește la inactivitate)</span>
+              <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Auto-sleep (stop on inactivity)</span>
             </label>
             @if (autoSleepEnabled()) {
               <div class="space-y-1.5 pl-5">
-                <label for="auto-sleep-min" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Inactiv (minute) → scale 0</label>
+                <label for="auto-sleep-min" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Inactive (minutes) → scale 0</label>
                 <input
                   id="auto-sleep-min"
                   type="number"
@@ -1244,7 +1244,7 @@
                 />
               </div>
             }
-            <span class="text-[9px] text-zinc-600 block leading-relaxed">Când e activ, instanța e oprită (scale 0) după atâtea minute fără activitate. <span class="text-amber-500/80">Nu se trezește singură la trafic</span> — revine prin Start sau redeploy. Implicit: oprit.</span>
+            <span class="text-[9px] text-zinc-600 block leading-relaxed">When active, the instance is stopped (scale 0) after that many minutes of inactivity. <span class="text-amber-500/80">Does not wake up on traffic</span> — restart via Start or redeploy. Default: off.</span>
           </div>
 
           <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
@@ -1253,7 +1253,7 @@
               [disabled]="savingSettings()"
               class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
             >
-              {{ savingSettings() ? 'Se salvează...' : 'Salvează Setările' }}
+              {{ savingSettings() ? 'Saving...' : 'Save Settings' }}
             </button>
           </div>
         </div>
@@ -1268,14 +1268,14 @@
         <!-- General config: ports + build/start commands -->
         <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
           <div class="border-b border-zinc-900 pb-2.5">
-            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Configurare Generală</h3>
-            <p class="text-[10px] text-zinc-550 mt-0.5 font-mono">Setările vor forța o redeploiere asincronă a serviciului</p>
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">General Configuration</h3>
+            <p class="text-[10px] text-zinc-550 mt-0.5 font-mono">Settings will trigger an asynchronous service redeployment</p>
           </div>
 
           <div class="grid gap-4 sm:grid-cols-2">
             <!-- Port Intern -->
             <div class="space-y-1.5">
-              <label for="port-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Port Intern Container</label>
+              <label for="port-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Internal Container Port</label>
               <input 
                 id="port-lim"
                 type="number" 
@@ -1285,28 +1285,28 @@
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
                 required
               />
-              <span class="text-[9px] text-zinc-600 block">Portul pe care ascultă aplicația ta. Detectat automat din <code>EXPOSE</code> (Dockerfile) la build, până îl setezi manual aici.</span>
+              <span class="text-[9px] text-zinc-600 block">The port your application listens on. Auto-detected from <code>EXPOSE</code> (Dockerfile) at build time, until you set it manually here.</span>
             </div>
 
             <!-- Port Extern -->
             <div class="space-y-1.5">
-              <label for="ext-port-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Port Extern (Opțional)</label>
-              <input 
+              <label for="ext-port-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">External Port (Optional)</label>
+              <input
                 id="ext-port-lim"
-                type="number" 
-                placeholder="Generat automat dacă e gol" 
+                type="number"
+                placeholder="Auto-generated if empty" 
                 [ngModel]="externalPort()"
                 (ngModelChange)="externalPort.set($event)"
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
               />
-              <span class="text-[9px] text-zinc-600 block">Lasă gol pentru a aloca un port aleator.</span>
+              <span class="text-[9px] text-zinc-600 block">Leave empty to allocate a random port.</span>
             </div>
           </div>
 
           <!-- Build/Start Commands -->
           <div class="grid gap-4 sm:grid-cols-2 pt-2 border-t border-zinc-900/40">
             <div class="space-y-1.5">
-              <label for="build-cmd-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Comandă Build</label>
+              <label for="build-cmd-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Build Command</label>
               <input 
                 id="build-cmd-lim"
                 type="text" 
@@ -1315,11 +1315,11 @@
                 (ngModelChange)="buildCommand.set($event)"
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
-              <span class="text-[9px] text-zinc-600 block">Rulată în timpul compilării. Ex: npm run build</span>
+              <span class="text-[9px] text-zinc-600 block">Run during build. E.g.: npm run build</span>
             </div>
 
             <div class="space-y-1.5">
-              <label for="start-cmd-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Comandă Start</label>
+              <label for="start-cmd-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Start Command</label>
               <input 
                 id="start-cmd-lim"
                 type="text" 
@@ -1328,7 +1328,7 @@
                 (ngModelChange)="startCommand.set($event)"
                 class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
-              <span class="text-[9px] text-zinc-600 block">Rulată pentru pornire. Ex: npx ng serve --host 0.0.0.0 --port 4000</span>
+              <span class="text-[9px] text-zinc-600 block">Run at startup. E.g.: npx ng serve --host 0.0.0.0 --port 4000</span>
             </div>
           </div>
 
@@ -1339,7 +1339,7 @@
               [disabled]="savingSettings()"
               class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
             >
-              {{ savingSettings() ? 'Se salvează...' : 'Salvează Setările' }}
+              {{ savingSettings() ? 'Saving...' : 'Save Settings' }}
             </button>
           </div>
         </div>
@@ -1348,8 +1348,8 @@
         <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
           <div class="border-b border-zinc-900 pb-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Domenii & Rutare</h3>
-              <p class="text-[10px] text-zinc-550 mt-0.5 font-mono">Asociază un domeniu personalizat cu această aplicație (Reverse Proxy)</p>
+              <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Domains & Routing</h3>
+              <p class="text-[10px] text-zinc-550 mt-0.5 font-mono">Associate a custom domain with this application (Reverse Proxy)</p>
             </div>
             <button
               (click)="onOpenAddDomainModal()"
@@ -1358,7 +1358,7 @@
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
-              Asociază Domeniu
+              Associate Domain
             </button>
           </div>
         </div>
@@ -1371,9 +1371,9 @@
       <div class="space-y-6 animate-fade-in font-mono max-w-2xl">
         <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-3 shadow-sm">
           <div class="border-b border-zinc-900 pb-2.5">
-            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Volume Persistente (PVC)</h3>
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Persistent Volumes (PVC)</h3>
             <p class="text-[10px] text-zinc-550 mt-0.5 font-sans leading-relaxed">
-              Volumele persistente se creează automat la build, din directivele <code>VOLUME</code> ale Dockerfile-ului. Se gestionează și se răsfoiesc central în <strong>Storage</strong>.
+              Persistent volumes are automatically created at build time, from the <code>VOLUME</code> directives in the Dockerfile. They are managed and browsed centrally in <strong>Storage</strong>.
             </p>
           </div>
           <a [routerLink]="['/projects', parent.projectId(), 'storages']"
@@ -1381,7 +1381,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
             </svg>
-            Deschide Storage
+            Open Storage
           </a>
         </div>
       </div>
@@ -1394,15 +1394,15 @@
         <!-- Danger Zone (Delete App) -->
         <div class="bg-red-950/5 p-5 rounded-lg border border-red-900/20 space-y-4 shadow-sm">
           <div class="border-b border-red-900/10 pb-2.5">
-            <h3 class="text-xs font-bold text-red-400 uppercase tracking-wider">Zonă de Pericol</h3>
-            <p class="text-[10px] text-red-500/60 mt-0.5">Acțiuni ireversibile de administrare a aplicației</p>
+            <h3 class="text-xs font-bold text-red-400 uppercase tracking-wider">Danger Zone</h3>
+            <p class="text-[10px] text-red-500/60 mt-0.5">Irreversible application management actions</p>
           </div>
 
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="space-y-1">
-              <span class="text-xs font-bold text-zinc-300">Șterge Complet Aplicația</span>
+              <span class="text-xs font-bold text-zinc-300">Delete Application Completely</span>
               <p class="text-[10px] text-zinc-550 leading-relaxed max-w-md">
-                Această acțiune va șterge definitiv serviciul, toate instanțele active (containere), rutele ingress și configurările din baza de date. Resursele Kubernetes vor fi eliberate imediat.
+                This action will permanently delete the service, all active instances (containers), ingress routes and database configurations. Kubernetes resources will be released immediately.
               </p>
             </div>
 
@@ -1410,7 +1410,7 @@
               (click)="onDeleteApp()"
               class="px-4 py-2 rounded bg-[#0a0202] hover:bg-red-950/20 text-red-500 hover:text-red-400 font-bold border border-red-900/40 hover:border-red-900/60 transition-all text-xs cursor-pointer shadow-sm"
             >
-              Șterge Aplicație
+              Delete Application
             </button>
           </div>
         </div>
@@ -1426,7 +1426,7 @@
       <div class="w-full max-w-md bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 shadow-2xl space-y-4 font-mono">
         
         <div class="flex items-center justify-between border-b border-zinc-900 pb-3">
-          <h3 class="text-xs font-bold text-white uppercase tracking-wider">Adaugă Domeniu pentru {{ app()?.name }}</h3>
+          <h3 class="text-xs font-bold text-white uppercase tracking-wider">Add Domain for {{ app()?.name }}</h3>
           <button 
             (click)="showAddDomainModal.set(false)"
             class="text-zinc-550 hover:text-white cursor-pointer transition-colors"
@@ -1439,15 +1439,15 @@
 
         <div class="space-y-4 py-2">
           <p class="text-[10px] text-zinc-500 leading-normal font-sans">
-            Acest asistent va asocia un domeniu personalizat cu această aplicație prin rutare tip <strong>Reverse Proxy</strong> către containerul său.
+            This wizard will associate a custom domain with this application via <strong>Reverse Proxy</strong> routing to its container.
           </p>
 
           <div class="space-y-1.5">
-            <label for="modal-fqdn-input" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Nume Domeniu (FQDN)</label>
-            <input 
+            <label for="modal-fqdn-input" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Domain Name (FQDN)</label>
+            <input
               id="modal-fqdn-input"
-              type="text" 
-              placeholder="ex. app.domeniu.ro sau domeniu.ro"
+              type="text"
+              placeholder="e.g. app.example.com or example.com"
               [ngModel]="appDomainFqdn()"
               (ngModelChange)="appDomainFqdn.set($event)"
               class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
@@ -1457,9 +1457,9 @@
 
           <!-- Auto-filled config details shown for transparency -->
           <div class="p-3 bg-black border border-zinc-900 rounded space-y-2 text-[10px]">
-            <div class="font-bold text-zinc-400 border-b border-zinc-900 pb-1 uppercase tracking-wider">Configurație Automată:</div>
+            <div class="font-bold text-zinc-400 border-b border-zinc-900 pb-1 uppercase tracking-wider">Automatic Configuration:</div>
             <div class="flex justify-between">
-              <span class="text-zinc-550">Tip rutare:</span>
+              <span class="text-zinc-550">Routing type:</span>
               <span class="text-zinc-300 font-bold">Reverse Proxy</span>
             </div>
             <div class="flex justify-between">
@@ -1467,16 +1467,16 @@
               <span class="text-zinc-300 font-bold select-all">{{ getSelectedInstanceContainerName() || 'N/A' }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-zinc-550">Port intern:</span>
+              <span class="text-zinc-550">Internal port:</span>
               <span class="text-zinc-300 font-bold">{{ getSelectedInstanceInternalPort() || 80 }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-zinc-550">Limită body size:</span>
+              <span class="text-zinc-550">Body size limit:</span>
               <span class="text-zinc-300 font-bold">50 MB</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-zinc-550">SSL/TLS Automat:</span>
-              <span class="text-emerald-500 font-bold">Da (Let's Encrypt)</span>
+              <span class="text-zinc-550">Automatic SSL/TLS:</span>
+              <span class="text-emerald-500 font-bold">Yes (Let's Encrypt)</span>
             </div>
           </div>
         </div>
@@ -1487,7 +1487,7 @@
             [disabled]="addingDomain()"
             class="px-3 py-1.5 rounded border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white text-xs font-semibold cursor-pointer transition-colors"
           >
-            Anulează
+            Cancel
           </button>
           
           <button 
@@ -1500,9 +1500,9 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>
-              <span>Se asociază...</span>
+              <span>Associating...</span>
             } @else {
-              <span>Asociază Domeniu</span>
+              <span>Associate Domain</span>
             }
           </button>
         </div>
