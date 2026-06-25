@@ -3,14 +3,14 @@
   <!-- Welcome / Project Metadata Summary Header -->
   <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm">
     <div class="space-y-1">
-      <h2 class="text-sm font-bold text-zinc-300 uppercase tracking-wider">Tablou de Bord Proiect</h2>
+      <h2 class="text-sm font-bold text-zinc-300 uppercase tracking-wider">Project Dashboard</h2>
       <p class="text-xs text-zinc-550 max-w-2xl leading-relaxed">
-        {{ parent.project()?.description || 'Gestionați aplicațiile containerizate, bazele de date și configurațiile pentru acest microserviciu.' }}
+        {{ parent.project()?.description || 'Manage containerized applications, databases and configurations for this microservice.' }}
       </p>
     </div>
     <div class="text-[10px] text-zinc-550 md:text-right shrink-0">
-      <div>ID PROIECT: <span class="text-zinc-300 font-bold select-all">{{ parent.project()?.id }}</span></div>
-      <div class="mt-1">Creat la: <span class="text-zinc-400 font-semibold">{{ parent.project()?.created_at | date:'mediumDate' }}</span></div>
+      <div>PROJECT ID: <span class="text-zinc-300 font-bold select-all">{{ parent.project()?.id }}</span></div>
+      <div class="mt-1">Created: <span class="text-zinc-400 font-semibold">{{ parent.project()?.created_at | date:'mediumDate' }}</span></div>
     </div>
   </div>
 
@@ -18,12 +18,12 @@
   <div class="grid gap-4 grid-cols-2 md:grid-cols-4">
     <!-- Stat 1: Apps Count -->
     <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 flex flex-col justify-between h-20 shadow-sm">
-      <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Aplicații</span>
+      <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Applications</span>
       <div class="flex items-baseline justify-between mt-1">
         <span class="text-xl font-extrabold text-white">{{ parent.apps().length }}</span>
         @if (totalBuildingApps > 0) {
           <span class="px-1.5 py-0.2 rounded bg-amber-950/20 border border-amber-900/30 text-amber-400 text-[8px] font-bold uppercase tracking-wider animate-pulse">
-            {{ totalBuildingApps }} în build
+            {{ totalBuildingApps }} building
           </span>
         }
       </div>
@@ -31,7 +31,7 @@
 
     <!-- Stat 2: Running Pods -->
     <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 flex flex-col justify-between h-20 shadow-sm">
-      <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Instanțe Active (K8s Pods)</span>
+      <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Active Instances (K8s Pods)</span>
       <div class="flex items-baseline justify-between mt-1">
         <span class="text-xl font-extrabold text-white">{{ totalRunningPods }}</span>
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500" [class.animate-pulse]="totalRunningPods > 0"></span>
@@ -40,7 +40,7 @@
 
     <!-- Stat 3: Databases -->
     <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 flex flex-col justify-between h-20 shadow-sm">
-      <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Baze de Date</span>
+      <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Databases</span>
       <div class="flex items-baseline justify-between mt-1">
         <span class="text-xl font-extrabold text-white">{{ databases().length }}</span>
         <span class="text-[9px] text-zinc-500 font-bold">SQL & NoSQL</span>
@@ -51,7 +51,7 @@
     <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 flex flex-col justify-between h-20 shadow-sm">
       <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Workspace RAM Limit</span>
       <div class="flex items-baseline justify-between mt-1">
-        <span class="text-sm font-extrabold text-zinc-300">Autoscalat</span>
+        <span class="text-sm font-extrabold text-zinc-300">Autoscaled</span>
         <span class="text-[8px] text-zinc-550 font-semibold">Quota K8s</span>
       </div>
     </div>
@@ -62,9 +62,9 @@
     <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
       <div class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Stare Servicii</h3>
+        <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Service Status</h3>
       </div>
-      <div class="text-[10px] text-zinc-550 font-mono">Status în timp real, de la crearea serviciului</div>
+      <div class="text-[10px] text-zinc-550 font-mono">Real-time status since service creation</div>
     </div>
 
     <div class="space-y-3">
@@ -82,7 +82,7 @@
                 }"
               >{{ getStatusLabel(app) }}</span>
             </div>
-            <div class="text-[9px] text-zinc-500 font-mono">Instanțe active: {{ (app.instances || []).length }}</div>
+            <div class="text-[9px] text-zinc-500 font-mono">Active instances: {{ (app.instances || []).length }}</div>
           </div>
 
           <div class="flex items-center gap-2 flex-1 justify-end min-w-0">
@@ -99,13 +99,13 @@
                   <!-- Tooltip -->
                   <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 bg-zinc-950 border border-zinc-850 rounded px-2 py-1 text-[8px] font-mono text-zinc-300 whitespace-nowrap shadow-2xl pointer-events-none">
                     <div class="font-bold text-center">
-                      @if (bar.isToday) { Astăzi } @else { Acum {{ bar.daysAgo }} zile }
+                      @if (bar.isToday) { Today } @else { {{ bar.daysAgo }} days ago }
                     </div>
                     <div class="text-[7px] text-zinc-500 mt-0.5 text-center">
                       @if (bar.isToday) {
                         {{ getStatusLabel(app) }}
                       } @else {
-                        Fără incidente înregistrate
+                        No incidents recorded
                       }
                     </div>
                   </div>
@@ -113,12 +113,12 @@
               }
             </div>
 
-            <span class="text-[10px] text-zinc-400 font-mono ml-2 shrink-0">{{ getDaysActive(app) }}z</span>
+            <span class="text-[10px] text-zinc-400 font-mono ml-2 shrink-0">{{ getDaysActive(app) }}d</span>
           </div>
         </div>
       } @empty {
         <div class="text-center py-6 text-xs text-zinc-650 font-mono">
-          Nicio aplicație configurată pentru afișarea stării de uptime.
+          No applications configured for uptime display.
         </div>
       }
     </div>
@@ -130,9 +130,9 @@
     <!-- Left Column (2/3 width): Applications Listing -->
     <div class="lg:col-span-2 space-y-4">
       <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
-        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Servicii Active (Aplicații)</h3>
+        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Active Services (Applications)</h3>
         <a [routerLink]="['/projects', parent.projectId(), 'apps']" class="text-[10px] text-zinc-400 hover:text-white underline">
-          Vezi toate →
+          View all →
         </a>
       </div>
 
@@ -157,7 +157,7 @@
                   Logs
                 </button>
                 <button (click)="onViewApp(app, 'telemetry')" class="px-2 py-1 rounded bg-white hover:bg-zinc-200 text-black text-[9px] font-bold border border-white uppercase tracking-wide">
-                  Detalii →
+                  Details →
                 </button>
               </div>
             </div>
@@ -185,15 +185,15 @@
               </div>
             } @else {
               <div class="text-[9px] text-zinc-650 border-t border-zinc-900/50 pt-2">
-                Nicio instanță activă momentan.
+                No active instances at this time.
               </div>
             }
           </div>
         } @empty {
           <div class="bg-black/30 border border-zinc-900 p-8 rounded-lg text-center space-y-3">
-            <p class="text-xs text-zinc-550">Nu există nicio aplicație configurată în acest proiect.</p>
+            <p class="text-xs text-zinc-550">No applications configured in this project.</p>
             <button (click)="parent.showAddAppForm.set(true)" class="px-3 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 text-white text-[10px] font-bold tracking-wider uppercase">
-              Adaugă Aplicație
+              Add Application
             </button>
           </div>
         }
@@ -206,9 +206,9 @@
       <!-- Databases listing -->
       <div class="space-y-4">
         <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
-          <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Baze de date</h3>
+          <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Databases</h3>
           <a [routerLink]="['/projects', parent.projectId(), 'databases']" class="text-[10px] text-zinc-400 hover:text-white underline">
-            Vezi toate →
+            View all →
           </a>
         </div>
 
@@ -247,7 +247,7 @@
               </div>
             } @empty {
               <div class="bg-black/30 border border-zinc-900 p-6 rounded-lg text-center text-xs text-zinc-650">
-                Nu există baze de date active.
+                No active databases.
               </div>
             }
           }
@@ -256,23 +256,23 @@
 
       <!-- Quick Navigation Shortcuts -->
       <div class="bg-[#0a0a0a]/40 p-4 rounded-lg border border-zinc-900 space-y-3">
-        <h4 class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-900 pb-1.5">Scurtături Rapide</h4>
+        <h4 class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-900 pb-1.5">Quick Links</h4>
         <ul class="space-y-2 text-[11px] text-zinc-500 font-semibold">
           <li>
             <a [routerLink]="['/projects', parent.projectId(), 'environments']" class="hover:text-white transition-colors flex items-center justify-between">
-              <span>Configurare Variabile Proiect</span>
+              <span>Project Variables</span>
               <span>→</span>
             </a>
           </li>
           <li>
             <a [routerLink]="['/projects', parent.projectId(), 'networking']" class="hover:text-white transition-colors flex items-center justify-between">
-              <span>Rutare Domenii & TCP/UDP</span>
+              <span>Domain Routing & TCP/UDP</span>
               <span>→</span>
             </a>
           </li>
           <li>
             <a [routerLink]="['/projects', parent.projectId(), 'settings']" class="hover:text-white transition-colors flex items-center justify-between">
-              <span>Setări Generale Proiect</span>
+              <span>General Project Settings</span>
               <span>→</span>
             </a>
           </li>
