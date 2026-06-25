@@ -50,7 +50,7 @@ export class AdminUsers implements OnInit {
         this.loadingUsers.set(false);
       },
       error: (err) => {
-        this.toast.error('Eroare la încărcarea listei de utilizatori.');
+        this.toast.error('Failed to load user list.');
         this.loadingUsers.set(false);
       }
     });
@@ -62,7 +62,7 @@ export class AdminUsers implements OnInit {
     const isAdmin = this.newUserIsAdmin();
 
     if (!email || !username) {
-      this.provisioningError.set('Toate câmpurile (Email, Username) sunt obligatorii.');
+      this.provisioningError.set('All fields (Email, Username) are required.');
       return;
     }
 
@@ -77,11 +77,11 @@ export class AdminUsers implements OnInit {
         this.newUserEmail.set('');
         this.newUserIsAdmin.set(false);
         this.provisioningUser.set(false);
-        this.toast.success('Utilizatorul a fost înregistrat cu succes pe platformă!');
+        this.toast.success('User registered successfully on the platform!');
         this.loadUsers(); // Refresh list
       },
       error: (err) => {
-        this.provisioningError.set(err.error?.message || 'Eroare la înregistrarea utilizatorului.');
+        this.provisioningError.set(err.error?.message || 'Failed to register user.');
         this.provisioningUser.set(false);
       }
     });
@@ -90,15 +90,15 @@ export class AdminUsers implements OnInit {
   async onDeleteUser(user: User): Promise<void> {
     const current = this.auth.currentUser();
     if (current && current.id === user.id) {
-      this.toast.error('Nu vă puteți șterge propriul cont.');
+      this.toast.error('You cannot delete your own account.');
       return;
     }
 
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Utilizator',
-      message: `Sigur doriți să ștergeți contul utilizatorului "${user.username}" (${user.email})? Această acțiune este ireversibilă și va șterge toate apartenențele și resursele sale asociate.`,
-      confirmText: 'Șterge',
-      cancelText: 'Anulează',
+      title: 'Delete User',
+      message: `Are you sure you want to delete the account of "${user.username}" (${user.email})? This action is irreversible and will remove all their memberships and associated resources.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
       isDanger: true
     });
     
@@ -106,11 +106,11 @@ export class AdminUsers implements OnInit {
 
     this.auth.deleteUser(user.id).subscribe({
       next: () => {
-        this.toast.success('Utilizatorul a fost șters de pe platformă.');
+        this.toast.success('User has been removed from the platform.');
         this.loadUsers();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la ștergerea utilizatorului.');
+        this.toast.error(err.error?.message || 'Failed to delete user.');
       }
     });
   }
@@ -118,15 +118,15 @@ export class AdminUsers implements OnInit {
   async onResetPassword(user: User): Promise<void> {
     const current = this.auth.currentUser();
     if (current && current.id === user.id) {
-      this.toast.error('Nu vă puteți reseta propria parolă în acest fel.');
+      this.toast.error('You cannot reset your own password this way.');
       return;
     }
 
     const confirmed = await this.confirm.ask({
-      title: 'Resetare Parolă',
-      message: `Sigur doriți să resetați parola utilizatorului "${user.username}" (${user.email})? Contul va fi trecut înapoi în starea de activare (neactivat) și va fi generată o parolă temporară nouă.`,
-      confirmText: 'Resetează',
-      cancelText: 'Anulează',
+      title: 'Reset Password',
+      message: `Are you sure you want to reset the password for "${user.username}" (${user.email})? The account will be set back to pending activation and a new temporary password will be generated.`,
+      confirmText: 'Reset',
+      cancelText: 'Cancel',
       isDanger: true
     });
     
@@ -135,12 +135,12 @@ export class AdminUsers implements OnInit {
     this.auth.resetUserPassword(user.id).subscribe({
       next: (tempPwd) => {
         this.provisionedPassword.set(tempPwd);
-        this.toast.success('Parola a fost resetată cu succes!');
+        this.toast.success('Password has been reset successfully!');
         this.loadUsers();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la resetarea parolei.');
+        this.toast.error(err.error?.message || 'Failed to reset password.');
       }
     });
   }
@@ -148,18 +148,18 @@ export class AdminUsers implements OnInit {
   async onToggleSuspend(user: User): Promise<void> {
     const current = this.auth.currentUser();
     if (current && current.id === user.id) {
-      this.toast.error('Nu vă puteți suspenda propriul cont.');
+      this.toast.error('You cannot suspend your own account.');
       return;
     }
 
     const isSuspended = user.status?.toLowerCase() === 'suspended';
-    const actionText = isSuspended ? 'activați' : 'suspendați';
-    
+    const actionText = isSuspended ? 'activate' : 'suspend';
+
     const confirmed = await this.confirm.ask({
-      title: isSuspended ? 'Activare Cont' : 'Suspendare Cont',
-      message: `Sigur doriți să ${actionText} contul utilizatorului "${user.username}" (${user.email})?`,
-      confirmText: isSuspended ? 'Activează' : 'Suspendă',
-      cancelText: 'Anulează',
+      title: isSuspended ? 'Activate Account' : 'Suspend Account',
+      message: `Are you sure you want to ${actionText} the account of "${user.username}" (${user.email})?`,
+      confirmText: isSuspended ? 'Activate' : 'Suspend',
+      cancelText: 'Cancel',
       isDanger: !isSuspended
     });
 
@@ -167,19 +167,19 @@ export class AdminUsers implements OnInit {
 
     this.auth.toggleUserSuspend(user.id).subscribe({
       next: (newStatus) => {
-        const msg = newStatus === 'suspended' ? 'Contul a fost suspendat.' : 'Contul a fost activat.';
+        const msg = newStatus === 'suspended' ? 'Account has been suspended.' : 'Account has been activated.';
         this.toast.success(msg);
         this.loadUsers();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la modificarea statutului contului.');
+        this.toast.error(err.error?.message || 'Failed to update account status.');
       }
     });
   }
 
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text).then(() => {
-      this.toast.success('Copiat în clipboard!');
+      this.toast.success('Copied to clipboard!');
     });
   }
 }

@@ -2,8 +2,8 @@
   
   <!-- Section Header -->
   <div class="border-b border-zinc-900 pb-4">
-    <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Consolă Admin - Administrare Utilizatori</h3>
-    <p class="text-xs text-zinc-550">Înregistrează conturi noi și gestionează utilizatorii existenți ai platformei Hermes OS.</p>
+    <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Admin Console - User Management</h3>
+    <p class="text-xs text-zinc-550">Register new accounts and manage existing users on the Hermes OS platform.</p>
   </div>
 
   <!-- Top Section: Form and Info -->
@@ -14,7 +14,7 @@
       <div class="bg-[#0a0a0a]/90 p-6 rounded-lg border border-zinc-900 space-y-5 shadow-lg">
         
         <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
-          <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Înregistrare Utilizator Nou</h4>
+          <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Register New User</h4>
         </div>
 
         @if (provisioningError()) {
@@ -28,11 +28,11 @@
           <div class="grid gap-4 sm:grid-cols-2">
             <!-- Email -->
             <div class="space-y-1.5">
-              <label for="new-user-email" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Adresă Email</label>
-              <input 
+              <label for="new-user-email" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Email Address</label>
+              <input
                 id="new-user-email"
-                type="email" 
-                placeholder="nume@companie.ro"
+                type="email"
+                placeholder="user@company.com"
                 [ngModel]="newUserEmail()"
                 (ngModelChange)="newUserEmail.set($event)"
                 [disabled]="provisioningUser()"
@@ -46,7 +46,7 @@
               <input 
                 id="new-user-name"
                 type="text" 
-                placeholder="ex. popescu.ion"
+                placeholder="e.g. john.doe"
                 [ngModel]="newUserName()"
                 (ngModelChange)="newUserName.set($event)"
                 [disabled]="provisioningUser()"
@@ -65,7 +65,7 @@
               [disabled]="provisioningUser()"
               class="w-3.5 h-3.5 bg-black border border-zinc-850 rounded text-white focus:outline-none focus:ring-0 cursor-pointer accent-white"
             />
-            <label for="new-user-admin" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer">Drepturi de Super Administrator</label>
+            <label for="new-user-admin" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer">Super Administrator Rights</label>
           </div>
         </div>
 
@@ -81,9 +81,9 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>
-              <span>Se înregistrează...</span>
+              <span>Registering...</span>
             } @else {
-              <span>Provisionează Utilizator</span>
+              <span>Provision User</span>
             }
           </button>
         </div>
@@ -94,13 +94,13 @@
     <!-- Info & Temporary Password Reveal (Right/5 cols) -->
     <div class="lg:col-span-5 space-y-4">
       <div class="p-5 rounded-lg border border-zinc-850 bg-[#070707] space-y-3">
-        <h4 class="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">Flux Activare Cont</h4>
+        <h4 class="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">Account Activation Flow</h4>
         <p class="text-[11px] text-zinc-500 font-sans leading-relaxed">
-          Sistemul creează contul cu statutul de activare în așteptare și generează o parolă temporară. 
-          De asemenea, îi asociază automat un **Workspace Personal** implicit și un namespace Kubernetes.
+          The system creates the account with a pending activation status and generates a temporary password.
+          It also automatically provisions a default <strong>Personal Workspace</strong> and a Kubernetes namespace.
         </p>
         <p class="text-[11px] text-zinc-500 font-sans leading-relaxed">
-          Noul utilizator se poate loga direct cu parola sa temporară. La prima autentificare, platforma îl va obliga să își seteze o parolă nouă permanentă.
+          The new user can log in directly with the temporary password. On first login, the platform will require them to set a new permanent password.
         </p>
       </div>
 
@@ -111,11 +111,11 @@
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-emerald-450">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>Înregistrare Reușită</span>
+            <span>Registration Successful</span>
           </div>
           
           <p class="text-[10px] text-zinc-500 font-sans leading-relaxed">
-            Trimiteți utilizatorului această parolă temporară:
+            Send the user this temporary password:
           </p>
 
           <div class="flex items-center justify-between bg-black border border-zinc-900 p-2.5 rounded font-mono">
@@ -124,7 +124,7 @@
               (click)="copyToClipboard(provisionedPassword()!)" 
               class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-850 text-zinc-300 text-[10px] cursor-pointer transition-colors border border-zinc-800 font-sans"
             >
-              Copiază
+              Copy
             </button>
           </div>
         </div>
@@ -137,12 +137,12 @@
   <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg overflow-hidden shadow-lg font-mono">
     
     <div class="p-4 bg-zinc-950/40 border-b border-zinc-900 flex items-center justify-between">
-      <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Utilizatori Înregistrați ({{ users().length }})</h4>
-      <button 
+      <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Registered Users ({{ users().length }})</h4>
+      <button
         (click)="loadUsers()"
         [disabled]="loadingUsers()"
         class="p-1 rounded hover:bg-zinc-900 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-        title="Reîncarcă lista"
+        title="Refresh list"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4" [class.animate-spin]="loadingUsers()">
           <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -156,7 +156,7 @@
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
         </svg>
-        <span class="text-[10px] text-zinc-550 uppercase tracking-wider">Se încarcă lista de utilizatori...</span>
+        <span class="text-[10px] text-zinc-550 uppercase tracking-wider">Loading user list...</span>
       </div>
     } @else {
       <div class="overflow-x-auto w-full">
@@ -165,11 +165,11 @@
             <tr class="bg-zinc-950/80 border-b border-zinc-900 text-[10px] text-zinc-500 uppercase tracking-wider">
               <th class="p-3 font-bold">Username</th>
               <th class="p-3 font-bold">E-mail</th>
-              <th class="p-3 font-bold">Rol Platformă</th>
-              <th class="p-3 font-bold">Statut Cont</th>
-              <th class="p-3 font-bold">Ultimul Login</th>
-              <th class="p-3 font-bold">Dată Înregistrare</th>
-              <th class="p-3 font-bold text-right">Acțiuni</th>
+              <th class="p-3 font-bold">Platform Role</th>
+              <th class="p-3 font-bold">Account Status</th>
+              <th class="p-3 font-bold">Last Login</th>
+              <th class="p-3 font-bold">Registered</th>
+              <th class="p-3 font-bold text-right">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-zinc-900/40">
@@ -180,7 +180,7 @@
                     <span class="w-1.5 h-1.5 rounded-full" [class]="user.is_super_admin ? 'bg-purple-500 shadow-sm shadow-purple-500/50' : 'bg-zinc-650'"></span>
                     <span class="font-bold text-zinc-300">{{ user.username }}</span>
                     @if (user.id === auth.currentUser()?.id) {
-                      <span class="text-[9px] px-1 py-0.2 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 font-sans shrink-0">Tu</span>
+                      <span class="text-[9px] px-1 py-0.2 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 font-sans shrink-0">You</span>
                     }
                   </div>
                 </td>
@@ -188,13 +188,13 @@
                 <td class="p-3">
                   <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider"
                     [class]="user.is_super_admin ? 'bg-purple-950/40 border border-purple-500/20 text-purple-400' : 'bg-zinc-900 border border-zinc-850 text-zinc-450'">
-                    {{ user.is_super_admin ? 'Super Admin' : 'Utilizator' }}
+                    {{ user.is_super_admin ? 'Super Admin' : 'User' }}
                   </span>
                 </td>
                 <td class="p-3">
                   <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider"
                     [class]="user.status.toLowerCase() === 'active' ? 'bg-emerald-950/40 border border-emerald-500/20 text-emerald-450' : (user.status.toLowerCase() === 'pending_verification' || user.status.toLowerCase() === 'pendingverification') ? 'bg-amber-950/40 border border-amber-500/20 text-amber-450' : 'bg-red-950/40 border border-red-500/20 text-red-450'">
-                    {{ user.status.toLowerCase() === 'active' ? 'Activ' : (user.status.toLowerCase() === 'pending_verification' || user.status.toLowerCase() === 'pendingverification') ? 'Neactivat' : 'Suspendat' }}
+                    {{ user.status.toLowerCase() === 'active' ? 'Active' : (user.status.toLowerCase() === 'pending_verification' || user.status.toLowerCase() === 'pendingverification') ? 'Pending' : 'Suspended' }}
                   </span>
                 </td>
                 <td class="p-3 text-zinc-400 font-mono text-[11px]">
@@ -208,7 +208,7 @@
                     <!-- Reset Password Button -->
                     <button 
                       (click)="onResetPassword(user)"
-                      title="Resetează Parolă"
+                      title="Reset Password"
                       class="p-1.5 rounded border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white cursor-pointer transition-all mr-1.5"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
@@ -219,7 +219,7 @@
                     <!-- Toggle Suspend Button -->
                     <button 
                       (click)="onToggleSuspend(user)"
-                      [title]="user.status.toLowerCase() === 'suspended' ? 'Activează Cont' : 'Suspendă Cont'"
+                      [title]="user.status.toLowerCase() === 'suspended' ? 'Activate Account' : 'Suspend Account'"
                       class="p-1.5 rounded border transition-all mr-1.5 cursor-pointer"
                       [class]="user.status.toLowerCase() === 'suspended' ? 'border-emerald-900/40 hover:bg-emerald-950/20 text-emerald-450' : 'border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white'"
                     >
@@ -239,7 +239,7 @@
                     <!-- Delete Button -->
                     <button 
                       (click)="onDeleteUser(user)"
-                      title="Șterge Utilizator"
+                      title="Delete User"
                       class="p-1.5 rounded border border-red-955/20 hover:bg-red-955/15 text-red-500/70 hover:text-red-400 cursor-pointer transition-all"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
