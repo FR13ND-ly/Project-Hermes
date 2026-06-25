@@ -264,10 +264,10 @@ export class Storages implements OnInit, OnDestroy {
       next: () => {
         this.newFolderName.set('');
         this.showFolderForm.set(false);
-        this.toast.success('Directorul a fost creat.');
+        this.toast.success('Directory has been created.');
         this.loadPvcDir(this.currentPath());
       },
-      error: (err) => this.toast.error(err.error?.message || 'Eroare la crearea directorului.')
+      error: (err) => this.toast.error(err.error?.message || 'Error creating directory.')
     });
   }
 
@@ -719,7 +719,7 @@ export class Storages implements OnInit, OnDestroy {
 
   onCreateBucket(): void {
     if (!this.newBucketName().trim()) {
-      this.toast.error('Numele bucket-ului este obligatoriu.');
+      this.toast.error('Bucket name is required.');
       return;
     }
 
@@ -746,7 +746,7 @@ export class Storages implements OnInit, OnDestroy {
       secretKeyEnvKey: this.publishSecretKey() && this.secretKeyEnvKeyName().trim() ? this.secretKeyEnvKeyName().trim() : undefined
     }).subscribe({
       next: (newBucket) => {
-        this.toast.success(`Bucket-ul "${newBucket.name}" a fost creat cu succes.`);
+        this.toast.success(`Bucket "${newBucket.name}" has been successfully created.`);
         this.newBucketName.set('');
         this.appIdEnvKeyName.set('');
         this.secretKeyEnvKeyName.set('');
@@ -762,7 +762,7 @@ export class Storages implements OnInit, OnDestroy {
         });
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la crearea bucket-ului.');
+        this.toast.error(err.error?.message || 'Error creating bucket.');
         this.creatingBucket.set(false);
       }
     });
@@ -847,19 +847,19 @@ export class Storages implements OnInit, OnDestroy {
               this.uploading.set(false);
               this.newFolderName.set('');
               this.showFolderForm.set(false);
-              this.toast.success(`Dosarul virtual "${name}" a fost creat.`);
+              this.toast.success(`Virtual folder "${name}" has been created.`);
               this.loadObjects();
             }
           },
           error: (err) => {
             this.uploading.set(false);
-            this.toast.error(err.error?.message || 'Eroare la crearea dosarului.');
+            this.toast.error(err.error?.message || 'Error creating folder.');
           }
         });
       },
       error: (err) => {
         this.uploading.set(false);
-        this.toast.error(err.error?.message || 'Eroare la crearea folderului virtual.');
+        this.toast.error(err.error?.message || 'Error creating virtual folder.');
       }
     });
   }
@@ -909,7 +909,7 @@ export class Storages implements OnInit, OnDestroy {
           },
           error: (err) => {
             this.uploading.set(false);
-            this.toast.error(err.error?.message || 'Eroare la transferul datelor.');
+            this.toast.error(err.error?.message || 'Error transferring data.');
           }
         });
       },

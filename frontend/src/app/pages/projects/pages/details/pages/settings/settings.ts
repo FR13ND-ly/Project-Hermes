@@ -237,7 +237,7 @@ export class Settings implements OnInit {
         this.loadWebhooks();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la crearea webhook-ului.');
+        this.toast.error(err.error?.message || 'Error creating webhook.');
       }
     });
   }
@@ -317,7 +317,7 @@ export class Settings implements OnInit {
         this.loadSshKeys();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la crearea cheii SSH.');
+        this.toast.error(err.error?.message || 'Error creating SSH key.');
         this.generatingSshKey.set(false);
       }
     });

@@ -215,7 +215,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
         this.loadInstances();
         this.selectInstance(res);
       },
-      error: (err) => { this.creating.set(false); this.toast.error(err.error?.message || 'Eroare la creare.'); }
+      error: (err) => { this.creating.set(false); this.toast.error(err.error?.message || 'Error creating instance.'); }
     });
   }
 
@@ -224,7 +224,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     const inst = this.selectedInstance();
     if (!projId || !inst) return;
     const name = this.editName().trim();
-    if (!name) { this.toast.error('Numele este obligatoriu.'); return; }
+    if (!name) { this.toast.error('Name is required.'); return; }
     this.savingSettings.set(true);
     this.projectService.updateInstance(projId, inst.id, {
       name,
@@ -239,7 +239,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
         this.toast.success('Instance settings saved.');
         this.loadInstances();
       },
-      error: (err) => { this.savingSettings.set(false); this.toast.error(err.error?.message || 'Eroare la salvare.'); }
+      error: (err) => { this.savingSettings.set(false); this.toast.error(err.error?.message || 'Error saving settings.'); }
     });
   }
 
@@ -265,7 +265,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
           this.selectBuild({ id: res.buildId, status: 'building' } as ServerlessBuild);
         }
       },
-      error: (err) => { this.deploying.set(false); this.toast.error(err.error?.message || 'Eroare la deploy.'); }
+      error: (err) => { this.deploying.set(false); this.toast.error(err.error?.message || 'Error deploying.'); }
     });
   }
 
@@ -381,7 +381,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     const r = this.selectedRoute();
     if (!projId || !inst || !r) return;
     const routePath = this.routePath().trim();
-    if (!routePath) { this.toast.error('Calea rutei este obligatorie.'); return; }
+    if (!routePath) { this.toast.error('Route path is required.'); return; }
     this.savingRoute.set(true);
     this.projectService.updateRoute(projId, inst.id, r.id, {
       method: this.routeMethod(),
@@ -394,7 +394,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
         this.toast.success('Route saved. Deploy to apply.');
         this.loadRoutes();
       },
-      error: (err) => { this.savingRoute.set(false); this.toast.error(err.error?.message || 'Eroare la salvarea rutei.'); }
+      error: (err) => { this.savingRoute.set(false); this.toast.error(err.error?.message || 'Error saving route.'); }
     });
   }
 
@@ -432,7 +432,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     const inst = this.selectedInstance();
     if (!inst) return;
     const fqdn = this.newDomainFqdn().trim().toLowerCase();
-    if (!fqdn) { this.toast.error('Numele de domeniu este obligatoriu.'); return; }
+    if (!fqdn) { this.toast.error('Domain name is required.'); return; }
     this.addingDomain.set(true);
     this.domainService.addDomain({ fqdn, targetType: 'serverless', targetId: inst.id, routingType: 'reverse_proxy', isSsl: true }).subscribe({
       next: (domain) => {
@@ -489,7 +489,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     const inst = this.selectedInstance();
     if (!projId || !inst) return;
     const key = this.newEnvKey().trim().toUpperCase();
-    if (!key) { this.toast.error('Cheia este obligatorie.'); return; }
+    if (!key) { this.toast.error('Key is required.'); return; }
     this.savingEnv.set(true);
     this.projectService.setFunctionEnv(projId, inst.id, { key, value: this.newEnvValue(), isSecret: this.newEnvIsSecret() }).subscribe({
       next: () => {
@@ -498,7 +498,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
         this.toast.success('Variable saved. Deploy or "Reload variables" to apply.');
         this.loadFunctionEnv();
       },
-      error: (err) => { this.savingEnv.set(false); this.toast.error(err.error?.message || 'Eroare la salvare.'); }
+      error: (err) => { this.savingEnv.set(false); this.toast.error(err.error?.message || 'Error saving variable.'); }
     });
   }
 
@@ -518,7 +518,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
   }
 
   toggleRevealEnv(id: string): void { this.revealedEnvIds.update(m => ({ ...m, [id]: !m[id] })); }
-  copyToClipboard(text: string): void { navigator.clipboard.writeText(text).then(() => this.toast.success('Copiat!')); }
+  copyToClipboard(text: string): void { navigator.clipboard.writeText(text).then(() => this.toast.success('Copied!')); }
 
   onReloadFunctionEnv(): void {
     const projId = this.parent.projectId();
@@ -527,7 +527,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     this.reloadingEnv.set(true);
     this.projectService.reloadFunctionEnv(projId, inst.id).subscribe({
       next: (updated) => { this.reloadingEnv.set(false); this.selectedInstance.set(updated); this.toast.success('Variables reapplied without recompiling.'); },
-      error: (err) => { this.reloadingEnv.set(false); this.toast.error(err.error?.message || 'Eroare la reload.'); }
+      error: (err) => { this.reloadingEnv.set(false); this.toast.error(err.error?.message || 'Error reloading variables.'); }
     });
   }
 
@@ -572,7 +572,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     if (!projId || !inst) return;
     this.stopBuildLogsStream();
     this.selectedBuildId.set(build.id);
-    this.buildLogs.set(['[Console] Conectare la fluxul de loguri de compilare...']);
+    this.buildLogs.set(['[Console] Connecting to build logs stream...']);
     const url = this.projectService.getFunctionBuildLogsStreamUrl(projId, inst.id, build.id);
     this.buildLogSource = new EventSource(url);
     this.buildLogSource.onmessage = (event) => {
@@ -588,7 +588,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     const inst = this.selectedInstance();
     if (!projId || !inst) return;
     this.stopLogsStream();
-    this.logs.set(['[Console] Conectare la fluxul de loguri...']);
+    this.logs.set(['[Console] Connecting to logs stream...']);
     const url = `${environment.apiBaseUrl}/projects/${projId}/serverless/${inst.id}/logs/stream?token=${encodeURIComponent(localStorage.getItem('hermes_token') || '')}`;
     this.logSource = new EventSource(url);
     this.logSource.onmessage = (event) => {

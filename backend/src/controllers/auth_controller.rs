@@ -59,7 +59,7 @@ pub async fn login(
     let mut user = user;
 
     if user.status == UserStatus::Suspended {
-        return Err(AppError::Auth("Acest cont a fost suspendat.".to_string()));
+        return Err(AppError::Auth("This account has been suspended.".to_string()));
     }
 
     if !crypto::verify_password(&payload.password, &user.password_hash)? {
@@ -136,7 +136,7 @@ pub async fn refresh_session(
         .await?;
 
     if user.status == UserStatus::Suspended {
-        return Err(AppError::Auth("Acest cont a fost suspendat.".to_string()));
+        return Err(AppError::Auth("This account has been suspended.".to_string()));
     }
 
     let token_bundle = jwt::generate_token_bundle(&user, "")?;

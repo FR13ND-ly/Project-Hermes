@@ -130,7 +130,7 @@
         <input 
           id="confirm-project-delete-input"
           type="text" 
-          placeholder="Nume proiect"
+          placeholder="Project name"
           [ngModel]="confirmProjectName()"
           (ngModelChange)="confirmProjectName.set($event)"
           [disabled]="deletingProject()"
@@ -173,7 +173,7 @@
         <input
           id="proj-ingress"
           type="text"
-          placeholder="ex. 127.0.0.1 sau 64.176.64.16"
+          placeholder="ex. 127.0.0.1 or 64.176.64.16"
           [ngModel]="cfIngressIp()"
           (ngModelChange)="cfIngressIp.set($event)"
           [disabled]="savingCloudflare()"
@@ -187,7 +187,7 @@
         <input
           id="proj-domain"
           type="text"
-          placeholder="ex. compania-mea.ro sau dev.local"
+          placeholder="ex. my-company.com or dev.local"
           [ngModel]="cfBaseDomain()"
           (ngModelChange)="cfBaseDomain.set($event)"
           [disabled]="savingCloudflare()"
@@ -242,11 +242,11 @@
 
     <!-- Webhook Creation Form -->
     <div class="p-4 rounded border border-zinc-850 bg-black/40 space-y-4">
-      <h4 class="text-xs font-bold text-zinc-350">Configurare Canal Webhook Nou</h4>
+      <h4 class="text-xs font-bold text-zinc-350">Configure New Webhook Channel</h4>
       <div class="grid gap-4 md:grid-cols-3">
         <!-- Name -->
         <div class="space-y-1.5">
-          <label class="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Nume Integrare</label>
+          <label class="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Integration Name</label>
           <input 
             type="text" 
             placeholder="e.g. Production Alerts Channel"
@@ -272,10 +272,10 @@
 
         <!-- URL -->
         <div class="space-y-1.5">
-          <label class="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">URL Webhook</label>
+          <label class="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Webhook URL</label>
           <input 
             type="text" 
-            placeholder="https://hooks.slack.com/services/... sau Discord URL"
+            placeholder="https://hooks.slack.com/services/... or Discord URL"
             [ngModel]="newWebhookUrl()"
             (ngModelChange)="newWebhookUrl.set($event)"
             class="w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 font-mono"
@@ -311,9 +311,9 @@
       <table class="w-full border-collapse text-left text-xs">
         <thead>
           <tr class="border-b border-zinc-900 text-zinc-550 uppercase tracking-wider text-[9px] font-mono pb-2">
-            <th class="pb-2 px-2">Nume</th>
-            <th class="pb-2 px-2">Tip</th>
-            <th class="pb-2 px-2">URL Webhook</th>
+            <th class="pb-2 px-2">Name</th>
+            <th class="pb-2 px-2">Type</th>
+            <th class="pb-2 px-2">Webhook URL</th>
             <th class="pb-2 px-2">Status</th>
             <th class="pb-2 px-2 text-right">Actions</th>
           </tr>
@@ -345,7 +345,7 @@
   <!-- SSH Keys Card -->
   <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Chei SSH Proiect (Deploy Keys)</h3>
+      <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Project SSH Keys (Deploy Keys)</h3>
       <p class="text-xs text-zinc-550">Configure SSH keys so Hermes can connect to private Git repositories or dependencies from GitLab, Bitbucket and other servers.</p>
     </div>
 
@@ -355,7 +355,7 @@
       <div class="grid gap-4 md:grid-cols-2">
         <!-- Name -->
         <div class="space-y-1.5">
-          <label class="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Nume Cheie</label>
+          <label class="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Key Name</label>
           <input 
             type="text" 
             placeholder="e.g. Production GitLab Key"
@@ -367,10 +367,10 @@
 
         <!-- Host -->
         <div class="space-y-1.5">
-          <label class="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Domeniu / Host Git (HostName)</label>
+          <label class="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Domain / Git Host (HostName)</label>
           <input 
             type="text" 
-            placeholder="ex. gitlab.com sau git.companie.ro"
+            placeholder="e.g. gitlab.com or git.company.com"
             [ngModel]="newSshKeyHost()"
             (ngModelChange)="newSshKeyHost.set($event)"
             class="w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 font-mono"
@@ -438,7 +438,7 @@
       <table class="w-full border-collapse text-left text-xs">
         <thead>
           <tr class="border-b border-zinc-900 text-zinc-550 uppercase tracking-wider text-[9px] font-mono pb-2">
-            <th class="pb-2 px-2">Nume</th>
+            <th class="pb-2 px-2">Name</th>
             <th class="pb-2 px-2">Host Git</th>
             <th class="pb-2 px-2">Public Key (Deploy Key)</th>
             <th class="pb-2 px-2 text-right">Actions</th>

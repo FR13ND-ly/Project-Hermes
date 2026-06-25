@@ -273,7 +273,7 @@ pub async fn detect_project(
 
     if has_file("Dockerfile") {
         detection.project_type = "dockerfile".to_string();
-        detection.description = "Dockerfile detectat. Hermes va construi imaginea folosind acest Dockerfile.".to_string();
+        detection.description = "Dockerfile detected. Hermes will build the image using this Dockerfile.".to_string();
     } else if has_file("package.json") {
         detection.project_type = "nodejs".to_string();
         detection.build_command = "npm run build".to_string();

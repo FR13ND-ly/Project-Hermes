@@ -1,4 +1,4 @@
--- Tabela globală pentru toți utilizatorii finali ai aplicațiilor create în Hermes
+-- Global table for all end users of applications created in Hermes
 CREATE TABLE app_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) NOT NULL UNIQUE,

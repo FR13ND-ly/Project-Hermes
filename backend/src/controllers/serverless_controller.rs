@@ -750,7 +750,7 @@ pub async fn deploy_instance(
         let lp = kube::api::LogParams { container: Some("kaniko".to_string()), ..Default::default() };
         match pods_api.logs(&builder_pod_name, &lp).await {
             Ok(logs) => build_logs.push_str(&logs),
-            Err(e) => build_logs.push_str(&format!("Nu s-au putut prelua logurile builder-ului: {}\n", e)),
+            Err(e) => build_logs.push_str(&format!("Failed to retrieve builder logs: {}\n", e)),
         }
 
         let _ = configmaps.delete(&configmap_name, &DeleteParams::default()).await;

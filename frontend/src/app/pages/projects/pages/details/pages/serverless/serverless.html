@@ -40,10 +40,10 @@
                   </div>
                 </td>
                 <td class="p-3.5 text-zinc-400">{{ inst.runtime }}</td>
-                <td class="p-3.5 text-zinc-400">{{ (inst.routes || []).length }} rute</td>
-                <td class="p-3.5 text-zinc-400">{{ inst.assignedDomain || (inst.externalPort ? ('localhost:' + inst.externalPort) : 'Nelansat') }}</td>
+                <td class="p-3.5 text-zinc-400">{{ (inst.routes || []).length }} routes</td>
+                <td class="p-3.5 text-zinc-400">{{ inst.assignedDomain || (inst.externalPort ? ('localhost:' + inst.externalPort) : 'Not deployed') }}</td>
                 <td class="p-3.5 text-right">
-                  <button (click)="selectInstance(inst)" class="px-2.5 py-1 rounded border border-zinc-800 text-zinc-300 hover:bg-zinc-900 hover:text-white text-[11px] font-semibold cursor-pointer">Detalii & Rute</button>
+                  <button (click)="selectInstance(inst)" class="px-2.5 py-1 rounded border border-zinc-800 text-zinc-300 hover:bg-zinc-900 hover:text-white text-[11px] font-semibold cursor-pointer">Details & Routes</button>
                 </td>
               </tr>
             }
@@ -162,7 +162,7 @@
           <h4 class="text-[11px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Instance configuration</h4>
           <div class="grid gap-3 sm:grid-cols-2">
             <div class="space-y-1.5">
-              <label class="text-[10px] font-semibold text-zinc-400 uppercase">Nume</label>
+              <label class="text-[10px] font-semibold text-zinc-400 uppercase">Name</label>
               <input type="text" [ngModel]="editName()" (ngModelChange)="editName.set($event)" class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500" />
             </div>
             <div class="space-y-1.5">
@@ -231,12 +231,12 @@
             } @else {
               <div class="flex items-center gap-1 bg-black border border-zinc-850 rounded p-0.5 w-fit text-[11px] font-semibold">
                 <button (click)="addEnvMode.set('new')" [class]="addEnvMode() === 'new' ? 'px-3 py-1 rounded bg-white text-black cursor-pointer' : 'px-3 py-1 rounded text-zinc-400 hover:text-white cursor-pointer'">New variable</button>
-                <button (click)="addEnvMode.set('project')" [class]="addEnvMode() === 'project' ? 'px-3 py-1 rounded bg-white text-black cursor-pointer' : 'px-3 py-1 rounded text-zinc-400 hover:text-white cursor-pointer'">Din proiect</button>
+                <button (click)="addEnvMode.set('project')" [class]="addEnvMode() === 'project' ? 'px-3 py-1 rounded bg-white text-black cursor-pointer' : 'px-3 py-1 rounded text-zinc-400 hover:text-white cursor-pointer'">From project</button>
               </div>
             }
             @if (addEnvMode() === 'new') {
               <div class="grid gap-2 sm:grid-cols-2">
-                <input type="text" placeholder="CHEIE" [ngModel]="newEnvKey()" (ngModelChange)="newEnvKey.set($event)" [readonly]="editingEnvId() !== null" class="px-3 py-2 bg-black border border-zinc-850 rounded text-white text-xs focus:outline-none focus:border-zinc-500 uppercase read-only:opacity-60" />
+                <input type="text" placeholder="KEY" [ngModel]="newEnvKey()" (ngModelChange)="newEnvKey.set($event)" [readonly]="editingEnvId() !== null" class="px-3 py-2 bg-black border border-zinc-850 rounded text-white text-xs focus:outline-none focus:border-zinc-500 uppercase read-only:opacity-60" />
                 <input [type]="newEnvIsSecret() ? 'password' : 'text'" [placeholder]="editingEnvId() && newEnvIsSecret() ? 'new value (secret)' : 'value'" [ngModel]="newEnvValue()" (ngModelChange)="newEnvValue.set($event)" class="px-3 py-2 bg-black border border-zinc-850 rounded text-white text-xs focus:outline-none focus:border-zinc-500" />
               </div>
               <label class="flex items-center gap-2 cursor-pointer select-none w-fit">
@@ -250,7 +250,7 @@
             } @else {
               <p class="text-[9px] text-zinc-550 leading-relaxed font-sans">Connect variables from the project pool (live reference). Apply with "Reload variables" or Deploy.</p>
               @if (availableProjectEnv().length === 0) {
-                <p class="text-[10px] text-zinc-600 py-2 font-sans">Niciun env la nivel de proiect.</p>
+                <p class="text-[10px] text-zinc-600 py-2 font-sans">No project-level environment variables found.</p>
               } @else {
                 <div class="divide-y divide-zinc-900 max-h-72 overflow-y-auto">
                   @for (penv of availableProjectEnv(); track penv.id) {
@@ -398,7 +398,7 @@
       <div class="w-full max-w-md bg-[#0a0a0a] border border-zinc-800 rounded-xl p-5 space-y-4" (click)="$event.stopPropagation()">
         <h3 class="text-xs font-bold text-zinc-200 uppercase tracking-wider">Create Serverless Instance</h3>
         <div class="space-y-3">
-          <input type="text" placeholder="Nume (ex. api-plati)" [ngModel]="newName()" (ngModelChange)="newName.set($event)" class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500" />
+          <input type="text" placeholder="Name (e.g. api-payments)" [ngModel]="newName()" (ngModelChange)="newName.set($event)" class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500" />
           <select [ngModel]="newRuntime()" (ngModelChange)="newRuntime.set($event)" class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 cursor-pointer">
             <option value="nodejs-cjs">Node.js (CommonJS)</option>
             <option value="nodejs-esm">Node.js (ES Modules)</option>

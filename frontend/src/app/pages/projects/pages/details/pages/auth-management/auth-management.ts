@@ -210,7 +210,7 @@ export const requireRole = (role) => (req, res, next) =>
     const projectId = this.parent.projectId();
     const name = this.newServiceName().trim();
     if (!projectId || !name) {
-      this.toast.error('Numele serviciului este obligatoriu.');
+      this.toast.error('Service name is required.');
       return;
     }
 
@@ -248,11 +248,11 @@ export const requireRole = (role) => (req, res, next) =>
         this.showCreateForm.set(false);
         this.services.update(list => [svc, ...list]);
         this.selectedService.set(svc);
-        this.toast.success(`Serviciul de autentificare „${svc.name}" a fost creat.`);
+        this.toast.success(`Authentication service "${svc.name}" has been created.`);
       },
       error: (err) => {
         this.creatingService.set(false);
-        this.toast.error(err.error?.message || 'Eroare la crearea serviciului.');
+        this.toast.error(err.error?.message || 'Error creating service.');
       }
     });
   }
@@ -340,7 +340,7 @@ export const requireRole = (role) => (req, res, next) =>
     });
   }
 
-  copyText(text: string, label = 'Valoare'): void {
+  copyText(text: string, label = 'Value'): void {
     navigator.clipboard.writeText(text).then(() => {
       this.toast.success(`${label} copied to clipboard!`);
     });
@@ -401,11 +401,11 @@ export const requireRole = (role) => (req, res, next) =>
 
     this.authMgmtService.updateUserStatus(activeApp.id, user.appUserId, nextStatus).subscribe({
       next: () => {
-        this.toast.success(`Contul a fost ${nextStatus === 'suspended' ? 'suspendat' : 'activat'} cu succes.`);
+        this.toast.success(`Account was successfully ${nextStatus === 'suspended' ? 'suspended' : 'activated'}.`);
         this.loadUsers();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la actualizarea statusului contului.');
+        this.toast.error(err.error?.message || 'Error updating account status.');
       }
     });
   }
@@ -437,7 +437,7 @@ export const requireRole = (role) => (req, res, next) =>
         this.selectedUser.set(null);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la resetarea parolei.');
+        this.toast.error(err.error?.message || 'Error resetting password.');
         this.resettingPassword.set(false);
       }
     });
@@ -459,7 +459,7 @@ export const requireRole = (role) => (req, res, next) =>
     this.assigningRole.set(true);
     this.authMgmtService.assignUserRole(activeApp.id, user.identifier, role).subscribe({
       next: () => {
-        this.toast.success(`Rolul "${role}" a fost alocat.`);
+        this.toast.success(`Role "${role}" has been assigned.`);
         this.newRoleName.set('');
         this.loadUsers();
         // Update local roles list to avoid reloading everything if possible
@@ -474,7 +474,7 @@ export const requireRole = (role) => (req, res, next) =>
         this.assigningRole.set(false);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la alocarea rolului.');
+        this.toast.error(err.error?.message || 'Error assigning role.');
         this.assigningRole.set(false);
       }
     });
@@ -486,9 +486,9 @@ export const requireRole = (role) => (req, res, next) =>
     if (!activeApp || !user || !role) return;
 
     const confirmed = await this.confirm.ask({
-      title: 'Retragere Rol',
+      title: 'Revoke Role',
       message: `Are you sure you want to revoke the role "${role}" from user "${user.identifier}"?`,
-      confirmText: 'Retrage rol',
+      confirmText: 'Revoke role',
       cancelText: 'Cancel',
       isDanger: true
     });
@@ -499,7 +499,7 @@ export const requireRole = (role) => (req, res, next) =>
       role
     }).subscribe({
       next: () => {
-        this.toast.success(`Rolul "${role}" a fost retras.`);
+        this.toast.success(`Role "${role}" has been revoked.`);
         this.loadUsers();
         // Update local roles list
         const uIdx = this.users().findIndex(u => u.appUserId === user.appUserId);
@@ -510,7 +510,7 @@ export const requireRole = (role) => (req, res, next) =>
         }
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la retragerea rolului.');
+        this.toast.error(err.error?.message || 'Error revoking role.');
       }
     });
   }
@@ -697,7 +697,7 @@ export const requireRole = (role) => (req, res, next) =>
         this.loadApiKeys();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la generarea cheii.');
+        this.toast.error(err.error?.message || 'Error generating key.');
         this.creatingKey.set(false);
       }
     });
@@ -708,7 +708,7 @@ export const requireRole = (role) => (req, res, next) =>
     if (!activeApp) return;
 
     const confirmed = await this.confirm.ask({
-      title: 'Revocare Cheie API',
+      title: 'Revoke API Key',
       message: `Are you sure you want to fully revoke the API key "${key.name}"? External services using this key will lose access immediately.`,
       confirmText: 'Revoke key',
       cancelText: 'Cancel',
@@ -722,7 +722,7 @@ export const requireRole = (role) => (req, res, next) =>
         this.loadApiKeys();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la revocarea cheii.');
+        this.toast.error(err.error?.message || 'Error revoking key.');
       }
     });
   }

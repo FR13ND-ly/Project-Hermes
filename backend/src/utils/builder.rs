@@ -2194,7 +2194,7 @@ async fn monitor_deploy_health(
 
         if let Some((reason, pod_name)) = crash {
             let log_params = kube::api::LogParams { tail_lines: Some(50), ..Default::default() };
-            let container_logs = pods.logs(&pod_name, &log_params).await.unwrap_or_else(|_| "(log-urile containerului nu au putut fi citite)".to_string());
+            let container_logs = pods.logs(&pod_name, &log_params).await.unwrap_or_else(|_| "(the container logs could not be read)".to_string());
 
             let _ = update_status(pool, instance_id, AppStatus::Crashed).await;
 
