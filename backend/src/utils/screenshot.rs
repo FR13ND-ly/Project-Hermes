@@ -63,13 +63,16 @@ async fn try_capture(
         chrono::Utc::now().format("%H%M%S")
     );
 
-    // Wait a moment for the app to settle, then render at a 16:10 desktop size. The
-    // single-quoted URL/paths are safe: both are server-controlled (UUID + Service DNS).
+    // Render at a 16:10 desktop size. `--virtual-time-budget` lets the SPA load/animate
+    // before the shot, and `--run-all-compositor-stages-before-draw` forces the frame to
+    // be painted first — without it the screenshot is taken pre-paint and comes out blank
+    // white. The single-quoted URL/paths are safe: both are server-controlled (UUID + DNS).
     let command = format!(
         "mkdir -p {dir}/{sub} && \
          chromium-browser --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
          --hide-scrollbars --force-color-profile=srgb --window-size=1280,800 \
-         --virtual-time-budget=10000 --timeout=30000 --screenshot='{out}' '{url}'",
+         --run-all-compositor-stages-before-draw --virtual-time-budget=15000 \
+         --screenshot='{out}' '{url}'",
         dir = PVC_MOUNT,
         sub = SCREENSHOTS_SUBDIR,
         out = out_path,
