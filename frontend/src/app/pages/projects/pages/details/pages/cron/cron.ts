@@ -154,9 +154,9 @@ export class CronComponent implements OnInit, OnDestroy {
 
   targetTypeLabel(type: string | undefined): string {
     switch (type) {
-      case 'database': return 'Bază de date';
+      case 'database': return 'Database';
       case 'storage': return 'Storage';
-      default: return 'Aplicație';
+      default: return 'Application';
     }
   }
 
@@ -192,7 +192,7 @@ export class CronComponent implements OnInit, OnDestroy {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la încărcarea joburilor cron.');
+        this.error.set(err.error?.message || 'Failed to load cron jobs.');
         this.loading.set(false);
       }
     });
@@ -205,7 +205,7 @@ export class CronComponent implements OnInit, OnDestroy {
 
   // Helper to find the app name by app_id
   getAppName(appId: string | undefined): string {
-    if (!appId) return 'Nespecificată';
+    if (!appId) return 'Unspecified';
     const app = this.parent.apps().find(a => a.id === appId);
     return app ? app.name : appId.substring(0, 8);
   }
@@ -241,7 +241,7 @@ export class CronComponent implements OnInit, OnDestroy {
     const targetId = this.selectedTargetId();
     if (!projId) return;
     if (!targetId) {
-      this.toast.error('Selectați o resursă țintă.');
+      this.toast.error('Select a target resource.');
       return;
     }
 
@@ -250,7 +250,7 @@ export class CronComponent implements OnInit, OnDestroy {
     const command = this.newCronCommand().trim();
 
     if (!name || !schedule || !command) {
-      this.toast.error('Toate câmpurile sunt obligatorii.');
+      this.toast.error('All fields are required.');
       return;
     }
 
@@ -272,11 +272,11 @@ export class CronComponent implements OnInit, OnDestroy {
       next: () => {
         this.creatingCron.set(false);
         this.showCreateModal.set(false);
-        this.toast.success('Jobul cron a fost creat cu succes!');
+        this.toast.success('Cron job created successfully!');
         this.loadCronJobs();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la crearea jobului cron.');
+        this.toast.error(err.error?.message || 'Failed to create cron job.');
         this.creatingCron.set(false);
       }
     });
@@ -284,24 +284,24 @@ export class CronComponent implements OnInit, OnDestroy {
 
   async onDeleteCronJob(jobId: string): Promise<void> {
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Job Cron',
-      message: 'Sigur doriți să ștergeți acest job cron?',
-      confirmText: 'Șterge',
-      cancelText: 'Anulează',
+      title: 'Delete Cron Job',
+      message: 'Are you sure you want to delete this cron job?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
 
     this.projectService.deleteCronJob(jobId).subscribe({
       next: () => {
-        this.toast.success('Jobul cron a fost șters.');
+        this.toast.success('Cron job deleted.');
         if (this.selectedCronJob()?.id === jobId) {
           this.deselectCronJob();
         }
         this.loadCronJobs();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la ștergerea jobului cron.');
+        this.toast.error(err.error?.message || 'Failed to delete cron job.');
       }
     });
   }
@@ -357,7 +357,7 @@ export class CronComponent implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la încărcarea logurilor.');
+        this.toast.error(err.error?.message || 'Failed to load logs.');
         if (!silent) {
           this.cronLogsLoading.set(false);
         }
@@ -390,7 +390,7 @@ export class CronComponent implements OnInit, OnDestroy {
     const appId = this.editAppId();
 
     if (!name || !schedule || !command || (isAppTarget && !appId)) {
-      this.toast.error('Toate câmpurile sunt obligatorii.');
+      this.toast.error('All fields are required.');
       return;
     }
 
@@ -403,13 +403,13 @@ export class CronComponent implements OnInit, OnDestroy {
       status
     }).subscribe({
       next: (updated) => {
-        this.toast.success('Setările jobului cron au fost salvate cu succes.');
+        this.toast.success('Cron job settings saved successfully.');
         this.selectedCronJob.set(updated);
         this.savingSettings.set(false);
         this.loadCronJobs();
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la salvarea setărilor.');
+        this.toast.error(err.error?.message || 'Failed to save settings.');
         this.savingSettings.set(false);
       }
     });
@@ -479,7 +479,7 @@ export class CronComponent implements OnInit, OnDestroy {
 
         if (this.selectedCronJob()?.id === jobId) {
           this.deselectCronJob();
-          this.toast.info('Acest job cron a fost șters.');
+          this.toast.info('This cron job was deleted.');
         }
       })
     );
