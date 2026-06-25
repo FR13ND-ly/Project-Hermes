@@ -285,7 +285,7 @@ export class DbDetailComponent implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Eroare la încărcarea detaliilor bazei de date.');
+        this.error.set(err.error?.message || 'Failed to load database details.');
         this.loading.set(false);
         this.stopTicker();
       }
@@ -321,7 +321,7 @@ export class DbDetailComponent implements OnInit, OnDestroy {
         this.credentialsRevealed.set(true);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Nu aveți permisiunea de a decripta credențialele.');
+        this.toast.error(err.error?.message || 'You do not have permission to decrypt the credentials.');
       }
     });
   }
@@ -331,10 +331,10 @@ export class DbDetailComponent implements OnInit, OnDestroy {
     if (!id) return;
 
     const confirmed = await this.confirm.ask({
-      title: 'Rotește parola bazei de date',
-      message: 'Se generează o parolă nouă direct în engine-ul DB, iar aplicațiile conectate vor fi repornite automat ca să se reconecteze (downtime scurt). Continuați?',
-      confirmText: 'Rotește',
-      cancelText: 'Anulează',
+      title: 'Rotate Database Password',
+      message: 'A new password will be generated directly in the DB engine, and connected applications will be restarted automatically to reconnect (brief downtime). Continue?',
+      confirmText: 'Rotate',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
@@ -343,7 +343,7 @@ export class DbDetailComponent implements OnInit, OnDestroy {
     this.dbService.rotatePassword(id).subscribe({
       next: () => {
         this.rotatingPassword.set(false);
-        this.toast.success('Parola a fost rotită. Aplicațiile conectate se repornesc automat.');
+        this.toast.success('Password rotated. Connected applications are restarting automatically.');
         // Any revealed credentials are now stale — hide them.
         this.credentialsRevealed.set(false);
         this.connectionUrl.set(null);
@@ -351,7 +351,7 @@ export class DbDetailComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.rotatingPassword.set(false);
-        this.toast.error(err.error?.message || 'Eroare la rotația parolei.');
+        this.toast.error(err.error?.message || 'Failed to rotate password.');
       }
     });
   }
@@ -382,7 +382,7 @@ export class DbDetailComponent implements OnInit, OnDestroy {
           ...history,
           {
             query,
-            output: err.error?.message || 'Eroare la comunicarea cu baza de date.',
+            output: err.error?.message || 'Failed to communicate with the database.',
             isError: true,
             timestamp: new Date()
           }
@@ -407,14 +407,14 @@ export class DbDetailComponent implements OnInit, OnDestroy {
   // Stdout container logs SSE
   connectLogs(id: string): void {
     this.disconnectLogs();
-    this.logs.set(['[Console] Se conectează la stream-ul de logs Kubernetes...']);
+    this.logs.set(['[Console] Connecting to Kubernetes log stream...']);
 
     const streamUrl = this.dbService.getLogsStreamUrl(id);
     this.eventSource = new EventSource(streamUrl);
 
     this.eventSource.onopen = () => {
       this.sseConnected.set(true);
-      this.logs.update(lines => [...lines, '[Console] Conexiune stabilă. Se citesc logs din pod:']);
+      this.logs.update(lines => [...lines, '[Console] Connection established. Reading logs from pod:']);
     };
 
     this.eventSource.onmessage = (event) => {
@@ -428,7 +428,7 @@ export class DbDetailComponent implements OnInit, OnDestroy {
 
     this.eventSource.onerror = () => {
       this.sseConnected.set(false);
-      this.logs.update(lines => [...lines, '[Aviz] Conexiunea a fost întreruptă. Se încearcă reconectarea...']);
+      this.logs.update(lines => [...lines, '[Notice] Connection interrupted. Attempting to reconnect...']);
       this.disconnectLogs();
     };
   }
@@ -472,13 +472,13 @@ export class DbDetailComponent implements OnInit, OnDestroy {
       next: () => {
         this.savingSettings.set(false);
         this.saveSettingsSuccess.set(true);
-        this.toast.success('Limitele resurselor au fost salvate cu succes. Pod-ul se va redeploya automat!');
+        this.toast.success('Resource limits saved. The pod will redeploy automatically!');
         this.loadDatabaseDetails(id, true);
         setTimeout(() => this.saveSettingsSuccess.set(false), 3000);
       },
       error: (err) => {
         this.savingSettings.set(false);
-        this.toast.error(err.error?.message || 'Eroare la salvarea setărilor.');
+        this.toast.error(err.error?.message || 'Failed to save settings.');
       }
     });
   }
@@ -517,31 +517,31 @@ export class DbDetailComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.savingBackup.set(false);
-        this.toast.error(err.error?.message || 'Eroare la actualizarea backup-ului automat.');
+        this.toast.error(err.error?.message || 'Failed to update auto-backup.');
       }
     });
   }
 
   onEnableBackup(): void {
     const count = Math.max(1, Math.min(30, this.newBackupCount() || 7));
-    this.persistBackup(true, count, 'Backup automat activat — un cron editabil a fost creat.');
+    this.persistBackup(true, count, 'Auto-backup enabled — an editable cron job has been created.');
   }
 
   onUpdateBackupRetention(): void {
     const count = Math.max(1, Math.min(30, this.backupCount() || 7));
-    this.persistBackup(true, count, 'Numărul de backup-uri păstrate a fost actualizat.');
+    this.persistBackup(true, count, 'Backup retention count updated.');
   }
 
   async onDisableBackup(): Promise<void> {
     const confirmed = await this.confirm.ask({
-      title: 'Dezactivare Backup Automat',
-      message: 'Sigur doriți să dezactivați backup-ul automat? Cron-ul asociat va fi șters. Backup-urile deja create rămân.',
-      confirmText: 'Dezactivează',
-      cancelText: 'Anulează',
+      title: 'Disable Auto-Backup',
+      message: 'Are you sure you want to disable auto-backup? The associated cron job will be deleted. Already created backups will remain.',
+      confirmText: 'Disable',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
-    this.persistBackup(false, this.backupCount() || 7, 'Backup automat dezactivat.');
+    this.persistBackup(false, this.backupCount() || 7, 'Auto-backup disabled.');
   }
 
   goToBackupCron(): void {
@@ -557,7 +557,7 @@ export class DbDetailComponent implements OnInit, OnDestroy {
         this.loadingBackups.set(false);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la încărcarea copiilor de siguranță.');
+        this.toast.error(err.error?.message || 'Failed to load backups.');
         this.loadingBackups.set(false);
       }
     });
@@ -567,14 +567,14 @@ export class DbDetailComponent implements OnInit, OnDestroy {
     const id = this.dbId();
     if (!id) return;
 
-    this.toast.info('Se inițializează crearea copiei de siguranță...');
+    this.toast.info('Initializing backup creation...');
     this.dbService.createBackup(id).subscribe({
       next: () => {
-        this.toast.success('Copia de siguranță a fost creată cu succes.');
+        this.toast.success('Backup created successfully.');
         this.loadBackups(id);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la crearea copiei de siguranță.');
+        this.toast.error(err.error?.message || 'Failed to create backup.');
       }
     });
   }
@@ -584,22 +584,22 @@ export class DbDetailComponent implements OnInit, OnDestroy {
     if (!id) return;
 
     const confirmed = await this.confirm.ask({
-      title: 'Restaurare Bază de Date',
-      message: `Sigur doriți să restaurați baza de date folosind copia din ${new Date(backup.createdAt).toLocaleString()}? Datele curente vor fi suprascrise!`,
-      confirmText: 'Restaurează',
-      cancelText: 'Anulează',
+      title: 'Restore Database',
+      message: `Are you sure you want to restore the database from the backup created at ${new Date(backup.createdAt).toLocaleString()}? Current data will be overwritten!`,
+      confirmText: 'Restore',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
 
-    this.toast.info('Se restaurează baza de date...');
+    this.toast.info('Restoring database...');
     this.dbService.restoreBackup(id, backup.id).subscribe({
       next: () => {
-        this.toast.success('Baza de date a fost restaurată cu succes.');
+        this.toast.success('Database restored successfully.');
         this.loadDatabaseDetails(id, true);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la restaurarea bazei de date.');
+        this.toast.error(err.error?.message || 'Failed to restore database.');
       }
     });
   }
@@ -609,28 +609,28 @@ export class DbDetailComponent implements OnInit, OnDestroy {
     if (!id) return;
 
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Copie de Siguranță',
-      message: `Sigur doriți să ștergeți copia de siguranță "${backup.filename}"? Această acțiune este ireversibilă!`,
-      confirmText: 'Șterge',
-      cancelText: 'Anulează',
+      title: 'Delete Backup',
+      message: `Are you sure you want to delete the backup "${backup.filename}"? This action is irreversible!`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
       isDanger: true
     });
     if (!confirmed) return;
 
     this.dbService.deleteBackup(id, backup.id).subscribe({
       next: () => {
-        this.toast.success('Copia de siguranță a fost ștearsă.');
+        this.toast.success('Backup deleted.');
         this.loadBackups(id);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la ștergerea copiei de siguranță.');
+        this.toast.error(err.error?.message || 'Failed to delete backup.');
       }
     });
   }
 
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text).then(() => {
-      this.toast.success('Copiat în clipboard!');
+      this.toast.success('Copied to clipboard!');
     });
   }
 
@@ -640,10 +640,10 @@ export class DbDetailComponent implements OnInit, OnDestroy {
     if (!id || !dbData) return;
 
     const confirmed = await this.confirm.ask({
-      title: 'Ștergere Bază de Date',
-      message: `Sigur doriți să ștergeți această bază de date "${dbData.name}"? Toate datele stocate vor fi șterse definitiv!`,
-      confirmText: 'Șterge definitiv',
-      cancelText: 'Anulează',
+      title: 'Delete Database',
+      message: `Are you sure you want to delete the database "${dbData.name}"? All stored data will be permanently destroyed!`,
+      confirmText: 'Delete permanently',
+      cancelText: 'Cancel',
       isDanger: true,
       matchText: dbData.name
     });
@@ -651,11 +651,11 @@ export class DbDetailComponent implements OnInit, OnDestroy {
 
     this.dbService.deleteDatabase(id).subscribe({
       next: () => {
-        this.toast.success('Baza de date a fost ștearsă.');
+        this.toast.success('Database deleted.');
         this.router.navigate(['/projects', this.parent.projectId(), 'databases']);
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'Eroare la ștergerea bazei de date.');
+        this.toast.error(err.error?.message || 'Failed to delete database.');
       }
     });
   }
