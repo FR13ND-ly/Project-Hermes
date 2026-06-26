@@ -1123,6 +1123,15 @@ pub async fn perform_database_backup(pool: &sqlx::PgPool, db_id: Uuid, custom_co
     
     let backups_dir = format!("/var/lib/hermes/backups/{}", db_id);
     std::fs::create_dir_all(&backups_dir).map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to create backups directory: {}", e)))?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(metadata) = std::fs::metadata(&backups_dir) {
+            let mut perms = metadata.permissions();
+            perms.set_mode(0o777); // Ensure the in-cluster job pod (UID 999) can write to this directory
+            let _ = std::fs::set_permissions(&backups_dir, perms);
+        }
+    }
     
     let filename = format!("{}.{}", chrono::Utc::now().format("%Y%m%d_%H%M%S"), extension);
     let filepath = format!("{}/{}", backups_dir, filename);
@@ -1425,14 +1434,14 @@ async fn restore_sql_via_job(
         DbType::Postgres => (
             vec![("PGPASSWORD".to_string(), password.to_string())],
             format!(
-                "psql -h {host} -p {port} -U {user} -d {db} -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'; psql -h {host} -p {port} -U {user} -d {db} < '{file}'",
+                "i=0; until pg_isready -h {host} -p {port} -U {user} -q; do i=$((i+1)); [ $i -ge 30 ] && echo 'DB unreachable after 60s' >&2 && exit 1; sleep 2; done; psql -h {host} -p {port} -U {user} -d {db} -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'; psql -h {host} -p {port} -U {user} -d {db} < '{file}'",
                 host = host, port = port, user = db_service.db_user, db = db_service.db_name, file = filepath
             ),
         ),
         DbType::Mysql => (
             vec![("MYSQL_PWD".to_string(), password.to_string())],
             format!(
-                "mysql -h {host} -P {port} -u {user} -e 'DROP DATABASE IF EXISTS {db}; CREATE DATABASE {db};'; mysql -h {host} -P {port} -u {user} {db} < '{file}'",
+                "i=0; until mysqladmin ping -h {host} -P {port} -u {user} --silent; do i=$((i+1)); [ $i -ge 30 ] && echo 'DB unreachable after 60s' >&2 && exit 1; sleep 2; done; mysql -h {host} -P {port} -u {user} -e 'DROP DATABASE IF EXISTS {db}; CREATE DATABASE {db};'; mysql -h {host} -P {port} -u {user} {db} < '{file}'",
                 host = host, port = port, user = db_service.db_user, db = db_service.db_name, file = filepath
             ),
         ),
