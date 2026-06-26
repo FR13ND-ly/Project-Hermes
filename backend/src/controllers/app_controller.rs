@@ -2548,3 +2548,166 @@ pub async fn exec_command_in_pod(
         cwd: new_cwd,
     }))
 }
+
+pub async fn stream_instance_terminal_ws(
+    ws: WebSocketUpgrade,
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path((_app_id, instance_id)): Path<(Uuid, Uuid)>,
+) -> Result<Response, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let instance = sqlx::query_as::<_, AppInstance>(
+        "SELECT ai.* FROM app_instances ai
+         JOIN apps a ON ai.app_id = a.id
+         WHERE ai.id = $1 AND a.workspace_id = $2"
+    )
+    .bind(instance_id)
+    .bind(ws_id)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Application instance not found.".to_string()))?;
+
+    if instance.status != AppStatus::Running {
+        return Err(AppError::Validation("Cannot open terminal session on a stopped application instance.".to_string()));
+    }
+
+    let container_name = instance.container_name.clone();
+
+    Ok(ws.on_upgrade(move |socket| handle_instance_terminal_socket(socket, ws_id, container_name)))
+}
+
+async fn handle_instance_terminal_socket(
+    socket: WebSocket,
+    ws_id: Uuid,
+    container_name: String,
+) {
+    let (mut ws_sender, mut ws_receiver) = socket.split();
+
+    let k8s_client = match crate::utils::k8s::K8sManager::get_client().await {
+        Ok(c) => c,
+        Err(e) => {
+            let _ = ws_sender.send(Message::Text(format!("[Console Error] The connection to Kubernetes failed: {}", e))).await;
+            return;
+        }
+    };
+
+    let namespace = format!("hermes-ws-{}", ws_id);
+    let pods_api: kube::Api<k8s_openapi::api::core::v1::Pod> = kube::Api::namespaced(k8s_client, &namespace);
+    let lp = kube::api::ListParams::default().labels(&format!("app={}", container_name));
+
+    let pod_list = match pods_api.list(&lp).await {
+        Ok(list) => list,
+        Err(e) => {
+            let _ = ws_sender.send(Message::Text(format!("[Console Error] Failed to list pods: {}", e))).await;
+            return;
+        }
+    };
+
+    let pod = match pod_list.items.first() {
+        Some(p) => p,
+        None => {
+            let _ = ws_sender.send(Message::Text("[Console Error] No active running pods found for this instance.".to_string())).await;
+            return;
+        }
+    };
+
+    let pod_name = match &pod.metadata.name {
+        Some(name) => name.clone(),
+        None => {
+            let _ = ws_sender.send(Message::Text("[Console Error] Pod name is missing".to_string())).await;
+            return;
+        }
+    };
+
+    let ap = kube::api::AttachParams {
+        container: Some(container_name),
+        stdin: true,
+        stdout: true,
+        stderr: false, // stderr is merged into stdout in TTY mode
+        tty: true,
+        ..Default::default()
+    };
+
+    let mut attached = match pods_api.exec(&pod_name, vec!["/bin/sh".to_string()], &ap).await {
+        Ok(proc) => proc,
+        Err(e) => {
+            let _ = ws_sender.send(Message::Text(format!("[Console Error] Failed to start shell session: {}", e))).await;
+            return;
+        }
+    };
+
+    let mut stdin_writer = attached.stdin().unwrap();
+    let mut stdout_reader = attached.stdout().unwrap();
+    let mut terminal_size_writer = attached.terminal_size();
+
+    // Task 1: Container stdout -> Browser WebSocket
+    let mut stdout_task = tokio::spawn(async move {
+        let mut buffer = [0; 4096];
+        use tokio::io::AsyncReadExt;
+        loop {
+            match stdout_reader.read(&mut buffer).await {
+                Ok(0) => break, // EOF
+                Ok(n) => {
+                    let bytes = &buffer[..n];
+                    if ws_sender.send(Message::Binary(bytes.to_vec())).await.is_err() {
+                        break;
+                    }
+                }
+                Err(_) => break,
+            }
+        }
+    });
+
+    #[derive(serde::Deserialize)]
+    struct TerminalResize {
+        cols: u16,
+        rows: u16,
+    }
+
+    // Task 2: Browser WebSocket -> Container stdin (including resize events)
+    let mut stdin_task = tokio::spawn(async move {
+        use tokio::io::AsyncWriteExt;
+        while let Some(msg) = ws_receiver.next().await {
+            let msg = match msg {
+                Ok(m) => m,
+                Err(_) => break,
+            };
+
+            match msg {
+                Message::Text(t) => {
+                    if let Ok(resize) = serde_json::from_str::<TerminalResize>(&t) {
+                        if let Some(ref mut size_writer) = terminal_size_writer {
+                            let _ = size_writer.send(kube::api::TerminalSize {
+                                height: resize.rows,
+                                width: resize.cols,
+                            }).await;
+                        }
+                    } else {
+                        if stdin_writer.write_all(t.as_bytes()).await.is_err() {
+                            break;
+                        }
+                        let _ = stdin_writer.flush().await;
+                    }
+                }
+                Message::Binary(b) => {
+                    if stdin_writer.write_all(&b).await.is_err() {
+                        break;
+                    }
+                    let _ = stdin_writer.flush().await;
+                }
+                Message::Close(_) => break,
+                _ => {}
+            }
+        }
+    });
+
+    tokio::select! {
+        _ = &mut stdout_task => stdin_task.abort(),
+        _ = &mut stdin_task => stdout_task.abort(),
+    };
+
+    let _ = attached.join().await;
+}

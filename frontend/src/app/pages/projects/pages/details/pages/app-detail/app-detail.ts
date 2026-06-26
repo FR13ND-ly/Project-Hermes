@@ -538,11 +538,6 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
   onInstanceChange(id: string): void {
     this.activeInstanceId.set(id);
-    if (this.router.url.includes('/terminal')) {
-      this.terminalCwd.set('');
-      this.terminalLines.set([]);
-      this.initializeTerminalCwd();
-    }
     if (this.router.url.includes('/env')) {
       this.loadEnvVariables();
     }
@@ -1447,88 +1442,6 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         this.toast.error(err.error?.message || 'Failed to remove domain.');
       }
     });
-  }
-
-  // --- Terminal Command Runner ---
-  readonly terminalInput = signal('');
-  readonly executingCommand = signal(false);
-  readonly terminalLines = signal<{ type: 'input' | 'output' | 'error', text: string }[]>([]);
-  readonly terminalCwd = signal('');
-
-  onTerminalSubmit(event: Event): void {
-    event.preventDefault();
-    const cmd = this.terminalInput().trim();
-    if (!cmd) return;
-
-    // Append user input to terminal view
-    this.terminalLines.update(lines => [...lines, { type: 'input', text: cmd }]);
-    this.terminalInput.set('');
-    this.executingCommand.set(true);
-
-    const appId = this.appId();
-    const instId = this.activeInstanceId();
-    if (!appId || !instId) {
-      this.executingCommand.set(false);
-      this.terminalLines.update(lines => [...lines, { type: 'error', text: 'Error: No active instance selected.' }]);
-      this.focusTerminalInput();
-      return;
-    }
-
-    this.projectService.execCommand(appId, instId, cmd, this.terminalCwd()).subscribe({
-      next: (res) => {
-        this.executingCommand.set(false);
-        this.terminalCwd.set(res.cwd);
-        this.terminalLines.update(lines => [...lines, { type: 'output', text: res.output }]);
-        this.scrollTerminalToBottom();
-        this.focusTerminalInput();
-      },
-      error: (err) => {
-        this.executingCommand.set(false);
-        const errMsg = err.error?.message || err.error?.error?.message || 'Failed to execute command.';
-        this.terminalLines.update(lines => [...lines, { type: 'error', text: errMsg }]);
-        this.scrollTerminalToBottom();
-        this.focusTerminalInput();
-      }
-    });
-  }
-
-  clearTerminal(): void {
-    this.terminalLines.set([]);
-    this.focusTerminalInput();
-  }
-
-  initializeTerminalCwd(): void {
-    if (this.terminalCwd()) return;
-    const appId = this.appId();
-    const instId = this.activeInstanceId();
-    if (!appId || !instId) return;
-
-    this.projectService.execCommand(appId, instId, 'pwd', '').subscribe({
-      next: (res) => {
-        this.terminalCwd.set(res.cwd);
-      }
-    });
-  }
-
-  resetTerminal(): void {
-    this.terminalLines.set([]);
-    this.terminalCwd.set('');
-    this.focusTerminalInput();
-    this.initializeTerminalCwd();
-  }
-
-  focusTerminalInput(): void {
-    setTimeout(() => {
-      const el = document.getElementById('terminal-input-field');
-      if (el) el.focus();
-    }, 50);
-  }
-
-  private scrollTerminalToBottom(): void {
-    setTimeout(() => {
-      const el = document.getElementById('app-terminal-screen');
-      if (el) el.scrollTop = el.scrollHeight;
-    }, 50);
   }
 }
 
