@@ -1,5 +1,4 @@
-/* Vercel Design System Styles */
-
+@import "@xterm/xterm/css/xterm.css";
 @import "tailwindcss";
 
 @theme {

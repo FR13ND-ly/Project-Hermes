@@ -19,7 +19,6 @@ import { environment } from '../../../../../../../../../environments/environment
   imports: [CommonModule, FormsModule],
   templateUrl: './terminal.html',
   styles: `
-    @import "@xterm/xterm/css/xterm.css";
     :host ::ng-deep .xterm {
       padding: 8px;
       height: 100%;
