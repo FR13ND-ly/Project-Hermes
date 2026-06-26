@@ -13,6 +13,8 @@ import { environment } from '../../../../../../../environments/environment';
 import { Pagination } from '../../../../../../shared/components/pagination/pagination';
 import { DEFAULT_PAGE_SIZE } from '../../../../../../core/models/pagination';
 
+import { RouterLink } from '@angular/router';
+
 export interface VirtualItem {
   id?: string;
   name: string;
@@ -36,7 +38,7 @@ export interface VirtualItem {
 @Component({
   selector: 'app-storages',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, Pagination],
+  imports: [CommonModule, FormsModule, DatePipe, Pagination, RouterLink],
   templateUrl: './storages.html',
   styleUrl: './storages.css',
 })
@@ -81,21 +83,6 @@ export class Storages implements OnInit, OnDestroy {
 
   // Expanded variants tracking (file IDs whose variant panels are open)
   readonly expandedVariants = signal<Set<string>>(new Set());
-
-  // Bucket Creation Form states
-  readonly showCreateForm = signal(false);
-  readonly creatingBucket = signal(false);
-  readonly newBucketName = signal('');
-  readonly maxBucketSizeGb = signal<number>(1);
-  // Per-file size limit (MB; 0 = unlimited) for creation.
-  readonly maxFileSizeMb = signal<number>(0);
-  // Allow the uploading client (via API/token) to override processing rules.
-  readonly allowCustomProcessing = signal<boolean>(false);
-  readonly isPublicToggle = signal<boolean>(false);
-  readonly publishAppId = signal(false);
-  readonly appIdEnvKeyName = signal('');
-  readonly publishSecretKey = signal(false);
-  readonly secretKeyEnvKeyName = signal('');
 
   // Upload states
   readonly uploading = signal(false);
@@ -717,56 +704,7 @@ export class Storages implements OnInit, OnDestroy {
     if (this.selectedPvc()) this.loadPvcDir(target);
   }
 
-  onCreateBucket(): void {
-    if (!this.newBucketName().trim()) {
-      this.toast.error('Bucket name is required.');
-      return;
-    }
 
-    if (this.publishAppId() && !this.appIdEnvKeyName().trim()) {
-      this.toast.error('The environment variable name for App ID is required when checked.');
-      return;
-    }
-    if (this.publishSecretKey() && !this.secretKeyEnvKeyName().trim()) {
-      this.toast.error('The environment variable name for Secret Key is required when checked.');
-      return;
-    }
-
-    this.creatingBucket.set(true);
-    this.storageService.createBucket({
-      name: this.newBucketName().trim(),
-      projectId: this.parent.projectId() || undefined,
-      isPublic: this.isPublicToggle(),
-      maxBucketSizeBytes: this.maxBucketSizeGb() * 1024 * 1024 * 1024,
-      maxFileSizeBytes: Math.max(0, Math.round(this.maxFileSizeMb())) * 1024 * 1024,
-      allowCustomProcessing: this.allowCustomProcessing(),
-      publishAppId: this.publishAppId(),
-      appIdEnvKey: this.publishAppId() && this.appIdEnvKeyName().trim() ? this.appIdEnvKeyName().trim() : undefined,
-      publishSecretKey: this.publishSecretKey(),
-      secretKeyEnvKey: this.publishSecretKey() && this.secretKeyEnvKeyName().trim() ? this.secretKeyEnvKeyName().trim() : undefined
-    }).subscribe({
-      next: (newBucket) => {
-        this.toast.success(`Bucket "${newBucket.name}" has been successfully created.`);
-        this.newBucketName.set('');
-        this.appIdEnvKeyName.set('');
-        this.secretKeyEnvKeyName.set('');
-        this.publishAppId.set(false);
-        this.publishSecretKey.set(false);
-        this.maxFileSizeMb.set(0);
-        this.allowCustomProcessing.set(false);
-        this.showCreateForm.set(false);
-        this.creatingBucket.set(false);
-        this.storageService.listBuckets().subscribe(list => {
-          this.buckets.set(list || []);
-          this.selectBucket(newBucket);
-        });
-      },
-      error: (err) => {
-        this.toast.error(err.error?.message || 'Error creating bucket.');
-        this.creatingBucket.set(false);
-      }
-    });
-  }
 
   async onDeleteBucket(bucket: StorageBucket): Promise<void> {
     const confirmed = await this.confirm.ask({

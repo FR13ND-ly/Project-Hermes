@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Details } from '../../details';
 import { ProjectService, ServerlessInstance, ServerlessRoute, ProjectEnvResponse, ServerlessBuild, FunctionEnvResponse } from '../../../../../../core/services/project.service';
 import { DomainService, Domain } from '../../../../../../core/services/domain.service';
@@ -18,7 +18,7 @@ declare const monaco: any;
 @Component({
   selector: 'app-project-serverless',
   standalone: true,
-  imports: [CommonModule, FormsModule, Pagination],
+  imports: [CommonModule, FormsModule, Pagination, RouterLink],
   templateUrl: './serverless.html',
 })
 export class ServerlessComponent implements OnInit, OnDestroy {
@@ -51,12 +51,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
   readonly selectedBuildId = signal<string | null>(null);
   readonly buildLogs = signal<string[]>([]);
 
-  // Create instance modal
-  readonly showCreateModal = signal(false);
-  readonly creating = signal(false);
-  readonly newName = signal('');
-  readonly newRuntime = signal('nodejs-cjs');
-  readonly newMemory = signal(0); // 0 = unlimited (no forced initial limit)
+
 
   // Register domain modal
   readonly showAddDomainModal = signal(false);
@@ -194,30 +189,7 @@ export class ServerlessComponent implements OnInit, OnDestroy {
     this.selectedInstance.set(null);
   }
 
-  openCreateModal(): void {
-    this.newName.set('');
-    this.newRuntime.set('nodejs-cjs');
-    this.newMemory.set(0);
-    this.showCreateModal.set(true);
-  }
 
-  onCreateInstance(): void {
-    const projId = this.parent.projectId();
-    if (!projId) return;
-    const name = this.newName().trim();
-    if (!name) { this.toast.error('Instance name is required.'); return; }
-    this.creating.set(true);
-    this.projectService.createInstance(projId, { name, runtime: this.newRuntime(), memoryLimitMb: this.newMemory() }).subscribe({
-      next: (res) => {
-        this.creating.set(false);
-        this.showCreateModal.set(false);
-        this.toast.success('Serverless instance created.');
-        this.loadInstances();
-        this.selectInstance(res);
-      },
-      error: (err) => { this.creating.set(false); this.toast.error(err.error?.message || 'Error creating instance.'); }
-    });
-  }
 
   onSaveSettings(): void {
     const projId = this.parent.projectId();

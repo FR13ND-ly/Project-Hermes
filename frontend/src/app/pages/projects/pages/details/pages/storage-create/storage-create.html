@@ -1,0 +1,186 @@
+<div class="space-y-6 animate-fade-in max-w-xl mx-auto py-4 font-mono text-zinc-350">
+  
+  <div class="flex items-center justify-between border-b border-zinc-900 pb-3.5">
+    <div class="space-y-0.5">
+      <h3 class="text-sm font-bold text-white uppercase tracking-wider font-sans">Create New Bucket</h3>
+      <p class="text-[10px] text-zinc-550 font-medium font-sans">Configure static files, media storage and rules for your project.</p>
+    </div>
+    <button 
+      (click)="onCancel()"
+      [disabled]="creatingBucket()"
+      class="text-zinc-500 hover:text-white cursor-pointer transition-colors p-1"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
+
+  <div class="space-y-6">
+    <div class="grid gap-4 md:grid-cols-2">
+      <!-- Bucket Name -->
+      <div class="space-y-1.5">
+        <label for="bucket-name" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Bucket Name (slug)</label>
+        <input
+          id="bucket-name"
+          type="text"
+          placeholder="e.g. product-images, uploads"
+          [ngModel]="newBucketName()"
+          (ngModelChange)="newBucketName.set($event)"
+          [disabled]="creatingBucket()"
+          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-550 transition-colors font-mono"
+        />
+      </div>
+
+      <!-- Max Size Limit -->
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between">
+          <label class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Storage Limit</label>
+          <span class="text-white text-xs font-bold font-mono">{{ maxBucketSizeGb() }} GB</span>
+        </div>
+        <input 
+          type="range" 
+          min="1" 
+          max="50" 
+          step="1"
+          [ngModel]="maxBucketSizeGb()"
+          (ngModelChange)="maxBucketSizeGb.set($event)"
+          [disabled]="creatingBucket()"
+          class="w-full h-1 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-white mt-3"
+        />
+      </div>
+    </div>
+
+    <p class="text-[10px] text-zinc-600 pt-1 font-sans">Buckets are private — file access is secured with app_id/secret_key.</p>
+
+    <!-- Public Access Toggle -->
+    <div class="pt-4 border-t border-zinc-900 space-y-4">
+      <label class="flex items-center gap-2.5 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          [checked]="isPublicToggle()"
+          (change)="isPublicToggle.set(!isPublicToggle())"
+          [disabled]="creatingBucket()"
+          class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
+        />
+        <span class="text-[11px] font-semibold text-zinc-300 font-sans">Expose files publicly (read-only URL)</span>
+      </label>
+    </div>
+
+    <!-- Publish to project env pool -->
+    <div class="pt-4 border-t border-zinc-900 space-y-4">
+      <!-- App ID publication -->
+      <div class="space-y-2">
+        <label class="flex items-center gap-2.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            [checked]="publishAppId()"
+            (change)="publishAppId.set(!publishAppId())"
+            [disabled]="creatingBucket()"
+            class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
+          />
+          <span class="text-[11px] font-semibold text-zinc-300 font-sans">Add App ID to project .env</span>
+        </label>
+        @if (publishAppId()) {
+          <div class="flex items-center gap-2 pl-6 animate-fade-in">
+            <label for="bucket-appid-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Variable name (.env):</label>
+            <input
+              id="bucket-appid-key"
+              type="text"
+              placeholder="ex. STORAGE_APP_ID"
+              [ngModel]="appIdEnvKeyName()"
+              (ngModelChange)="appIdEnvKeyName.set($event)"
+              [disabled]="creatingBucket()"
+              class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono uppercase font-bold"
+            />
+          </div>
+        }
+      </div>
+
+      <!-- Secret Key publication -->
+      <div class="space-y-2">
+        <label class="flex items-center gap-2.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            [checked]="publishSecretKey()"
+            (change)="publishSecretKey.set(!publishSecretKey())"
+            [disabled]="creatingBucket()"
+            class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
+          />
+          <span class="text-[11px] font-semibold text-zinc-300 font-sans">Add Secret Key to project .env</span>
+        </label>
+        @if (publishSecretKey()) {
+          <div class="flex items-center gap-2 pl-6 animate-fade-in">
+            <label for="bucket-secret-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Variable name (.env):</label>
+            <input
+              id="bucket-secret-key"
+              type="text"
+              placeholder="ex. STORAGE_SECRET_KEY"
+              [ngModel]="secretKeyEnvKeyName()"
+              (ngModelChange)="secretKeyEnvKeyName.set($event)"
+              [disabled]="creatingBucket()"
+              class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono uppercase font-bold"
+            />
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Per-file size limit -->
+    <div class="pt-4 border-t border-zinc-900 space-y-3">
+      <div class="flex items-center gap-2">
+        <label for="bucket-max-file" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Max size / file (MB):</label>
+        <input
+          id="bucket-max-file"
+          type="number"
+          min="0"
+          step="1"
+          placeholder="0 = unlimited"
+          [ngModel]="maxFileSizeMb()"
+          (ngModelChange)="maxFileSizeMb.set($event)"
+          [disabled]="creatingBucket()"
+          class="block w-32 px-2.5 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+        />
+        <span class="text-[10px] text-zinc-600 font-sans">0 = unlimited</span>
+      </div>
+      
+      <label class="flex items-center gap-2.5 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          [checked]="allowCustomProcessing()"
+          (change)="allowCustomProcessing.set(!allowCustomProcessing())"
+          [disabled]="creatingBucket()"
+          class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
+        />
+        <span class="text-[11px] font-semibold text-zinc-300 font-sans">Allow custom image processing overrides on upload</span>
+      </label>
+    </div>
+
+  </div>
+
+  <div class="pt-4.5 border-t border-zinc-900 flex justify-end gap-3 font-sans">
+    <button 
+      (click)="onCancel()"
+      [disabled]="creatingBucket()"
+      class="px-4 py-2 rounded text-zinc-455 hover:text-white text-xs font-semibold border border-zinc-850 hover:bg-zinc-950 transition-colors cursor-pointer"
+    >
+      Cancel
+    </button>
+    <button 
+      (click)="onCreateBucket()"
+      [disabled]="creatingBucket() || !newBucketName().trim()"
+      class="px-4.5 py-2.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+    >
+      @if (!creatingBucket()) {
+        <span>Create Bucket</span>
+      } @else {
+        <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span>Creating...</span>
+      }
+    </button>
+  </div>
+
+</div>

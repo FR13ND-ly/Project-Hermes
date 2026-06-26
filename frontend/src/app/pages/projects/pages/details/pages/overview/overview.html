@@ -175,7 +175,7 @@
         } @empty {
           <div class="bg-black/30 border border-zinc-900 p-8 rounded-lg text-center space-y-3">
             <p class="text-xs text-zinc-550">No applications configured in this project.</p>
-            <button (click)="parent.showAddAppForm.set(true)" class="px-3 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 text-white text-[10px] font-bold tracking-wider uppercase cursor-pointer">
+            <button [routerLink]="['/projects', parent.projectId(), 'apps', 'create']" class="px-3 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 text-white text-[10px] font-bold tracking-wider uppercase cursor-pointer">
               Add Application
             </button>
           </div>

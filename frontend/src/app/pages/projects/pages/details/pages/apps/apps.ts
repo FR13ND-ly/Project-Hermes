@@ -35,7 +35,6 @@ export class Apps implements OnInit {
 
   onViewDetails(app: AppDetail, tab: string = 'telemetry'): void {
     this.parent.selectedApp.set(app);
-    this.parent.showAddAppForm.set(false);
     this.router.navigate([`/projects/${this.parent.projectId()}/apps/${app.id}`], { queryParams: { tab } });
   }
 
@@ -66,7 +65,6 @@ export class Apps implements OnInit {
   }
 
   onAddApp(): void {
-    this.parent.showAddAppForm.set(true);
-    this.router.navigate([`/projects/${this.parent.projectId()}`]);
+    this.router.navigate([`/projects/${this.parent.projectId()}/apps/create`]);
   }
 }

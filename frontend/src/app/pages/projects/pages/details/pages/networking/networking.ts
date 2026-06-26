@@ -1,9 +1,10 @@
 import { Component, inject, signal, OnInit, OnDestroy, computed } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Details } from '../../details';
 import { DatabaseService, DatabaseServiceInfo } from '../../../../../../core/services/database.service';
-import { DomainService, Domain, DomainRoutingType, DomainTargetType } from '../../../../../../core/services/domain.service';
+import { DomainService, Domain, DomainRoutingType } from '../../../../../../core/services/domain.service';
 import { ProjectService, ServerlessInstance } from '../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
@@ -23,7 +24,7 @@ export interface UnifiedRoute {
 @Component({
   selector: 'app-networking',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './networking.html',
   styleUrl: './networking.css',
 })
@@ -38,14 +39,12 @@ export class Networking implements OnInit, OnDestroy {
   readonly databases = signal<DatabaseServiceInfo[]>([]);
   readonly serverlessFunctions = signal<ServerlessInstance[]>([]);
   readonly loadingDbs = signal(false);
+  readonly successMsg = signal<string | null>(null);
+  readonly errorMsg = signal<string | null>(null);
 
   // Custom Domains
   readonly customDomains = signal<Domain[]>([]);
   readonly loadingDomains = signal(false);
-  readonly submittingDomain = signal(false);
-  readonly errorMsg = signal<string | null>(null);
-  readonly successMsg = signal<string | null>(null);
-  readonly showAddDomainForm = signal(false);
 
   // Deep Routing panel states
   readonly selectedRoute = signal<UnifiedRoute | null>(null);
@@ -64,47 +63,6 @@ export class Networking implements OnInit, OnDestroy {
   readonly updatingSettings = signal(false);
 
   private logTimer: any = null;
-
-  // Form states (Addition)
-  readonly fqdn = signal('');
-  readonly routingType = signal<DomainRoutingType>('reverse_proxy');
-  readonly clientMaxBodySize = signal<number>(50);
-  readonly isSsl = signal<boolean>(true);
-  readonly nginxTargetHost = signal('');
-  readonly nginxRootPath = signal('');
-  readonly nginxConfigContent = signal('');
-
-  // Resource-oriented target selection for the add-domain form.
-  readonly newTargetType = signal<DomainTargetType>('app');
-  readonly selectedTargetId = signal('');
-
-  // All app instances across the project, flattened for the target dropdown.
-  readonly appInstanceOptions = computed<{ id: string; name: string }[]>(() =>
-    this.parent.apps().flatMap(app =>
-      (app.instances || []).map(inst => ({ id: inst.id, name: `${app.name} · ${inst.branchName}` }))
-    )
-  );
-  readonly fnOptions = computed<{ id: string; name: string }[]>(() =>
-    this.serverlessFunctions().map(fn => ({ id: fn.id, name: fn.name }))
-  );
-  // Only externally-exposed databases can get a DNS domain.
-  readonly dbOptions = computed<{ id: string; name: string }[]>(() =>
-    this.databases().map(db => ({ id: db.id, name: `${db.name} :${db.externalPort ?? ''}` }))
-  );
-  readonly targetOptions = computed<{ id: string; name: string }[]>(() => {
-    switch (this.newTargetType()) {
-      case 'serverless': return this.fnOptions();
-      case 'database': return this.dbOptions();
-      case 'custom': return [];
-      default: return this.appInstanceOptions();
-    }
-  });
-
-  onChangeTargetType(type: DomainTargetType): void {
-    this.newTargetType.set(type);
-    const first = this.targetOptions()[0];
-    this.selectedTargetId.set(first ? first.id : '');
-  }
 
   // Cert-manager TLS provisioning diagnostics checklist
   readonly dnsVerified = signal(true);
@@ -257,60 +215,6 @@ export class Networking implements OnInit, OnDestroy {
       error: (err) => {
         console.error('Failed to load domains', err);
         this.loadingDomains.set(false);
-      }
-    });
-  }
-
-  onAddDomain(): void {
-    if (!this.fqdn().trim()) {
-      this.errorMsg.set('Domain (FQDN) is required.');
-      return;
-    }
-
-    const targetType = this.newTargetType();
-    if (targetType !== 'custom' && !this.selectedTargetId()) {
-      this.errorMsg.set('Select the resource to connect the domain to.');
-      return;
-    }
-
-    this.submittingDomain.set(true);
-    this.errorMsg.set(null);
-    this.successMsg.set(null);
-
-    const payload = targetType === 'custom'
-      ? {
-          fqdn: this.fqdn().trim(),
-          targetType,
-          routingType: this.routingType(),
-          clientMaxBodySize: this.clientMaxBodySize(),
-          isSsl: this.isSsl(),
-          nginxTargetHost: this.routingType() === 'reverse_proxy' ? this.nginxTargetHost().trim() || undefined : undefined,
-          nginxRootPath: this.routingType() === 'static_host' ? this.nginxRootPath().trim() || undefined : undefined,
-          nginxConfigContent: this.routingType() === 'custom' ? this.nginxConfigContent().trim() || undefined : undefined,
-        }
-      : {
-          fqdn: this.fqdn().trim(),
-          targetType,
-          targetId: this.selectedTargetId(),
-          clientMaxBodySize: this.clientMaxBodySize(),
-          isSsl: this.isSsl(),
-        };
-
-    this.domainService.addDomain(payload).subscribe({
-      next: () => {
-        this.submittingDomain.set(false);
-        this.showAddDomainForm.set(false);
-        this.fqdn.set('');
-        this.nginxTargetHost.set('');
-        this.nginxRootPath.set('');
-        this.nginxConfigContent.set('');
-        this.selectedTargetId.set('');
-        this.toast.success('Domain added successfully!');
-        this.loadDomains();
-      },
-      error: (err) => {
-        this.errorMsg.set(err.error?.message || 'Failed to add domain.');
-        this.submittingDomain.set(false);
       }
     });
   }

@@ -33,22 +33,6 @@ export class Databases implements OnInit, OnDestroy {
   readonly pageSize = signal(DEFAULT_PAGE_SIZE);
   readonly total = signal(0);
 
-  // Form states
-  readonly showCreateForm = signal(false);
-  readonly provisioning = signal(false);
-  
-  readonly dbName = signal('');
-  readonly dbType = signal<'postgres' | 'redis' | 'mongodb'>('postgres');
-  readonly cpuLimit = signal(0); // Millicores
-  readonly memLimit = signal(0); // Megabytes
-  readonly storageGb = signal(1); // GB (PVC size, set at creation)
-  readonly isExternal = signal(false);
-  readonly externalPort = signal(5432);
-
-  // Publish the connection string into the project env pool (with optional custom key).
-  readonly publishToEnv = signal(false);
-  readonly envKeyName = signal('');
-
   // Map of databaseId -> revealed credentials
   readonly revealedCreds = signal<Record<string, { connectionUrl: string; databaseUser?: string; databasePassword?: string }>>({});
 
@@ -158,52 +142,7 @@ export class Databases implements OnInit, OnDestroy {
     this.loadDatabases();
   }
 
-  onTypeChange(type: 'postgres' | 'redis' | 'mongodb'): void {
-    this.dbType.set(type);
-    const ports = {
-      postgres: 5432,
-      redis: 6379,
-      mongodb: 27017
-    };
-    this.externalPort.set(ports[type]);
-  }
 
-  onCreateDatabase(): void {
-    const projectId = this.parent.projectId();
-    if (!projectId || !this.dbName()) return;
-
-    this.provisioning.set(true);
-    this.error.set(null);
-
-    this.dbService.createDatabase({
-      projectId,
-      name: this.dbName(),
-      type: this.dbType(),
-      cpuLimit: this.cpuLimit(),
-      memoryLimitMb: this.memLimit(),
-      storageSizeGb: this.storageGb(),
-      isExternal: this.isExternal(),
-      externalPort: this.isExternal() ? this.externalPort() : undefined,
-      publishToEnv: this.publishToEnv(),
-      envKey: this.publishToEnv() && this.envKeyName().trim() ? this.envKeyName().trim() : undefined
-    }).subscribe({
-      next: () => {
-        this.dbName.set('');
-        this.envKeyName.set('');
-        this.publishToEnv.set(false);
-        this.showCreateForm.set(false);
-        this.provisioning.set(false);
-        this.toast.success('Database created successfully!');
-        this.loadDatabases();
-      },
-      error: (err) => {
-        const msg = err.error?.error?.message || err.error?.message || 'Failed to create database.';
-        this.error.set(msg);
-        this.toast.error(msg);
-        this.provisioning.set(false);
-      }
-    });
-  }
 
   onRevealCredentials(dbId: string): void {
     // If already revealed, toggle off (hide)

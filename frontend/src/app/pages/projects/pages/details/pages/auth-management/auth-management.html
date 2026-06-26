@@ -25,155 +25,17 @@
             title="Delete service"
           >Delete</button>
         }
-      }
-      <button 
-        (click)="showCreateForm.set(!showCreateForm())"
+      }      <button 
+        [routerLink]="['/projects', parent.projectId(), 'auth-management', 'create']"
         class="px-3.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-350 hover:text-white text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-550">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
-        {{ showCreateForm() ? 'Close Form' : 'New Service' }}
+        New Service
       </button>
     </div>
   </div>
-
-  <!-- Create BaaS Service Form -->
-  @if (showCreateForm()) {
-    <div class="bg-[#0a0a0a] p-5 rounded border border-zinc-900 space-y-4 shadow-sm animate-slide-in">
-      <div class="border-b border-zinc-900 pb-2.5">
-        <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Create New Authentication Service</h4>
-      </div>
-
-      <div class="grid gap-4 md:grid-cols-2">
-        <!-- Service Name -->
-        <div class="space-y-1.5">
-          <label for="service-name" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Service Name</label>
-          <input
-            id="service-name"
-            type="text"
-            placeholder="e.g. Auth Service, My BaaS"
-            [ngModel]="newServiceName()"
-            (ngModelChange)="newServiceName.set($event)"
-            [disabled]="creatingService()"
-            class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-550 transition-colors font-mono"
-          />
-        </div>
-      </div>
-
-      <!-- Publish variables to project env pool -->
-      <div class="pt-4 border-t border-zinc-900 space-y-4">
-        <p class="text-[10px] text-zinc-500">Choose which environment variables should be added to the project pool when creating the service. (Leave unchecked if you do not want them published automatically).</p>
-
-        <!-- App ID publication -->
-        <div class="space-y-2">
-          <label class="flex items-center gap-2.5 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              [checked]="publishAppId()"
-              (change)="publishAppId.set(!publishAppId())"
-              [disabled]="creatingService()"
-              class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
-            />
-            <span class="text-[11px] font-semibold text-zinc-300">Publish App ID to project .env</span>
-          </label>
-          @if (publishAppId()) {
-            <div class="flex items-center gap-2 pl-6 animate-fade-in">
-              <label for="baas-appid-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Variable name:</label>
-              <input
-                id="baas-appid-key"
-                type="text"
-                placeholder="ex. HERMES_AUTH_APP_ID"
-                [ngModel]="appIdEnvKeyName()"
-                (ngModelChange)="appIdEnvKeyName.set($event)"
-                [disabled]="creatingService()"
-                class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono uppercase font-bold"
-              />
-            </div>
-          }
-        </div>
-
-        <!-- Secret Key publication -->
-        <div class="space-y-2">
-          <label class="flex items-center gap-2.5 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              [checked]="publishSecret()"
-              (change)="publishSecret.set(!publishSecret())"
-              [disabled]="creatingService()"
-              class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
-            />
-            <span class="text-[11px] font-semibold text-zinc-300">Publish JWT Secret to project .env</span>
-          </label>
-          @if (publishSecret()) {
-            <div class="flex items-center gap-2 pl-6 animate-fade-in">
-              <label for="baas-secret-key" class="text-[10px] font-bold text-zinc-555 uppercase tracking-wider shrink-0">Variable name:</label>
-              <input
-                id="baas-secret-key"
-                type="text"
-                placeholder="ex. HERMES_AUTH_SECRET"
-                [ngModel]="secretEnvKeyName()"
-                (ngModelChange)="secretEnvKeyName.set($event)"
-                [disabled]="creatingService()"
-                class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono uppercase font-bold"
-              />
-            </div>
-          }
-        </div>
-
-        <!-- API Key publication -->
-        <div class="space-y-2">
-          <label class="flex items-center gap-2.5 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              [checked]="publishApiKey()"
-              (change)="publishApiKey.set(!publishApiKey())"
-              [disabled]="creatingService()"
-              class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
-            />
-            <span class="text-[11px] font-semibold text-zinc-300">Publish Default API Key to project .env</span>
-          </label>
-          @if (publishApiKey()) {
-            <div class="flex items-center gap-2 pl-6 animate-fade-in">
-              <label for="baas-apikey-key" class="text-[10px] font-bold text-zinc-555 uppercase tracking-wider shrink-0">Variable name:</label>
-              <input
-                id="baas-apikey-key"
-                type="text"
-                placeholder="ex. HERMES_APP_TOKEN"
-                [ngModel]="apiKeyEnvKeyName()"
-                (ngModelChange)="apiKeyEnvKeyName.set($event)"
-                [disabled]="creatingService()"
-                class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono uppercase font-bold"
-              />
-            </div>
-          }
-        </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="pt-4 border-t border-zinc-900 flex justify-end gap-3">
-        <button
-          type="button"
-          (click)="showCreateForm.set(false)"
-          [disabled]="creatingService()"
-          class="px-4 py-2 rounded border border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:text-white text-xs font-semibold cursor-pointer transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          (click)="onCreateService()"
-          [disabled]="creatingService() || !newServiceName().trim()"
-          class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold shadow disabled:opacity-50 cursor-pointer transition-colors flex items-center gap-1.5"
-        >
-          @if (creatingService()) {
-            <span class="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
-          }
-          Create Service
-        </button>
-      </div>
-    </div>
-  }
 
   @if (!selectedService()) {
     <!-- Zero State: no service yet -->

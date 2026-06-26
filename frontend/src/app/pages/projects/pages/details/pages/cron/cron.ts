@@ -8,9 +8,9 @@ import { StorageService } from '../../../../../../core/services/storage.service'
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 import { WebSocketService } from '../../../../../../core/services/websocket.service';
+import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { Pagination } from '../../../../../../shared/components/pagination/pagination';
-import { EnvLinkModal } from '../../../../../../shared/components/env-link-modal/env-link-modal';
 import { DEFAULT_PAGE_SIZE } from '../../../../../../core/models/pagination';
 
 type CronTargetType = 'app' | 'database' | 'storage';
@@ -18,7 +18,7 @@ type CronTargetType = 'app' | 'database' | 'storage';
 @Component({
   selector: 'app-project-cron',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, Pagination, EnvLinkModal],
+  imports: [CommonModule, FormsModule, DatePipe, Pagination, RouterLink],
   templateUrl: './cron.html',
 })
 export class CronComponent implements OnInit, OnDestroy {
@@ -61,96 +61,9 @@ export class CronComponent implements OnInit, OnDestroy {
   readonly editStatus = signal<'active' | 'paused' | 'failed'>('active');
   readonly savingSettings = signal(false);
 
-  // Creation modal signals
-  readonly showCreateModal = signal(false);
-  readonly creatingCron = signal(false);
-
-  // Form Fields
-  readonly newCronName = signal('');
-  readonly newCronSchedule = signal('*/5 * * * *');
-  readonly newCronCommand = signal('echo "Hello World"');
-  readonly selectedAppId = signal('');
-
-  // --- Env for the cron run: custom rows + project-pool links (mirrors app creation) ---
-  readonly newCronEnvRows = signal<EnvVarInput[]>([]);
-  readonly projectEnvPool = signal<ProjectEnvResponse[]>([]);
-  readonly selectedProjectEnvIds = signal<string[]>([]);
-  readonly showCreateEnvModal = signal(false);
-
-  // Pool vars decorated with a `linked` flag reflecting the local selection, so the
-  // shared modal renders them with the same toggle UI as app creation.
-  readonly projectEnvForModal = computed<ProjectEnvResponse[]>(() => {
-    const selected = this.selectedProjectEnvIds();
-    return this.projectEnvPool().map(v => ({ ...v, linked: selected.includes(v.id) }));
-  });
-
-  addEnvRow(): void {
-    this.newCronEnvRows.update(rows => [...rows, { key: '', value: '', isSecret: false }]);
-  }
-
-  removeEnvRow(index: number): void {
-    this.newCronEnvRows.update(rows => rows.filter((_, i) => i !== index));
-  }
-
-  updateEnvRow(index: number, field: 'key' | 'value', value: string): void {
-    this.newCronEnvRows.update(rows =>
-      rows.map((row, i) => (i === index ? { ...row, [field]: value } : row))
-    );
-  }
-
-  toggleEnvRowSecret(index: number): void {
-    this.newCronEnvRows.update(rows =>
-      rows.map((row, i) => (i === index ? { ...row, isSecret: !row.isSecret } : row))
-    );
-  }
-
-  openCreateEnvModal(): void {
-    const projectId = this.parent.projectId();
-    if (projectId) {
-      this.projectService.listProjectEnv(projectId).subscribe({
-        next: (res) => this.projectEnvPool.set(res || []),
-        error: () => this.projectEnvPool.set([])
-      });
-    }
-    this.showCreateEnvModal.set(true);
-  }
-
-  toggleCreateEnvSelection(env: ProjectEnvResponse): void {
-    this.selectedProjectEnvIds.update(ids =>
-      ids.includes(env.id) ? ids.filter(id => id !== env.id) : [...ids, env.id]
-    );
-  }
-
-  // Target selection (app / database / storage)
-  readonly newCronTargetType = signal<CronTargetType>('app');
-  readonly selectedTargetId = signal('');
+  // Target selection for lists
   readonly databases = signal<{ id: string; name: string }[]>([]);
   readonly storages = signal<{ id: string; name: string }[]>([]);
-
-  // Options for the resource dropdown, derived from the chosen target type.
-  readonly targetOptions = computed<{ id: string; name: string }[]>(() => {
-    switch (this.newCronTargetType()) {
-      case 'database': return this.databases();
-      case 'storage': return this.storages();
-      default: return this.parent.apps().map(a => ({ id: a.id, name: a.name }));
-    }
-  });
-
-  private defaultCommandFor(type: CronTargetType): string {
-    switch (type) {
-      case 'database': return 'psql "$DATABASE_URL" -c "SELECT now();"';
-      case 'storage': return 'curl -s -H "Authorization: Bearer $BUCKET_TOKEN" "$BUCKET_URL"';
-      default: return 'echo "Hello World"';
-    }
-  }
-
-  onChangeTargetType(type: string): void {
-    const t = type as CronTargetType;
-    this.newCronTargetType.set(t);
-    const first = this.targetOptions()[0];
-    this.selectedTargetId.set(first ? first.id : '');
-    this.newCronCommand.set(this.defaultCommandFor(t));
-  }
 
   targetTypeLabel(type: string | undefined): string {
     switch (type) {
@@ -210,77 +123,7 @@ export class CronComponent implements OnInit, OnDestroy {
     return app ? app.name : appId.substring(0, 8);
   }
 
-  onOpenCreateModal(): void {
-    const projId = this.parent.projectId();
-    // Load database + storage targets for the resource dropdown.
-    if (projId) {
-      this.dbService.listDatabases(projId, 1, 1000).subscribe({
-        next: (res) => this.databases.set((res?.items || []).map(d => ({ id: d.id, name: d.name }))),
-        error: () => this.databases.set([])
-      });
-      this.storageService.listBuckets().subscribe({
-        next: (res) => this.storages.set((res || []).map(b => ({ id: b.id, name: b.name }))),
-        error: () => this.storages.set([])
-      });
-    }
-    this.newCronTargetType.set('app');
-    const apps = this.parent.apps();
-    this.selectedTargetId.set(apps[0]?.id || '');
-    this.newCronName.set('');
-    this.newCronSchedule.set('*/5 * * * *');
-    this.newCronCommand.set('echo "Hello World"');
-    this.newCronEnvRows.set([]);
-    this.selectedProjectEnvIds.set([]);
-    this.projectEnvPool.set([]);
-    this.showCreateModal.set(true);
-  }
 
-  onCreateCronJob(): void {
-    const projId = this.parent.projectId();
-    const targetType = this.newCronTargetType();
-    const targetId = this.selectedTargetId();
-    if (!projId) return;
-    if (!targetId) {
-      this.toast.error('Select a target resource.');
-      return;
-    }
-
-    const name = this.newCronName().trim();
-    const schedule = this.newCronSchedule().trim();
-    const command = this.newCronCommand().trim();
-
-    if (!name || !schedule || !command) {
-      this.toast.error('All fields are required.');
-      return;
-    }
-
-    const envVariables = this.newCronEnvRows()
-      .map(row => ({ key: row.key.trim(), value: row.value, isSecret: row.isSecret }))
-      .filter(row => row.key.length > 0);
-
-    this.creatingCron.set(true);
-    this.projectService.createCronJob({
-      projectId: projId,
-      targetType,
-      targetId,
-      name,
-      schedule,
-      command,
-      envVariables: envVariables.length > 0 ? envVariables : undefined,
-      linkedProjectEnvIds: this.selectedProjectEnvIds().length > 0 ? this.selectedProjectEnvIds() : undefined
-    }).subscribe({
-      next: () => {
-        this.creatingCron.set(false);
-        this.showCreateModal.set(false);
-        this.toast.success('Cron job created successfully!');
-        this.loadCronJobs();
-      },
-      error: (err) => {
-        this.toast.error(err.error?.message || 'Failed to create cron job.');
-        this.creatingCron.set(false);
-      }
-    });
-  }
 
   async onDeleteCronJob(jobId: string): Promise<void> {
     const confirmed = await this.confirm.ask({

@@ -1,4 +1,5 @@
 import { Component, inject, signal, effect, computed } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Details } from '../../details';
@@ -10,7 +11,7 @@ import { ConfirmService } from '../../../../../../core/services/confirm.service'
 @Component({
   selector: 'app-auth-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [CommonModule, FormsModule, DatePipe, RouterLink],
   templateUrl: './auth-management.html',
   styleUrl: './auth-management.css',
 })
@@ -31,15 +32,6 @@ export class AuthManagement {
   readonly services = signal<BaasService[]>([]);
   readonly selectedService = signal<BaasService | null>(null);
   readonly loadingServices = signal(false);
-  readonly newServiceName = signal('');
-  readonly creatingService = signal(false);
-  readonly showCreateForm = signal(false);
-  readonly publishAppId = signal(false);
-  readonly appIdEnvKeyName = signal('');
-  readonly publishSecret = signal(false);
-  readonly secretEnvKeyName = signal('');
-  readonly publishApiKey = signal(false);
-  readonly apiKeyEnvKeyName = signal('');
 
   // Integration tab
   readonly integration = signal<AuthIntegration | null>(null);
@@ -204,57 +196,6 @@ export const requireRole = (role) => (req, res, next) =>
   selectServiceById(id: string): void {
     const svc = this.services().find(s => s.id === id);
     if (svc) this.selectService(svc);
-  }
-
-  onCreateService(): void {
-    const projectId = this.parent.projectId();
-    const name = this.newServiceName().trim();
-    if (!projectId || !name) {
-      this.toast.error('Service name is required.');
-      return;
-    }
-
-    if (this.publishAppId() && !this.appIdEnvKeyName().trim()) {
-      this.toast.error('The environment variable name for App ID is required when checked.');
-      return;
-    }
-    if (this.publishSecret() && !this.secretEnvKeyName().trim()) {
-      this.toast.error('The environment variable name for Secret is required when checked.');
-      return;
-    }
-    if (this.publishApiKey() && !this.apiKeyEnvKeyName().trim()) {
-      this.toast.error('The environment variable name for API Key is required when checked.');
-      return;
-    }
-
-    this.creatingService.set(true);
-    this.authMgmtService.createService(projectId, name, {
-      publishAppId: this.publishAppId(),
-      appIdEnvKey: this.publishAppId() && this.appIdEnvKeyName().trim() ? this.appIdEnvKeyName().trim() : undefined,
-      publishSecret: this.publishSecret(),
-      secretEnvKey: this.publishSecret() && this.secretEnvKeyName().trim() ? this.secretEnvKeyName().trim() : undefined,
-      publishApiKey: this.publishApiKey(),
-      apiKeyEnvKey: this.publishApiKey() && this.apiKeyEnvKeyName().trim() ? this.apiKeyEnvKeyName().trim() : undefined
-    }).subscribe({
-      next: (svc) => {
-        this.creatingService.set(false);
-        this.newServiceName.set('');
-        this.appIdEnvKeyName.set('');
-        this.secretEnvKeyName.set('');
-        this.apiKeyEnvKeyName.set('');
-        this.publishAppId.set(false);
-        this.publishSecret.set(false);
-        this.publishApiKey.set(false);
-        this.showCreateForm.set(false);
-        this.services.update(list => [svc, ...list]);
-        this.selectedService.set(svc);
-        this.toast.success(`Authentication service "${svc.name}" has been created.`);
-      },
-      error: (err) => {
-        this.creatingService.set(false);
-        this.toast.error(err.error?.message || 'Error creating service.');
-      }
-    });
   }
 
   async onDeleteService(svc: BaasService): Promise<void> {

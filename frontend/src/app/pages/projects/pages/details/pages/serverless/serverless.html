@@ -7,7 +7,7 @@
         <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Serverless Instances (Knative)</h3>
         <p class="text-[10px] text-zinc-550 mt-0.5 font-sans">One instance = one container hosting multiple routes (method + path + code). The domain attaches at the instance level.</p>
       </div>
-      <button (click)="openCreateModal()" class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow cursor-pointer">+ Create Instance</button>
+      <button [routerLink]="['/projects', parent.projectId(), 'serverless', 'create']" class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow cursor-pointer">+ Create Instance</button>
     </div>
 
     @if (loading()) {
@@ -392,33 +392,6 @@
     }
   }
 
-  <!-- ================= CREATE MODAL ================= -->
-  @if (showCreateModal()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" (click)="showCreateModal.set(false)">
-      <div class="w-full max-w-md bg-[#0a0a0a] border border-zinc-800 rounded-xl p-5 space-y-4" (click)="$event.stopPropagation()">
-        <h3 class="text-xs font-bold text-zinc-200 uppercase tracking-wider">Create Serverless Instance</h3>
-        <div class="space-y-3">
-          <input type="text" placeholder="Name (e.g. api-payments)" [ngModel]="newName()" (ngModelChange)="newName.set($event)" class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500" />
-          <select [ngModel]="newRuntime()" (ngModelChange)="newRuntime.set($event)" class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 cursor-pointer">
-            <option value="nodejs-cjs">Node.js (CommonJS)</option>
-            <option value="nodejs-esm">Node.js (ES Modules)</option>
-            <option value="python">Python 3.11 (Flask)</option>
-          </select>
-          <select [ngModel]="newMemory()" (ngModelChange)="newMemory.set($event)" class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 cursor-pointer">
-            <option [ngValue]="0">Memory: Unlimited</option>
-            <option [ngValue]="128">Memorie: 128 MB</option>
-            <option [ngValue]="256">Memorie: 256 MB</option>
-            <option [ngValue]="512">Memorie: 512 MB</option>
-            <option [ngValue]="1024">Memorie: 1024 MB</option>
-          </select>
-        </div>
-        <div class="flex justify-end gap-2">
-          <button (click)="showCreateModal.set(false)" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-900 text-xs font-semibold cursor-pointer">Cancel</button>
-          <button (click)="onCreateInstance()" [disabled]="creating()" class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold cursor-pointer disabled:opacity-50">{{ creating() ? 'Creating...' : 'Create' }}</button>
-        </div>
-      </div>
-    </div>
-  }
 
   <!-- ================= REGISTER DOMAIN MODAL ================= -->
   @if (showAddDomainModal()) {
