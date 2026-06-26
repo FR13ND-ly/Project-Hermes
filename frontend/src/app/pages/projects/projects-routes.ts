@@ -64,6 +64,7 @@ import { List } from './pages/list/list';
               { path: 'networking', loadComponent: () => import('./pages/details/pages/networking/networking').then(m => m.Networking) },
               { path: 'networking/create', loadComponent: () => import('./pages/details/pages/domain-create/domain-create').then(m => m.DomainCreate) },
               { path: 'settings', loadComponent: () => import('./pages/details/pages/settings/settings').then(m => m.Settings) },
+              { path: 'storages/create', loadComponent: () => import('./pages/details/pages/storage-create/storage-create').then(m => m.StorageCreate) },
               { 
                 path: 'storages', 
                 loadComponent: () => import('./pages/details/pages/storages/storages').then(m => m.Storages),
@@ -82,7 +83,7 @@ import { List } from './pages/list/list';
                   }
                 ]
               },
-              { path: 'storages/create', loadComponent: () => import('./pages/details/pages/storage-create/storage-create').then(m => m.StorageCreate) },
+              { path: 'cron/create', loadComponent: () => import('./pages/details/pages/cron-create/cron-create').then(m => m.CronCreate) },
               { 
                 path: 'cron', 
                 loadComponent: () => import('./pages/details/pages/cron/cron').then(m => m.CronComponent),
@@ -100,7 +101,7 @@ import { List } from './pages/list/list';
                   }
                 ]
               },
-              { path: 'cron/create', loadComponent: () => import('./pages/details/pages/cron-create/cron-create').then(m => m.CronCreate) },
+              { path: 'serverless/create', loadComponent: () => import('./pages/details/pages/serverless-create/serverless-create').then(m => m.ServerlessCreate) },
               { 
                 path: 'serverless', 
                 loadComponent: () => import('./pages/details/pages/serverless/serverless').then(m => m.ServerlessComponent),
@@ -122,7 +123,6 @@ import { List } from './pages/list/list';
                   }
                 ]
               },
-              { path: 'serverless/create', loadComponent: () => import('./pages/details/pages/serverless-create/serverless-create').then(m => m.ServerlessCreate) },
               { path: 'incidents', loadComponent: () => import('./pages/details/pages/incidents/incidents').then(m => m.Incidents) },
             ]
           },
