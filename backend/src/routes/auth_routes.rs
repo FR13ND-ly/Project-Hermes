@@ -24,6 +24,8 @@ pub fn routes(state: AppState) -> Router {
         .route("/users/:id", delete(auth_controller::delete_user))
         .route("/users/:id/reset-password", post(auth_controller::reset_user_password))
         .route("/users/:id/toggle-suspend", post(auth_controller::toggle_user_suspend))
+        .route("/system-logs", get(auth_controller::get_system_logs))
+        .route("/auth-logs", get(auth_controller::get_auth_logs))
         .layer(from_fn(enforce_super_admin));
 
     Router::new()

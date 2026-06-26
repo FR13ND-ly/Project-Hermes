@@ -48,21 +48,51 @@ pub async fn login(
         ));
     }
 
-    let user = sqlx::query_as::<_, User>(
+    let user_opt = sqlx::query_as::<_, User>(
         "SELECT * FROM users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($1)"
     )
     .bind(&payload.login_identity)
     .fetch_optional(&state.pool)
-    .await?
-    .ok_or_else(|| AppError::Auth("Invalid credentials.".to_string()))?;
+    .await?;
+
+    let user = match user_opt {
+        Some(u) => u,
+        None => {
+            let _ = crate::models::audit_log_model::AuthAuditLog::record(
+                &state.pool,
+                None,
+                &payload.login_identity,
+                "LOGIN_FAILED",
+                client_ip.clone(),
+                user_agent.clone(),
+            ).await;
+            return Err(AppError::Auth("Invalid credentials.".to_string()));
+        }
+    };
 
     let mut user = user;
 
     if user.status == UserStatus::Suspended {
+        let _ = crate::models::audit_log_model::AuthAuditLog::record(
+            &state.pool,
+            Some(user.id),
+            &payload.login_identity,
+            "LOGIN_FAILED",
+            client_ip.clone(),
+            user_agent.clone(),
+        ).await;
         return Err(AppError::Auth("This account has been suspended.".to_string()));
     }
 
     if !crypto::verify_password(&payload.password, &user.password_hash)? {
+        let _ = crate::models::audit_log_model::AuthAuditLog::record(
+            &state.pool,
+            Some(user.id),
+            &payload.login_identity,
+            "LOGIN_FAILED",
+            client_ip.clone(),
+            user_agent.clone(),
+        ).await;
         return Err(AppError::Auth("Invalid credentials.".to_string()));
     }
 
@@ -90,6 +120,15 @@ pub async fn login(
     )
     .execute(&state.pool)
     .await?;
+
+    let _ = crate::models::audit_log_model::AuthAuditLog::record(
+        &state.pool,
+        Some(user.id),
+        &user.email,
+        "LOGIN_SUCCESS",
+        client_ip.clone(),
+        user_agent.clone(),
+    ).await;
 
     let token_bundle = jwt::generate_token_bundle(&user, "")?;
     let token_hash = format!("{:x}", Sha256::digest(token_bundle.refresh_token.as_bytes()));
@@ -161,9 +200,16 @@ pub async fn refresh_session(
 
 pub async fn change_password(
     State(state): State<AppState>,
+    headers: HeaderMap,
     crate::middlewares::auth_middleware::AuthenticatedUser(claims): crate::middlewares::auth_middleware::AuthenticatedUser,
     Json(payload): Json<PasswordChangeRequest>,
 ) -> Result<StatusCode, AppError> {
+    let client_ip = extract_client_ip(&headers);
+    let user_agent = headers
+        .get(axum::http::header::USER_AGENT)
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+
     let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
         .bind(claims.sub)
         .fetch_one(&state.pool)
@@ -182,13 +228,30 @@ pub async fn change_password(
     .execute(&state.pool)
     .await?;
 
+    let _ = crate::models::audit_log_model::AuthAuditLog::record(
+        &state.pool,
+        Some(user.id),
+        &user.email,
+        "PASSWORD_CHANGE",
+        client_ip,
+        user_agent,
+    ).await;
+
     Ok(StatusCode::OK)
 }
 
 pub async fn provision_user(
     State(state): State<AppState>,
+    headers: HeaderMap,
+    crate::middlewares::auth_middleware::AuthenticatedUser(claims): crate::middlewares::auth_middleware::AuthenticatedUser,
     Json(payload): Json<ProvisionUserRequest>,
 ) -> Result<(StatusCode, Json<String>), AppError> {
+    let client_ip = extract_client_ip(&headers);
+    let user_agent = headers
+        .get(axum::http::header::USER_AGENT)
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+
     let user_exists = sqlx::query_scalar!(
         "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($2))",
         payload.email, payload.username
@@ -211,6 +274,15 @@ pub async fn provision_user(
     )
     .execute(&state.pool)
     .await?;
+
+    let _ = crate::models::audit_log_model::AuthAuditLog::record(
+        &state.pool,
+        Some(claims.sub),
+        &payload.email,
+        "USER_PROVISIONED",
+        client_ip,
+        user_agent,
+    ).await;
 
     Ok((StatusCode::CREATED, Json(temporary_password)))
 }
@@ -438,4 +510,62 @@ pub async fn toggle_user_suspend(
     .await?;
 
     Ok(Json(new_status))
+}
+
+pub async fn get_auth_logs(
+    State(state): State<AppState>,
+    crate::middlewares::auth_middleware::AuthenticatedUser(_claims): crate::middlewares::auth_middleware::AuthenticatedUser,
+) -> Result<Json<Vec<crate::models::audit_log_model::AuthAuditLog>>, AppError> {
+    let logs = sqlx::query_as::<_, crate::models::audit_log_model::AuthAuditLog>(
+        "SELECT * FROM auth_audit_logs ORDER BY created_at DESC LIMIT 500"
+    )
+    .fetch_all(&state.pool)
+    .await?;
+
+    Ok(Json(logs))
+}
+
+pub async fn get_system_logs(
+    State(_state): State<AppState>,
+    crate::middlewares::auth_middleware::AuthenticatedUser(_claims): crate::middlewares::auth_middleware::AuthenticatedUser,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let hostname = std::env::var("HOSTNAME").unwrap_or_else(|_| "local-development".to_string());
+    
+    // Try to connect to Kubernetes
+    let client_res = kube::Client::try_default().await;
+    
+    match client_res {
+        Ok(client) => {
+            let system_ns = crate::utils::k8s::K8sManager::system_namespace();
+            let pods_api: kube::Api<k8s_openapi::api::core::v1::Pod> = kube::Api::namespaced(client, &system_ns);
+            
+            let log_params = kube::api::LogParams {
+                tail_lines: Some(1000),
+                follow: false,
+                ..Default::default()
+            };
+            
+            match pods_api.logs(&hostname, &log_params).await {
+                Ok(logs) => {
+                    Ok(Json(serde_json::json!({ "logs": logs })))
+                }
+                Err(e) => {
+                    // Graceful fallback for local development or permission issues
+                    let fallback_msg = format!(
+                        "[Hermes] Running in local/mock mode (Pod: {}, Namespace: {}).\nError retrieving logs: {:?}\n\n[Console] Server started on port 5000.\n[DB] PostgreSQL connected.\n[Info] Ready to accept requests.",
+                        hostname, system_ns, e
+                    );
+                    Ok(Json(serde_json::json!({ "logs": fallback_msg })))
+                }
+            }
+        }
+        Err(e) => {
+            // Local development fallback
+            let fallback_msg = format!(
+                "[Hermes] Running in local/development mode (Pod: {}).\nKubernetes client not available: {:?}\n\n[Console] Server started on port 5000.\n[DB] PostgreSQL connected.\n[Info] Ready to accept requests.",
+                hostname, e
+            );
+            Ok(Json(serde_json::json!({ "logs": fallback_msg })))
+        }
+    }
 }

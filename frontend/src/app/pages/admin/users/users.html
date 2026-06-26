@@ -1,8 +1,33 @@
 <div class="space-y-6 animate-fade-in w-full">
   
+  <!-- Sub-navigation tabs for Admin Console -->
+  <div class="flex items-center gap-2 border-b border-zinc-900 pb-3 font-mono text-xs select-none">
+    <a
+      routerLink="/admin/users"
+      routerLinkActive="bg-white text-black font-extrabold!"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-white"
+    >
+      Users
+    </a>
+    <a
+      routerLink="/admin/workspaces"
+      routerLinkActive="bg-white text-black font-extrabold!"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-white"
+    >
+      Workspaces
+    </a>
+    <a
+      routerLink="/admin/logs"
+      routerLinkActive="bg-white text-black font-extrabold!"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-white"
+    >
+      Logs
+    </a>
+  </div>
+
   <!-- Section Header -->
   <div class="border-b border-zinc-900 pb-4">
-    <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Admin Console - User Management</h3>
+    <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">User Management</h3>
     <p class="text-xs text-zinc-550">Register new accounts and manage existing users on the Hermes OS platform.</p>
   </div>
 

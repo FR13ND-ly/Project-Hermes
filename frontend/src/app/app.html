@@ -96,17 +96,9 @@
         @if (currentUser()?.is_super_admin) {
           <a
             routerLink="/admin/users"
-            routerLinkActive="text-white border-b-2 border-white!"
-            class="text-xs font-medium text-zinc-400 hover:text-white transition-colors h-full flex items-center px-1 border-b-2 border-transparent"
+            [class]="isAdminRouteActive() ? 'text-white border-b-2 border-white! text-xs font-medium transition-colors h-full flex items-center px-1' : 'text-zinc-400 hover:text-white transition-colors h-full flex items-center px-1 border-b-2 border-transparent text-xs font-medium'"
           >
             Admin Console
-          </a>
-          <a
-            routerLink="/admin/workspaces"
-            routerLinkActive="text-white border-b-2 border-white!"
-            class="text-xs font-medium text-zinc-400 hover:text-white transition-colors h-full flex items-center px-1 border-b-2 border-transparent"
-          >
-            Workspaces
           </a>
         }
       </nav>

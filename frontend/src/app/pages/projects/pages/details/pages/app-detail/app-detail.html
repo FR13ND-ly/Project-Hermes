@@ -162,42 +162,56 @@
             <button
               (click)="onSubTabChange('overview')"
               class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
-              [class]="activeSubTab() === 'overview' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
+              [class]="activeSubTab() === 'overview' ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
             >
               Overview
             </button>
             <button
               (click)="onSubTabChange('telemetry')"
               class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
-              [class]="activeSubTab() === 'telemetry' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
+              [class]="activeSubTab() === 'telemetry' ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
             >
               Telemetry
             </button>
             <button
+              (click)="onSubTabChange('builds')"
+              class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
+              [class]="activeSubTab() === 'builds' ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
+            >
+              Builds
+            </button>
+            <button
               (click)="onSubTabChange('logs')"
               class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
-              [class]="activeSubTab() === 'logs' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
+              [class]="activeSubTab() === 'logs' ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
             >
-              Logs & Console
+              Live Logs
+            </button>
+            <button
+              (click)="onSubTabChange('terminal')"
+              class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
+              [class]="activeSubTab() === 'terminal' ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
+            >
+              Terminal
             </button>
             <button
               (click)="onSubTabChange('general')"
               class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
-              [class]="activeSubTab() === 'general' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
+              [class]="activeSubTab() === 'general' ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
             >
               General
             </button>
             <button
               (click)="onSubTabChange('env')"
               class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
-              [class]="activeSubTab() === 'env' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
+              [class]="activeSubTab() === 'env' ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
             >
               Env Variables
             </button>
             <button
               (click)="onSubTabChange('advanced')"
               class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
-              [class]="activeSubTab() === 'advanced' ? 'bg-white text-black font-extrabold' : 'text-zinc-550 hover:text-zinc-300'"
+              [class]="activeSubTab() === 'advanced' ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
             >
               Advanced
             </button>
@@ -769,11 +783,8 @@
             No active instance for this application. Start the application to view telemetry data.
           </div>
         }
-      </div>
-    }
-
-    <!-- SUB-TAB 2: LOGS & CONSOLE -->
-    @if (activeSubTab() === 'logs') {
+          <!-- SUB-TAB 2: BUILDS -->
+    @if (activeSubTab() === 'builds') {
       <!-- Build lifecycle stepper -->
       @if (displayBuild(); as build) {
         <div class="bg-[#0a0a0a] p-4 rounded-lg border mb-4 animate-fade-in font-mono"
@@ -872,40 +883,8 @@
       }
 
       <div class="grid gap-4 lg:grid-cols-3 animate-fade-in font-mono">
-        
-        <!-- Sidebar Selector (Live stdout + Build History) -->
+        <!-- Sidebar Selector (Build History) -->
         <div class="lg:col-span-1 space-y-4">
-          
-          <!-- Live log selector card -->
-          <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm">
-            <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Active Console</h3>
-            <button 
-              (click)="onBackToLiveLogs()"
-              class="w-full text-left p-3 rounded border text-xs transition-all flex items-center justify-between cursor-pointer"
-              [class.border-white]="!selectedBuildId()"
-              [class.border-zinc-900]="selectedBuildId()"
-              [class.bg-zinc-950]="!selectedBuildId()"
-              [class.bg-black]="selectedBuildId()"
-            >
-              <div class="space-y-0.5">
-                <span class="font-bold text-zinc-200" [class.text-white]="!selectedBuildId()">Standard Output (Live)</span>
-                <p class="text-[9px] text-zinc-550">Real-time stdout</p>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <span class="relative flex h-2 w-2">
-                  @if (sseConnected() && !selectedBuildId()) {
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  }
-                  <span class="relative inline-flex rounded-full h-2 w-2" [class]="(sseConnected() && !selectedBuildId()) ? 'bg-emerald-500' : 'bg-zinc-700'"></span>
-                </span>
-                <span class="text-[9px] font-bold" [class]="(sseConnected() && !selectedBuildId()) ? 'text-emerald-400' : 'text-zinc-550'">
-                  {{ (sseConnected() && !selectedBuildId()) ? 'LIVE' : 'INACTIVE' }}
-                </span>
-              </div>
-            </button>
-          </div>
-
-          <!-- Build logs list -->
           <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm flex flex-col">
             <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
               <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Build History</h3>
@@ -1001,7 +980,7 @@
           <div class="flex items-center justify-between bg-[#0a0a0a]/50 p-3 rounded-lg border border-zinc-900">
             <div>
               <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">
-                {{ selectedBuildId() ? 'Build Logs (ID: ' + selectedBuildId()?.substring(0, 8) + ')' : 'Live Console (Stdout)' }}
+                Build Logs @if (selectedBuildId()) { (ID: {{ selectedBuildId()?.substring(0, 8) }}) }
                 @if (selectedBuild()?.isLive) {
                   <span class="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[8px] font-bold border bg-emerald-950/30 border-emerald-800/50 text-emerald-300 uppercase align-middle">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -1015,7 +994,7 @@
                 }
               </h3>
               <p class="text-[10px] text-zinc-550 mt-0.5">
-                {{ selectedBuildId() ? 'Compilation steps from Kaniko and Cloner containers' : 'Real-time stdout from container' }}
+                Compilation steps from Kaniko and Cloner containers
               </p>
             </div>
             
@@ -1032,7 +1011,8 @@
               <!-- Download button -->
               <button 
                 (click)="onDownloadLogs()"
-                class="p-1.5 rounded border border-zinc-850 bg-black hover:border-zinc-500 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                [disabled]="!selectedBuildId()"
+                class="p-1.5 rounded border border-zinc-850 bg-black hover:border-zinc-500 text-zinc-500 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
                 title="Download complete logs"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
@@ -1061,22 +1041,13 @@
                 </button>
               }
 
-              @if (selectedBuildId()) {
-                <button
-                  (click)="onBackToLiveLogs()"
-                  class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase transition-all bg-white hover:bg-zinc-200 text-black shadow cursor-pointer border border-white"
-                >
-                  ← Back
-                </button>
-              } @else {
-                <button 
-                  (click)="toggleAutoScroll()"
-                  class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border cursor-pointer transition-all"
-                  [class]="autoScroll() ? 'bg-white text-black border-white' : 'bg-black text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-white'"
-                >
-                  Autoscroll: {{ autoScroll() ? 'ON' : 'OFF' }}
-                </button>
-              }
+              <button 
+                (click)="toggleAutoScroll()"
+                class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border cursor-pointer transition-all"
+                [class]="autoScroll() ? 'bg-white text-black border-white' : 'bg-black text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-white'"
+              >
+                Autoscroll: {{ autoScroll() ? 'ON' : 'OFF' }}
+              </button>
             </div>
           </div>
 
@@ -1086,23 +1057,210 @@
           >
             @if (selectedBuildId()) {
               @if (loadingBuildLogs()) {
-                <div class="flex flex-col items-center justify-center h-full space-y-2 text-zinc-500">
+                <div class="flex flex-col items-center justify-center h-full space-y-2 text-zinc-550">
                   <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                   </svg>
-                  <span class="text-zinc-550 text-[10px]">Loading build logs...</span>
+                  <span class="text-[10px]">Loading build logs...</span>
                 </div>
               } @else {
                 <div class="whitespace-pre-wrap leading-relaxed text-zinc-200">{{ filteredBuildLogs() }}</div>
               }
             } @else {
-              @for (line of filteredLogs(); track $index) {
-                <div class="whitespace-pre-wrap leading-relaxed">{{ line }}</div>
-              }
+              <div class="h-full flex items-center justify-center text-zinc-550 text-xs">
+                Select a build from the history to view build logs.
+              </div>
             }
           </div>
         </div>
+      </div>
+    }
+
+    <!-- SUB-TAB 2.5: LIVE LOGS -->
+    @if (activeSubTab() === 'logs') {
+      <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm animate-fade-in font-mono">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3">
+          <div>
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Live Console (stdout/stderr)</h3>
+            <p class="text-[10px] text-zinc-550 mt-0.5">Real-time container output stream</p>
+          </div>
+
+          <div class="flex items-center gap-3">
+            @if (app()?.instances && app()!.instances.length > 1) {
+              <select 
+                [ngModel]="activeInstanceId()"
+                (ngModelChange)="onInstanceChange($event)"
+                class="bg-black border border-zinc-850 text-zinc-300 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 font-mono"
+              >
+                @for (inst of app()!.instances; track inst.id) {
+                  <option [value]="inst.id">{{ inst.containerName }} ({{ inst.status }})</option>
+                }
+              </select>
+            }
+
+            <div class="flex items-center gap-1.5 border border-zinc-850 px-2.5 py-1.5 rounded bg-black">
+              <span class="relative flex h-2 w-2">
+                @if (sseConnected()) {
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                }
+                <span class="relative inline-flex rounded-full h-2 w-2" [class]="sseConnected() ? 'bg-emerald-500' : 'bg-zinc-700'"></span>
+              </span>
+              <span class="text-[9px] font-bold" [class]="sseConnected() ? 'text-emerald-400' : 'text-zinc-550'">
+                {{ sseConnected() ? 'LIVE' : 'INACTIVE' }}
+              </span>
+            </div>
+
+            <input 
+              type="text" 
+              placeholder="Filter logs..." 
+              [ngModel]="logSearchQuery()"
+              (ngModelChange)="logSearchQuery.set($event)"
+              class="bg-black border border-zinc-850 text-zinc-300 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 w-32 sm:w-44 font-mono"
+            />
+
+            <button 
+              (click)="onDownloadLogs()"
+              class="p-1.5 rounded border border-zinc-850 bg-black hover:border-zinc-500 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+              title="Download complete logs"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+            </button>
+
+            <button 
+              (click)="toggleAutoScroll()"
+              class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border cursor-pointer transition-all"
+              [class]="autoScroll() ? 'bg-white text-black border-white' : 'bg-black text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-white'"
+            >
+              Autoscroll: {{ autoScroll() ? 'ON' : 'OFF' }}
+            </button>
+          </div>
+        </div>
+
+        @if (activeInstanceId()) {
+          <div 
+            id="terminal-log-box"
+            class="terminal-view h-[500px] p-4 overflow-y-auto font-mono text-xs text-zinc-300 space-y-1.5 scroll-smooth select-text bg-black border border-zinc-900 rounded"
+          >
+            @for (line of filteredLogs(); track $index) {
+              <div class="whitespace-pre-wrap leading-relaxed">{{ line }}</div>
+            }
+            @if (filteredLogs().length === 0) {
+              <div class="h-full flex items-center justify-center text-zinc-550 text-xs">No live logs available.</div>
+            }
+          </div>
+        } @else {
+          <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-12 text-center text-zinc-550 text-xs">
+            No active instance for this application. Start the application to view live logs.
+          </div>
+        }
+      </div>
+    }
+
+    <!-- SUB-TAB 2.7: TERMINAL -->
+    @if (activeSubTab() === 'terminal') {
+      <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm animate-fade-in font-mono">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3">
+          <div>
+            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Container Terminal</h3>
+            <p class="text-[10px] text-zinc-550 mt-0.5">Execute commands directly inside the active running instance</p>
+          </div>
+
+          <div class="flex items-center gap-3">
+            @if (app()?.instances && app()!.instances.length > 1) {
+              <select 
+                [ngModel]="activeInstanceId()"
+                (ngModelChange)="onInstanceChange($event)"
+                class="bg-black border border-zinc-850 text-zinc-300 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 font-mono"
+              >
+                @for (inst of app()!.instances; track inst.id) {
+                  <option [value]="inst.id">{{ inst.containerName }} ({{ inst.status }})</option>
+                }
+              </select>
+            }
+
+            <button 
+              (click)="clearTerminal()"
+              class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border border-zinc-850 bg-black hover:border-zinc-500 text-zinc-400 hover:text-white transition-all cursor-pointer"
+            >
+              Clear Screen
+            </button>
+          </div>
+        </div>
+
+        @if (activeInstanceId()) {
+          <div 
+            id="app-terminal-screen"
+            class="terminal-view h-[450px] p-4 overflow-y-auto font-mono text-xs text-zinc-300 space-y-1.5 scroll-smooth select-text bg-black border border-zinc-900 rounded mb-3"
+          >
+            @for (line of terminalLines(); track $index) {
+              @if (line.type === 'input') {
+                <div class="text-zinc-450 select-none">
+                  <span class="text-indigo-400 font-bold">$</span> {{ line.text }}
+                </div>
+              } @else if (line.type === 'output') {
+                <div class="whitespace-pre-wrap leading-relaxed text-zinc-200">{{ line.text }}</div>
+              } @else if (line.type === 'error') {
+                <div class="whitespace-pre-wrap leading-relaxed text-red-400 font-medium">{{ line.text }}</div>
+              }
+            }
+            @if (terminalLines().length === 0) {
+              <div class="text-zinc-550 h-full flex flex-col items-center justify-center space-y-1">
+                <span class="font-bold text-zinc-450">Shell terminal established.</span>
+                <span>Type a command below to execute it in the running container.</span>
+              </div>
+            }
+            @if (executingCommand()) {
+              <div class="flex items-center gap-2 text-zinc-500 italic select-none">
+                <svg class="animate-spin h-3.5 w-3.5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Executing command...
+              </div>
+            }
+          </div>
+
+          <form (submit)="onTerminalSubmit($event)" class="flex gap-2">
+            <div class="flex-1 flex items-center bg-black border border-zinc-800 focus-within:border-zinc-700 rounded px-3 py-2 font-mono text-xs">
+              <span class="text-indigo-400 font-bold mr-2 select-none">$</span>
+              <input 
+                type="text" 
+                placeholder="e.g. ls -la, df -h, env..."
+                [ngModel]="terminalInput()"
+                (ngModelChange)="terminalInput.set($event)"
+                name="terminalInput"
+                [disabled]="executingCommand() || getSelectedInstance()?.status !== 'running'"
+                class="flex-1 bg-transparent text-zinc-200 outline-none border-none focus:ring-0 p-0"
+                autocomplete="off"
+              />
+            </div>
+            <button 
+              type="submit" 
+              [disabled]="executingCommand() || !terminalInput().trim() || getSelectedInstance()?.status !== 'running'"
+              class="px-4 py-2 bg-white text-black hover:bg-zinc-200 disabled:bg-zinc-900 disabled:text-zinc-650 rounded text-xs font-bold font-mono transition-all cursor-pointer"
+            >
+              Run
+            </button>
+          </form>
+
+          @if (getSelectedInstance()?.status !== 'running') {
+            <div class="mt-2 p-3 rounded border border-amber-900/40 bg-amber-950/20 flex items-center gap-2 text-amber-400 font-mono text-[11px]">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" class="w-4 h-4 shrink-0">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              </svg>
+              <span>Warning: Application instance status is '{{ getSelectedInstance()?.status || 'unknown' }}'. Commands can only be executed in a running container.</span>
+            </div>
+          }
+        } @else {
+          <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-12 text-center text-zinc-550 text-xs">
+            No active instance for this application. Start the application to access terminal.
+          </div>
+        }
+      </div>
+    }>
       </div>
     }
 

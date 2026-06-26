@@ -24,6 +24,10 @@ export class App {
   readonly currentUser = computed(() => this.auth.currentUser());
   readonly isSuperAdmin = computed(() => this.auth.currentUser()?.is_super_admin === true);
 
+  isAdminRouteActive(): boolean {
+    return this.router.url.startsWith('/admin/');
+  }
+
   readonly workspaces = signal<Workspace[]>([]);
   readonly showWorkspaceDropdown = signal(false);
   readonly showCreateWorkspaceModal = signal(false);

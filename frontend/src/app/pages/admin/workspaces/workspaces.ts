@@ -1,6 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth';
 import { WorkspaceService, AdminWorkspaceStats } from '../../../core/services/workspace.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -8,7 +8,7 @@ import { ConfirmService } from '../../../core/services/confirm.service';
 
 @Component({
   selector: 'app-admin-workspaces',
-  imports: [DatePipe, DecimalPipe],
+  imports: [DatePipe, DecimalPipe, RouterLink, RouterLinkActive],
   templateUrl: './workspaces.html',
   styleUrl: './workspaces.css',
 })

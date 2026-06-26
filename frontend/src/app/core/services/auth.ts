@@ -98,6 +98,14 @@ export class AuthService {
     return this.api.get<User[]>('/users/users');
   }
 
+  getSystemLogs(): Observable<{ logs: string }> {
+    return this.api.get<{ logs: string }>('/users/system-logs');
+  }
+
+  getAuthLogs(): Observable<any[]> {
+    return this.api.get<any[]>('/users/auth-logs');
+  }
+
   deleteUser(userId: string): Observable<void> {
     return this.api.delete<void>(`/users/users/${userId}`);
   }

@@ -38,6 +38,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/admin/workspaces/workspaces').then(m => m.AdminWorkspaces)
     },
     {
+        path: 'admin/logs',
+        canActivate: [superAdminGuard],
+        loadComponent: () => import('./pages/admin/logs/logs').then(m => m.AdminLogs)
+    },
+    {
         path: '**',
         loadComponent: () => import('./pages/not-found/not-found').then(m => m.NotFound)
     }

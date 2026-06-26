@@ -425,6 +425,10 @@ export class ProjectService {
     return this.api.post<any>(`/apps/${appId}/instances/${instanceId}/reload`, {});
   }
 
+  execCommand(appId: string, instanceId: string, command: string): Observable<{ output: string }> {
+    return this.api.post<{ output: string }>(`/apps/${appId}/instances/${instanceId}/exec`, { command });
+  }
+
   // --- Cron Jobs API ---
   listProjectCronJobs(projectId: string, page = 1, pageSize = DEFAULT_PAGE_SIZE): Observable<Paginated<CronJob>> {
     return this.api.get<Paginated<CronJob>>(`/projects/${projectId}/cron?page=${page}&pageSize=${pageSize}`);

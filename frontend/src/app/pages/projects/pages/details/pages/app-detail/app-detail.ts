@@ -38,7 +38,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   readonly error = signal<string | null>(null);
 
   // Active sub-tab state. Overview is the default landing tab (screenshot + key facts).
-  readonly activeSubTab = signal<'overview' | 'telemetry' | 'logs' | 'general' | 'env' | 'advanced'>('overview');
+  readonly activeSubTab = signal<'overview' | 'telemetry' | 'builds' | 'logs' | 'terminal' | 'general' | 'env' | 'advanced'>('overview');
 
   // Cache-buster for the preview <img>, bumped whenever a fresh screenshot lands.
   readonly screenshotVersion = signal<number>(Date.now());
@@ -388,7 +388,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
     this.route.queryParams.subscribe(params => {
       const tab = params['tab'];
-      if (tab && ['overview', 'telemetry', 'logs', 'general', 'env', 'advanced'].includes(tab)) {
+      if (tab && ['overview', 'telemetry', 'builds', 'logs', 'terminal', 'general', 'env', 'advanced'].includes(tab)) {
         this.activeSubTab.set(tab as any);
       }
     });
@@ -592,10 +592,15 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  onSubTabChange(tab: 'overview' | 'telemetry' | 'logs' | 'general' | 'env' | 'advanced'): void {
+  onSubTabChange(tab: 'overview' | 'telemetry' | 'builds' | 'logs' | 'terminal' | 'general' | 'env' | 'advanced'): void {
     this.activeSubTab.set(tab);
-    if (tab !== 'logs') {
+    if (tab !== 'builds') {
+      this.selectedBuildId.set(null);
       this.disconnectBuildLogs();
+    } else {
+      if (!this.selectedBuildId() && this.builds().length > 0) {
+        this.onViewBuildLogs(this.builds()[0]);
+      }
     }
     this.router.navigate([], {
       relativeTo: this.route,
@@ -672,7 +677,9 @@ export class AppDetailComponent implements OnInit, OnDestroy {
           const latestBuild = items[0];
           if (latestBuild.status === 'building' && !this.selectedBuildId()) {
             this.onViewBuildLogs(latestBuild);
-            this.activeSubTab.set('logs');
+            this.activeSubTab.set('builds');
+          } else if (this.activeSubTab() === 'builds' && !this.selectedBuildId()) {
+            this.onViewBuildLogs(latestBuild);
           }
         }
       },
@@ -1502,5 +1509,54 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         this.toast.error(err.error?.message || 'Failed to remove domain.');
       }
     });
+  }
+
+  // --- Terminal Command Runner ---
+  readonly terminalInput = signal('');
+  readonly executingCommand = signal(false);
+  readonly terminalLines = signal<{ type: 'input' | 'output' | 'error', text: string }[]>([]);
+
+  onTerminalSubmit(event: Event): void {
+    event.preventDefault();
+    const cmd = this.terminalInput().trim();
+    if (!cmd) return;
+
+    // Append user input to terminal view
+    this.terminalLines.update(lines => [...lines, { type: 'input', text: cmd }]);
+    this.terminalInput.set('');
+    this.executingCommand.set(true);
+
+    const appId = this.appId();
+    const instId = this.activeInstanceId();
+    if (!appId || !instId) {
+      this.executingCommand.set(false);
+      this.terminalLines.update(lines => [...lines, { type: 'error', text: 'Error: No active instance selected.' }]);
+      return;
+    }
+
+    this.projectService.execCommand(appId, instId, cmd).subscribe({
+      next: (res) => {
+        this.executingCommand.set(false);
+        this.terminalLines.update(lines => [...lines, { type: 'output', text: res.output }]);
+        this.scrollTerminalToBottom();
+      },
+      error: (err) => {
+        this.executingCommand.set(false);
+        const errMsg = err.error?.message || err.error?.error?.message || 'Failed to execute command.';
+        this.terminalLines.update(lines => [...lines, { type: 'error', text: errMsg }]);
+        this.scrollTerminalToBottom();
+      }
+    });
+  }
+
+  clearTerminal(): void {
+    this.terminalLines.set([]);
+  }
+
+  private scrollTerminalToBottom(): void {
+    setTimeout(() => {
+      const el = document.getElementById('app-terminal-screen');
+      if (el) el.scrollTop = el.scrollHeight;
+    }, 50);
   }
 }

@@ -37,6 +37,7 @@ pub fn routes(state: AppState) -> Router {
         .route("/apps/:id/instances/:instance_id/reload", post(app_controller::reload_app_instance))
         .route("/apps/:id/instances/:instance_id/screenshot", post(app_controller::recapture_instance_screenshot))
         .route("/apps/:id/instances/:instance_id/serverless", post(app_controller::configure_serverless))
+        .route("/apps/:id/instances/:instance_id/exec", post(app_controller::exec_command_in_pod))
         .route("/apps/:id/builds/:build_id/retry", post(app_controller::retry_build))
         .route("/apps/:id/builds/:build_id/cancel", post(app_controller::cancel_build))
         .route("/apps/:id/builds/:build_id/rollback", post(app_controller::rollback_build))

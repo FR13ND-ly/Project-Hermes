@@ -1,0 +1,137 @@
+<div class="max-w-6xl mx-auto px-6 py-8 space-y-6 animate-fade-in">
+
+  <!-- Sub-navigation tabs for Admin Console -->
+  <div class="flex items-center gap-2 border-b border-zinc-900 pb-3 font-mono text-xs select-none">
+    <a
+      routerLink="/admin/users"
+      routerLinkActive="bg-white text-black font-extrabold!"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-white"
+    >
+      Users
+    </a>
+    <a
+      routerLink="/admin/workspaces"
+      routerLinkActive="bg-white text-black font-extrabold!"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-white"
+    >
+      Workspaces
+    </a>
+    <a
+      routerLink="/admin/logs"
+      routerLinkActive="bg-white text-black font-extrabold!"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-white"
+    >
+      Logs
+    </a>
+  </div>
+
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
+    <div>
+      <h1 class="text-sm font-bold text-zinc-300 uppercase tracking-wider font-mono">Platform Observability & Audit Logs</h1>
+      <p class="text-xs text-zinc-550 mt-0.5">Real-time system diagnostics and security authentication audit trails.</p>
+    </div>
+  </div>
+
+  <!-- Console Tabs and Actions -->
+  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono">
+    
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3">
+      <!-- Selector for sub-logs -->
+      <div class="flex items-center gap-2 font-mono text-xs select-none">
+        <button
+          (click)="onTabChange('system')"
+          class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
+          [class]="activeTab() === 'system' ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
+        >
+          System Logs
+        </button>
+        <button
+          (click)="onTabChange('auth')"
+          class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
+          [class]="activeTab() === 'auth' ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
+        >
+          Authentication Logs
+        </button>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex items-center gap-3">
+        <input 
+          type="text" 
+          placeholder="Filter logs..." 
+          [ngModel]="logSearchQuery()"
+          (ngModelChange)="logSearchQuery.set($event)"
+          class="bg-black border border-zinc-850 text-zinc-300 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 w-32 sm:w-44 font-mono"
+        />
+
+        <button 
+          (click)="loadLogs()"
+          class="p-1.5 rounded border border-zinc-850 bg-black hover:border-zinc-500 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+          title="Refresh Logs"
+          [disabled]="loading()"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5" [class.animate-spin]="loading()">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+          </svg>
+        </button>
+
+        <button 
+          (click)="onDownloadLogs()"
+          class="p-1.5 rounded border border-zinc-850 bg-black hover:border-zinc-500 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+          title="Download log file"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+        </button>
+
+        <button 
+          (click)="toggleAutoScroll()"
+          class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border cursor-pointer transition-all"
+          [class]="autoScroll() ? 'bg-white text-black border-white' : 'bg-black text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-white'"
+        >
+          Autoscroll: {{ autoScroll() ? 'ON' : 'OFF' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Console view screen -->
+    <div 
+      id="admin-console-box"
+      class="terminal-view h-[500px] p-4 overflow-y-auto font-mono text-xs text-zinc-300 space-y-1.5 scroll-smooth select-text bg-black border border-zinc-900 rounded"
+    >
+      @if (loading()) {
+        <div class="flex flex-col items-center justify-center h-full space-y-2 text-zinc-550">
+          <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <span class="text-[10px] uppercase tracking-wider">Retrieving logs...</span>
+        </div>
+      } @else {
+        <!-- System logs text view -->
+        @if (activeTab() === 'system') {
+          <div class="whitespace-pre-wrap leading-relaxed text-zinc-200">{{ filteredSystemLogs() }}</div>
+          @if (!filteredSystemLogs()) {
+            <div class="h-full flex items-center justify-center text-zinc-650 text-xs italic">No logs match the filter query.</div>
+          }
+        }
+        
+        <!-- Auth logs structured line view -->
+        @if (activeTab() === 'auth') {
+          @for (line of filteredAuthLogs(); track $index) {
+            <div class="whitespace-pre-wrap leading-relaxed" [class]="line.type === 'warn' ? 'text-red-400' : 'text-zinc-250'">
+              {{ line.text }}
+            </div>
+          }
+          @if (filteredAuthLogs().length === 0) {
+            <div class="h-full flex items-center justify-center text-zinc-650 text-xs italic">No audit records logged.</div>
+          }
+        }
+      }
+    </div>
+
+  </div>
+
+</div>

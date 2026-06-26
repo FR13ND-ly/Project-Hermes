@@ -2470,3 +2470,56 @@ async fn handle_instance_log_socket(
         _ = &mut recv_task => send_task.abort(),
     };
 }
+
+#[derive(serde::Deserialize)]
+pub struct ExecCommandRequest {
+    pub command: String,
+}
+
+#[derive(serde::Serialize)]
+pub struct ExecCommandResponse {
+    pub output: String,
+}
+
+pub async fn exec_command_in_pod(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path((_app_id, instance_id)): Path<(Uuid, Uuid)>,
+    Json(payload): Json<ExecCommandRequest>,
+) -> Result<Json<ExecCommandResponse>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    // Load instance
+    let instance = sqlx::query_as::<_, AppInstance>(
+        "SELECT ai.* FROM app_instances ai
+         JOIN apps a ON ai.app_id = a.id
+         WHERE ai.id = $1 AND a.workspace_id = $2"
+    )
+    .bind(instance_id)
+    .bind(ws_id)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Application instance not found.".to_string()))?;
+
+    // Check if instance is running in DB
+    if instance.status != AppStatus::Running {
+        return Err(AppError::Validation("Cannot execute commands on a stopped application instance.".to_string()));
+    }
+
+    let k8s_client = crate::utils::k8s::K8sManager::get_client().await?;
+    let namespace = format!("hermes-ws-{}", ws_id);
+    let pods_api: kube::Api<k8s_openapi::api::core::v1::Pod> = kube::Api::namespaced(k8s_client.clone(), &namespace);
+    let lp = kube::api::ListParams::default().labels(&format!("app={}", instance.container_name));
+    let pod_list = pods_api.list(&lp).await
+        .map_err(|e| AppError::Infrastructure(format!("Failed to list pods in Kubernetes: {}", e)))?;
+    let pod = pod_list.items.into_iter().next()
+        .ok_or_else(|| AppError::Validation("No active running pods found for this instance.".to_string()))?;
+    let pod_name = pod.metadata.name.ok_or_else(|| AppError::Infrastructure("Pod name is missing".to_string()))?;
+
+    let cmd_vec = vec!["/bin/sh".to_string(), "-c".to_string(), payload.command.clone()];
+    let output = crate::utils::k8s::K8sManager::exec_in_pod(&k8s_client, &namespace, &pod_name, cmd_vec).await?;
+
+    Ok(Json(ExecCommandResponse { output }))
+}

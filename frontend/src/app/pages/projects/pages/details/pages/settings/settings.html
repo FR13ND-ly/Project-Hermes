@@ -1,54 +1,5 @@
 <div class="space-y-6 animate-fade-in">
 
-  <!-- Danger Zone: Delete Project (always visible) -->
-  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-red-900/30 space-y-4 shadow-sm font-mono mt-6">
-    <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-xs font-bold text-red-500 uppercase tracking-wider">Delete Project</h3>
-      <p class="text-xs text-zinc-550">Completely removes the project and all associated resources from the system. This action is irreversible.</p>
-    </div>
-
-    <div class="space-y-4">
-      <div class="p-3 rounded border border-red-900/40 bg-red-950/10 text-red-400 text-xs leading-relaxed">
-        <strong>Warning:</strong> You are about to delete project <strong>{{ parent.project()?.name }}</strong>.
-        All applications, K8s instances, databases and configurations of this project will be destroyed immediately.
-      </div>
-
-      <div class="space-y-1.5">
-        <label for="confirm-project-delete-input" class="text-xs text-zinc-400 block">
-          Enter the project name <strong class="text-white font-mono select-all">{{ parent.project()?.name }}</strong> to confirm deletion:
-        </label>
-        <input 
-          id="confirm-project-delete-input"
-          type="text" 
-          placeholder="Project name"
-          [ngModel]="confirmProjectName()"
-          (ngModelChange)="confirmProjectName.set($event)"
-          [disabled]="deletingProject()"
-          class="block w-full px-3 py-2 text-sm bg-black border border-red-900/30 rounded text-white focus:outline-none focus:border-red-500 font-mono"
-        />
-      </div>
-
-      <div class="pt-2 flex justify-end">
-        <button 
-          (click)="onDeleteProject()"
-          [disabled]="confirmProjectName() !== parent.project()?.name || deletingProject()"
-          class="px-4 py-2 rounded bg-red-600 hover:bg-red-500 text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-          aria-label="Delete project permanently"
-        >
-          @if (!deletingProject()) {
-            <span>Delete Project Permanently</span>
-          } @else {
-            <svg class="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span>Deleting...</span>
-          }
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- Cloudflare / Ingress Card (project-level) -->
   <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
@@ -365,6 +316,55 @@
           </tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- Danger Zone: Delete Project (always visible) -->
+  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-red-900/30 space-y-4 shadow-sm font-mono mt-6">
+    <div class="border-b border-zinc-900 pb-2.5">
+      <h3 class="text-xs font-bold text-red-500 uppercase tracking-wider">Delete Project</h3>
+      <p class="text-xs text-zinc-550">Completely removes the project and all associated resources from the system. This action is irreversible.</p>
+    </div>
+
+    <div class="space-y-4">
+      <div class="p-3 rounded border border-red-900/40 bg-red-950/10 text-red-400 text-xs leading-relaxed">
+        <strong>Warning:</strong> You are about to delete project <strong>{{ parent.project()?.name }}</strong>.
+        All applications, K8s instances, databases and configurations of this project will be destroyed immediately.
+      </div>
+
+      <div class="space-y-1.5">
+        <label for="confirm-project-delete-input" class="text-xs text-zinc-400 block">
+          Enter the project name <strong class="text-white font-mono select-all">{{ parent.project()?.name }}</strong> to confirm deletion:
+        </label>
+        <input 
+          id="confirm-project-delete-input"
+          type="text" 
+          placeholder="Project name"
+          [ngModel]="confirmProjectName()"
+          (ngModelChange)="confirmProjectName.set($event)"
+          [disabled]="deletingProject()"
+          class="block w-full px-3 py-2 text-sm bg-black border border-red-900/30 rounded text-white focus:outline-none focus:border-red-500 font-mono"
+        />
+      </div>
+
+      <div class="pt-2 flex justify-end">
+        <button 
+          (click)="onDeleteProject()"
+          [disabled]="confirmProjectName() !== parent.project()?.name || deletingProject()"
+          class="px-4 py-2 rounded bg-red-600 hover:bg-red-500 text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+          aria-label="Delete project permanently"
+        >
+          @if (!deletingProject()) {
+            <span>Delete Project Permanently</span>
+          } @else {
+            <svg class="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Deleting...</span>
+          }
+        </button>
+      </div>
     </div>
   </div>
 </div>
