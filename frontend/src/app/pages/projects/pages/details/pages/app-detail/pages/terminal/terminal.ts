@@ -9,7 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AppDetailComponent } from '../../app-detail';
-import { Terminal } from 'xterm';
+import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { environment } from '../../../../../../../../../environments/environment';
 
@@ -19,7 +19,7 @@ import { environment } from '../../../../../../../../../environments/environment
   imports: [CommonModule, FormsModule],
   templateUrl: './terminal.html',
   styles: `
-    @import "xterm/css/xterm.css";
+    @import "@xterm/xterm/css/xterm.css";
     :host ::ng-deep .xterm {
       padding: 8px;
       height: 100%;
