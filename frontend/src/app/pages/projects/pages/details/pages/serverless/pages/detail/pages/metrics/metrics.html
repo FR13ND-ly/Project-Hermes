@@ -1,0 +1,53 @@
+<div class="space-y-4 max-w-3xl animate-fade-in font-mono">
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <h4 class="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">Telemetrie (Knative)</h4>
+      @if (metricsSimulated()) {
+        <span class="px-1.5 py-0.5 rounded bg-amber-950/30 border border-amber-900/40 text-[8px] font-bold uppercase tracking-wider text-amber-400" title="Prometheus unavailable — no real data to display">Data unavailable</span>
+      }
+    </div>
+    <div class="flex items-center gap-1 bg-black border border-zinc-850 rounded p-0.5 text-[10px] font-semibold">
+      @for (r of ['1h','24h','7d']; track r) {
+        <button (click)="onMetricsRangeChange(r)" [class]="metricsRange() === r ? 'px-2.5 py-1 rounded bg-white text-black cursor-pointer' : 'px-2.5 py-1 rounded text-zinc-400 hover:text-white cursor-pointer'">{{ r }}</button>
+      }
+    </div>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-2">
+    <!-- CPU -->
+    <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+      <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+        <span>CPU (millicores)</span>
+        <span class="text-white font-mono font-bold">{{ lastVal(cpuValues()) | number:'1.0-1' }}m</span>
+      </div>
+      <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[110px]">
+        @if (cpuValues().length > 1) {
+          <svg viewBox="0 0 500 150" preserveAspectRatio="none" class="w-full h-full">
+            <path [attr.d]="getSvgFillPath(cpuValues())" fill="rgba(96,165,250,0.10)"></path>
+            <path [attr.d]="getSvgPath(cpuValues())" fill="none" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+        } @else {
+          <div class="flex items-center justify-center h-full text-[10px] text-zinc-700 font-sans">No data for this interval</div>
+        }
+      </div>
+    </div>
+    <!-- Memory -->
+    <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+      <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+        <span>Memorie (MB)</span>
+        <span class="text-white font-mono font-bold">{{ lastVal(memValues()) | number:'1.0-1' }} MB</span>
+      </div>
+      <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[110px]">
+        @if (memValues().length > 1) {
+          <svg viewBox="0 0 500 150" preserveAspectRatio="none" class="w-full h-full">
+            <path [attr.d]="getSvgFillPath(memValues())" fill="rgba(52,211,153,0.10)"></path>
+            <path [attr.d]="getSvgPath(memValues())" fill="none" stroke="#34d399" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+        } @else {
+          <div class="flex items-center justify-center h-full text-[10px] text-zinc-700 font-sans">No data for this interval</div>
+        }
+      </div>
+    </div>
+  </div>
+  <p class="text-[10px] text-zinc-600 font-sans">Data comes from Prometheus (cAdvisor). Knative scales to zero when idle, so gaps may appear — this is normal.</p>
+</div>

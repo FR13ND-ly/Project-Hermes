@@ -1,0 +1,237 @@
+<div class="space-y-6 animate-fade-in">
+
+  <!-- Telemetry Graphs -->
+  @if (parent.activeInstanceId()) {
+    <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm animate-fade-in">
+      
+      <!-- Controls & Header -->
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3">
+        <div>
+          <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Instance Telemetry (Prometheus)</h3>
+          <p class="text-[10px] text-zinc-555 font-mono mt-0.5">Real-time K8s resource usage tracking</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <!-- Dropdown -->
+          <div class="relative">
+            <select 
+              [ngModel]="parent.activeInstanceId()"
+              (ngModelChange)="parent.onInstanceChange($event)"
+              class="block bg-black border border-zinc-800 text-zinc-300 text-xs font-semibold py-1.5 pl-3 pr-8 rounded focus:outline-none appearance-none cursor-pointer hover:border-zinc-500 w-44 font-mono truncate"
+            >
+              @for (inst of parent.app()?.instances; track inst.id) {
+                <option [value]="inst.id">{{ inst.containerName }}</option>
+              }
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-zinc-500">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- Range -->
+          <div class="flex items-center gap-2">
+            @if (parent.metricsSimulated()) {
+              <span class="px-1.5 py-0.5 rounded bg-amber-950/30 border border-amber-900/40 text-[8px] font-bold uppercase tracking-wider text-amber-400" title="Prometheus unavailable — no real data to display">Data unavailable</span>
+            }
+            <div class="flex items-center rounded bg-black border border-zinc-800 p-0.5 font-mono text-[9px]">
+              @for (r of ['1h', '24h', '7d']; track r) {
+                <button
+                  (click)="parent.onRangeChange(r)"
+                  class="px-2 py-0.5 rounded text-zinc-500 hover:text-zinc-300 cursor-pointer font-semibold transition-colors uppercase"
+                  [ngClass]="{'bg-zinc-900 text-white!': parent.selectedRange() === r}"
+                >
+                  {{ r }}
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SVG Charts container -->
+      <div class="relative min-h-[200px]">
+        @if (parent.metricsLoading()) {
+          <div class="absolute inset-0 bg-black/45 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center gap-1.5">
+            <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <span class="text-zinc-500 text-[9px] uppercase font-mono tracking-widest">Querying Prometheus...</span>
+          </div>
+        }
+
+        <div class="grid gap-4 md:grid-cols-2">
+          <!-- CPU -->
+          <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+            <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+              <span>CPU Usage (Millicores)</span>
+              <span class="text-white font-mono font-bold">{{ parent.cpuCurrent() | number:'1.0-1' }}m / @if (parent.cpuLimit() === 0) { Unlimited } @else { {{ parent.cpuLimit() }}m }</span>
+            </div>
+            <div class="space-y-1">
+              <div class="w-full h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+                <div class="h-full transition-all" [class]="parent.cpuUsedPct() >= 90 ? 'bg-red-500' : 'bg-emerald-500'" [style.width.%]="parent.cpuUsedPct()"></div>
+              </div>
+              <div class="text-[9px] text-zinc-650 font-mono text-right">@if (parent.cpuLimit() === 0) { Unlimited } @else { {{ parent.cpuUsedPct() }}% of allocated quota }</div>
+            </div>
+            <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[120px] relative">
+              @if (parent.cpuValues().length > 1) {
+                <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="cpu-grad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.1" />
+                      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
+                    </linearGradient>
+                  </defs>
+                  <path [attr.d]="parent.getSvgFillPath(parent.cpuValues())" fill="url(#cpu-grad)"></path>
+                  <path [attr.d]="parent.getSvgPath(parent.cpuValues())" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+              } @else {
+                <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">No data for this interval</div>
+              }
+            </div>
+          </div>
+
+          <!-- RAM -->
+          <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+            <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+              <span>RAM Memory Usage</span>
+              <span class="text-white font-mono font-bold">{{ parent.memCurrent() | number:'1.0-1' }} / @if (parent.memLimit() === 0) { Unlimited } @else { {{ parent.memLimit() }} MB }</span>
+            </div>
+            <div class="space-y-1">
+              <div class="w-full h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+                <div class="h-full transition-all" [class]="parent.memUsedPct() >= 90 ? 'bg-red-500' : 'bg-emerald-500'" [style.width.%]="parent.memUsedPct()"></div>
+              </div>
+              <div class="text-[9px] text-zinc-655 font-mono text-right">@if (parent.memLimit() === 0) { Unlimited } @else { {{ parent.memUsedPct() }}% of allocated quota }</div>
+            </div>
+            <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[120px] relative">
+              @if (parent.memValues().length > 1) {
+                <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="mem-grad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.1" />
+                      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
+                    </linearGradient>
+                  </defs>
+                  <path [attr.d]="parent.getSvgFillPath(parent.memValues())" fill="url(#mem-grad)"></path>
+                  <path [attr.d]="parent.getSvgPath(parent.memValues())" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+              } @else {
+                <div class="h-full flex items-center justify-center text-[10px] text-zinc-655 font-mono">No data for this interval</div>
+              }
+            </div>
+          </div>
+
+          <!-- Inbound Network (network_rx) -->
+          <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+            <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+              <span>Network Traffic - Inbound (Download)</span>
+              @if (parent.netRxValues().length > 0) {
+                <span class="text-white font-mono font-bold">{{ parent.netRxValues()[parent.netRxValues().length - 1] | number:'1.0-1' }} KB/s</span>
+              }
+            </div>
+            <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[120px] relative">
+              @if (parent.netRxValues().length > 1) {
+                <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="netrx-grad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.1" />
+                      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
+                    </linearGradient>
+                  </defs>
+                  <path [attr.d]="parent.getSvgFillPath(parent.netRxValues())" fill="url(#netrx-grad)"></path>
+                  <path [attr.d]="parent.getSvgPath(parent.netRxValues())" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+              } @else {
+                <div class="h-full flex items-center justify-center text-[10px] text-zinc-655 font-mono">No data for this interval</div>
+              }
+            </div>
+          </div>
+
+          <!-- Outbound Network (network_tx) -->
+          <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+            <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+              <span>Network Traffic - Outbound (Upload)</span>
+              @if (parent.netTxValues().length > 0) {
+                <span class="text-white font-mono font-bold">{{ parent.netTxValues()[parent.netTxValues().length - 1] | number:'1.0-1' }} KB/s</span>
+              }
+            </div>
+            <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[120px] relative">
+              @if (parent.netTxValues().length > 1) {
+                <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="nettx-grad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.1" />
+                      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
+                    </linearGradient>
+                  </defs>
+                  <path [attr.d]="parent.getSvgFillPath(parent.netTxValues())" fill="url(#nettx-grad)"></path>
+                  <path [attr.d]="parent.getSvgPath(parent.netTxValues())" fill="none" stroke="#818cf8" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+              } @else {
+                <div class="h-full flex items-center justify-center text-[10px] text-zinc-655 font-mono">No data for this interval</div>
+              }
+            </div>
+          </div>
+
+          <!-- Disk Read (fs_read) -->
+          <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+            <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+              <span>Disk Read</span>
+              @if (parent.fsReadValues().length > 0) {
+                <span class="text-white font-mono font-bold">{{ parent.fsReadValues()[parent.fsReadValues().length - 1] | number:'1.0-1' }} KB/s</span>
+              }
+            </div>
+            <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[120px] relative">
+              @if (parent.fsReadValues().length > 1) {
+                <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="fsread-grad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.1" />
+                      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
+                    </linearGradient>
+                  </defs>
+                  <path [attr.d]="parent.getSvgFillPath(parent.fsReadValues())" fill="url(#fsread-grad)"></path>
+                  <path [attr.d]="parent.getSvgPath(parent.fsReadValues())" fill="none" stroke="#f43f5e" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+              } @else {
+                <div class="h-full flex items-center justify-center text-[10px] text-zinc-655 font-mono">No data for this interval</div>
+              }
+            </div>
+          </div>
+
+          <!-- Disk Write (fs_write) -->
+          <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+            <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+              <span>Disk Write</span>
+              @if (parent.fsWriteValues().length > 0) {
+                <span class="text-white font-mono font-bold">{{ parent.fsWriteValues()[parent.fsWriteValues().length - 1] | number:'1.0-1' }} KB/s</span>
+              }
+            </div>
+            <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[120px] relative">
+              @if (parent.fsWriteValues().length > 1) {
+                <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="fswrite-grad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.1" />
+                      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
+                    </linearGradient>
+                  </defs>
+                  <path [attr.d]="parent.getSvgFillPath(parent.fsWriteValues())" fill="url(#fswrite-grad)"></path>
+                  <path [attr.d]="parent.getSvgPath(parent.fsWriteValues())" fill="none" stroke="#fb7185" stroke-width="1.8" stroke-linecap="round"></path>
+                </svg>
+              } @else {
+                <div class="h-full flex items-center justify-center text-[10px] text-zinc-655 font-mono">No data for this interval</div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-12 text-center text-zinc-550 text-xs font-mono">
+      No active instance for this application. Start the application to view telemetry data.
+    </div>
+  }
+</div>

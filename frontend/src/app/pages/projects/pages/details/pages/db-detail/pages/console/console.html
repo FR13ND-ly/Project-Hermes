@@ -1,0 +1,100 @@
+<div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 flex flex-col animate-fade-in">
+  <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+    <div>
+      <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Query Console</h3>
+      <p class="text-[10px] text-zinc-500">Execute commands or queries directly on your database instance.</p>
+    </div>
+    <button 
+      *ngIf="queryHistory().length > 0"
+      (click)="clearConsole()"
+      class="px-2.5 py-1 rounded bg-zinc-955 hover:bg-zinc-900 text-zinc-400 hover:text-white text-[10px] font-bold border border-zinc-850 transition-colors cursor-pointer"
+    >
+      Clear History
+    </button>
+  </div>
+
+  <!-- Quick Tips depending on DbType -->
+  <div class="p-3 rounded border border-zinc-900 bg-zinc-950/60 text-[10px] text-zinc-400 font-mono space-y-1">
+    <span class="font-bold text-zinc-300">Accepted command format:</span>
+    <div *ngIf="dbDetail.db()?.type === 'postgres'" class="text-emerald-400/90">
+      ✓ Tip: PostgreSQL SQL | Ex: <code class="text-white bg-black px-1 py-0.5 rounded">SELECT * FROM pg_catalog.pg_tables;</code> or <code class="text-white bg-black px-1 py-0.5 rounded">SELECT version();</code>
+    </div>
+    <div *ngIf="dbDetail.db()?.type === 'mysql'" class="text-emerald-400/90">
+      ✓ Tip: MySQL SQL | Ex: <code class="text-white bg-black px-1 py-0.5 rounded">SHOW TABLES;</code> or <code class="text-white bg-black px-1 py-0.5 rounded">SELECT 1;</code>
+    </div>
+    <div *ngIf="dbDetail.db()?.type === 'redis'" class="text-emerald-400/90">
+      ✓ Tip: Redis CLI | Ex: <code class="text-white bg-black px-1 py-0.5 rounded">PING</code>, <code class="text-white bg-black px-1 py-0.5 rounded">SET key val</code>, <code class="text-white bg-black px-1 py-0.5 rounded">GET key</code>, <code class="text-white bg-black px-1 py-0.5 rounded">KEYS *</code>
+    </div>
+    <div *ngIf="dbDetail.db()?.type === 'mongodb'" class="text-emerald-400/90">
+      ✓ Tip: MongoDB JS shell | Ex: <code class="text-white bg-black px-1 py-0.5 rounded">db.getCollectionNames()</code> or <code class="text-white bg-black px-1 py-0.5 rounded">db.stats()</code>
+    </div>
+  </div>
+
+  <!-- Terminal: scrollable output (grows) with the input pinned at the bottom -->
+  <div class="border border-zinc-900 rounded bg-black flex flex-col h-[440px] overflow-hidden">
+
+    <!-- Output region (newest output appears at the bottom, auto-scrolled) -->
+    <div
+      id="query-terminal-window"
+      class="flex-1 min-h-0 overflow-y-auto p-4 font-mono text-xs flex flex-col gap-4 scroll-container"
+    >
+      <!-- Welcome terminal banner -->
+      <div class="text-zinc-555 border-b border-zinc-950 pb-2">
+        <p>HERMES DATABASE SHELL v1.0.0</p>
+        <p>Instance: {{ dbDetail.db()?.containerName }}-0</p>
+        <p>Active sandbox session. The command will run securely directly in the container.</p>
+      </div>
+
+      <!-- Empty history state -->
+      <div *ngIf="queryHistory().length === 0" class="text-zinc-600 italic py-10 text-center">
+        No commands run in this session. Enter a query in the input below.
+      </div>
+
+      <!-- History items (oldest first, newest at the bottom) -->
+      @for (item of queryHistory(); track item.timestamp) {
+        <div class="space-y-1.5 border-b border-zinc-950 pb-3">
+          <div class="flex items-center justify-between text-[10px]">
+            <div class="flex items-center gap-1.5 font-bold">
+              <span class="text-zinc-550">></span>
+              <span class="text-zinc-350 select-all">{{ item.query }}</span>
+            </div>
+            <span class="text-zinc-650 font-mono">{{ item.timestamp | date:'HH:mm:ss' }}</span>
+          </div>
+
+          <pre
+            class="p-2.5 rounded text-[11px] overflow-x-auto whitespace-pre select-text bg-zinc-950 border"
+            [ngClass]="item.isError ? 'border-red-900/35 text-red-400' : 'border-zinc-900 text-zinc-300'"
+          >{{ item.output || '(No result returned)' }}</pre>
+        </div>
+      }
+    </div>
+
+    <!-- Command input line pinned to the bottom of the terminal -->
+    <div class="flex items-center gap-2 border-t border-zinc-900 bg-[#050505] px-3 py-2.5">
+      <span class="text-emerald-500 font-mono text-sm font-bold select-none">></span>
+      <input
+        type="text"
+        placeholder="Enter command or query here..."
+        [ngModel]="queryInput()"
+        (ngModelChange)="queryInput.set($event)"
+        (keyup.enter)="onRunQuery()"
+        [disabled]="queryLoading() || dbDetail.db()?.status !== 'running'"
+        class="flex-grow bg-transparent text-white font-mono text-sm focus:outline-none disabled:opacity-50 placeholder:text-zinc-700"
+      />
+      <button
+        (click)="onRunQuery()"
+        [disabled]="queryLoading() || !queryInput().trim() || dbDetail.db()?.status !== 'running'"
+        class="px-4 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+      >
+        <span *ngIf="!queryLoading()">Execute</span>
+        <span *ngIf="queryLoading()" class="flex items-center gap-1">
+          <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Running...
+        </span>
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,78 @@
+<div class="space-y-6 animate-fade-in">
+  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
+      <div>
+        <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Backups</h3>
+        <p class="text-[10px] text-zinc-550">Manage backup files for your database storage.</p>
+      </div>
+      <button 
+        (click)="onCreateBackup()"
+        [disabled]="dbDetail.db()?.status !== 'running'"
+        class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        Create Backup
+      </button>
+    </div>
+
+    <!-- Loading / Empty states -->
+    <div *ngIf="loadingBackups()" class="flex flex-col items-center justify-center py-10">
+      <svg class="animate-spin h-6 w-6 text-zinc-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span class="text-xs text-zinc-550">Loading backups...</span>
+    </div>
+
+    <div *ngIf="!loadingBackups() && backups().length === 0" class="flex flex-col items-center justify-center py-10 text-center">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-zinc-700 mb-2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+      </svg>
+      <p class="text-xs text-zinc-550">No backups have been created for this database.</p>
+    </div>
+
+    <!-- Backup list table -->
+    <div *ngIf="!loadingBackups() && backups().length > 0" class="overflow-x-auto">
+      <table class="w-full border-collapse text-left text-xs">
+        <thead>
+          <tr class="border-b border-zinc-900 text-zinc-500 uppercase tracking-wider text-[10px] font-mono">
+            <th class="py-2.5 px-3">File</th>
+            <th class="py-2.5 px-3">Size</th>
+            <th class="py-2.5 px-3">Status</th>
+            <th class="py-2.5 px-3">Created at</th>
+            <th class="py-2.5 px-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-zinc-900 text-zinc-300">
+          <tr *ngFor="let backup of backups()" class="hover:bg-zinc-950/40 transition-colors">
+            <td class="py-3 px-3 font-mono text-zinc-300 font-semibold">{{ backup.filename }}</td>
+            <td class="py-3 px-3 font-mono text-zinc-450">{{ (backup.fileSizeBytes / 1024 / 1024) | number:'1.2-2' }} MB</td>
+            <td class="py-3 px-3">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold border font-mono uppercase bg-emerald-950/20 border-emerald-900/30 text-emerald-400">
+                {{ backup.status }}
+              </span>
+            </td>
+            <td class="py-3 px-3 text-zinc-450 font-mono">{{ backup.createdAt | date:'dd.MM.yyyy HH:mm:ss' }}</td>
+            <td class="py-3 px-3 text-right space-x-2">
+              <button 
+                (click)="onRestoreBackup(backup)"
+                [disabled]="dbDetail.db()?.status !== 'running'"
+                class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-emerald-400 font-bold border border-zinc-800 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Restore
+              </button>
+              <button
+                (click)="onDeleteBackup(backup)"
+                class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-red-400 font-bold border border-zinc-800 transition-colors cursor-pointer"
+              >
+                Delete
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

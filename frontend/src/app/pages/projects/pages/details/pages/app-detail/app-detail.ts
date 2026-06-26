@@ -1,7 +1,7 @@
-import { Component, inject, signal, computed, OnInit, OnDestroy, effect } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
 import { Details } from '../../details';
 import { ProjectService, AppDetail, AppBuild, EnvResponse, AppInstance, ProjectEnvResponse } from '../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
@@ -9,15 +9,13 @@ import { ConfirmService } from '../../../../../../core/services/confirm.service'
 import { DomainService, Domain } from '../../../../../../core/services/domain.service';
 import { WorkspaceService, Workspace } from '../../../../../../core/services/workspace.service';
 import { WebSocketService } from '../../../../../../core/services/websocket.service';
-import { Subscription, interval } from 'rxjs';
-import { HttpEventType } from '@angular/common/http';
-import { Pagination } from '../../../../../../shared/components/pagination/pagination';
+import { Subscription } from 'rxjs';
 import { DEFAULT_PAGE_SIZE } from '../../../../../../core/models/pagination';
 
 @Component({
   selector: 'app-app-detail',
   standalone: true,
-  imports: [CommonModule, DatePipe, DecimalPipe, FormsModule, RouterLink, Pagination],
+  imports: [CommonModule, DatePipe, DecimalPipe, FormsModule, RouterLink, RouterOutlet, RouterLinkActive],
   templateUrl: './app-detail.html',
   styleUrl: './app-detail.css',
 })
@@ -37,8 +35,6 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
-  // Active sub-tab state. Overview is the default landing tab (screenshot + key facts).
-  readonly activeSubTab = signal<'overview' | 'telemetry' | 'builds' | 'logs' | 'terminal' | 'general' | 'env' | 'advanced'>('overview');
 
   // Cache-buster for the preview <img>, bumped whenever a fresh screenshot lands.
   readonly screenshotVersion = signal<number>(Date.now());
@@ -327,43 +323,6 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     return appData.name.trim().toLowerCase().replace(/\s+/g, '-');
   });
 
-  constructor() {
-    // Re-connect telemetry and logs if activeInstance changes
-    effect(() => {
-      const appIdVal = this.appId();
-      const instId = this.activeInstanceId();
-      if (appIdVal && instId) {
-        this.loadMetrics();
-        if (this.activeSubTab() === 'logs' && !this.selectedBuildId()) {
-          this.connectLogs(instId);
-        }
-      }
-    });
-
-    // Re-connect live logs automatically when entering the logs tab
-    effect(() => {
-      const tab = this.activeSubTab();
-      const instId = this.activeInstanceId();
-      if (tab === 'logs' && instId && !this.selectedBuildId()) {
-        this.connectLogs(instId);
-      } else if (tab !== 'logs') {
-        this.disconnectLogs();
-      }
-    });
-
-    // Re-connect live telemetry automatically when entering the telemetry tab with 1h range
-    effect(() => {
-      const tab = this.activeSubTab();
-      const instId = this.activeInstanceId();
-      const range = this.selectedRange();
-      if (tab === 'telemetry' && instId && range === '1h') {
-        this.connectTelemetry(instId);
-      } else {
-        this.disconnectTelemetry();
-      }
-    });
-  }
-
   ngOnInit(): void {
     this.loadWorkspace();
     this.route.paramMap.subscribe(params => {
@@ -384,15 +343,6 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
       this.appId.set(aId);
       this.loadAppDetails();
-    });
-    this.route.queryParams.subscribe(params => {
-      const tab = params['tab'];
-      if (tab && ['overview', 'telemetry', 'builds', 'logs', 'terminal', 'general', 'env', 'advanced'].includes(tab)) {
-        this.activeSubTab.set(tab as any);
-        if (tab === 'terminal') {
-          this.focusTerminalInput();
-        }
-      }
     });
     // Start ticker for live duration calculations
     this.tickerInterval = setInterval(() => {
@@ -452,7 +402,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
           // Deploy went live: jump to Overview (Vercel-style) and refresh the preview.
           if (payload.status === 'succeeded' || payload.phase === 'running') {
-            this.activeSubTab.set('overview');
+            this.router.navigate(['overview'], { relativeTo: this.route });
             this.screenshotVersion.set(Date.now());
           }
         }
@@ -588,28 +538,14 @@ export class AppDetailComponent implements OnInit, OnDestroy {
 
   onInstanceChange(id: string): void {
     this.activeInstanceId.set(id);
-    if (this.activeSubTab() === 'env') {
+    if (this.router.url.includes('/terminal')) {
+      this.terminalCwd.set('');
+      this.terminalLines.set([]);
+      this.initializeTerminalCwd();
+    }
+    if (this.router.url.includes('/env')) {
       this.loadEnvVariables();
     }
-  }
-  onSubTabChange(tab: 'overview' | 'telemetry' | 'builds' | 'logs' | 'terminal' | 'general' | 'env' | 'advanced'): void {
-    this.activeSubTab.set(tab);
-    if (tab !== 'builds') {
-      this.selectedBuildId.set(null);
-      this.disconnectBuildLogs();
-    } else {
-      if (!this.selectedBuildId() && this.builds().length > 0) {
-        this.onViewBuildLogs(this.builds()[0]);
-      }
-    }
-    if (tab === 'terminal') {
-      this.focusTerminalInput();
-    }
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { tab },
-      queryParamsHandling: 'merge'
-    });
   }
   deployBranch(): void {
     const appId = this.appId();
@@ -679,8 +615,8 @@ export class AppDetailComponent implements OnInit, OnDestroy {
           const latestBuild = items[0];
           if (latestBuild.status === 'building' && !this.selectedBuildId()) {
             this.onViewBuildLogs(latestBuild);
-            this.activeSubTab.set('builds');
-          } else if (this.activeSubTab() === 'builds' && !this.selectedBuildId()) {
+            this.router.navigate(['builds'], { relativeTo: this.route });
+          } else if (this.router.url.includes('/builds') && !this.selectedBuildId()) {
             this.onViewBuildLogs(latestBuild);
           }
         }
@@ -1561,10 +1497,24 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.focusTerminalInput();
   }
 
+  initializeTerminalCwd(): void {
+    if (this.terminalCwd()) return;
+    const appId = this.appId();
+    const instId = this.activeInstanceId();
+    if (!appId || !instId) return;
+
+    this.projectService.execCommand(appId, instId, 'pwd', '').subscribe({
+      next: (res) => {
+        this.terminalCwd.set(res.cwd);
+      }
+    });
+  }
+
   resetTerminal(): void {
     this.terminalLines.set([]);
     this.terminalCwd.set('');
     this.focusTerminalInput();
+    this.initializeTerminalCwd();
   }
 
   focusTerminalInput(): void {

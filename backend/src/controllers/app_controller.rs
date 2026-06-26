@@ -2521,11 +2521,15 @@ pub async fn exec_command_in_pod(
     let pod_name = pod.metadata.name.ok_or_else(|| AppError::Infrastructure("Pod name is missing".to_string()))?;
 
     let cwd = payload.cwd.clone().unwrap_or_default();
+    let mut command = payload.command.trim().trim_end_matches(';').trim().to_string();
+    if command.is_empty() {
+        command = "true".to_string();
+    }
     let safe_cwd = cwd.replace("'", "'\\''");
     let full_command = if safe_cwd.is_empty() {
-        format!("({}) 2>&1 ; echo -n '___HERMES_CWD___' ; pwd", payload.command)
+        format!("{{ {} ; }} 2>&1 ; echo -n '___HERMES_CWD___' ; pwd", command)
     } else {
-        format!("cd '{}' && ({}) 2>&1 ; echo -n '___HERMES_CWD___' ; pwd", safe_cwd, payload.command)
+        format!("cd '{}' && {{ {} ; }} 2>&1 ; echo -n '___HERMES_CWD___' ; pwd", safe_cwd, command)
     };
 
     let cmd_vec = vec!["/bin/sh".to_string(), "-c".to_string(), full_command];

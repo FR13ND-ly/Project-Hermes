@@ -1,34 +1,27 @@
-import { Component, inject, signal, OnInit, OnDestroy, effect, computed } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { Component, inject, signal, OnInit, OnDestroy, effect } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { Details } from '../../details';
-import { ProjectService, CronJob, CronJobLog, EnvVarInput, ProjectEnvResponse } from '../../../../../../core/services/project.service';
-import { DatabaseService } from '../../../../../../core/services/database.service';
-import { StorageService } from '../../../../../../core/services/storage.service';
+import { ProjectService, CronJob, CronJobLog } from '../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 import { WebSocketService } from '../../../../../../core/services/websocket.service';
-import { RouterLink } from '@angular/router';
+import { RouterLink, RouterOutlet, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { Pagination } from '../../../../../../shared/components/pagination/pagination';
 import { DEFAULT_PAGE_SIZE } from '../../../../../../core/models/pagination';
-
-type CronTargetType = 'app' | 'database' | 'storage';
 
 @Component({
   selector: 'app-project-cron',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, Pagination, RouterLink],
+  imports: [CommonModule, RouterLink, RouterOutlet],
   templateUrl: './cron.html',
 })
 export class CronComponent implements OnInit, OnDestroy {
   readonly parent = inject(Details);
-  private readonly projectService = inject(ProjectService);
-  private readonly dbService = inject(DatabaseService);
-  private readonly storageService = inject(StorageService);
+  readonly projectService = inject(ProjectService);
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
   private readonly wsService = inject(WebSocketService);
+  private readonly router = inject(Router);
 
   readonly cronJobs = signal<CronJob[]>([]);
   readonly cronPage = signal(1);
@@ -123,8 +116,6 @@ export class CronComponent implements OnInit, OnDestroy {
     return app ? app.name : appId.substring(0, 8);
   }
 
-
-
   async onDeleteCronJob(jobId: string): Promise<void> {
     const confirmed = await this.confirm.ask({
       title: 'Delete Cron Job',
@@ -140,6 +131,7 @@ export class CronComponent implements OnInit, OnDestroy {
         this.toast.success('Cron job deleted.');
         if (this.selectedCronJob()?.id === jobId) {
           this.deselectCronJob();
+          this.router.navigate(['/projects', this.parent.projectId(), 'cron']);
         }
         this.loadCronJobs();
       },
@@ -333,7 +325,6 @@ export class CronComponent implements OnInit, OnDestroy {
         const jobId = payload.job_id;
         const log: CronJobLog = payload.log;
 
-        
         const selected = this.selectedCronJob();
         if (selected && selected.id === jobId) {
           // Prepend new log and keep reactive

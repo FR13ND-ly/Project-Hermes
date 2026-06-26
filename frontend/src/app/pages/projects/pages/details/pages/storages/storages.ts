@@ -1,6 +1,5 @@
 import { Component, inject, signal, OnInit, OnDestroy, effect, computed } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 import { Details } from '../../details';
 import { StorageService, StorageBucket, StorageObject, ImageVariant, ImageVariantSpec, ImageFormatTarget, ProjectVolume } from '../../../../../../core/services/storage.service';
 import { VolumeService, VolumeFileItem } from '../../../../../../core/services/volume.service';
@@ -10,10 +9,8 @@ import { WebSocketService } from '../../../../../../core/services/websocket.serv
 import { Subscription } from 'rxjs';
 import { HttpEvent, HttpEventType } from '@angular/common/http';
 import { environment } from '../../../../../../../environments/environment';
-import { Pagination } from '../../../../../../shared/components/pagination/pagination';
 import { DEFAULT_PAGE_SIZE } from '../../../../../../core/models/pagination';
-
-import { RouterLink } from '@angular/router';
+import { RouterOutlet } from '@angular/router';
 
 export interface VirtualItem {
   id?: string;
@@ -38,13 +35,13 @@ export interface VirtualItem {
 @Component({
   selector: 'app-storages',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, Pagination, RouterLink],
-  templateUrl: './storages.html',
-  styleUrl: './storages.css',
+  imports: [CommonModule, RouterOutlet],
+  template: `<router-outlet></router-outlet>`,
+  styles: ``,
 })
 export class Storages implements OnInit, OnDestroy {
   readonly parent = inject(Details);
-  private readonly storageService = inject(StorageService);
+  readonly storageService = inject(StorageService);
   private readonly volumeService = inject(VolumeService);
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
@@ -136,8 +133,6 @@ export class Storages implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.loadBuckets();
-    this.loadPvcs();
 
     // Live refresh when a file finishes processing (Ready/Failed) in the bucket
     // currently open. The poll below stays only as a reconciliation safety-net.

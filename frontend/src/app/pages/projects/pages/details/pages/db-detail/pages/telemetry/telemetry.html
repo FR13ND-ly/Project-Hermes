@@ -1,0 +1,128 @@
+<div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 animate-fade-in">
+  <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+    <div>
+      <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Database Telemetry</h3>
+      <p class="text-[10px] text-zinc-555">Resource and activity metrics, collected from Prometheus.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <span *ngIf="dbMetricsSimulated()" class="px-1.5 py-0.5 rounded bg-amber-950/30 border border-amber-900/40 text-[8px] font-bold uppercase tracking-wider text-amber-400" title="Prometheus unavailable — no real data to display">Data unavailable</span>
+      <div class="flex items-center rounded bg-black border border-zinc-800 p-0.5 font-mono text-[9px]">
+        <button
+          *ngFor="let r of ['1h', '24h', '7d']"
+          (click)="onDbRangeChange(r)"
+          class="px-2 py-0.5 rounded text-zinc-500 hover:text-zinc-300 cursor-pointer font-semibold transition-colors uppercase"
+          [ngClass]="{'bg-zinc-900 text-white!': dbRange() === r}"
+        >{{ r }}</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="relative min-h-[200px]">
+    <div *ngIf="dbMetricsLoading()" class="absolute inset-0 bg-black/45 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center gap-1.5">
+      <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+      </svg>
+      <span class="text-zinc-500 text-[9px] uppercase font-mono tracking-widest">Querying Prometheus...</span>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-2">
+      <!-- CPU consumed vs allocated -->
+      <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+        <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+          <span>CPU Usage (Millicores)</span>
+          <span class="text-white font-mono font-bold">{{ lastVal(dbCpuValues()) | number:'1.0-1' }}m / {{ dbDetail.db()?.cpuLimit || 0 }}m</span>
+        </div>
+        <div class="space-y-1">
+          <div class="w-full h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+            <div class="h-full transition-all" [ngClass]="cpuUsedPct() >= 90 ? 'bg-red-500' : 'bg-emerald-500'" [style.width.%]="cpuUsedPct()"></div>
+          </div>
+          <div class="text-[9px] text-zinc-600 font-mono text-right">{{ cpuUsedPct() }}% of allocated quota</div>
+        </div>
+        <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[110px]">
+          <svg *ngIf="dbCpuValues().length > 1; else noCpuData" viewBox="0 0 500 150" width="100%" height="110" preserveAspectRatio="none">
+            <path [attr.d]="getSvgFillPath(dbCpuValues())" fill="rgba(16,185,129,0.10)"></path>
+            <path [attr.d]="getSvgPath(dbCpuValues())" fill="none" stroke="#10b981" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+          <ng-template #noCpuData>
+            <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">No data available for this interval</div>
+          </ng-template>
+        </div>
+      </div>
+
+      <!-- Memory consumed vs allocated -->
+      <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+        <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+          <span>RAM Memory Usage</span>
+          <span class="text-white font-mono font-bold">{{ lastVal(dbMemValues()) | number:'1.0-1' }} / {{ dbDetail.db()?.memoryLimitMb || 0 }} MB</span>
+        </div>
+        <div class="space-y-1">
+          <div class="w-full h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+            <div class="h-full transition-all" [ngClass]="memUsedPct() >= 90 ? 'bg-red-500' : 'bg-emerald-500'" [style.width.%]="memUsedPct()"></div>
+          </div>
+          <div class="text-[9px] text-zinc-600 font-mono text-right">{{ memUsedPct() }}% of allocated quota</div>
+        </div>
+        <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[110px]">
+          <svg *ngIf="dbMemValues().length > 1; else noMemData" viewBox="0 0 500 150" width="100%" height="110" preserveAspectRatio="none">
+            <path [attr.d]="getSvgFillPath(dbMemValues())" fill="rgba(161,161,170,0.10)"></path>
+            <path [attr.d]="getSvgPath(dbMemValues())" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+          <ng-template #noMemData>
+            <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">No data available for this interval</div>
+          </ng-template>
+        </div>
+      </div>
+
+      <!-- Disk size -->
+      <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+        <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+          <span>Disk Size</span>
+          <span class="text-white font-mono font-bold">{{ lastVal(dbSizeValues()) | number:'1.0-1' }} MB</span>
+        </div>
+        <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[110px]">
+          <svg *ngIf="dbSizeValues().length > 1; else noDiskData" viewBox="0 0 500 150" width="100%" height="110" preserveAspectRatio="none">
+            <path [attr.d]="getSvgFillPath(dbSizeValues())" fill="rgba(96,165,250,0.10)"></path>
+            <path [attr.d]="getSvgPath(dbSizeValues())" fill="none" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+          <ng-template #noDiskData>
+            <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">No data available for this interval</div>
+          </ng-template>
+        </div>
+      </div>
+
+      <!-- Connections -->
+      <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+        <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+          <span>Active Connections</span>
+          <span class="text-white font-mono font-bold">{{ lastVal(dbConnValues()) | number:'1.0-0' }}</span>
+        </div>
+        <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[110px]">
+          <svg *ngIf="dbConnValues().length > 1; else noConnData" viewBox="0 0 500 150" width="100%" height="110" preserveAspectRatio="none">
+            <path [attr.d]="getSvgFillPath(dbConnValues())" fill="rgba(251,191,36,0.10)"></path>
+            <path [attr.d]="getSvgPath(dbConnValues())" fill="none" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+          <ng-template #noConnData>
+            <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">No data available for this interval</div>
+          </ng-template>
+        </div>
+      </div>
+
+      <!-- Cache hit rate (Postgres + Redis expose hit/miss counters) -->
+      <div *ngIf="dbDetail.db()?.type === 'postgres' || dbDetail.db()?.type === 'redis'" class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner md:col-span-2">
+        <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
+          <span>Cache Hit Rate (%)</span>
+          <span class="text-white font-mono font-bold">{{ lastVal(dbCacheValues()) | number:'1.0-2' }}%</span>
+        </div>
+        <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[110px]">
+          <svg *ngIf="dbCacheValues().length > 1; else noCacheData" viewBox="0 0 500 150" width="100%" height="110" preserveAspectRatio="none">
+            <path [attr.d]="getSvgFillPath(dbCacheValues())" fill="rgba(52,211,153,0.10)"></path>
+            <path [attr.d]="getSvgPath(dbCacheValues())" fill="none" stroke="#34d399" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+          <ng-template #noCacheData>
+            <div class="h-full flex items-center justify-center text-[10px] text-zinc-650 font-mono">No data available for this interval</div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

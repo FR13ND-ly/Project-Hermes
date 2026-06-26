@@ -1,0 +1,445 @@
+<div class="space-y-4 animate-fade-in">
+  
+  <!-- Explorer Toolbar -->
+  <div class="bg-[#0a0a0a] border border-zinc-900 rounded p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-inner">
+    
+    <!-- Breadcrumbs -->
+    <div class="flex items-center gap-2 overflow-x-auto py-1 shrink-0 max-w-full">
+      @if (parent.currentPath() !== '/') {
+        <button 
+          (click)="parent.onNavigateBack()"
+          class="p-1 rounded bg-black hover:bg-zinc-900 border border-zinc-800 text-zinc-440 hover:text-white cursor-pointer transition-colors"
+          title="Go back"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+        </button>
+      }
+
+      <div class="flex items-center text-xs font-semibold text-zinc-400 font-mono">
+        <span 
+          (click)="parent.onNavigateBreadcrumb(-1)"
+          class="hover:text-white cursor-pointer select-none"
+          [class.text-zinc-300]="parent.currentPath() === '/'"
+        >
+          root
+        </span>
+
+        @for (part of parent.pathParts(); track $index) {
+          <span class="mx-1.5 text-zinc-650">/</span>
+          <span 
+            (click)="parent.onNavigateBreadcrumb($index)"
+            class="hover:text-white cursor-pointer select-none max-w-[120px] truncate"
+            [class.text-zinc-300]="$last"
+            [title]="part"
+          >
+            {{ part }}
+          </span>
+        }
+      </div>
+    </div>
+
+    <!-- Search & View Mode -->
+    <div class="flex items-center gap-2 grow md:justify-end">
+      <div class="relative grow max-w-xs">
+        <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+          <svg class="h-3.5 w-3.5 text-zinc-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <input 
+          type="text" 
+          placeholder="Search files..."
+          [ngModel]="parent.searchQuery()"
+          (ngModelChange)="parent.searchQuery.set($event)"
+          class="block w-full pl-8 pr-3 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-550 transition-colors font-mono"
+        />
+      </div>
+
+      <div class="flex items-center bg-black border border-zinc-850 p-0.5 rounded shrink-0">
+        <button 
+          (click)="parent.viewMode.set('grid')"
+          class="p-1 rounded cursor-pointer"
+          [class]="parent.viewMode() === 'grid' ? 'bg-zinc-900 text-white' : 'text-zinc-650 hover:text-zinc-400'"
+          title="Grid View"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+          </svg>
+        </button>
+        <button 
+          (click)="parent.viewMode.set('list')"
+          class="p-1 rounded cursor-pointer"
+          [class]="parent.viewMode() === 'list' ? 'bg-zinc-900 text-white' : 'text-zinc-650 hover:text-zinc-400'"
+          title="List View"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 5.25h16.5m-16.5-10.5h16.5" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Directory Sub-actions (Add Folder, Upload File) -->
+  <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
+    <div class="flex items-center gap-2">
+      @if (parent.showFolderForm()) {
+        <div class="flex items-center gap-1.5 animate-fade-in">
+          <input 
+            type="text" 
+            placeholder="Folder name..."
+            [ngModel]="parent.newFolderName()"
+            (ngModelChange)="parent.newFolderName.set($event)"
+            (keyup.enter)="parent.onCreateFolder()"
+            class="px-2.5 py-1 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-550 transition-colors font-mono w-40"
+          />
+          <button 
+            (click)="parent.onCreateFolder()"
+            [disabled]="!parent.newFolderName().trim()"
+            class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white text-[10px] font-bold cursor-pointer disabled:opacity-50"
+          >
+            Create
+          </button>
+          <button 
+            (click)="parent.showFolderForm.set(false); parent.newFolderName.set('')"
+            class="px-2.5 py-1.5 rounded border border-zinc-900 text-zinc-555 hover:text-zinc-300 text-[10px] cursor-pointer"
+          >
+            X
+          </button>
+        </div>
+      } @else {
+        <button 
+          (click)="parent.showFolderForm.set(true)"
+          class="px-2.5 py-1 rounded border border-zinc-900 hover:border-zinc-850 bg-black hover:bg-zinc-950 text-zinc-400 hover:text-white text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-550">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10.5v6m3-3H9m4.06-7.19l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+          </svg>
+          New folder
+        </button>
+      }
+    </div>
+
+    <div>
+      <input 
+        id="file-upload-picker"
+        type="file" 
+        (change)="parent.onFileSelected($event)" 
+        class="hidden" 
+      />
+      <label 
+        for="file-upload-picker"
+        class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+        </svg>
+        Upload file
+      </label>
+    </div>
+  </div>
+
+  <!-- Upload Progress -->
+  @if (parent.uploading()) {
+    <div class="bg-zinc-950 border border-zinc-900 rounded p-3 space-y-2 animate-pulse font-mono">
+      <div class="flex items-center justify-between text-[10px] font-bold text-zinc-400">
+        <span class="flex items-center gap-1.5">
+          <svg class="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Transferring data...
+        </span>
+        <span>{{ parent.uploadProgress() }}%</span>
+      </div>
+      <div class="w-full h-1 bg-zinc-900 rounded-full overflow-hidden">
+        <div class="h-full bg-white transition-all duration-150" [style.width.%]="parent.uploadProgress()"></div>
+      </div>
+    </div>
+  }
+
+  <!-- File explorer listings -->
+  @if (parent.loadingFiles()) {
+    <div class="flex flex-col items-center justify-center py-16 gap-2">
+      <svg class="animate-spin h-4 w-4 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span class="text-zinc-650 text-[8px] uppercase tracking-wider font-semibold">Reading files from bucket...</span>
+    </div>
+  } @else {
+    @if (parent.currentItems().length === 0) {
+      <div class="bg-black/30 border border-zinc-900 rounded p-12 text-center space-y-2">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-zinc-655 mx-auto">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+        </svg>
+        <p class="text-xs text-zinc-500 font-mono">This virtual folder is empty.</p>
+        <p class="text-[10px] text-zinc-600 font-mono">Upload a file using the button in the top right, or create virtual subfolders.</p>
+      </div>
+    }
+
+    <!-- GRID VIEW -->
+    @if (parent.viewMode() === 'grid' && parent.currentItems().length > 0) {
+      <div class="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 animate-fade-in font-mono">
+        @for (item of parent.currentItems(); track item.filePath) {
+          <div class="bg-[#0a0a0a] border border-zinc-900 hover:border-zinc-800 rounded overflow-hidden flex flex-col justify-between group shadow transition-all">
+            
+            <div class="h-28 bg-black flex items-center justify-center relative border-b border-zinc-955 p-2.5 overflow-hidden">
+              <!-- Overlays for pending_upload / processing -->
+              @if (item.status === 'processing' || item.status === 'pending_upload') {
+                <div class="absolute inset-0 bg-black/85 z-10 flex flex-col items-center justify-center p-2 text-center animate-pulse">
+                  <svg class="animate-spin h-5 w-5 text-indigo-500 mb-1.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span class="text-[8px] font-bold text-zinc-300 tracking-wider">
+                    {{ item.status === 'processing' ? parent.stageLabel(item.processingStage) : 'UPLOADING...' }}
+                  </span>
+                </div>
+              }
+
+              @if (item.isFolder) {
+                @if (parent.isImage(item.mimeType) && item.virtualUrl) {
+                  <!-- Image folder preview cover -->
+                  <div (click)="parent.onNavigate(item.filePath)" class="cursor-pointer relative w-full h-full flex items-center justify-center">
+                    <img [src]="item.virtualUrl" class="max-h-full max-w-full object-contain rounded-sm select-none" alt="{{ item.name }}" />
+                    <div class="absolute bottom-1 right-1 bg-black/80 border border-zinc-800 rounded px-1.5 py-0.5 text-[8px] font-bold text-zinc-300 uppercase flex items-center gap-1 font-sans">
+                      <span class="inline-block w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                      Variants
+                    </div>
+                  </div>
+                } @else {
+                  <div (click)="parent.onNavigate(item.filePath)" class="cursor-pointer text-zinc-650 group-hover:text-zinc-300 transition-colors flex flex-col items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 text-zinc-700 hover:text-zinc-555">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h1.5A2.25 2.25 0 0110 12v.75m11.25-3v8.25a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18V9a2.25 2.25 0 012.25-2.25h5.379a1.5 1.5 0 011.06-.44L14.25 9.75H18.75A2.25 2.25 0 0121 12z" />
+                    </svg>
+                  </div>
+                }
+              } @else {
+                @if (parent.isImage(item.mimeType) && item.virtualUrl) {
+                  <img [src]="item.virtualUrl" class="max-h-full max-w-full object-contain rounded-sm select-none" alt="{{ item.name }}" />
+                } @else {
+                  <div class="text-zinc-750 group-hover:text-zinc-500 transition-colors flex flex-col items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                    <span class="text-[8px] uppercase tracking-wider font-semibold">{{ item.mimeType?.split('/')?.pop() || 'file' }}</span>
+                  </div>
+                }
+              }
+            </div>
+
+            <div class="p-3 space-y-1.5">
+              <div 
+                [title]="item.name"
+                class="text-xs font-bold text-zinc-350 truncate select-all"
+                [class.cursor-pointer]="item.isFolder"
+                [class.hover:underline]="item.isFolder"
+                (click)="item.isFolder ? parent.onNavigate(item.filePath) : null"
+              >
+                {{ item.name }}
+              </div>
+              
+              @if (!item.isFolder) {
+                <div class="flex items-center justify-between text-[9px] text-zinc-550">
+                  <span>{{ parent.formatBytes(item.sizeBytes) }}</span>
+                  @if (item.isOptimized) {
+                    <span class="text-emerald-500 font-bold" title="Optimized">OPTIMIZED</span>
+                  }
+                </div>
+              } @else {
+                <div class="text-[9px] text-zinc-650">
+                  {{ item.hasVariants ? 'Image (Variants)' : 'Virtual folder' }}
+                </div>
+              }
+            </div>
+
+            <div class="border-t border-zinc-955 p-2 bg-black/40 flex items-center justify-between gap-1">
+              @if (item.status === 'processing' || item.status === 'pending_upload') {
+                <div class="flex items-center gap-1.5 w-full justify-between">
+                  <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider pl-1.5 animate-pulse">
+                    {{ item.status === 'processing' ? parent.stageLabel(item.processingStage) : 'Uploading...' }}
+                  </span>
+                  @if (item.id) {
+                    <button 
+                      (click)="parent.onCancelUpload(item)" 
+                      class="px-2 py-0.5 rounded bg-red-955/20 text-red-400 hover:bg-red-900/40 hover:text-red-200 text-[9px] font-bold uppercase text-center cursor-pointer border border-red-900/60"
+                    >
+                      Cancel
+                    </button>
+                  }
+                </div>
+              } @else if (item.isFolder) {
+                <div class="flex items-center gap-1.5 w-full justify-between">
+                  <button
+                    (click)="parent.onNavigate(item.filePath)"
+                    class="px-2.5 py-1 rounded bg-zinc-900 text-zinc-400 hover:text-white text-[9px] font-bold w-full uppercase text-center cursor-pointer border border-zinc-800"
+                  >
+                    Open
+                  </button>
+                  @if (item.id) {
+                    <button
+                      (click)="parent.onDeleteFile(item)"
+                      class="p-1 rounded hover:bg-red-950/20 text-zinc-700 hover:text-red-400 cursor-pointer transition-colors"
+                      title="Delete folder/image"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                      </svg>
+                    </button>
+                  }
+                </div>
+              } @else {
+                <div class="flex items-center gap-1.5 w-full justify-between">
+                  <div class="flex items-center gap-1">
+                    @if (item.virtualUrl) {
+                      <button 
+                        (click)="parent.copyPublicUrl(item)" 
+                        class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white cursor-pointer transition-colors"
+                        title="Copy public URL"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                        </svg>
+                      </button>
+                      
+                      <a 
+                        [href]="item.virtualUrl" 
+                        target="_blank" 
+                        class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white cursor-pointer transition-colors flex items-center"
+                        title="Open in new tab"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                        </svg>
+                      </a>
+                    }
+                  </div>
+                  
+                  @if (item.id) {
+                    <button 
+                      (click)="parent.onDeleteFile(item)" 
+                      class="p-1 rounded hover:bg-red-950/20 text-zinc-700 hover:text-red-400 cursor-pointer transition-colors"
+                      title="Delete file"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                      </svg>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- LIST VIEW -->
+    @if (parent.viewMode() === 'list' && parent.currentItems().length > 0) {
+      <div class="bg-[#0a0a0a] border border-zinc-900 rounded overflow-hidden shadow font-mono">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="border-b border-zinc-900 bg-black/60 text-zinc-500 uppercase tracking-wider text-[9px] font-bold">
+              <th class="p-3">Name</th>
+              <th class="p-3">Type</th>
+              <th class="p-3">Size</th>
+              <th class="p-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of parent.currentItems(); track item.filePath) {
+              <tr class="border-b border-zinc-900/60 hover:bg-zinc-950/45 transition-colors">
+                <td class="p-3 font-semibold text-zinc-300">
+                  @if (item.isFolder) {
+                    <span 
+                      (click)="parent.onNavigate(item.filePath)" 
+                      class="flex items-center gap-2 cursor-pointer hover:underline text-zinc-400 hover:text-white"
+                    >
+                      @if (item.hasVariants) {
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-purple-400">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h1.5A2.25 2.25 0 0110 12v.75m11.25-3v8.25a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18V9a2.25 2.25 0 012.25-2.25h5.379a1.5 1.5 0 011.06-.44L14.25 9.75H18.75A2.25 2.25 0 0121 12z" />
+                        </svg>
+                      } @else {
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-zinc-650">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h1.5A2.25 2.25 0 0110 12v.75m11.25-3v8.25a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18V9a2.25 2.25 0 012.25-2.25h5.379a1.5 1.5 0 011.06-.44L14.25 9.75H18.75A2.25 2.25 0 0121 12z" />
+                        </svg>
+                      }
+                      {{ item.name }}
+                      @if (item.hasVariants) {
+                        <span class="text-[8px] text-purple-400 font-bold uppercase tracking-wider ml-1 bg-purple-950/20 px-1 py-0.2 rounded border border-purple-900/50">[Variants]</span>
+                      }
+                    </span>
+                  } @else {
+                    <span class="flex items-center gap-2 select-all font-sans">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-zinc-700">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                      </svg>
+                      {{ item.name }}
+                      
+                      @if (item.status === 'processing' || item.status === 'pending_upload') {
+                        <span class="inline-flex items-center gap-1 text-[8px] font-bold tracking-wider px-1.5 py-0.5 rounded border ml-2 animate-pulse"
+                              [class]="item.status === 'processing' ? 'bg-indigo-950/40 text-indigo-400 border-indigo-900/60' : 'bg-amber-950/40 text-amber-400 border-amber-900/60'">
+                            <svg class="animate-spin h-2.5 w-2.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            {{ item.status === 'processing' ? 'PROCESSING' : 'UPLOADING' }}
+                          </span>
+                      }
+                    </span>
+                  }
+                </td>
+                <td class="p-3 text-zinc-550">{{ item.isFolder ? (item.hasVariants ? 'Image Variants' : 'Folder') : (item.mimeType || 'unknown') }}</td>
+                <td class="p-3 text-zinc-400">{{ item.isFolder ? '-' : parent.formatBytes(item.sizeBytes) }}</td>
+                <td class="p-3 text-right">
+                  <div class="flex items-center justify-end gap-2">
+                    @if (item.status === 'processing' || item.status === 'pending_upload') {
+                      <div class="flex items-center justify-end gap-2">
+                        <span class="text-[9px] font-bold text-zinc-650 uppercase tracking-widest mr-1.5 animate-pulse">
+                          {{ item.status === 'processing' ? parent.stageLabel(item.processingStage) : 'Uploading...' }}
+                        </span>
+                        @if (item.id) {
+                          <button 
+                            (click)="parent.onCancelUpload(item)" 
+                            class="px-2 py-0.5 rounded bg-red-955/20 text-red-400 hover:bg-red-900/40 hover:text-red-200 text-[10px] font-bold uppercase cursor-pointer border border-red-900/50"
+                          >
+                            Cancel
+                          </button>
+                        }
+                      </div>
+                    } @else if (item.isFolder) {
+                      <button (click)="parent.onNavigate(item.filePath)" class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-zinc-350 hover:text-white cursor-pointer">Open</button>
+                      @if (item.id) {
+                        <button (click)="parent.onDeleteFile(item)" class="px-2 py-0.5 rounded hover:bg-red-950/20 text-zinc-555 hover:text-red-400 text-[10px] font-bold uppercase cursor-pointer">Delete</button>
+                      }
+                    } @else {
+                      @if (item.virtualUrl) {
+                        <button (click)="parent.copyPublicUrl(item)" class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-450 hover:text-white text-[10px] font-bold uppercase cursor-pointer">URL</button>
+                        <a [href]="item.virtualUrl" target="_blank" class="px-2 py-0.5 rounded bg-black border border-zinc-850 text-zinc-555 hover:text-white text-[10px] font-bold uppercase">View</a>
+                      }
+                      @if (item.id) {
+                        <button (click)="parent.onDeleteFile(item)" class="px-2 py-0.5 rounded hover:bg-red-950/20 text-zinc-555 hover:text-red-400 text-[10px] font-bold uppercase cursor-pointer">Delete</button>
+                      }
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    @if (parent.selectedBucket() && !parent.selectedPvc()) {
+      <app-pagination
+        [page]="parent.objectsPage()"
+        [pageSize]="parent.objectsPageSize()"
+        [total]="parent.objectsTotal()"
+        (pageChange)="parent.onObjectsPageChange($event)"
+      />
+    }
+  }
+</div>

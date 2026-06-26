@@ -1,0 +1,81 @@
+<div class="space-y-5 animate-fade-in font-mono">
+  @if (parent.integration(); as i) {
+    <!-- Auto-published to project pool -->
+    <div class="p-4 rounded-lg border border-zinc-800 bg-[#070708] space-y-3 font-sans relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="flex items-start gap-3">
+        <div class="p-2.5 bg-emerald-950/45 border border-emerald-900/30 rounded text-emerald-400 shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div class="space-y-1 w-full">
+          <h4 class="text-xs font-bold text-zinc-200 uppercase tracking-wider font-mono">Automatically published to pool</h4>
+          <p class="text-[11px] text-zinc-400 leading-relaxed font-sans">
+            <span class="font-mono text-zinc-300">HERMES_AUTH_SECRET</span>, <span class="font-mono text-zinc-300">HERMES_AUTH_APP_ID</span> and
+            <span class="font-mono text-zinc-300">HERMES_AUTH_API_URL</span> are automatically published to the project pool — no action needed.
+            You can link them to any instance from the "Variables" → "From Project" tab.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 space-y-4 shadow-sm">
+      <div class="border-b border-zinc-900 pb-3">
+        <h4 class="text-xs font-bold text-zinc-200 uppercase tracking-wider">Auth Integration (local validation)</h4>
+        <p class="text-[10px] text-zinc-550 mt-0.5 font-sans leading-relaxed">Your app validates tokens <strong>locally</strong>, using the secret below — no calls to Hermes. The secret is already injected into env as <span class="font-mono text-zinc-300">{{ i.authSecretEnvKey }}</span>.</p>
+      </div>
+
+      <!-- Service ID -->
+      <div class="space-y-1.5">
+        <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Service ID (BaaS)</span>
+        <div class="flex items-center gap-2">
+          <code class="flex-1 px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ i.baasId }}</code>
+          <button (click)="parent.copyText(i.baasId, 'Service ID')" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copy</button>
+        </div>
+      </div>
+
+      <!-- Auth secret -->
+      <div class="space-y-1.5">
+        <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">{{ i.authSecretEnvKey }}</span>
+        <div class="flex items-center gap-2">
+          <code class="flex-1 px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ parent.revealSecret() ? i.authSecret : '••••••••••••••••••••••••••••' }}</code>
+          <button (click)="parent.revealSecret.set(!parent.revealSecret())" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">{{ parent.revealSecret() ? 'Hide' : 'Show' }}</button>
+          <button (click)="parent.copyText(i.authSecret, 'Secret')" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copy</button>
+          <button (click)="parent.rotateAuthSecret()" [disabled]="parent.rotatingSecret()" class="px-2.5 py-2 rounded bg-amber-950/40 hover:bg-amber-900/50 border border-amber-900/50 text-amber-300 hover:text-amber-200 text-[10px] font-semibold cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed" title="Generate a new secret; existing end-user tokens become invalid">{{ parent.rotatingSecret() ? 'Rotating...' : 'Rotate' }}</button>
+        </div>
+        <p class="text-[9px] text-amber-500/80 font-sans">Signing secret — treat it like a password. Link it to apps via the "From Project" modal (it's already in the pool). On rotation, existing end-user tokens become invalid.</p>
+      </div>
+
+      <!-- Endpoints -->
+      <div class="space-y-2 pt-1">
+        <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Endpoints</span>
+        @for (ep of [
+          { label: 'Register', url: i.registerEndpoint },
+          { label: 'Login', url: i.loginEndpoint },
+          { label: 'Refresh', url: i.refreshEndpoint },
+          { label: 'Logout', url: i.logoutEndpoint },
+          { label: 'Verify token', url: i.verifyTokenEndpoint },
+          { label: 'Verify key', url: i.verifyKeyEndpoint }
+        ]; track ep.label) {
+          <div class="flex items-center gap-2">
+            <span class="w-24 text-[10px] text-zinc-500 shrink-0">{{ ep.label }}</span>
+            <code class="flex-1 px-2.5 py-1.5 text-[11px] bg-black border border-zinc-850 rounded text-zinc-400 select-all truncate">{{ ep.url }}</code>
+            <button (click)="parent.copyText(ep.url, ep.label)" class="px-2 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-500 hover:text-white text-[10px] font-semibold cursor-pointer shrink-0">Copy</button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Snippet -->
+    <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 space-y-3 shadow-sm">
+      <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+        <h4 class="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">Integration example (Express)</h4>
+        <button (click)="parent.copyText(parent.integrationSnippet(), 'Snippet')" class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold cursor-pointer">Copy</button>
+      </div>
+      <pre class="text-[11px] leading-relaxed text-zinc-300 bg-black border border-zinc-900 rounded p-3.5 overflow-x-auto whitespace-pre">{{ parent.integrationSnippet() }}</pre>
+    </div>
+  } @else if (!parent.loading()) {
+    <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-10 text-center text-[11px] text-zinc-600">Select an application to view integration data.</div>
+  }
+</div>

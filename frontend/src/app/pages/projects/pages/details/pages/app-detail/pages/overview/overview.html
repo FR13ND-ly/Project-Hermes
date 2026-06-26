@@ -1,0 +1,311 @@
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-6 animate-fade-in" *ngIf="parent.app()">
+
+  <!-- Left Column: Preview Screenshot & Deployments -->
+  <div class="lg:col-span-3 space-y-6">
+    
+    <!-- Preview Screenshot Card -->
+    <div class="space-y-2">
+      <div class="flex items-center justify-between">
+        <h3 class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider font-mono">App Preview</h3>
+        <button
+          (click)="parent.onRecaptureScreenshot()"
+          [disabled]="parent.recapturingScreenshot() || parent.getSelectedInstance()?.status !== 'running'"
+          class="px-2.5 py-1 rounded border border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 hover:text-white text-[10px] font-semibold cursor-pointer transition-all font-mono disabled:opacity-50 flex items-center gap-1.5"
+          title="Render a fresh screenshot of the running app"
+        >
+          @if (parent.recapturingScreenshot()) {
+            <svg class="animate-spin h-3 w-3 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            Capturing...
+          } @else {
+            ↻ Refresh
+          }
+        </button>
+      </div>
+
+      <div class="relative rounded-lg border border-zinc-800 bg-[#0a0a0a] overflow-hidden aspect-[16/10]">
+        @if (parent.hasScreenshot()) {
+          <a [href]="parent.publicUrl() || parent.screenshotUrl()" target="_blank" class="block w-full h-full group">
+            <img [src]="parent.screenshotUrl()" alt="Application preview" class="w-full h-full object-cover object-top transition-transform group-hover:scale-[1.01]" />
+          </a>
+        } @else {
+          <div class="absolute inset-0 flex flex-col items-center justify-center text-center gap-2 px-6">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.2" stroke="currentColor" class="w-10 h-10 text-zinc-700">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+            </svg>
+            <p class="text-[11px] text-zinc-555 font-mono">
+              @if (parent.getSelectedInstance()?.status === 'running') {
+                No preview yet — capture one with "↻ Refresh".
+              } @else {
+                A preview is captured automatically once the app is deployed and running.
+              }
+            </p>
+          </div>
+        }
+      </div>
+      @if (parent.getSelectedInstance()?.screenshotCapturedAt; as cap) {
+        <p class="text-[9px] text-zinc-650 font-mono">Captured {{ cap | date:'dd.MM.yyyy HH:mm' }}</p>
+      }
+    </div>
+
+    <!-- Active Branch Deployments (Instances) Card -->
+    <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 shadow-sm space-y-4 font-mono">
+      <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+          <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Active Deployments (Branches)</h3>
+        </div>
+        <span class="text-[9px] text-zinc-555 font-mono">{{ (parent.app()?.instances || []).length }} active</span>
+      </div>
+
+      <div class="space-y-3">
+        @for (inst of parent.app()?.instances; track inst.id) {
+          <div 
+            class="p-3 bg-black/40 border border-zinc-900 rounded-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors hover:border-zinc-800 cursor-pointer"
+            (click)="parent.onInstanceChange(inst.id)"
+            [class.border-zinc-700]="inst.id === parent.activeInstanceId()"
+            [class.bg-zinc-950/20]="inst.id === parent.activeInstanceId()"
+          >
+            <div class="space-y-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-extrabold text-zinc-200">{{ inst.branchName }}</span>
+                <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border tracking-wider uppercase font-mono"
+                      [ngClass]="{
+                        'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': inst.status === 'running',
+                        'bg-amber-950/20 border-amber-900/30 text-amber-400': inst.status === 'building',
+                        'bg-red-950/20 border-red-900/30 text-red-400': inst.status === 'failed' || inst.status === 'crashed',
+                        'bg-zinc-900 border-zinc-800 text-zinc-500': inst.status === 'stopped'
+                      }">
+                  {{ inst.status }}
+                </span>
+                @if (inst.id === parent.activeInstanceId()) {
+                  <span class="px-1 py-0.2 rounded bg-indigo-950/40 border border-indigo-900/30 text-indigo-400 text-[6px] font-bold uppercase tracking-wider">Selected</span>
+                }
+              </div>
+              <div class="text-[10px] text-zinc-555 truncate max-w-md font-mono select-all">
+                @if (inst.assignedDomain) {
+                  <a [href]="'https://' + inst.assignedDomain" target="_blank" class="text-indigo-400 hover:underline" (click)="$event.stopPropagation()">
+                    https://{{ inst.assignedDomain }}
+                  </a>
+                } @else if (inst.externalPort) {
+                  <a [href]="'http://localhost:' + inst.externalPort" target="_blank" class="text-indigo-400 hover:underline" (click)="$event.stopPropagation()">
+                    http://localhost:{{ inst.externalPort }}
+                  </a>
+                } @else {
+                  <span class="text-zinc-650">No public route</span>
+                }
+                <span class="text-zinc-700 mx-1.5">|</span>
+                <span class="text-zinc-500 text-[9px]">{{ inst.networkAlias || parent.stripHash(inst.containerName) }}:{{ inst.internalPort }}</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 text-[10px] text-zinc-500 shrink-0 font-mono">
+              <div class="flex flex-col text-right">
+                <span>CPU: {{ inst.cpuLimit || 500 }}m</span>
+                <span>RAM: {{ inst.memoryLimitMb || 1024 }}Mi</span>
+              </div>
+            </div>
+          </div>
+        } @empty {
+          <div class="text-center py-6 text-xs text-zinc-650 font-mono">
+            No active deployments found. Start a deploy using a git branch.
+          </div>
+        }
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right Column: Specs/Resources & Build History -->
+  <div class="lg:col-span-2 space-y-6">
+    
+    <!-- Specs & Resources Card -->
+    <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 space-y-4 font-mono shadow-sm">
+      <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
+          <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Service Specs & Resources</h3>
+        </div>
+        <a [routerLink]="['../general']" class="text-[9px] text-zinc-500 hover:text-white cursor-pointer uppercase tracking-wider">Configure →</a>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="text-zinc-600">CPU Quota</span>
+          <span class="text-zinc-300 font-semibold">{{ parent.cpuLimit() ? parent.cpuLimit() + ' mCPU' : 'Shared / Uncapped' }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-zinc-600">Memory Limit</span>
+          <span class="text-zinc-300 font-semibold">{{ parent.memLimit() ? parent.memLimit() + ' MB' : 'Shared / Uncapped' }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-zinc-600">Replicas</span>
+          <span class="text-zinc-300 font-semibold">{{ parent.replicasMin() }} – {{ parent.replicasMax() }} pod(s)</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-zinc-600">Autoscale CPU</span>
+          <span class="text-zinc-300 font-semibold">{{ parent.autoscaleCpuPercent() }}% threshold</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-zinc-600">Internal Port</span>
+          <span class="text-zinc-300 font-mono font-semibold">{{ parent.internalPort() }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-zinc-600">Auto-Sleep</span>
+          <span class="text-zinc-300 font-semibold">
+            @if (parent.autoSleepEnabled()) {
+              Active (after {{ parent.autoSleepAfterMinutes() }}m inactivity)
+            } @else {
+              Disabled
+            }
+          </span>
+        </div>
+        @if (parent.buildCommand()) {
+          <div class="flex flex-col gap-1 border-t border-zinc-950 pt-2.5">
+            <span class="text-zinc-600 text-[10px] uppercase font-bold tracking-wider">Build Command</span>
+            <code class="text-[10px] text-zinc-400 bg-black/60 p-1.5 rounded border border-zinc-900 block truncate select-all">{{ parent.buildCommand() }}</code>
+          </div>
+        }
+        @if (parent.startCommand()) {
+          <div class="flex flex-col gap-1 border-t border-zinc-950 pt-1">
+            <span class="text-zinc-600 text-[10px] uppercase font-bold tracking-wider">Start Command</span>
+            <code class="text-[10px] text-zinc-400 bg-black/60 p-1.5 rounded border border-zinc-900 block truncate select-all">{{ parent.startCommand() }}</code>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Domains & Routing Card -->
+    <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 space-y-4 font-mono shadow-sm">
+      <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+          <h3 class="text-xs font-bold text-zinc-355 uppercase tracking-wider">Domains & Routing</h3>
+        </div>
+        <button 
+          (click)="parent.onOpenAddDomainModal()" 
+          class="px-2 py-0.5 rounded border border-zinc-800 bg-zinc-900 hover:bg-zinc-850 text-[9px] text-zinc-450 hover:text-white uppercase font-bold tracking-wide transition-all cursor-pointer"
+        >
+          + Add Domain
+        </button>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        <!-- Custom Domains -->
+        <div class="space-y-2">
+          <span class="text-[10px] text-zinc-555 uppercase font-bold tracking-wider">Custom Domains</span>
+          @for (dom of parent.domains(); track dom.id) {
+            <div class="bg-black/35 border border-zinc-900 p-2.5 rounded flex items-center justify-between gap-3 shadow-inner">
+              <div class="space-y-0.5 min-w-0">
+                <div class="flex items-center gap-2">
+                  <a [href]="'https://' + dom.fqdn" target="_blank" class="text-indigo-400 hover:underline font-bold truncate select-all">{{ dom.fqdn }}</a>
+                  <span class="px-1 py-0.1 rounded text-[6px] border font-mono uppercase font-bold"
+                        [ngClass]="{
+                          'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': dom.status === 'active',
+                          'bg-amber-950/20 border-amber-900/30 text-amber-400': dom.status === 'pending_verification',
+                          'bg-red-950/20 border-red-900/30 text-red-400': dom.status === 'failed'
+                        }">
+                    {{ dom.status }}
+                  </span>
+                </div>
+                <div class="text-[9px] text-zinc-600 font-mono">
+                  SSL: {{ dom.isSsl ? 'Active (Auto-TLS)' : 'Off' }} · Max body: {{ dom.clientMaxBodySize }}MB
+                </div>
+              </div>
+              <button 
+                (click)="parent.onRemoveDomain(dom.id)"
+                class="p-1 rounded bg-black hover:bg-red-950/30 text-zinc-555 hover:text-red-400 border border-zinc-900 hover:border-red-900/30 cursor-pointer transition-colors"
+                title="Remove Domain Association"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+              </button>
+            </div>
+          } @empty {
+            <div class="text-[9px] text-zinc-655 font-mono italic">No custom domains associated.</div>
+          }
+        </div>
+
+        <!-- Mapped Routing Links (Default) -->
+        <div class="space-y-2 border-t border-zinc-950 pt-3">
+          <span class="text-[10px] text-zinc-555 uppercase font-bold tracking-wider">Default / local routes</span>
+          <div class="space-y-2">
+            @for (inst of parent.app()?.instances; track inst.id) {
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-zinc-600 font-mono">{{ inst.branchName }}:</span>
+                <div class="flex items-center gap-1.5 min-w-0">
+                  @if (inst.assignedDomain) {
+                    <a [href]="'https://' + inst.assignedDomain" target="_blank" class="text-indigo-400 hover:underline truncate max-w-[150px] font-mono select-all">{{ inst.assignedDomain }}</a>
+                  } @else if (inst.externalPort) {
+                    <a [href]="'http://localhost:' + inst.externalPort" target="_blank" class="text-indigo-400 hover:underline truncate font-mono select-all">localhost:{{ inst.externalPort }}</a>
+                  } @else {
+                    <span class="text-zinc-655 italic">None</span>
+                  }
+                </div>
+              </div>
+            } @empty {
+              <div class="text-[9px] text-zinc-655 font-mono italic">No active routes. Expose application or deploy a branch.</div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Build History Card -->
+    <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 space-y-4 font-mono shadow-sm">
+      <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
+          <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Build History</h3>
+        </div>
+        <a [routerLink]="['../builds']" class="text-[9px] text-zinc-500 hover:text-white cursor-pointer uppercase tracking-wider">All Builds →</a>
+      </div>
+
+      <div class="space-y-3">
+        @for (b of parent.builds().slice(0, 4); track b.id) {
+          <div class="p-2.5 bg-black/30 border border-zinc-900 rounded flex flex-col gap-1.5">
+            <div class="flex items-center justify-between text-[11px]">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-zinc-400 font-semibold">{{ b.branchName }}</span>
+                @if (b.commitSha) {
+                  <span class="text-[10px] text-zinc-600 font-mono">{{ b.commitSha.substring(0, 7) }}</span>
+                }
+              </div>
+              <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border tracking-wider uppercase font-mono"
+                    [ngClass]="{
+                      'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': b.status === 'succeeded',
+                      'bg-amber-950/20 border-amber-900/30 text-amber-400': b.status === 'building' || b.status === 'queued',
+                      'bg-red-950/20 border-red-900/30 text-red-400': parent.isBuildFailed(b)
+                    }">
+                {{ b.status }}
+              </span>
+            </div>
+            
+            @if (b.commitMessage) {
+              <p class="text-[10px] text-zinc-500 truncate" [title]="b.commitMessage">{{ b.commitMessage }}</p>
+            }
+
+            <div class="flex items-center justify-between text-[9px] text-zinc-600 pt-1 border-t border-zinc-900/50">
+              <span>{{ b.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
+              <a 
+                [routerLink]="['../builds']"
+                (click)="parent.onViewBuildLogs(b)" 
+                class="text-[9px] text-indigo-400 hover:text-indigo-300 hover:underline cursor-pointer uppercase font-bold"
+              >
+                Logs
+              </a>
+            </div>
+          </div>
+        } @empty {
+          <div class="text-center py-6 text-xs text-zinc-655 font-mono">
+            No builds recorded.
+          </div>
+        }
+      </div>
+    </div>
+
+  </div>
+</div>

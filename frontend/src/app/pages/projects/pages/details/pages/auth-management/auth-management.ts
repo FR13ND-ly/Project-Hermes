@@ -1,5 +1,5 @@
 import { Component, inject, signal, effect, computed } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Details } from '../../details';
@@ -11,7 +11,7 @@ import { ConfirmService } from '../../../../../../core/services/confirm.service'
 @Component({
   selector: 'app-auth-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, RouterLink],
+  imports: [CommonModule, FormsModule, DatePipe, RouterLink, RouterOutlet, RouterLinkActive],
   templateUrl: './auth-management.html',
   styleUrl: './auth-management.css',
 })
@@ -19,7 +19,7 @@ export class AuthManagement {
   readonly parent = inject(Details);
   private readonly authMgmtService = inject(AuthManagementService);
   private readonly projectService = inject(ProjectService);
-  private readonly toast = inject(ToastService);
+  readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
 
 
@@ -150,21 +150,12 @@ export const requireRole = (role) => (req, res, next) =>
       if (activeApp) {
         this.currentPage.set(1);
         this.searchQuery.set('');
-        this.loadActiveTabData();
+        // Child route components will load their own data on init
       } else {
         this.users.set([]);
         this.apiKeys.set([]);
         this.totalUsers.set(0);
         this.totalPages.set(0);
-      }
-    });
-
-    // Reload tab data when tab changes
-    effect(() => {
-      const tab = this.activeTab();
-      const activeApp = this.selectedService();
-      if (activeApp && tab) {
-        this.loadActiveTabData();
       }
     });
   }
@@ -189,7 +180,6 @@ export const requireRole = (role) => (req, res, next) =>
 
   selectService(svc: BaasService): void {
     if (this.selectedService()?.id === svc.id) return;
-    this.activeTab.set('users');
     this.selectedService.set(svc);
   }
 

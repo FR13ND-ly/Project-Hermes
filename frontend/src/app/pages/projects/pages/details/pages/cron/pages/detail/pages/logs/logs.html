@@ -1,0 +1,82 @@
+<div class="space-y-4 animate-fade-in font-mono">
+  @if (parent.cronLogsLoading()) {
+    <div class="flex flex-col items-center justify-center py-16 space-y-3">
+      <svg class="animate-spin h-5 w-5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+      </svg>
+      <span class="text-xs text-zinc-500 font-mono">Loading execution history...</span>
+    </div>
+  } @else if (parent.cronLogs().length === 0) {
+    <div class="text-center py-12 border border-dashed border-zinc-900 rounded-lg space-y-2 font-sans">
+      <span class="text-zinc-700 block">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 mx-auto">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </span>
+      <p class="text-xs text-zinc-555 font-medium">No runs recorded yet.</p>
+    </div>
+  } @else {
+    <div class="space-y-3.5">
+      @for (log of parent.cronLogs(); track log.id) {
+        <div class="border border-zinc-900 bg-black/20 rounded-md overflow-hidden">
+          <!-- Log Header Bar -->
+          <div class="flex items-center justify-between p-3 bg-zinc-950/80 border-b border-zinc-900 font-mono text-[10px]">
+            <div class="flex items-center gap-2.5">
+              <span 
+                class="px-2 py-0.5 rounded text-[8px] font-bold border"
+                [class]="(log.exitCode !== undefined ? log.exitCode : log.exit_code) === 0 ? 'bg-emerald-950/30 border-emerald-500/20 text-emerald-400' : 'bg-red-955/30 border-red-500/20 text-red-400'"
+              >
+                EXIT CODE {{ log.exitCode !== undefined ? log.exitCode : log.exit_code }}
+              </span>
+              <span class="text-zinc-505 font-sans">Duration: <strong class="text-zinc-350 font-mono">{{ parent.getDurationSec(log.startedAt || log.started_at, log.finishedAt || log.finished_at) }}</strong></span>
+            </div>
+            <div class="text-zinc-505 flex items-center gap-3">
+              <span>Started: {{ (log.startedAt || log.started_at) | date:'dd MMM yyyy, HH:mm:ss' }}</span>
+              <span>&bull;</span>
+              <span>Finished: {{ (log.finishedAt || log.finished_at) | date:'dd MMM yyyy, HH:mm:ss' }}</span>
+            </div>
+          </div>
+          <!-- Log Output Panel -->
+          <div class="p-3.5 bg-black/70 font-mono text-[10px] text-zinc-300 overflow-x-auto max-h-48">
+            <pre class="leading-relaxed select-all"><code>{{ log.output || '(No output in stdout/stderr)' }}</code></pre>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Pagination Controls -->
+    @if (parent.totalPages() > 1) {
+      <div class="flex items-center justify-between border-t border-zinc-900 pt-4 font-sans text-xs">
+        <span class="text-zinc-505 font-mono">
+          Showing logs <strong class="text-white">{{ (parent.currentPage() - 1) * parent.pageSize() + 1 }}</strong> - <strong class="text-white">{{ (parent.currentPage() * parent.pageSize() > parent.totalLogs() ? parent.totalLogs() : parent.currentPage() * parent.pageSize()) }}</strong> of <strong class="text-white">{{ parent.totalLogs() }}</strong>
+        </span>
+        <div class="flex items-center gap-1.5 font-mono">
+          <button 
+            [disabled]="parent.currentPage() === 1"
+            (click)="parent.onPageChange(parent.currentPage() - 1)"
+            class="px-2.5 py-1.5 rounded border border-zinc-850 bg-zinc-955 text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-zinc-900 transition-colors flex items-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+          
+          <span class="px-3 py-1.5 text-zinc-400 font-semibold select-none">
+            Page {{ parent.currentPage() }} of {{ parent.totalPages() }}
+          </span>
+
+          <button 
+            [disabled]="parent.currentPage() === parent.totalPages()"
+            (click)="parent.onPageChange(parent.currentPage() + 1)"
+            class="px-2.5 py-1.5 rounded border border-zinc-850 bg-zinc-955 text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-zinc-900 transition-colors flex items-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    }
+  }
+</div>
