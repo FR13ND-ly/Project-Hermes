@@ -385,14 +385,15 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       this.appId.set(aId);
       this.loadAppDetails();
     });
-
     this.route.queryParams.subscribe(params => {
       const tab = params['tab'];
       if (tab && ['overview', 'telemetry', 'builds', 'logs', 'terminal', 'general', 'env', 'advanced'].includes(tab)) {
         this.activeSubTab.set(tab as any);
+        if (tab === 'terminal') {
+          this.focusTerminalInput();
+        }
       }
     });
-
     // Start ticker for live duration calculations
     this.tickerInterval = setInterval(() => {
       this.timeTicker.set(Date.now());
@@ -591,7 +592,6 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       this.loadEnvVariables();
     }
   }
-
   onSubTabChange(tab: 'overview' | 'telemetry' | 'builds' | 'logs' | 'terminal' | 'general' | 'env' | 'advanced'): void {
     this.activeSubTab.set(tab);
     if (tab !== 'builds') {
@@ -602,13 +602,15 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         this.onViewBuildLogs(this.builds()[0]);
       }
     }
+    if (tab === 'terminal') {
+      this.focusTerminalInput();
+    }
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { tab },
       queryParamsHandling: 'merge'
     });
   }
-
   deployBranch(): void {
     const appId = this.appId();
     if (!appId || !this.newBranchName()) return;
@@ -1515,6 +1517,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   readonly terminalInput = signal('');
   readonly executingCommand = signal(false);
   readonly terminalLines = signal<{ type: 'input' | 'output' | 'error', text: string }[]>([]);
+  readonly terminalCwd = signal('');
 
   onTerminalSubmit(event: Event): void {
     event.preventDefault();
@@ -1531,26 +1534,44 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     if (!appId || !instId) {
       this.executingCommand.set(false);
       this.terminalLines.update(lines => [...lines, { type: 'error', text: 'Error: No active instance selected.' }]);
+      this.focusTerminalInput();
       return;
     }
 
-    this.projectService.execCommand(appId, instId, cmd).subscribe({
+    this.projectService.execCommand(appId, instId, cmd, this.terminalCwd()).subscribe({
       next: (res) => {
         this.executingCommand.set(false);
+        this.terminalCwd.set(res.cwd);
         this.terminalLines.update(lines => [...lines, { type: 'output', text: res.output }]);
         this.scrollTerminalToBottom();
+        this.focusTerminalInput();
       },
       error: (err) => {
         this.executingCommand.set(false);
         const errMsg = err.error?.message || err.error?.error?.message || 'Failed to execute command.';
         this.terminalLines.update(lines => [...lines, { type: 'error', text: errMsg }]);
         this.scrollTerminalToBottom();
+        this.focusTerminalInput();
       }
     });
   }
 
   clearTerminal(): void {
     this.terminalLines.set([]);
+    this.focusTerminalInput();
+  }
+
+  resetTerminal(): void {
+    this.terminalLines.set([]);
+    this.terminalCwd.set('');
+    this.focusTerminalInput();
+  }
+
+  focusTerminalInput(): void {
+    setTimeout(() => {
+      const el = document.getElementById('terminal-input-field');
+      if (el) el.focus();
+    }, 50);
   }
 
   private scrollTerminalToBottom(): void {
@@ -1560,3 +1581,5 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     }, 50);
   }
 }
+
+

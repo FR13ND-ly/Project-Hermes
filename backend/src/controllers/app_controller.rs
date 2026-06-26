@@ -2474,11 +2474,13 @@ async fn handle_instance_log_socket(
 #[derive(serde::Deserialize)]
 pub struct ExecCommandRequest {
     pub command: String,
+    pub cwd: Option<String>,
 }
 
 #[derive(serde::Serialize)]
 pub struct ExecCommandResponse {
     pub output: String,
+    pub cwd: String,
 }
 
 pub async fn exec_command_in_pod(
@@ -2518,8 +2520,27 @@ pub async fn exec_command_in_pod(
         .ok_or_else(|| AppError::Validation("No active running pods found for this instance.".to_string()))?;
     let pod_name = pod.metadata.name.ok_or_else(|| AppError::Infrastructure("Pod name is missing".to_string()))?;
 
-    let cmd_vec = vec!["/bin/sh".to_string(), "-c".to_string(), payload.command.clone()];
+    let cwd = payload.cwd.clone().unwrap_or_default();
+    let safe_cwd = cwd.replace("'", "'\\''");
+    let full_command = if safe_cwd.is_empty() {
+        format!("({}) 2>&1 ; echo -n '___HERMES_CWD___' ; pwd", payload.command)
+    } else {
+        format!("cd '{}' && ({}) 2>&1 ; echo -n '___HERMES_CWD___' ; pwd", safe_cwd, payload.command)
+    };
+
+    let cmd_vec = vec!["/bin/sh".to_string(), "-c".to_string(), full_command];
     let output = crate::utils::k8s::K8sManager::exec_in_pod(&k8s_client, &namespace, &pod_name, cmd_vec).await?;
 
-    Ok(Json(ExecCommandResponse { output }))
+    let (clean_output, new_cwd) = if let Some(idx) = output.rfind("___HERMES_CWD___") {
+        let (out, cwd_part) = output.split_at(idx);
+        let cwd_val = cwd_part.trim_start_matches("___HERMES_CWD___").trim().to_string();
+        (out.to_string(), cwd_val)
+    } else {
+        (output, cwd)
+    };
+
+    Ok(Json(ExecCommandResponse {
+        output: clean_output,
+        cwd: new_cwd,
+    }))
 }

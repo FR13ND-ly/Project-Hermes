@@ -425,8 +425,8 @@ export class ProjectService {
     return this.api.post<any>(`/apps/${appId}/instances/${instanceId}/reload`, {});
   }
 
-  execCommand(appId: string, instanceId: string, command: string): Observable<{ output: string }> {
-    return this.api.post<{ output: string }>(`/apps/${appId}/instances/${instanceId}/exec`, { command });
+  execCommand(appId: string, instanceId: string, command: string, cwd?: string): Observable<{ output: string, cwd: string }> {
+    return this.api.post<{ output: string, cwd: string }>(`/apps/${appId}/instances/${instanceId}/exec`, { command, cwd });
   }
 
   // --- Cron Jobs API ---

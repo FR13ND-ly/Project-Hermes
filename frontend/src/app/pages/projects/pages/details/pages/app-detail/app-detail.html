@@ -1186,8 +1186,16 @@
             <button 
               (click)="clearTerminal()"
               class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border border-zinc-850 bg-black hover:border-zinc-500 text-zinc-400 hover:text-white transition-all cursor-pointer"
+              title="Clear visible output history but keep directory context"
             >
               Clear Screen
+            </button>
+            <button 
+              (click)="resetTerminal()"
+              class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border border-zinc-850 bg-black hover:border-zinc-500 text-zinc-400 hover:text-white transition-all cursor-pointer"
+              title="Clear history and reset directory back to container root"
+            >
+              Reset Session
             </button>
           </div>
         </div>
@@ -1227,8 +1235,11 @@
 
           <form (submit)="onTerminalSubmit($event)" class="flex gap-2">
             <div class="flex-1 flex items-center bg-black border border-zinc-800 focus-within:border-zinc-700 rounded px-3 py-2 font-mono text-xs">
-              <span class="text-indigo-400 font-bold mr-2 select-none">$</span>
+              <span class="text-indigo-400 font-bold mr-2 select-none truncate max-w-[200px]" [title]="terminalCwd() || '/'">
+                {{ terminalCwd() || '/' }} $
+              </span>
               <input 
+                id="terminal-input-field"
                 type="text" 
                 placeholder="e.g. ls -la, df -h, env..."
                 [ngModel]="terminalInput()"
