@@ -242,11 +242,11 @@ pub async fn try_register_github_webhook(
                 })
             };
 
-            let _ = sqlx::query(
-                "UPDATE app_instances SET meta_data = jsonb_set(meta_data, '{github_webhook}', $1::jsonb, true) WHERE id = $2"
+            let _ = sqlx::query!(
+                "UPDATE app_instances SET meta_data = jsonb_set(meta_data, '{github_webhook}', $1::jsonb, true) WHERE id = $2",
+                webhook_status,
+                inst_id
             )
-            .bind(webhook_status)
-            .bind(inst_id)
             .execute(&pool)
             .await;
 
@@ -257,21 +257,18 @@ pub async fn try_register_github_webhook(
             };
 
             for _ in 0..5 {
-                use sqlx::Row;
-                if let Ok(Some(row)) = sqlx::query(
-                    "SELECT id, logs FROM app_builds WHERE app_instance_id = $1 ORDER BY created_at DESC LIMIT 1"
+                if let Ok(Some(build_rec)) = sqlx::query!(
+                    "SELECT id, logs FROM app_builds WHERE app_instance_id = $1 ORDER BY created_at DESC LIMIT 1",
+                    inst_id
                 )
-                .bind(inst_id)
                 .fetch_optional(&pool)
                 .await {
-                    let build_rec_id: uuid::Uuid = row.get("id");
-                    let mut updated_logs: String = row.get("logs");
+                    let mut updated_logs = build_rec.logs;
                     updated_logs.push_str(&log_line);
-                    let _ = sqlx::query(
-                        "UPDATE app_builds SET logs = $1 WHERE id = $2"
+                    let _ = sqlx::query!(
+                        "UPDATE app_builds SET logs = $1 WHERE id = $2",
+                        updated_logs, build_rec.id
                     )
-                    .bind(updated_logs)
-                    .bind(build_rec_id)
                     .execute(&pool)
                     .await;
                     break;
