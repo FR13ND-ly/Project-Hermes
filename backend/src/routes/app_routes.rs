@@ -21,6 +21,7 @@ pub fn routes(state: AppState) -> Router {
         .route("/apps/:id/instances/:instance_id/logs/ws", get(app_controller::stream_instance_logs_ws))
         .route("/apps/:id/instances/:instance_id/stats", get(app_controller::stream_instance_stats))
         .route("/apps/:id/instances/:instance_id/metrics", get(app_controller::get_instance_metrics))
+        .route("/apps/:id/instances/:instance_id/network-observability", get(app_controller::get_instance_network_observability))
         .route("/apps/:id/instances/:instance_id/screenshot", get(app_controller::get_instance_screenshot))
         .route("/apps/:id/builds", get(app_controller::list_app_builds))
         .route("/apps/:id/builds/:build_id", get(app_controller::get_build_details))

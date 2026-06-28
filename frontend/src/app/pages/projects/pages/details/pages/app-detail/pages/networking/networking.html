@@ -1,0 +1,227 @@
+<div class="space-y-6 animate-fade-in font-mono" *ngIf="parent.app()">
+
+  <!-- 1. Real-time Traffic Metrics Dashboard -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Requests Rate Widget -->
+    <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm relative overflow-hidden">
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Traffic Load</span>
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" *ngIf="data?.traffic?.requestRate !== null"></span>
+      </div>
+      <div class="space-y-1">
+        <p class="text-2xl font-black text-white">
+          {{ data?.traffic?.requestRate !== null ? (data?.traffic?.requestRate | number:'1.1-2') + ' r/s' : 'N/A' }}
+        </p>
+        <p class="text-[9px] text-zinc-500">Average incoming requests per second (last 5m)</p>
+      </div>
+      <span class="absolute right-3 bottom-3 text-[10px] text-zinc-700 font-bold opacity-30 select-none">TRAFFIC</span>
+    </div>
+
+    <!-- Latency Widget -->
+    <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm relative overflow-hidden">
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Response Latency</span>
+        <span class="text-[8px] text-zinc-550 font-sans" *ngIf="data?.traffic?.latencyMs !== null">Average</span>
+      </div>
+      <div class="space-y-1">
+        <p class="text-2xl font-black text-white">
+          {{ data?.traffic?.latencyMs !== null ? (data?.traffic?.latencyMs | number:'1.0-0') + ' ms' : 'N/A' }}
+        </p>
+        <p class="text-[9px] text-zinc-500">Round-trip latency through Traefik proxy</p>
+      </div>
+      <span class="absolute right-3 bottom-3 text-[10px] text-zinc-700 font-bold opacity-30 select-none">LATENCY</span>
+    </div>
+
+    <!-- Success Rate / HTTP Responses Breakdown -->
+    <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm relative overflow-hidden">
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Response Status Codes</span>
+        <span class="text-[8px] text-emerald-400 font-bold" *ngIf="data?.traffic?.requestRate > 0 && !data?.traffic?.status5xx">100% Ok</span>
+      </div>
+      
+      <div class="space-y-2">
+        <div class="h-2 rounded bg-zinc-900 overflow-hidden flex" *ngIf="data?.traffic?.requestRate > 0; else noTraffic">
+          <div [style.width.%]="getTrafficClassRatio(data?.traffic?.status2xx)" class="h-full bg-emerald-500" title="2xx Success"></div>
+          <div [style.width.%]="getTrafficClassRatio(data?.traffic?.status3xx)" class="h-full bg-indigo-500" title="3xx Redirect"></div>
+          <div [style.width.%]="getTrafficClassRatio(data?.traffic?.status4xx)" class="h-full bg-amber-500" title="4xx Client Error"></div>
+          <div [style.width.%]="getTrafficClassRatio(data?.traffic?.status5xx)" class="h-full bg-red-500" title="5xx Server Error"></div>
+        </div>
+        <ng-template #noTraffic>
+          <div class="h-2 rounded bg-zinc-900/60 border border-dashed border-zinc-800"></div>
+        </ng-template>
+
+        <div class="flex items-center justify-between text-[8px] text-zinc-500 font-sans">
+          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded bg-emerald-500"></span> 2xx Success ({{ (data?.traffic?.status2xx || 0) | number:'1.1-2' }} r/s)</span>
+          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded bg-red-500"></span> 5xx Errors ({{ (data?.traffic?.status5xx || 0) | number:'1.1-2' }} r/s)</span>
+        </div>
+      </div>
+      <span class="absolute right-3 bottom-3 text-[10px] text-zinc-700 font-bold opacity-30 select-none">HTTP CODES</span>
+    </div>
+  </div>
+
+  <!-- 2. Dynamic Connection / Routing Map -->
+  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-6 shadow-sm">
+    <div class="border-b border-zinc-900 pb-2.5">
+      <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Live Request Routing Map</h3>
+      <p class="text-[10px] text-zinc-555 mt-0.5 font-mono">Visualization of traffic flow from the internet to your app's containers</p>
+    </div>
+
+    <!-- Visual Graph Layout -->
+    <div class="flex flex-col lg:flex-row items-center justify-center gap-8 py-4 font-mono">
+      
+      <!-- Box 1: Internet / Ingress -->
+      <div class="w-full lg:w-64 bg-black/40 border border-zinc-900 p-4 rounded-md flex flex-col items-center text-center gap-1.5 shadow-inner">
+        <div class="w-6 h-6 rounded-full bg-indigo-950/40 border border-indigo-900/30 flex items-center justify-center text-indigo-400 text-xs font-sans">🌐</div>
+        <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Public Entrypoint</span>
+        <a *ngIf="data?.ingress?.fqdn; else noDomain" [href]="'https://' + data.ingress.fqdn" target="_blank" class="text-xs text-indigo-400 font-bold hover:underline select-all truncate max-w-[200px]">
+          {{ data.ingress.fqdn }}
+        </a>
+        <ng-template #noDomain>
+          <span class="text-xs text-zinc-600 italic">No custom domain mapped</span>
+        </ng-template>
+        <span class="px-1.5 py-0.2 rounded text-[7px] border font-bold uppercase tracking-wider" 
+              [ngClass]="data?.ingress?.status === 'active' ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-400' : 'bg-zinc-900 border-zinc-800 text-zinc-650'">
+          {{ data?.ingress?.status === 'active' ? 'Traefik Active' : 'No Domain Active' }}
+        </span>
+      </div>
+
+      <!-- Arrow 1 (down on mobile, right on desktop) -->
+      <div class="flex flex-col items-center justify-center text-zinc-700">
+        <span class="hidden lg:block text-sm">➔</span>
+        <span class="lg:hidden text-sm">▼</span>
+      </div>
+
+      <!-- Box 2: Kubernetes Service -->
+      <div class="w-full lg:w-64 bg-black/40 border border-zinc-900 p-4 rounded-md flex flex-col items-center text-center gap-1.5 shadow-inner">
+        <div class="w-6 h-6 rounded-full bg-purple-950/40 border border-purple-900/30 flex items-center justify-center text-purple-400 text-xs font-sans">⚙️</div>
+        <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Kubernetes Service</span>
+        <span class="text-xs text-zinc-350 font-bold select-all truncate max-w-[200px]">{{ data?.service?.name || parent.getSelectedInstance()?.containerName }}</span>
+        <span class="text-[9px] text-zinc-500 font-mono">Routing Port: {{ data?.service?.port }}</span>
+        <span class="px-1.5 py-0.2 rounded text-[7px] bg-purple-950/20 border border-purple-900/30 text-purple-400 font-bold uppercase tracking-wider font-mono">
+          {{ data?.service?.endpoints?.length || 0 }} backend target(s)
+        </span>
+      </div>
+
+      <!-- Arrow 2 -->
+      <div class="flex flex-col items-center justify-center text-zinc-700">
+        <span class="hidden lg:block text-sm">➔</span>
+        <span class="lg:hidden text-sm">▼</span>
+      </div>
+
+      <!-- Box 3: Target Pods -->
+      <div class="w-full lg:w-64 bg-black/40 border border-zinc-900 p-4 rounded-md flex flex-col items-center text-center gap-1.5 shadow-inner">
+        <div class="w-6 h-6 rounded-full bg-emerald-950/40 border border-emerald-900/30 flex items-center justify-center text-emerald-400 text-xs font-sans">📦</div>
+        <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider font-mono">Active Containers (Pods)</span>
+        <span class="text-xs text-zinc-300 font-bold">{{ data?.pods?.length || 0 }} Running Pod(s)</span>
+        
+        <!-- Pod IPs preview -->
+        <div class="flex flex-wrap gap-1 items-center justify-center pt-0.5 max-w-[200px]" *ngIf="data?.pods?.length > 0">
+          <span *ngFor="let pod of data.pods" class="px-1 py-0.1 bg-zinc-900 text-zinc-400 text-[8px] rounded border border-zinc-800">
+            {{ pod.ip || 'Pending IP' }}
+          </span>
+        </div>
+        <span class="px-1.5 py-0.2 rounded text-[7px] font-bold uppercase tracking-wider"
+              [ngClass]="data?.service?.endpoints?.length > 0 ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-400' : 'bg-red-950/20 border-red-900/30 text-red-400'">
+          {{ data?.service?.endpoints?.length > 0 ? 'Routing OK' : 'No Targets Available' }}
+        </span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 3. Active Load Balancer Routing Targets (Endpoints) -->
+  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-3.5 shadow-sm">
+    <div class="border-b border-zinc-900 pb-2.5">
+      <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Load Balancer Backend Targets</h3>
+      <p class="text-[10px] text-zinc-555 mt-0.5 font-mono">Individual endpoints registered in the service mesh that the Load Balancer forwards requests to</p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+      <div *ngFor="let ep of data?.service?.endpoints" class="p-3 bg-zinc-950 border border-zinc-900 rounded-md flex items-center justify-between shadow-inner">
+        <div class="flex flex-col gap-0.5">
+          <span class="text-[11px] font-extrabold text-zinc-200 select-all">{{ ep }}</span>
+          <span class="text-[8px] text-zinc-650">Target Protocol: TCP</span>
+        </div>
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Ready & active"></span>
+      </div>
+      <div *ngIf="!data?.service?.endpoints || data?.service?.endpoints?.length === 0" class="col-span-full py-4 text-center text-xs text-red-400 border border-dashed border-red-950/40 rounded bg-red-950/5">
+        ⚠️ Warning: No endpoints registered. The Load Balancer has no healthy targets and will return 503 errors!
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Active Pods Details -->
+  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+    <div class="border-b border-zinc-900 pb-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Containers & Pods Status</h3>
+        <p class="text-[10px] text-zinc-555 mt-0.5 font-mono">Active runtime environment instances mapped to Kubernetes cluster nodes</p>
+      </div>
+      <span class="text-[9px] text-zinc-555 shrink-0">{{ data?.pods?.length || 0 }} pods found</span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs border-collapse">
+        <thead>
+          <tr class="border-b border-zinc-900 text-zinc-500 uppercase text-[9px] font-bold tracking-wider">
+            <th class="py-2.5 px-3">Pod Name</th>
+            <th class="py-2.5 px-3">Status</th>
+            <th class="py-2.5 px-3">Ready</th>
+            <th class="py-2.5 px-3">IP Address</th>
+            <th class="py-2.5 px-3">Node</th>
+            <th class="py-2.5 px-3">Restarts</th>
+            <th class="py-2.5 px-3">Age</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let pod of data?.pods" class="border-b border-zinc-900/50 hover:bg-zinc-950/20 transition-colors">
+            <td class="py-3 px-3 font-semibold text-zinc-200 select-all truncate max-w-[220px]" [title]="pod.name">{{ pod.name }}</td>
+            <td class="py-3 px-3">
+              <span class="px-1.5 py-0.2 rounded text-[8px] font-bold border tracking-wider uppercase font-mono"
+                    [ngClass]="{
+                      'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': pod.status === 'Running',
+                      'bg-amber-950/20 border-amber-900/30 text-amber-400': pod.status === 'Pending',
+                      'bg-red-950/20 border-red-900/30 text-red-400': pod.status === 'Failed'
+                    }">
+                {{ pod.status }}
+              </span>
+            </td>
+            <td class="py-3 px-3 font-bold" [ngClass]="pod.ready === '1/1' || pod.ready.startsWith('2/') || pod.ready.startsWith('3/') ? 'text-emerald-400' : 'text-zinc-550'">{{ pod.ready }}</td>
+            <td class="py-3 px-3 text-zinc-400 font-semibold select-all">{{ pod.ip || '—' }}</td>
+            <td class="py-3 px-3 text-zinc-500 font-semibold select-all">{{ pod.node || '—' }}</td>
+            <td class="py-3 px-3 text-zinc-400">{{ pod.restarts }}</td>
+            <td class="py-3 px-3 text-zinc-550">
+              <span *ngIf="pod.ageSeconds < 60">{{ pod.ageSeconds }}s</span>
+              <span *ngIf="pod.ageSeconds >= 60 && pod.ageSeconds < 3600">{{ (pod.ageSeconds / 60) | number:'1.0-0' }}m</span>
+              <span *ngIf="pod.ageSeconds >= 3600">{{ (pod.ageSeconds / 3600) | number:'1.1-1' }}h</span>
+            </td>
+          </tr>
+          <tr *ngIf="!data?.pods || data?.pods?.length === 0">
+            <td colspan="7" class="py-6 text-center text-zinc-650 italic">
+              No active containers or pods detected. If the app is building, containers will start shortly.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Loading state spinner -->
+<div *ngIf="loading" class="flex flex-col items-center justify-center py-12 gap-3 text-zinc-500 font-mono">
+  <svg class="animate-spin h-5 w-5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+  </svg>
+  <span class="text-xs">Loading load balancer and pod metrics...</span>
+</div>
+
+<!-- Error message state -->
+<div *ngIf="error && !loading" class="bg-red-950/10 border border-red-900/30 rounded-lg p-5 text-center space-y-2 font-mono max-w-xl mx-auto">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-8 h-8 text-red-500 mx-auto">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+  </svg>
+  <h4 class="text-xs font-bold text-red-400 uppercase tracking-wider">Connection Observability Error</h4>
+  <p class="text-[11px] text-zinc-400">{{ error }}</p>
+</div>

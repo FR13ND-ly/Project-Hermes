@@ -23,7 +23,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   readonly parent = inject(Details);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly projectService = inject(ProjectService);
+  readonly projectService = inject(ProjectService);
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
   private readonly domainService = inject(DomainService);

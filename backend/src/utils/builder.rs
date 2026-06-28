@@ -1519,10 +1519,31 @@ fi"#,
     deploy_compiled_app(pool, instance_id, full_image_tag).await;
 }
 
+async fn append_deploy_log(pool: &sqlx::PgPool, instance_id: Uuid, log_line: &str) {
+    if let Ok(Some(build_rec)) = sqlx::query!(
+        "SELECT id, logs FROM app_builds WHERE app_instance_id = $1 ORDER BY created_at DESC LIMIT 1",
+        instance_id
+    )
+    .fetch_optional(pool)
+    .await {
+        let mut updated_logs = build_rec.logs;
+        updated_logs.push_str(log_line);
+        updated_logs.push_str("\n");
+        let _ = sqlx::query!(
+            "UPDATE app_builds SET logs = $1 WHERE id = $2",
+            updated_logs, build_rec.id
+        )
+        .execute(pool)
+        .await;
+    }
+}
+
 #[tracing::instrument(skip_all, fields(instance_id = %instance_id))]
 pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: String) {
     let deploy_start_instant = std::time::Instant::now();
     tracing::info!(image = %image_tag, "App deploy started");
+    append_deploy_log(&pool, instance_id, "\n=========================================\n STAGE 3: DEPLOYMENT (INITIALIZING)\n=========================================").await;
+    append_deploy_log(&pool, instance_id, &format!("- Preparing deployment of image: {}", image_tag)).await;
     let mut deploy_error: Option<String> = None;
     let mut deployment_image = image_tag.clone();
     if let Ok(reg_url) = std::env::var("HERMES_REGISTRY_URL") {
@@ -1560,11 +1581,15 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
             Err(_) => (0, 0, 0), // unlimited fallback — never impose limits by default
         };
         let namespace = format!("hermes-ws-{}", meta.workspace_id);
+        
+        append_deploy_log(&pool, instance_id, "- Setting up Kubernetes namespace and workspace limits...").await;
         let _ = crate::utils::k8s::K8sManager::create_namespace(&k8s_client, &namespace, max_mem, max_storage, max_cpu).await;
 
+        append_deploy_log(&pool, instance_id, "- Resolving linked environment variables...").await;
         // Effective env = linked project-pool vars + this instance's own vars.
         let envs = crate::utils::app_env::resolve_instance_env(&pool, instance_id).await;
 
+        append_deploy_log(&pool, instance_id, "- Inspecting storage volumes...").await;
         let volume_records = sqlx::query!(
             "SELECT container_path, host_path FROM app_volumes WHERE app_id = $1",
             meta.app_id
@@ -1589,6 +1614,7 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
             let max_scale = meta_data.get("maxScale").and_then(|v| v.as_i64()).or_else(|| meta_data.get("max_scale").and_then(|v| v.as_i64())).unwrap_or(5) as i32;
             let target_concurrency = meta_data.get("targetConcurrency").and_then(|v| v.as_i64()).or_else(|| meta_data.get("target_concurrency").and_then(|v| v.as_i64())).unwrap_or(10) as i32;
 
+            append_deploy_log(&pool, instance_id, "- Deploying serverless function configuration (Knative)...").await;
             // Cleanup standard K8s Deployment to avoid conflict
             let _ = crate::utils::k8s::K8sManager::delete_app(&k8s_client, &namespace, app_name).await;
 
@@ -1605,7 +1631,9 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
                 None,
             ).await {
                 Ok(_) => {
+                    append_deploy_log(&pool, instance_id, "- Knative Service successfully applied.").await;
                     if let Some(ref domain) = meta.assigned_domain {
+                        append_deploy_log(&pool, instance_id, &format!("- Deploying Traefik Ingress route for domain: {}...", domain)).await;
                         let _ = crate::utils::k8s::K8sManager::deploy_ingress(
                             &k8s_client,
                             &namespace,
@@ -1616,6 +1644,7 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
                         ).await;
                     }
 
+                    append_deploy_log(&pool, instance_id, "- Deploy phase succeeded! Starting serverless worker...").await;
                     let _ = update_status(&pool, instance_id, AppStatus::Running).await;
                     crate::utils::metrics::record_deploy("app", "success");
                     tracing::info!(duration = %format!("{}s", deploy_start_instant.elapsed().as_secs()), "App deploy succeeded");
@@ -1678,6 +1707,7 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
             .ok()
             .flatten();
 
+            append_deploy_log(&pool, instance_id, "- Deploying standard Kubernetes Deployment resources...").await;
             match crate::utils::k8s::K8sManager::deploy_app(
                 &k8s_client,
                 &namespace,
@@ -1693,6 +1723,7 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
                 autoscale_cpu_percent
             ).await {
                 Ok(_) => {
+                    append_deploy_log(&pool, instance_id, "- Kubernetes Deployment applied successfully. Creating Service...").await;
                     match crate::utils::k8s::K8sManager::deploy_service(
                         &k8s_client,
                         &namespace,
@@ -1701,11 +1732,13 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
                         network_alias.as_deref()
                     ).await {
                         Ok(_) => {
+                            append_deploy_log(&pool, instance_id, "- Kubernetes Service applied successfully.").await;
                             if let Some(ports_arr) = meta.tcp_udp_ports.as_array() {
                                 for (i, p) in ports_arr.iter().enumerate() {
                                     if let (Some(int_p), Some(ext_p)) = (p.get("internal").and_then(|ip| ip.as_i64()), p.get("external").and_then(|ep| ep.as_i64())) {
                                         let proto = p.get("protocol").and_then(|pr| pr.as_str()).unwrap_or("TCP");
                                         let lb_name = format!("{}-port-{}", app_name, i);
+                                        append_deploy_log(&pool, instance_id, &format!("- Exposing extra port {}/{} (LoadBalancer)...", int_p, proto)).await;
                                         let _ = crate::utils::k8s::K8sManager::deploy_loadbalancer_service(
                                             &k8s_client,
                                             &namespace,
@@ -1721,6 +1754,7 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
 
                             if let Some(ext_port) = meta.external_port {
                                 let lb_name = format!("{}-external", app_name);
+                                append_deploy_log(&pool, instance_id, &format!("- Creating external LoadBalancer Service on port {}...", ext_port)).await;
                                 let _ = crate::utils::k8s::K8sManager::deploy_loadbalancer_service(
                                     &k8s_client,
                                     &namespace,
@@ -1733,6 +1767,7 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
                             }
 
                             if let Some(ref domain) = meta.assigned_domain {
+                                append_deploy_log(&pool, instance_id, &format!("- Creating Traefik Ingress route for domain {}...", domain)).await;
                                 let _ = crate::utils::k8s::K8sManager::deploy_ingress(
                                     &k8s_client,
                                     &namespace,
@@ -1746,6 +1781,7 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
                             // Health gate: confirm the pod actually comes up (port
                             // responds) instead of declaring "running" the instant the
                             // manifest is applied. Returns Some(reason) if it crashed.
+                            append_deploy_log(&pool, instance_id, "- Starting health check monitoring (waiting for pods to report Ready status)...").await;
                             let crash = monitor_deploy_health(&pool, &k8s_client, &namespace, app_name, instance_id, meta.workspace_id, meta.project_id).await;
 
                             let deploy_duration_str = format!("{}s", deploy_start_instant.elapsed().as_secs());
@@ -1822,12 +1858,6 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
             updated_logs.push_str("Error provisioning Kubernetes resources in the cluster.\n");
         }
 
-        // Only the deploy PHASE failed — the image was built and pushed
-        // successfully, so we keep status='succeeded' (the build stays
-        // rollback-able and isn't shown as a build failure). The UI surfaces the
-        // deploy failure via phase='failed' + failure_reason. This also avoids
-        // retroactively marking an older successful build as failed when a
-        // reload/rollback deploy fails (deploy_compiled_app is reused for those).
         let _ = sqlx::query!(
             "UPDATE app_builds SET logs = $1, phase = 'failed', failure_reason = $3, failure_category = 'DEPLOY' WHERE id = $2",
             updated_logs, build_rec.id, "Deploying the Kubernetes resources failed (see stage 4 in the logs). The image was built correctly."
@@ -2152,16 +2182,19 @@ async fn monitor_deploy_health(
         "CreateContainerError", "CreateContainerConfigError", "RunContainerError", "InvalidImageName",
     ];
 
+    let mut probe_count = 0;
+
     loop {
         tokio::time::sleep(std::time::Duration::from_secs(3)).await;
 
         let mut healthy = false;
         let mut crash: Option<(String, String)> = None; // (reason, pod_name)
+        let mut pending_reason: Option<String> = None;
 
         if let Ok(list) = pods.list(&lp).await {
-            for pod in list.items {
+            for pod in &list.items {
                 let pod_name = pod.metadata.name.clone().unwrap_or_default();
-                if let Some(status) = pod.status {
+                if let Some(ref status) = pod.status {
                     if let Some(ref conds) = status.conditions {
                         if conds.iter().any(|c| c.type_ == "Ready" && c.status == "True") {
                             healthy = true;
@@ -2172,6 +2205,7 @@ async fn monitor_deploy_health(
                             if let Some(ref state) = c.state {
                                 if let Some(ref waiting) = state.waiting {
                                     if let Some(ref reason) = waiting.reason {
+                                        pending_reason = Some(reason.clone());
                                         if crash_reasons.contains(&reason.as_str()) {
                                             crash = Some((reason.clone(), pod_name.clone()));
                                         }
@@ -2185,9 +2219,21 @@ async fn monitor_deploy_health(
                     }
                 }
             }
+            if list.items.is_empty() {
+                pending_reason = Some("No pods scheduled yet".to_string());
+            }
+        } else {
+            pending_reason = Some("Failed to list pods".to_string());
+        }
+
+        probe_count += 1;
+        if probe_count % 3 == 0 {
+            let status_msg = pending_reason.as_deref().unwrap_or("Pending initialization");
+            append_deploy_log(pool, instance_id, &format!("  [Health Check] Waiting for pod ready status (elapsed: {}s, status: {})...", start.elapsed().as_secs(), status_msg)).await;
         }
 
         if healthy {
+            append_deploy_log(pool, instance_id, &format!("  [Health Check] Success! Pod is healthy and ready to accept traffic (took {}s).", start.elapsed().as_secs())).await;
             let _ = update_status(pool, instance_id, AppStatus::Running).await;
             // Capture a preview screenshot off the deploy path (Vercel-style). Best-effort:
             // it hits the in-cluster Service, so it never blocks or fails the deploy.
@@ -2201,6 +2247,7 @@ async fn monitor_deploy_health(
         }
 
         if let Some((reason, pod_name)) = crash {
+            append_deploy_log(pool, instance_id, &format!("  [Health Check] Error! Pod crashed with status: {} (pod name: {})", reason, pod_name)).await;
             let log_params = kube::api::LogParams { tail_lines: Some(50), ..Default::default() };
             let container_logs = pods.logs(&pod_name, &log_params).await.unwrap_or_else(|_| "(the container logs could not be read)".to_string());
 
@@ -2249,6 +2296,7 @@ async fn monitor_deploy_health(
         }
 
         if start.elapsed() >= window {
+            append_deploy_log(pool, instance_id, "  [Health Check] Warning: Health probe timeout reached. Assuming slow startup and completing deploy.").await;
             // Deployed but never confirmed ready and never crashed within the window:
             // assume a slow start and leave it Running rather than block forever.
             let _ = update_status(pool, instance_id, AppStatus::Running).await;

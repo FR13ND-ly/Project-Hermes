@@ -9,7 +9,7 @@ use futures_util::stream::Stream;
 use futures_util::stream::StreamExt;
 use futures_util::SinkExt;
 use std::convert::Infallible;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::app_state::AppState;
 use crate::models::app_model::{App, AppInstance, AppInstanceType, AppStatus};
@@ -132,6 +132,7 @@ pub async fn try_register_github_webhook(
     git_credential_id: Option<Uuid>,
     git_repository: &str,
     host: &str,
+    app_instance_id: Option<Uuid>,
 ) {
     if host.trim().is_empty() {
         return;
@@ -176,7 +177,9 @@ pub async fn try_register_github_webhook(
         format!("{}://{}/api/v1/apps/webhook", proto, host)
     };
 
+    let pool_clone = pool.clone();
     tokio::spawn(async move {
+        let pool = pool_clone;
         let client = reqwest::Client::new();
         let mut config = serde_json::json!({
             "url": webhook_url,
@@ -206,16 +209,71 @@ pub async fn try_register_github_webhook(
             .send()
             .await;
 
-        match res {
+        let webhook_result = match res {
             Ok(resp) => {
                 if resp.status().is_success() {
                     tracing::info!(%owner, %repo, "Registered GitHub webhook at {}", webhook_url);
+                    Ok(())
                 } else if let Ok(err_txt) = resp.text().await {
                     tracing::warn!(%owner, %repo, "Failed to register GitHub webhook: {}", err_txt);
+                    Err(err_txt)
+                } else {
+                    tracing::warn!(%owner, %repo, "Failed to register GitHub webhook: Unknown error");
+                    Err("Unknown error".to_string())
                 }
             }
             Err(e) => {
                 tracing::warn!(%owner, %repo, "Network error registering GitHub webhook: {}", e);
+                Err(e.to_string())
+            }
+        };
+
+        if let Some(inst_id) = app_instance_id {
+            // 1. Update the instance metadata JSONB
+            let webhook_status = match &webhook_result {
+                Ok(_) => serde_json::json!({
+                    "status": "success",
+                    "registered_at": chrono::Utc::now().to_rfc3339()
+                }),
+                Err(err_msg) => serde_json::json!({
+                    "status": "failed",
+                    "error": err_msg,
+                    "registered_at": chrono::Utc::now().to_rfc3339()
+                })
+            };
+
+            let _ = sqlx::query!(
+                "UPDATE app_instances SET meta_data = jsonb_set(meta_data, '{github_webhook}', $1::jsonb, true) WHERE id = $2",
+                webhook_status,
+                inst_id
+            )
+            .execute(&pool)
+            .await;
+
+            // 2. Append to the latest build logs if the build is enqueued/created (retry up to 5 times)
+            let log_line = match &webhook_result {
+                Ok(_) => format!("[System] GitHub Webhook registration: Success (URL: {})\n", webhook_url),
+                Err(err_msg) => format!("[System] GitHub Webhook registration: Warning! Failed to register push webhook: {}\n", err_msg)
+            };
+
+            for _ in 0..5 {
+                if let Ok(Some(build_rec)) = sqlx::query!(
+                    "SELECT id, logs FROM app_builds WHERE app_instance_id = $1 ORDER BY created_at DESC LIMIT 1",
+                    inst_id
+                )
+                .fetch_optional(&pool)
+                .await {
+                    let mut updated_logs = build_rec.logs;
+                    updated_logs.push_str(&log_line);
+                    let _ = sqlx::query!(
+                        "UPDATE app_builds SET logs = $1 WHERE id = $2",
+                        updated_logs, build_rec.id
+                    )
+                    .execute(&pool)
+                    .await;
+                    break;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
             }
         }
     });
@@ -421,6 +479,7 @@ pub async fn create_app(
         payload.git_credential_id,
         &payload.git_repository,
         &webhook_host,
+        Some(instance_id),
     )
     .await;
 
@@ -1824,6 +1883,233 @@ pub async fn get_instance_metrics(
         timestamps,
         values,
         simulated,
+    }))
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IngressObservability {
+    pub fqdn: Option<String>,
+    pub provider: String,
+    pub status: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceObservability {
+    pub name: String,
+    pub port: i32,
+    pub endpoints: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PodObservability {
+    pub name: String,
+    pub status: String,
+    pub ready: String,
+    pub ip: Option<String>,
+    pub node: Option<String>,
+    pub restarts: i32,
+    pub age_seconds: i64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrafficStatsObservability {
+    pub request_rate: Option<f64>,
+    pub latency_ms: Option<f64>,
+    pub status_2xx: Option<f64>,
+    pub status_3xx: Option<f64>,
+    pub status_4xx: Option<f64>,
+    pub status_5xx: Option<f64>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkObservabilityResponse {
+    pub ingress: IngressObservability,
+    pub service: ServiceObservability,
+    pub pods: Vec<PodObservability>,
+    pub traffic: TrafficStatsObservability,
+}
+
+pub async fn get_instance_network_observability(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path((_app_id, instance_id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<NetworkObservabilityResponse>, AppError> {
+    let ws_id = claims.current_workspace_id.ok_or_else(|| {
+        AppError::Validation("No active workspace selected.".to_string())
+    })?;
+
+    let instance = sqlx::query_as::<_, AppInstance>(
+        "SELECT ai.* FROM app_instances ai 
+         JOIN apps a ON ai.app_id = a.id 
+         WHERE ai.id = $1 AND a.workspace_id = $2"
+    )
+    .bind(instance_id).bind(ws_id).fetch_optional(&state.pool).await?
+    .ok_or_else(|| AppError::NotFound("Application instance not found.".to_string()))?;
+
+    let namespace = format!("hermes-ws-{}", ws_id);
+    let container_name = instance.container_name.clone();
+
+    let k8s_client = crate::utils::k8s::K8sManager::get_client().await?;
+
+    // 1. Ingress Status
+    let ingress = IngressObservability {
+        fqdn: instance.assigned_domain.clone(),
+        provider: "traefik".to_string(),
+        status: if instance.assigned_domain.is_some() && instance.status == AppStatus::Running {
+            "active".to_string()
+        } else {
+            "inactive".to_string()
+        },
+    };
+
+    // 2. Active Endpoints
+    let endpoints_api: kube::Api<k8s_openapi::api::core::v1::Endpoints> = kube::Api::namespaced(k8s_client.clone(), &namespace);
+    let mut active_endpoints = Vec::new();
+    if let Ok(ep) = endpoints_api.get(&container_name).await {
+        if let Some(subsets) = ep.subsets {
+            for sub in subsets {
+                let ports: Vec<i32> = sub.ports.unwrap_or_default().iter().map(|p| p.port).collect();
+                if let Some(addresses) = sub.addresses {
+                    for addr in addresses {
+                        for port in &ports {
+                            active_endpoints.push(format!("{}:{}", addr.ip, port));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let service = ServiceObservability {
+        name: container_name.clone(),
+        port: instance.internal_port,
+        endpoints: active_endpoints,
+    };
+
+    // 3. Pods List
+    let pods_api: kube::Api<k8s_openapi::api::core::v1::Pod> = kube::Api::namespaced(k8s_client.clone(), &namespace);
+    let lp = kube::api::ListParams::default().labels(&format!("app={}", container_name));
+    let mut pods_list = Vec::new();
+    if let Ok(pod_res) = pods_api.list(&lp).await {
+        for pod in pod_res.items {
+            let name = pod.metadata.name.clone().unwrap_or_default();
+            let status = pod.status.as_ref()
+                .and_then(|s| s.phase.clone())
+                .unwrap_or_else(|| "Unknown".to_string());
+            
+            // Ready status string: e.g. "1/1"
+            let mut ready_containers = 0;
+            let mut total_containers = 0;
+            let mut restarts = 0;
+            if let Some(ref status) = pod.status {
+                if let Some(ref cs) = status.container_statuses {
+                    total_containers = cs.len();
+                    for c in cs {
+                        if c.ready {
+                            ready_containers += 1;
+                        }
+                        restarts += c.restart_count;
+                    }
+                }
+            }
+            let ready = format!("{}/{}", ready_containers, total_containers);
+
+            let ip = pod.status.as_ref().and_then(|s| s.pod_ip.clone());
+            let node = pod.spec.as_ref().and_then(|s| s.node_name.clone());
+            
+            let age_seconds = if let Some(ref ts) = pod.metadata.creation_timestamp {
+                (chrono::Utc::now().timestamp() - ts.0.timestamp()).max(0)
+            } else {
+                0
+            };
+
+            pods_list.push(PodObservability {
+                name,
+                status,
+                ready,
+                ip,
+                node,
+                restarts,
+                age_seconds,
+            });
+        }
+    }
+
+    // 4. Traffic Stats from Prometheus (Strictly real data only)
+    let mut request_rate = None;
+    let mut latency_ms = None;
+    let mut status_2xx = None;
+    let mut status_3xx = None;
+    let mut status_4xx = None;
+    let mut status_5xx = None;
+
+    if let Some(val) = crate::utils::prometheus::query_instant(&format!(
+        "sum(rate(traefik_service_requests_total{{service=~\".*-{}-.*\"}}[5m]))",
+        container_name
+    )).await {
+        request_rate = Some(val);
+
+        // Success (2xx)
+        if let Some(v) = crate::utils::prometheus::query_instant(&format!(
+            "sum(rate(traefik_service_requests_total{{service=~\".*-{}-.*\",code=~\"2..\"}}[5m]))",
+            container_name
+        )).await {
+            status_2xx = Some(v);
+        }
+
+        // Redirection (3xx)
+        if let Some(v) = crate::utils::prometheus::query_instant(&format!(
+            "sum(rate(traefik_service_requests_total{{service=~\".*-{}-.*\",code=~\"3..\"}}[5m]))",
+            container_name
+        )).await {
+            status_3xx = Some(v);
+        }
+
+        // Client Errors (4xx)
+        if let Some(v) = crate::utils::prometheus::query_instant(&format!(
+            "sum(rate(traefik_service_requests_total{{service=~\".*-{}-.*\",code=~\"4..\"}}[5m]))",
+            container_name
+        )).await {
+            status_4xx = Some(v);
+        }
+
+        // Server Errors (5xx)
+        if let Some(v) = crate::utils::prometheus::query_instant(&format!(
+            "sum(rate(traefik_service_requests_total{{service=~\".*-{}-.*\",code=~\"5..\"}}[5m]))",
+            container_name
+        )).await {
+            status_5xx = Some(v);
+        }
+
+        // Latency
+        let lat_q = format!(
+            "sum(rate(traefik_service_request_duration_seconds_sum{{service=~\".*-{}-.*\"}}[5m])) / sum(rate(traefik_service_requests_total{{service=~\".*-{}-.*\"}}[5m]))",
+            container_name, container_name
+        );
+        if let Some(lat_sec) = crate::utils::prometheus::query_instant(&lat_q).await {
+            latency_ms = Some(lat_sec * 1000.0);
+        }
+    }
+
+    let traffic = TrafficStatsObservability {
+        request_rate,
+        latency_ms,
+        status_2xx,
+        status_3xx,
+        status_4xx,
+        status_5xx,
+    };
+
+    Ok(Json(NetworkObservabilityResponse {
+        ingress,
+        service,
+        pods: pods_list,
+        traffic,
     }))
 }
 

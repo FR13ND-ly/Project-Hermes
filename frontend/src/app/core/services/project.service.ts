@@ -242,6 +242,10 @@ export class ProjectService {
     return this.api.get<MetricsHistory>(`/apps/${appId}/instances/${instanceId}/metrics?metric=${metric}&range=${range}`);
   }
 
+  getNetworkObservability(appId: string, instanceId: string): Observable<any> {
+    return this.api.get<any>(`/apps/${appId}/instances/${instanceId}/network-observability`);
+  }
+
   createBranchInstance(appId: string, branchName: string): Observable<any> {
     return this.api.post<any>(`/apps/${appId}/branches`, { branch: branchName });
   }

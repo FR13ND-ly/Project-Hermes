@@ -40,6 +40,16 @@
               <span class="text-zinc-600">Repository:</span>
               <span class="text-zinc-300 ml-1 select-all">{{ app()?.git_repo_url }}</span>
             </div>
+            @if (getSelectedInstance()?.metaData?.github_webhook; as wh) {
+              <div>
+                <span class="text-zinc-650">Webhook:</span>
+                @if (wh.status === 'success') {
+                  <span class="text-emerald-400 ml-1 font-bold" title="GitHub Webhook is successfully registered. App will auto-deploy on push.">✓ Active</span>
+                } @else if (wh.status === 'failed') {
+                  <span class="text-red-400 ml-1 font-bold cursor-help" [title]="'Webhook registration failed: ' + wh.error">✗ Failed</span>
+                }
+              </div>
+            }
             <div>
               <span class="text-zinc-600">Created:</span>
               <span class="text-zinc-300 ml-1">{{ app()?.created_at | date:'dd.MM.yyyy HH:mm' }}</span>
@@ -176,6 +186,15 @@
               [class]="rlaTelemetry.isActive ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
             >
               Telemetry
+            </a>
+            <a
+              routerLink="networking"
+              routerLinkActive
+              #rlaNetworking="routerLinkActive"
+              class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
+              [class]="rlaNetworking.isActive ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
+            >
+              Networking & Pods
             </a>
             <a
               routerLink="builds"
