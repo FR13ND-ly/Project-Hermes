@@ -197,6 +197,15 @@
               Networking & Pods
             </a>
             <a
+              routerLink="chaos"
+              routerLinkActive
+              #rlaChaos="routerLinkActive"
+              class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
+              [class]="rlaChaos.isActive ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
+            >
+              Chaos
+            </a>
+            <a
               routerLink="builds"
               routerLinkActive
               #rlaBuilds="routerLinkActive"

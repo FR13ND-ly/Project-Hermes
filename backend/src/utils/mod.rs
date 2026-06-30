@@ -27,3 +27,4 @@ pub mod job_queue;
 pub mod leader;
 pub mod locks;
 pub mod screenshot;
+pub mod chaos;

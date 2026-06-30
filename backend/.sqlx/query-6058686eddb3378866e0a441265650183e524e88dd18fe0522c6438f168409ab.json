@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ai.app_id, ai.container_name, ai.replicas_min, ai.status::text AS \"status!\", a.workspace_id\n           FROM app_instances ai JOIN apps a ON ai.app_id = a.id\n           WHERE ai.id = $1 AND ai.app_id = $2 AND a.workspace_id = $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "app_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "container_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "replicas_min",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "status!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "6058686eddb3378866e0a441265650183e524e88dd18fe0522c6438f168409ab"
+}

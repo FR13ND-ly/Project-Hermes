@@ -104,6 +104,26 @@ export interface DeploymentTimeline {
   steps: TimelineStep[];
 }
 
+export interface ChaosExperiment {
+  id: string;
+  kind: string;            // 'pod_kill' | 'scale_down' | 'cpu_stress'
+  status: string;          // 'running' | 'completed' | 'failed' | 'cancelled'
+  message?: string | null;
+  params: any;
+  originalReplicas?: number | null;
+  startedAt: string;
+  revertAt?: string | null;
+  endedAt?: string | null;
+}
+
+export interface StartChaosRequest {
+  kind: string;
+  durationSec?: number;
+  targetAllPods?: boolean;
+  targetReplicas?: number;
+  cpuWorkers?: number;
+}
+
 export interface BuildQueueItem {
   id: string;
   kind: 'app' | 'database' | 'serverless';
@@ -252,6 +272,18 @@ export class ProjectService {
 
   getBuildTimeline(appId: string, buildId: string): Observable<DeploymentTimeline> {
     return this.api.get<DeploymentTimeline>(`/apps/${appId}/builds/${buildId}/timeline`);
+  }
+
+  getChaos(appId: string, instanceId: string): Observable<ChaosExperiment[]> {
+    return this.api.get<ChaosExperiment[]>(`/apps/${appId}/instances/${instanceId}/chaos`);
+  }
+
+  startChaos(appId: string, instanceId: string, body: StartChaosRequest): Observable<ChaosExperiment> {
+    return this.api.post<ChaosExperiment>(`/apps/${appId}/instances/${instanceId}/chaos`, body);
+  }
+
+  cancelChaos(appId: string, instanceId: string, expId: string): Observable<void> {
+    return this.api.delete<void>(`/apps/${appId}/instances/${instanceId}/chaos/${expId}`);
   }
 
   retryBuild(appId: string, buildId: string): Observable<any> {

@@ -6,6 +6,7 @@ use axum::{
 };
 use crate::app_state::AppState;
 use crate::controllers::app_controller;
+use crate::controllers::chaos_controller;
 use crate::middlewares::permission_middleware::{check_permission, RequiredPermission};
 
 pub fn routes(state: AppState) -> Router {
@@ -27,6 +28,7 @@ pub fn routes(state: AppState) -> Router {
         .route("/apps/:id/builds/:build_id", get(app_controller::get_build_details))
         .route("/apps/:id/builds/:build_id/logs/stream", get(app_controller::stream_build_logs))
         .route("/apps/:id/builds/:build_id/timeline", get(app_controller::get_build_timeline))
+        .route("/apps/:id/instances/:instance_id/chaos", get(chaos_controller::list_chaos))
         .layer(from_fn_with_state(state.clone(), check_permission))
         .layer(Extension(RequiredPermission("app:read")));
 
@@ -44,6 +46,8 @@ pub fn routes(state: AppState) -> Router {
         .route("/apps/:id/builds/:build_id/retry", post(app_controller::retry_build))
         .route("/apps/:id/builds/:build_id/cancel", post(app_controller::cancel_build))
         .route("/apps/:id/builds/:build_id/rollback", post(app_controller::rollback_build))
+        .route("/apps/:id/instances/:instance_id/chaos", post(chaos_controller::start_chaos))
+        .route("/apps/:id/instances/:instance_id/chaos/:exp_id", delete(chaos_controller::cancel_chaos))
         .layer(from_fn_with_state(state.clone(), check_permission))
         .layer(Extension(RequiredPermission("app:deploy")));
 

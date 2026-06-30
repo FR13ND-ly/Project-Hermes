@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM chaos_experiments\n                 WHERE status = 'running' AND revert_at IS NOT NULL AND revert_at <= now()",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fd6ba69d7cd82c929dde00f5d714da823a2587c45005b58ad1eb114b05c2f14c"
+}

@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ce.workspace_id, ce.app_instance_id, ce.kind, ce.original_replicas, ai.container_name\n         FROM chaos_experiments ce\n         JOIN app_instances ai ON ce.app_instance_id = ai.id\n         WHERE ce.id = $1 AND ce.status = 'running'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "app_instance_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "original_replicas",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "container_name",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "cc7472ca3d5fb5fbcc9240df616ce549b8aa7188f6e38ad5dad34c2a3da11add"
+}

@@ -16,3 +16,4 @@ pub mod cloudflare_controller;
 pub mod incident_controller;
 pub mod webhook_controller;
 pub mod serverless_controller;
+pub mod chaos_controller;

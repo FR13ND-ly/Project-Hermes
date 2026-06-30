@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { Subscription, interval } from 'rxjs';
 import { startWith, switchMap } from 'rxjs/operators';
@@ -13,38 +13,40 @@ import { AppDetailComponent } from '../../app-detail';
 })
 export class AppNetworkingComponent implements OnInit, OnDestroy {
   readonly parent = inject(AppDetailComponent);
-  
-  data: any = null;
-  loading = true;
-  error: string | null = null;
-  
+
+  // Signals (not plain fields): the app runs zoneless change detection, so async
+  // mutations only refresh the view when they go through a signal.
+  readonly data = signal<any>(null);
+  readonly loading = signal(true);
+  readonly error = signal<string | null>(null);
+
   private pollSub?: Subscription;
 
   ngOnInit(): void {
     const appId = this.parent.appId();
     const inst = this.parent.getSelectedInstance();
-    
+
     if (appId && inst) {
       this.pollSub = interval(5000)
         .pipe(
           startWith(0),
-          switchMap(() => this.parent.projectService.getNetworkObservability(appId, inst.id))
+          switchMap(() => this.parent.projectService.getNetworkObservability(appId, inst.id)),
         )
         .subscribe({
           next: (res) => {
-            this.data = res;
-            this.loading = false;
-            this.error = null;
+            this.data.set(res);
+            this.loading.set(false);
+            this.error.set(null);
           },
           error: (err) => {
             console.error('Failed to load network stats', err);
-            this.error = 'Failed to load live networking and pods status.';
-            this.loading = false;
-          }
+            this.error.set('Failed to load live networking and pods status.');
+            this.loading.set(false);
+          },
         });
     } else {
-      this.loading = false;
-      this.error = 'No active application instance selected.';
+      this.loading.set(false);
+      this.error.set('No active application instance selected.');
     }
   }
 
@@ -53,11 +55,11 @@ export class AppNetworkingComponent implements OnInit, OnDestroy {
   }
 
   getTrafficClassRatio(val: number | undefined): number {
-    if (!this.data || !this.data.traffic || !this.data.traffic.requestRate || this.data.traffic.requestRate === 0) {
+    const d = this.data();
+    if (!d || !d.traffic || !d.traffic.requestRate || d.traffic.requestRate === 0) {
       return 0;
     }
-    const total = this.data.traffic.requestRate;
-    return ((val || 0) / total) * 100;
+    return ((val || 0) / d.traffic.requestRate) * 100;
   }
 
   /** Tailwind classes for a hop/health status dot. */

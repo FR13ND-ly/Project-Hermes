@@ -1,4 +1,4 @@
-<div class="space-y-6 animate-fade-in font-mono" *ngIf="parent.app() && data">
+<div class="space-y-6 animate-fade-in font-mono" *ngIf="parent.app() && data() as d">
 
   <!-- 1. Path-aware request flow -->
   <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-5 shadow-sm">
@@ -9,16 +9,16 @@
       </div>
       <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border shrink-0"
             [ngClass]="{
-              'bg-indigo-950/20 border-indigo-900/30 text-indigo-400': data.exposure === 'domain',
-              'bg-purple-950/20 border-purple-900/30 text-purple-400': data.exposure === 'loadbalancer',
-              'bg-zinc-900 border-zinc-800 text-zinc-500': data.exposure === 'internal'
+              'bg-indigo-950/20 border-indigo-900/30 text-indigo-400': d.exposure === 'domain',
+              'bg-purple-950/20 border-purple-900/30 text-purple-400': d.exposure === 'loadbalancer',
+              'bg-zinc-900 border-zinc-800 text-zinc-500': d.exposure === 'internal'
             }">
-        {{ data.exposure === 'domain' ? 'Domain · Traefik' : (data.exposure === 'loadbalancer' ? 'Load Balancer' : 'Internal only') }}
+        {{ d.exposure === 'domain' ? 'Domain · Traefik' : (d.exposure === 'loadbalancer' ? 'Load Balancer' : 'Internal only') }}
       </span>
     </div>
 
     <div class="flex flex-col lg:flex-row items-stretch gap-2 overflow-x-auto pb-1">
-      <ng-container *ngFor="let hop of data.hops; let last = last">
+      <ng-container *ngFor="let hop of d.hops; let last = last">
         <div class="flex-1 lg:min-w-[150px] bg-black/40 border rounded-md p-4 flex flex-col gap-1.5 shadow-inner"
              [ngClass]="hopBorder(hop.status)">
           <div class="flex items-center justify-between gap-2">
@@ -38,7 +38,7 @@
 
   <!-- 2. Diagnosed issues (where it breaks) -->
   <div class="space-y-2">
-    <div *ngFor="let issue of data.issues"
+    <div *ngFor="let issue of d.issues"
          class="p-3 rounded border flex items-start gap-2.5"
          [ngClass]="issue.severity === 'critical' ? 'border-red-900/40 bg-red-950/20' : 'border-amber-900/40 bg-amber-950/10'">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"
@@ -57,7 +57,7 @@
       </div>
     </div>
 
-    <div *ngIf="!data.issues || data.issues.length === 0"
+    <div *ngIf="!d.issues || d.issues.length === 0"
          class="p-3 rounded border border-emerald-900/30 bg-emerald-950/10 flex items-center gap-2.5">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-emerald-400 shrink-0">
         <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
@@ -69,43 +69,43 @@
   <!-- 3. Traffic (adaptive: Traefik HTTP metrics, else pod throughput) -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <!-- Traefik HTTP view -->
-    <ng-container *ngIf="data.traffic?.source === 'traefik'">
+    <ng-container *ngIf="d.traffic?.source === 'traefik'">
       <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm">
         <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Traffic Load</span>
-        <p class="text-2xl font-black text-white">{{ (data.traffic.requestRate | number:'1.1-2') }} r/s</p>
+        <p class="text-2xl font-black text-white">{{ (d.traffic.requestRate | number:'1.1-2') }} r/s</p>
         <p class="text-[9px] text-zinc-500">Incoming HTTP requests/sec via Traefik (last 5m)</p>
       </div>
       <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm">
         <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Response Latency</span>
-        <p class="text-2xl font-black text-white">{{ data.traffic.latencyMs !== null ? (data.traffic.latencyMs | number:'1.0-0') + ' ms' : 'N/A' }}</p>
+        <p class="text-2xl font-black text-white">{{ d.traffic.latencyMs !== null ? (d.traffic.latencyMs | number:'1.0-0') + ' ms' : 'N/A' }}</p>
         <p class="text-[9px] text-zinc-500">Average round-trip through the proxy</p>
       </div>
       <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm">
         <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Response Status Codes</span>
-        <div class="h-2 rounded bg-zinc-900 overflow-hidden flex mt-1" *ngIf="data.traffic.requestRate > 0; else noTraffic">
-          <div [style.width.%]="getTrafficClassRatio(data.traffic.status2xx)" class="h-full bg-emerald-500" title="2xx"></div>
-          <div [style.width.%]="getTrafficClassRatio(data.traffic.status3xx)" class="h-full bg-indigo-500" title="3xx"></div>
-          <div [style.width.%]="getTrafficClassRatio(data.traffic.status4xx)" class="h-full bg-amber-500" title="4xx"></div>
-          <div [style.width.%]="getTrafficClassRatio(data.traffic.status5xx)" class="h-full bg-red-500" title="5xx"></div>
+        <div class="h-2 rounded bg-zinc-900 overflow-hidden flex mt-1" *ngIf="d.traffic.requestRate > 0; else noTraffic">
+          <div [style.width.%]="getTrafficClassRatio(d.traffic.status2xx)" class="h-full bg-emerald-500" title="2xx"></div>
+          <div [style.width.%]="getTrafficClassRatio(d.traffic.status3xx)" class="h-full bg-indigo-500" title="3xx"></div>
+          <div [style.width.%]="getTrafficClassRatio(d.traffic.status4xx)" class="h-full bg-amber-500" title="4xx"></div>
+          <div [style.width.%]="getTrafficClassRatio(d.traffic.status5xx)" class="h-full bg-red-500" title="5xx"></div>
         </div>
         <ng-template #noTraffic><div class="h-2 rounded bg-zinc-900/60 border border-dashed border-zinc-800 mt-1"></div></ng-template>
         <div class="flex items-center justify-between text-[8px] text-zinc-500 font-sans pt-1">
-          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded bg-emerald-500"></span> 2xx ({{ (data.traffic.status2xx || 0) | number:'1.1-2' }})</span>
-          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded bg-red-500"></span> 5xx ({{ (data.traffic.status5xx || 0) | number:'1.1-2' }})</span>
+          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded bg-emerald-500"></span> 2xx ({{ (d.traffic.status2xx || 0) | number:'1.1-2' }})</span>
+          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded bg-red-500"></span> 5xx ({{ (d.traffic.status5xx || 0) | number:'1.1-2' }})</span>
         </div>
       </div>
     </ng-container>
 
     <!-- Pod network throughput fallback (LoadBalancer / internal apps) -->
-    <ng-container *ngIf="data.traffic?.source === 'network'">
+    <ng-container *ngIf="d.traffic?.source === 'network'">
       <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm">
         <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Inbound Throughput</span>
-        <p class="text-2xl font-black text-white">{{ formatBps(data.traffic.netRxBps) }}</p>
+        <p class="text-2xl font-black text-white">{{ formatBps(d.traffic.netRxBps) }}</p>
         <p class="text-[9px] text-zinc-500">Pod network received (last 5m)</p>
       </div>
       <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm">
         <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Outbound Throughput</span>
-        <p class="text-2xl font-black text-white">{{ formatBps(data.traffic.netTxBps) }}</p>
+        <p class="text-2xl font-black text-white">{{ formatBps(d.traffic.netTxBps) }}</p>
         <p class="text-[9px] text-zinc-500">Pod network transmitted (last 5m)</p>
       </div>
       <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 flex flex-col justify-center shadow-sm">
@@ -117,27 +117,27 @@
     </ng-container>
 
     <!-- No data at all -->
-    <div *ngIf="data.traffic?.source === 'none'" class="md:col-span-3 bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 text-center shadow-sm">
+    <div *ngIf="d.traffic?.source === 'none'" class="md:col-span-3 bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 text-center shadow-sm">
       <p class="text-[11px] text-zinc-500">No traffic metrics available. Prometheus isn't reachable or hasn't collected data yet.</p>
     </div>
   </div>
 
   <!-- 4. Load Balancer details (when exposed on a port) -->
-  <div *ngIf="data.loadBalancer" class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-3.5 shadow-sm">
+  <div *ngIf="d.loadBalancer" class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-3.5 shadow-sm">
     <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
       <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">External Load Balancer</h3>
       <span class="px-1.5 py-0.2 rounded text-[8px] font-bold uppercase tracking-wider border"
             [ngClass]="{
-              'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': data.loadBalancer.status === 'active',
-              'bg-amber-950/20 border-amber-900/30 text-amber-400': data.loadBalancer.status === 'pending',
-              'bg-red-950/20 border-red-900/30 text-red-400': data.loadBalancer.status === 'missing'
-            }">{{ data.loadBalancer.status }}</span>
+              'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': d.loadBalancer.status === 'active',
+              'bg-amber-950/20 border-amber-900/30 text-amber-400': d.loadBalancer.status === 'pending',
+              'bg-red-950/20 border-red-900/30 text-red-400': d.loadBalancer.status === 'missing'
+            }">{{ d.loadBalancer.status }}</span>
     </div>
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-      <div><p class="text-[9px] text-zinc-600 uppercase">External Port</p><p class="text-zinc-200 font-bold mt-0.5">{{ data.loadBalancer.externalPort || '—' }}</p></div>
-      <div><p class="text-[9px] text-zinc-600 uppercase">Node Port</p><p class="text-zinc-200 font-bold mt-0.5">{{ data.loadBalancer.nodePort || '—' }}</p></div>
-      <div><p class="text-[9px] text-zinc-600 uppercase">External IP</p><p class="text-zinc-200 font-bold mt-0.5 truncate" [title]="data.loadBalancer.externalIp">{{ data.loadBalancer.externalIp || 'pending' }}</p></div>
-      <div><p class="text-[9px] text-zinc-600 uppercase">Service</p><p class="text-zinc-400 font-semibold mt-0.5 truncate" [title]="data.loadBalancer.name">{{ data.loadBalancer.name }}</p></div>
+      <div><p class="text-[9px] text-zinc-600 uppercase">External Port</p><p class="text-zinc-200 font-bold mt-0.5">{{ d.loadBalancer.externalPort || '—' }}</p></div>
+      <div><p class="text-[9px] text-zinc-600 uppercase">Node Port</p><p class="text-zinc-200 font-bold mt-0.5">{{ d.loadBalancer.nodePort || '—' }}</p></div>
+      <div><p class="text-[9px] text-zinc-600 uppercase">External IP</p><p class="text-zinc-200 font-bold mt-0.5 truncate" [title]="d.loadBalancer.externalIp">{{ d.loadBalancer.externalIp || 'pending' }}</p></div>
+      <div><p class="text-[9px] text-zinc-600 uppercase">Service</p><p class="text-zinc-400 font-semibold mt-0.5 truncate" [title]="d.loadBalancer.name">{{ d.loadBalancer.name }}</p></div>
     </div>
   </div>
 
@@ -148,11 +148,11 @@
       <p class="text-[10px] text-zinc-555 mt-0.5">Ready pod endpoints the service routes to (pod IP : port)</p>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-      <div *ngFor="let ep of data.service?.endpoints" class="p-3 bg-zinc-950 border border-zinc-900 rounded-md flex items-center justify-between shadow-inner">
+      <div *ngFor="let ep of d.service?.endpoints" class="p-3 bg-zinc-950 border border-zinc-900 rounded-md flex items-center justify-between shadow-inner">
         <span class="text-[11px] font-extrabold text-zinc-200 select-all">{{ ep }}</span>
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Ready"></span>
       </div>
-      <div *ngIf="!data.service?.endpoints || data.service?.endpoints?.length === 0" class="col-span-full py-4 text-center text-xs text-red-400 border border-dashed border-red-950/40 rounded bg-red-950/5">
+      <div *ngIf="!d.service?.endpoints || d.service?.endpoints?.length === 0" class="col-span-full py-4 text-center text-xs text-red-400 border border-dashed border-red-950/40 rounded bg-red-950/5">
         ⚠️ No healthy endpoints — the service has nothing to route to (requests will 503).
       </div>
     </div>
@@ -165,7 +165,7 @@
         <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Containers &amp; Pods</h3>
         <p class="text-[10px] text-zinc-555 mt-0.5">Runtime instances mapped to cluster nodes</p>
       </div>
-      <span class="text-[9px] text-zinc-555 shrink-0">{{ data.pods?.length || 0 }} pods</span>
+      <span class="text-[9px] text-zinc-555 shrink-0">{{ d.pods?.length || 0 }} pods</span>
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-left text-xs border-collapse">
@@ -176,7 +176,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let pod of data.pods" class="border-b border-zinc-900/50 hover:bg-zinc-950/20 transition-colors">
+          <tr *ngFor="let pod of d.pods" class="border-b border-zinc-900/50 hover:bg-zinc-950/20 transition-colors">
             <td class="py-3 px-3 font-semibold text-zinc-200 select-all truncate max-w-[220px]" [title]="pod.name">{{ pod.name }}</td>
             <td class="py-3 px-3">
               <span class="px-1.5 py-0.2 rounded text-[8px] font-bold border tracking-wider uppercase"
@@ -196,7 +196,7 @@
               <span *ngIf="pod.ageSeconds >= 3600">{{ (pod.ageSeconds / 3600) | number:'1.1-1' }}h</span>
             </td>
           </tr>
-          <tr *ngIf="!data.pods || data.pods?.length === 0">
+          <tr *ngIf="!d.pods || d.pods?.length === 0">
             <td colspan="7" class="py-6 text-center text-zinc-650 italic">No pods detected. If the app is building or stopped, none will be running.</td>
           </tr>
         </tbody>
@@ -207,7 +207,7 @@
 </div>
 
 <!-- Loading -->
-<div *ngIf="loading" class="flex flex-col items-center justify-center py-12 gap-3 text-zinc-500 font-mono">
+<div *ngIf="loading()" class="flex flex-col items-center justify-center py-12 gap-3 text-zinc-500 font-mono">
   <svg class="animate-spin h-5 w-5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
@@ -216,10 +216,10 @@
 </div>
 
 <!-- Error -->
-<div *ngIf="error && !loading" class="bg-red-950/10 border border-red-900/30 rounded-lg p-5 text-center space-y-2 font-mono max-w-xl mx-auto">
+<div *ngIf="error() && !loading()" class="bg-red-950/10 border border-red-900/30 rounded-lg p-5 text-center space-y-2 font-mono max-w-xl mx-auto">
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-8 h-8 text-red-500 mx-auto">
     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
   </svg>
   <h4 class="text-xs font-bold text-red-400 uppercase tracking-wider">Connection Observability Error</h4>
-  <p class="text-[11px] text-zinc-400">{{ error }}</p>
+  <p class="text-[11px] text-zinc-400">{{ error() }}</p>
 </div>

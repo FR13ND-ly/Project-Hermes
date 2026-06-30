@@ -26,6 +26,7 @@ import { List } from './pages/list/list';
                   { path: 'overview', loadComponent: () => import('./pages/details/pages/app-detail/pages/overview/overview').then(m => m.AppOverviewComponent) },
                   { path: 'telemetry', loadComponent: () => import('./pages/details/pages/app-detail/pages/telemetry/telemetry').then(m => m.AppTelemetryComponent) },
                   { path: 'networking', loadComponent: () => import('./pages/details/pages/app-detail/pages/networking/networking').then(m => m.AppNetworkingComponent) },
+                  { path: 'chaos', loadComponent: () => import('./pages/details/pages/app-detail/pages/chaos/chaos').then(m => m.AppChaosComponent) },
                   { path: 'builds', loadComponent: () => import('./pages/details/pages/app-detail/pages/builds/builds').then(m => m.AppBuildsComponent) },
                   { path: 'logs', loadComponent: () => import('./pages/details/pages/app-detail/pages/logs/logs').then(m => m.AppLogsComponent) },
                   { path: 'terminal', loadComponent: () => import('./pages/details/pages/app-detail/pages/terminal/terminal').then(m => m.AppTerminalComponent) },

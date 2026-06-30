@@ -1,0 +1,131 @@
+<div class="space-y-6 animate-fade-in font-mono" *ngIf="parent.app()">
+
+  <!-- Active experiment banner -->
+  <div *ngIf="active() as exp" class="bg-[#0a0a0a] p-5 rounded-lg border border-amber-900/40 shadow-sm">
+    <div class="flex items-start justify-between gap-3">
+      <div class="flex items-start gap-3 min-w-0">
+        <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse mt-1.5 shrink-0"></span>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-amber-300 uppercase tracking-wider">{{ kindLabel(exp.kind) }} running</span>
+            <span class="px-1.5 py-0.2 rounded text-[8px] font-bold uppercase border bg-amber-950/30 border-amber-900/40 text-amber-400">chaos</span>
+          </div>
+          <p class="text-[11px] text-zinc-400 mt-0.5 font-sans">{{ exp.message }}</p>
+          <p class="text-[10px] text-zinc-555 mt-1" *ngIf="exp.revertAt">
+            Auto-reverts in <span class="text-amber-400 font-bold">{{ countdown(exp) }}s</span>
+          </p>
+        </div>
+      </div>
+      <button
+        (click)="stop(exp)"
+        class="px-3 py-1.5 rounded border border-zinc-700 bg-black hover:border-zinc-400 text-zinc-300 hover:text-white text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer shrink-0"
+      >
+        Stop &amp; restore now
+      </button>
+    </div>
+  </div>
+
+  <!-- Launcher -->
+  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-5 shadow-sm">
+    <div class="border-b border-zinc-900 pb-2.5">
+      <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Chaos Simulator</h3>
+      <p class="text-[10px] text-zinc-555 mt-0.5 font-sans">Inject a controlled, auto-reverting failure to test resilience. Open the Networking &amp; Pods tab to watch the request flow degrade and recover.</p>
+    </div>
+
+    <!-- Experiment type -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <button (click)="kind = 'pod_kill'" type="button"
+        class="text-left p-3 rounded border transition-all cursor-pointer"
+        [class]="kind === 'pod_kill' ? 'border-white bg-zinc-950' : 'border-zinc-900 bg-black hover:border-zinc-700'">
+        <span class="text-xs font-bold text-zinc-200">💥 Pod kill</span>
+        <p class="text-[9px] text-zinc-550 mt-1 font-sans">Delete pod(s); the Deployment reschedules. Tests self-healing.</p>
+      </button>
+      <button (click)="kind = 'scale_down'" type="button"
+        class="text-left p-3 rounded border transition-all cursor-pointer"
+        [class]="kind === 'scale_down' ? 'border-white bg-zinc-950' : 'border-zinc-900 bg-black hover:border-zinc-700'">
+        <span class="text-xs font-bold text-zinc-200">📉 Scale-down</span>
+        <p class="text-[9px] text-zinc-550 mt-1 font-sans">Drop replicas for a window, then auto-restore. Tests redundancy.</p>
+      </button>
+      <button (click)="kind = 'cpu_stress'" type="button"
+        class="text-left p-3 rounded border transition-all cursor-pointer"
+        [class]="kind === 'cpu_stress' ? 'border-white bg-zinc-950' : 'border-zinc-900 bg-black hover:border-zinc-700'">
+        <span class="text-xs font-bold text-zinc-200">🔥 CPU stress</span>
+        <p class="text-[9px] text-zinc-550 mt-1 font-sans">Best-effort in-pod CPU burn (needs shell tools in the image).</p>
+      </button>
+    </div>
+
+    <!-- Params -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <label *ngIf="kind === 'pod_kill'" class="flex items-center gap-2 text-xs text-zinc-300">
+        <input type="checkbox" [(ngModel)]="targetAllPods" class="accent-white" />
+        Kill all pods (not just one)
+      </label>
+
+      <label *ngIf="kind === 'scale_down'" class="flex flex-col gap-1 text-[10px] text-zinc-500 uppercase tracking-wider">
+        Target replicas
+        <input type="number" min="0" max="10" [(ngModel)]="targetReplicas"
+          class="bg-black border border-zinc-850 text-zinc-200 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-600 font-mono" />
+      </label>
+
+      <label *ngIf="kind === 'cpu_stress'" class="flex flex-col gap-1 text-[10px] text-zinc-500 uppercase tracking-wider">
+        CPU workers
+        <input type="number" min="1" max="8" [(ngModel)]="cpuWorkers"
+          class="bg-black border border-zinc-850 text-zinc-200 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-600 font-mono" />
+      </label>
+
+      <label *ngIf="kind !== 'pod_kill'" class="flex flex-col gap-1 text-[10px] text-zinc-500 uppercase tracking-wider">
+        Duration (seconds, max 300)
+        <input type="number" min="5" max="300" [(ngModel)]="durationSec"
+          class="bg-black border border-zinc-850 text-zinc-200 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-600 font-mono" />
+      </label>
+    </div>
+
+    <div class="flex items-center justify-between gap-3 pt-1">
+      <p class="text-[9px] text-zinc-650 font-sans">Requires the instance to be Running. Experiments revert automatically.</p>
+      <button
+        (click)="run()"
+        [disabled]="submitting() || !!active()"
+        class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-[11px] font-bold uppercase tracking-wider shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2 shrink-0"
+      >
+        <svg *ngIf="submitting()" class="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        {{ active() ? 'Experiment in progress…' : 'Run experiment' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-3.5 shadow-sm">
+    <div class="border-b border-zinc-900 pb-2.5">
+      <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Experiment History</h3>
+    </div>
+
+    <div class="space-y-2">
+      <div *ngFor="let e of experiments()"
+        class="p-3 rounded border bg-black flex items-center justify-between gap-3"
+        [class]="e.status === 'running' ? 'border-amber-900/40' : 'border-zinc-900'">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-zinc-200">{{ kindLabel(e.kind) }}</span>
+            <span class="px-1.5 py-0.2 rounded text-[8px] font-bold uppercase border"
+              [ngClass]="{
+                'bg-amber-950/20 border-amber-900/30 text-amber-400': e.status === 'running',
+                'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': e.status === 'completed',
+                'bg-zinc-900 border-zinc-800 text-zinc-450': e.status === 'cancelled',
+                'bg-red-950/20 border-red-900/30 text-red-400': e.status === 'failed'
+              }">{{ e.status }}</span>
+          </div>
+          <p class="text-[10px] text-zinc-550 mt-0.5 font-sans truncate">{{ e.message }}</p>
+        </div>
+        <span class="text-[9px] text-zinc-650 shrink-0">{{ e.startedAt | date:'dd.MM HH:mm:ss' }}</span>
+      </div>
+
+      <div *ngIf="experiments().length === 0" class="py-6 text-center text-xs text-zinc-650 italic">
+        No experiments yet. Run one above to test this app's resilience.
+      </div>
+    </div>
+  </div>
+
+</div>

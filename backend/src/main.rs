@@ -51,6 +51,11 @@ async fn main() -> Result<(), anyhow::Error> {
     // leader, so behaviour is unchanged. Started after migrations so the lease table exists.
     crate::utils::leader::start_leader_elector(pool.clone());
 
+    // Chaos simulator: leader-gated worker that auto-reverts experiments whose window
+    // has elapsed (and reclaims any left running across a restart). Started after
+    // migrations so the chaos_experiments table exists.
+    crate::utils::chaos::start_chaos_worker(pool.clone());
+
     // Auto-backups are now real, editable cron jobs; ensure existing backup-enabled
     // databases have one (the dedicated backup worker has been retired).
     crate::utils::cron::reconcile_backup_crons(&pool).await;

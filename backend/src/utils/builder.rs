@@ -2597,6 +2597,11 @@ pub async fn reconcile_instance(pool: &PgPool, instance_id: Uuid) {
     if r.meta_data.get("knative_enabled").and_then(|v| v.as_bool()).unwrap_or(false) {
         return;
     }
+    // Don't fight an in-progress chaos experiment (e.g. a deliberate scale-down) —
+    // it owns the replica count until it auto-reverts.
+    if crate::utils::chaos::has_active_experiment(pool, instance_id).await {
+        return;
+    }
 
     let image_tag = match r.current_image_tag {
         Some(ref t) if !t.is_empty() => t.clone(),

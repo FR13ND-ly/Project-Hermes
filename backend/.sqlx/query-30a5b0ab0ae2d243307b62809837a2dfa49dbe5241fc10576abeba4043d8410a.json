@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE app_incident_logs SET resolved_at = now()\n         WHERE app_instance_id = $1 AND incident_type LIKE 'CHAOS\\_%' AND resolved_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "30a5b0ab0ae2d243307b62809837a2dfa49dbe5241fc10576abeba4043d8410a"
+}

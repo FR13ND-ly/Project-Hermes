@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE chaos_experiments SET status = $1, ended_at = now() WHERE id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3284bc4e6ce6ffbe0265d69b80a19b8fa7d57ddc093172a7b4587f6869c718ff"
+}

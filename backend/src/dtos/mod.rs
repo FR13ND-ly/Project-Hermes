@@ -19,3 +19,4 @@ pub mod webhook_dto;
 pub mod project_ssh_key_dto;
 pub mod serverless_dto;
 pub mod git_credential_dto;
+pub mod chaos_dto;
