@@ -36,6 +36,34 @@ export class App {
   // Real resource usage for the current workspace (header gauges).
   readonly usage = signal<WorkspaceUsage | null>(null);
 
+  // Whole-server resources (super-admin header gauges): CPU / RAM / disk, used + total.
+  readonly serverResources = signal<any | null>(null);
+  private serverResPoll: any = null;
+
+  readonly serverCpuPercent = computed(() => {
+    const s = this.serverResources();
+    return s && s.cpuCoresTotal > 0 ? Math.min(100, Math.round((s.cpuCoresUsed / s.cpuCoresTotal) * 100)) : 0;
+  });
+  readonly serverRamPercent = computed(() => {
+    const s = this.serverResources();
+    return s && s.memoryBytesTotal > 0 ? Math.min(100, Math.round((s.memoryBytesUsed / s.memoryBytesTotal) * 100)) : 0;
+  });
+  readonly serverDiskPercent = computed(() => {
+    const s = this.serverResources();
+    return s && s.diskBytesTotal > 0 ? Math.min(100, Math.round((s.diskBytesUsed / s.diskBytesTotal) * 100)) : 0;
+  });
+
+  /** CPU cores, compact (e.g. "1.2" / "8"). */
+  fmtCores(c: number): string {
+    if (c === null || c === undefined) return '–';
+    return c >= 10 ? c.toFixed(0) : c.toFixed(1);
+  }
+  /** Bytes → GiB string (e.g. "3.1"). */
+  fmtGiB(bytes: number): string {
+    if (!bytes) return '0';
+    return (bytes / (1024 ** 3)).toFixed(1);
+  }
+
   /** RAM usage as a percentage, or null when the workspace has no memory cap. */
   readonly ramPercent = computed(() => {
     const u = this.usage();
@@ -67,10 +95,31 @@ export class App {
       if (this.isAuthenticated()) {
         this.loadWorkspaces();
         this.loadUsage();
+        // Server gauges are super-admin only; the rest see their workspace usage.
+        if (this.isSuperAdmin()) {
+          this.loadServerResources();
+        } else {
+          this.serverResources.set(null);
+        }
       } else {
         this.usage.set(null);
         this.workspaces.set([]);
+        this.serverResources.set(null);
       }
+    });
+
+    // Refresh server gauges periodically while a super admin is signed in.
+    this.serverResPoll = setInterval(() => {
+      if (this.isAuthenticated() && this.isSuperAdmin()) {
+        this.loadServerResources();
+      }
+    }, 15000);
+  }
+
+  loadServerResources(): void {
+    this.auth.getServerResources().subscribe({
+      next: (s) => this.serverResources.set(s),
+      error: () => this.serverResources.set(null),
     });
   }
 

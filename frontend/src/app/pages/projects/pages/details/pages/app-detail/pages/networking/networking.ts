@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Subscription, interval } from 'rxjs';
 import { startWith, switchMap } from 'rxjs/operators';
 import { AppDetailComponent } from '../../app-detail';
@@ -7,7 +8,7 @@ import { AppDetailComponent } from '../../app-detail';
 @Component({
   selector: 'app-app-networking',
   standalone: true,
-  imports: [CommonModule, DecimalPipe],
+  imports: [CommonModule, DecimalPipe, FormsModule],
   templateUrl: './networking.html',
   styles: `
     .wire { position: relative; width: 100%; height: 2px; background: #27272a; border-radius: 9999px; overflow: hidden; }

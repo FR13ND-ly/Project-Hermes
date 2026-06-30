@@ -91,7 +91,13 @@ pub async fn start_experiment(
             let names: Vec<String> = pods
                 .list(&lp)
                 .await
-                .map(|l| l.items.into_iter().filter_map(|p| p.metadata.name).collect())
+                .map(|l| {
+                    l.items
+                        .into_iter()
+                        .filter(|p| p.metadata.deletion_timestamp.is_none())
+                        .filter_map(|p| p.metadata.name)
+                        .collect()
+                })
                 .unwrap_or_default();
             if names.is_empty() {
                 return Err(AppError::Validation("No running pods to kill for this instance.".into()));

@@ -585,6 +585,121 @@ pub struct GcRunResponse {
     pub duration_ms: Option<i64>,
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerResources {
+    pub nodes: i32,
+    pub cpu_cores_total: f64,
+    pub cpu_cores_used: f64,
+    pub memory_bytes_total: f64,
+    pub memory_bytes_used: f64,
+    pub disk_bytes_total: f64,
+    pub disk_bytes_used: f64,
+    /// True when live usage (kubelet summary) was reachable; false → only totals are real.
+    pub usage_available: bool,
+}
+
+/// Whole-cluster resource capacity vs. live usage (CPU / RAM / disk), for the header
+/// gauges. Totals come from each Node's allocatable; live usage + real disk capacity
+/// come from the kubelet `/stats/summary` (proxied via the API server). Best-effort.
+pub async fn get_server_resources(
+    State(_state): State<AppState>,
+    crate::middlewares::auth_middleware::AuthenticatedUser(_claims): crate::middlewares::auth_middleware::AuthenticatedUser,
+) -> Result<Json<ServerResources>, AppError> {
+    fn parse_cpu_cores(q: &str) -> f64 {
+        let q = q.trim();
+        if let Some(m) = q.strip_suffix('m') {
+            m.trim().parse::<f64>().unwrap_or(0.0) / 1000.0
+        } else {
+            q.parse::<f64>().unwrap_or(0.0)
+        }
+    }
+
+    let client = crate::utils::k8s::K8sManager::get_client().await?;
+    let nodes_api: kube::Api<k8s_openapi::api::core::v1::Node> = kube::Api::all(client.clone());
+    let nodes = nodes_api
+        .list(&kube::api::ListParams::default())
+        .await
+        .map_err(|e| AppError::Infrastructure(format!("Failed to list nodes: {}", e)))?;
+
+    let mut cpu_total = 0.0;
+    let mut mem_total = 0.0;
+    let mut disk_total_alloc = 0.0;
+    let mut disk_total_summary = 0.0;
+    let mut cpu_used = 0.0;
+    let mut mem_used = 0.0;
+    let mut disk_used = 0.0;
+    let mut usage_available = false;
+    let node_count = nodes.items.len() as i32;
+
+    for node in &nodes.items {
+        let alloc = node.status.as_ref().and_then(|s| s.allocatable.as_ref());
+        let cap = node.status.as_ref().and_then(|s| s.capacity.as_ref());
+        let pick = |key: &str| -> Option<String> {
+            alloc
+                .and_then(|m| m.get(key))
+                .or_else(|| cap.and_then(|m| m.get(key)))
+                .map(|q| q.0.clone())
+        };
+        if let Some(c) = pick("cpu") {
+            cpu_total += parse_cpu_cores(&c);
+        }
+        if let Some(m) = pick("memory") {
+            mem_total += crate::utils::quantity::parse_memory_bytes(&m) as f64;
+        }
+        if let Some(d) = pick("ephemeral-storage") {
+            disk_total_alloc += crate::utils::quantity::parse_memory_bytes(&d) as f64;
+        }
+
+        // Live usage (and real fs capacity) from the kubelet summary, proxied through
+        // the API server. Best-effort per node so a single unreachable kubelet doesn't
+        // fail the whole call.
+        let name = match &node.metadata.name {
+            Some(n) => n.clone(),
+            None => continue,
+        };
+        let url = format!("/api/v1/nodes/{}/proxy/stats/summary", name);
+        if let Ok(req) = axum::http::Request::get(&url).body(Vec::new()) {
+            if let Ok(json) = client.request::<serde_json::Value>(req).await {
+                if let Some(n) = json.get("node") {
+                    if let Some(v) = n.get("cpu").and_then(|c| c.get("usageNanoCores")).and_then(|v| v.as_f64()) {
+                        cpu_used += v / 1_000_000_000.0;
+                        usage_available = true;
+                    }
+                    if let Some(v) = n.get("memory").and_then(|c| c.get("workingSetBytes")).and_then(|v| v.as_f64()) {
+                        mem_used += v;
+                        usage_available = true;
+                    }
+                    if let Some(fs) = n.get("fs") {
+                        if let Some(v) = fs.get("usedBytes").and_then(|v| v.as_f64()) {
+                            disk_used += v;
+                            usage_available = true;
+                        }
+                        if let Some(v) = fs.get("capacityBytes").and_then(|v| v.as_f64()) {
+                            disk_total_summary += v;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Prefer the real fs capacity (summary) for disk total; fall back to allocatable
+    // ephemeral-storage so totals/used stay consistent.
+    let disk_total = if disk_total_summary > 0.0 { disk_total_summary } else { disk_total_alloc };
+
+    Ok(Json(ServerResources {
+        nodes: node_count,
+        cpu_cores_total: cpu_total,
+        cpu_cores_used: cpu_used,
+        memory_bytes_total: mem_total,
+        memory_bytes_used: mem_used,
+        disk_bytes_total: disk_total,
+        disk_bytes_used: disk_used,
+        usage_available,
+    }))
+}
+
 /// Recent garbage-collection passes, for the admin console (Logs → GC Worker).
 pub async fn get_gc_runs(
     State(state): State<AppState>,

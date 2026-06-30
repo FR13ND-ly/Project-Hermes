@@ -117,6 +117,24 @@ fn finalize(map: HashMap<String, String>) -> Vec<(String, String)> {
     out
 }
 
+/// Inject `PORT`/`HOST` matching the platform's internal port so the app listens
+/// where the readiness probe, Service and LoadBalancer all expect it — the single
+/// most common cause of "pod never Ready → no endpoints → 503". Only fills them in
+/// when the user hasn't set them, so an explicit override always wins. Returns the
+/// keys actually injected (for transparency in the deploy log).
+pub fn apply_runtime_port_defaults(envs: &mut Vec<(String, String)>, internal_port: i32) -> Vec<String> {
+    let mut injected = Vec::new();
+    if !envs.iter().any(|(k, _)| k == "PORT") {
+        envs.push(("PORT".to_string(), internal_port.to_string()));
+        injected.push(format!("PORT={}", internal_port));
+    }
+    if !envs.iter().any(|(k, _)| k == "HOST") {
+        envs.push(("HOST".to_string(), "0.0.0.0".to_string()));
+        injected.push("HOST=0.0.0.0".to_string());
+    }
+    injected
+}
+
 /// Full effective env (secret + non-secret): linked project vars merged with the
 /// instance's own vars, instance wins on conflict.
 pub async fn resolve_instance_env(pool: &PgPool, instance_id: Uuid) -> Vec<(String, String)> {

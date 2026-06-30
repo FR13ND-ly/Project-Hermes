@@ -1705,7 +1705,12 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
 
         append_deploy_log(&pool, instance_id, "- Resolving linked environment variables...").await;
         // Effective env = linked project-pool vars + this instance's own vars.
-        let envs = crate::utils::app_env::resolve_instance_env(&pool, instance_id).await;
+        let mut envs = crate::utils::app_env::resolve_instance_env(&pool, instance_id).await;
+        // Make the app listen where the health probe / Service / LB expect it.
+        let injected = crate::utils::app_env::apply_runtime_port_defaults(&mut envs, meta.internal_port);
+        if !injected.is_empty() {
+            append_deploy_log(&pool, instance_id, &format!("- Set runtime defaults so the app binds the right port: {}", injected.join(", "))).await;
+        }
 
         append_deploy_log(&pool, instance_id, "- Inspecting storage volumes...").await;
         let volume_records = sqlx::query!(
@@ -2624,7 +2629,10 @@ pub async fn reconcile_instance(pool: &PgPool, instance_id: Uuid) {
     let namespace = format!("hermes-ws-{}", r.workspace_id);
 
     // Desired runtime env + volume binds (the same sources the deploy path uses).
-    let envs = crate::utils::app_env::resolve_instance_env(pool, instance_id).await;
+    let mut envs = crate::utils::app_env::resolve_instance_env(pool, instance_id).await;
+    // Keep the PORT/HOST defaults the deploy path adds, so reconcile doesn't strip them
+    // on its next pass and trigger a spurious rollout (or break readiness).
+    let _ = crate::utils::app_env::apply_runtime_port_defaults(&mut envs, r.internal_port);
     let mut binds: Vec<(String, String)> = Vec::new();
     if let Ok(vols) = sqlx::query_as::<_, (String, String)>(
         "SELECT host_path, container_path FROM app_volumes WHERE app_id = $1",

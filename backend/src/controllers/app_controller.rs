@@ -1067,7 +1067,7 @@ pub async fn stream_instance_stats(
             let pods_api: kube::Api<k8s_openapi::api::core::v1::Pod> = kube::Api::namespaced(k8s_client.clone(), &namespace);
             let lp = kube::api::ListParams::default().labels(&format!("app={}", container_name));
             if let Ok(pod_list) = pods_api.list(&lp).await {
-                if let Some(pod) = pod_list.items.first() {
+                if let Some(pod) = pod_list.items.iter().find(|p| p.metadata.deletion_timestamp.is_none()).or_else(|| pod_list.items.first()) {
                     if let Some(ref pod_name) = pod.metadata.name {
                         let request_url = format!("/apis/metrics.k8s.io/v1beta1/namespaces/{}/pods/{}", namespace, pod_name);
                         if let Ok(request) = axum::http::Request::get(&request_url).body(vec![]) {
@@ -2120,6 +2120,9 @@ pub struct PodObservability {
     pub node: Option<String>,
     pub restarts: i32,
     pub age_seconds: i64,
+    /// Why this pod isn't Ready (CrashLoopBackOff, exit code, image-pull error, or
+    /// "readiness probe failing"), or None when it's healthy.
+    pub reason: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -2191,6 +2194,17 @@ pub struct NetworkObservabilityResponse {
     pub traffic: TrafficStatsObservability,
     /// Diagnosed problems, ordered most-severe first.
     pub issues: Vec<NetworkIssue>,
+    /// Replica accounting so the UI can show ready-vs-desired, not just a raw live
+    /// pod count (which transiently includes surge/Terminating pods during rollouts).
+    pub replicas_min: i32,
+    pub replicas_max: i32,
+    /// True when an HPA owns the count (max > min).
+    pub autoscale: bool,
+    /// Deployment's desired replica count (HPA-driven when autoscaling), or the
+    /// configured minimum as a fallback.
+    pub desired_replicas: i32,
+    /// Ready replicas per the Deployment status (excludes Terminating/surge pods).
+    pub ready_replicas: i32,
 }
 
 pub async fn get_instance_network_observability(
@@ -2259,9 +2273,12 @@ pub async fn get_instance_network_observability(
     if let Ok(pod_res) = pods_api.list(&lp).await {
         for pod in pod_res.items {
             let name = pod.metadata.name.clone().unwrap_or_default();
-            let status = pod.status.as_ref()
+            let mut status = pod.status.as_ref()
                 .and_then(|s| s.phase.clone())
                 .unwrap_or_else(|| "Unknown".to_string());
+            if pod.metadata.deletion_timestamp.is_some() {
+                status = "Terminating".to_string();
+            }
             
             // Ready status string: e.g. "1/1"
             let mut ready_containers = 0;
@@ -2279,7 +2296,7 @@ pub async fn get_instance_network_observability(
                 }
             }
             let ready = format!("{}/{}", ready_containers, total_containers);
-            if total_containers > 0 && ready_containers == total_containers {
+            if status != "Terminating" && total_containers > 0 && ready_containers == total_containers {
                 ready_pod_count += 1;
             }
             total_restarts += restarts;
@@ -2293,6 +2310,47 @@ pub async fn get_instance_network_observability(
                 0
             };
 
+            // Diagnose why a not-ready pod isn't Ready, for the topology UI. The
+            // readiness probe is a TCP check on the internal port, so a Running but
+            // not-Ready container almost always means nothing is accepting that port.
+            let mut reason: Option<String> = None;
+            if status != "Terminating" {
+                if let Some(ref st) = pod.status {
+                    if let Some(ref cs) = st.container_statuses {
+                        for c in cs {
+                            if c.ready {
+                                continue;
+                            }
+                            if let Some(ref state) = c.state {
+                                if let Some(ref waiting) = state.waiting {
+                                    let r = waiting.reason.clone().unwrap_or_else(|| "Waiting".to_string());
+                                    let last_exit = c.last_state.as_ref()
+                                        .and_then(|ls| ls.terminated.as_ref())
+                                        .map(|t| t.exit_code);
+                                    reason = Some(match last_exit {
+                                        Some(code) if r == "CrashLoopBackOff" => format!("CrashLoopBackOff (last exit {})", code),
+                                        _ => r,
+                                    });
+                                    break;
+                                }
+                                if state.running.is_some() {
+                                    reason = Some(format!(
+                                        "Not ready — nothing accepting TCP on :{} (is the app bound to 0.0.0.0:{}?)",
+                                        instance.internal_port, instance.internal_port
+                                    ));
+                                    break;
+                                }
+                                if let Some(ref term) = state.terminated {
+                                    let suffix = term.reason.as_deref().map(|r| format!(", {}", r)).unwrap_or_default();
+                                    reason = Some(format!("Exited (code {}{})", term.exit_code, suffix));
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             pods_list.push(PodObservability {
                 name,
                 status,
@@ -2301,6 +2359,7 @@ pub async fn get_instance_network_observability(
                 node,
                 restarts,
                 age_seconds,
+                reason,
             });
         }
     }
@@ -2583,6 +2642,23 @@ pub async fn get_instance_network_observability(
     }
     issues.sort_by_key(|i| if i.severity == "critical" { 0 } else { 1 });
 
+    // Authoritative replica accounting from the Deployment status (so the UI shows
+    // ready-vs-desired rather than a raw live pod count that includes surge/Terminating
+    // pods). Falls back to the configured min / counted pods when no Deployment exists.
+    let autoscale = instance.replicas_max > instance.replicas_min;
+    let (desired_replicas, ready_replicas) = {
+        let deployments: kube::Api<k8s_openapi::api::apps::v1::Deployment> =
+            kube::Api::namespaced(k8s_client.clone(), &namespace);
+        match deployments.get_opt(&container_name).await {
+            Ok(Some(dep)) => {
+                let desired = dep.spec.as_ref().and_then(|s| s.replicas).unwrap_or(instance.replicas_min);
+                let ready = dep.status.as_ref().and_then(|s| s.ready_replicas).unwrap_or(ready_pod_count as i32);
+                (desired, ready)
+            }
+            _ => (instance.replicas_min, ready_pod_count as i32),
+        }
+    };
+
     Ok(Json(NetworkObservabilityResponse {
         exposure,
         hops,
@@ -2592,6 +2668,11 @@ pub async fn get_instance_network_observability(
         pods: pods_list,
         traffic,
         issues,
+        replicas_min: instance.replicas_min,
+        replicas_max: instance.replicas_max,
+        autoscale,
+        desired_replicas,
+        ready_replicas,
     }))
 }
 
@@ -3045,7 +3126,7 @@ async fn handle_instance_log_socket(
                 }
             };
 
-            let pod = match pod_list.items.first() {
+            let pod = match pod_list.items.iter().find(|p| p.metadata.deletion_timestamp.is_none()).or_else(|| pod_list.items.first()) {
                 Some(p) => p,
                 None => {
                     if sender.send(Message::Text("[Console] Waiting for the pod to be scheduled on a node...".to_string())).await.is_err() { break; }
@@ -3161,8 +3242,13 @@ pub async fn exec_command_in_pod(
     let lp = kube::api::ListParams::default().labels(&format!("app={}", instance.container_name));
     let pod_list = pods_api.list(&lp).await
         .map_err(|e| AppError::Infrastructure(format!("Failed to list pods in Kubernetes: {}", e)))?;
-    let pod = pod_list.items.into_iter().next()
-        .ok_or_else(|| AppError::Validation("No active running pods found for this instance.".to_string()))?;
+    let mut pods_items = pod_list.items;
+    let pod = if let Some(idx) = pods_items.iter().position(|p| p.metadata.deletion_timestamp.is_none()) {
+        pods_items.remove(idx)
+    } else {
+        pods_items.into_iter().next()
+            .ok_or_else(|| AppError::Validation("No active running pods found for this instance.".to_string()))?
+    };
     let pod_name = pod.metadata.name.ok_or_else(|| AppError::Infrastructure("Pod name is missing".to_string()))?;
 
     let cwd = payload.cwd.clone().unwrap_or_default();
@@ -3251,7 +3337,7 @@ async fn handle_instance_terminal_socket(
         }
     };
 
-    let pod = match pod_list.items.first() {
+    let pod = match pod_list.items.iter().find(|p| p.metadata.deletion_timestamp.is_none()).or_else(|| pod_list.items.first()) {
         Some(p) => p,
         None => {
             let _ = ws_sender.send(Message::Text("[Console Error] No active running pods found for this instance.".to_string())).await;

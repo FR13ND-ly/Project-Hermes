@@ -106,7 +106,35 @@
       <!-- Right User Actions & Quotas -->
       <div class="flex items-center gap-6">
         <!-- Resource Quotas (Compact) — real per-workspace usage -->
-        @if (usage(); as u) {
+        @if (isSuperAdmin() && serverResources(); as s) {
+          <div class="hidden md:flex items-center gap-4 text-[10px] text-zinc-500 font-mono" title="Server resources — used / total">
+            <!-- CPU -->
+            <div class="flex items-center gap-1.5" role="progressbar" [attr.aria-valuenow]="serverCpuPercent()" aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="'Server CPU: ' + fmtCores(s.cpuCoresUsed) + ' of ' + fmtCores(s.cpuCoresTotal) + ' cores'">
+              <span>CPU</span>
+              <div class="w-14 h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+                <div class="h-full" [class.bg-zinc-400]="serverCpuPercent() < 90" [class.bg-red-500]="serverCpuPercent() >= 90" [style.width.%]="serverCpuPercent()"></div>
+              </div>
+              <span class="text-zinc-400">{{ fmtCores(s.cpuCoresUsed) }}/{{ fmtCores(s.cpuCoresTotal) }}</span>
+            </div>
+            <!-- RAM -->
+            <div class="flex items-center gap-1.5" role="progressbar" [attr.aria-valuenow]="serverRamPercent()" aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="'Server RAM: ' + fmtGiB(s.memoryBytesUsed) + ' of ' + fmtGiB(s.memoryBytesTotal) + ' GiB'">
+              <span>RAM</span>
+              <div class="w-14 h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+                <div class="h-full" [class.bg-zinc-400]="serverRamPercent() < 90" [class.bg-red-500]="serverRamPercent() >= 90" [style.width.%]="serverRamPercent()"></div>
+              </div>
+              <span class="text-zinc-400">{{ fmtGiB(s.memoryBytesUsed) }}/{{ fmtGiB(s.memoryBytesTotal) }}G</span>
+            </div>
+            <!-- DISK -->
+            <div class="flex items-center gap-1.5" role="progressbar" [attr.aria-valuenow]="serverDiskPercent()" aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="'Server disk: ' + fmtGiB(s.diskBytesUsed) + ' of ' + fmtGiB(s.diskBytesTotal) + ' GiB'">
+              <span>DISK</span>
+              <div class="w-14 h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
+                <div class="h-full" [class.bg-zinc-400]="serverDiskPercent() < 90" [class.bg-red-500]="serverDiskPercent() >= 90" [style.width.%]="serverDiskPercent()"></div>
+              </div>
+              <span class="text-zinc-400">{{ fmtGiB(s.diskBytesUsed) }}/{{ fmtGiB(s.diskBytesTotal) }}G</span>
+            </div>
+          </div>
+          <div class="h-4 w-px bg-zinc-800 hidden md:block" aria-hidden="true"></div>
+        } @else if (usage(); as u) {
           <div class="hidden md:flex items-center gap-4 text-[10px] text-zinc-500 font-mono">
             <!-- RAM -->
             <div

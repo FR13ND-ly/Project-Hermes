@@ -32,7 +32,6 @@ import { List } from './pages/list/list';
                   { path: 'terminal', loadComponent: () => import('./pages/details/pages/app-detail/pages/terminal/terminal').then(m => m.AppTerminalComponent) },
                   { path: 'general', loadComponent: () => import('./pages/details/pages/app-detail/pages/general/general').then(m => m.AppGeneralComponent) },
                   { path: 'env', loadComponent: () => import('./pages/details/pages/app-detail/pages/env/env').then(m => m.AppEnvComponent) },
-                  { path: 'advanced', loadComponent: () => import('./pages/details/pages/app-detail/pages/advanced/advanced').then(m => m.AppAdvancedComponent) },
                 ]
               },
               { 

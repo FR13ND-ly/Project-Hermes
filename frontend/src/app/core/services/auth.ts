@@ -110,6 +110,11 @@ export class AuthService {
     return this.api.get<any[]>('/users/gc-runs');
   }
 
+  /** Whole-cluster CPU/RAM/disk capacity vs. usage (super-admin header gauges). */
+  getServerResources(): Observable<any> {
+    return this.api.get<any>('/users/server-resources');
+  }
+
   /** Change the currently-authenticated account's own password (requires the
    *  current password). Used by the admin console's "Change My Password" card. */
   changePassword(currentPassword: string, newPassword: string): Observable<void> {

@@ -38,10 +38,12 @@ impl K8sManager {
         let lp = kube::api::ListParams::default().labels(&format!("app={}", app_label));
         let list = pods.list(&lp).await
             .map_err(|e| AppError::Infrastructure(format!("Failed to list pods: {}", e)))?;
-        list.items
-            .into_iter()
-            .find_map(|p| p.metadata.name)
-            .ok_or_else(|| AppError::Infrastructure(format!("No running pod found for '{}'.", app_label)))
+        let mut pods_items = list.items;
+        let pod = pods_items.iter().find(|p| p.metadata.deletion_timestamp.is_none())
+            .or_else(|| pods_items.first());
+        let name = pod.and_then(|p| p.metadata.name.clone())
+            .ok_or_else(|| AppError::Infrastructure(format!("No running pod found for '{}'.", app_label)))?;
+        Ok(name)
     }
 
     /// Delete a pod (best-effort). A controller (StatefulSet/Deployment) recreates

@@ -27,6 +27,8 @@ rules:
       - limitranges
       - events
       - serviceaccounts
+      - nodes
+      - nodes/proxy
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   # Live password rotation / backups exec into pods.
   - apiGroups: [""]
