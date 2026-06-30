@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO gc_runs (id, status) VALUES ($1, 'running')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "41b8afb0475adf69fd82d843b00cc9c19154b6531a95235e69b2784245e93cc6"
+}

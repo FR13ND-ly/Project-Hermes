@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH ranked AS (\n            SELECT ab.id, ab.image_tag,\n                   row_number() OVER (PARTITION BY ab.app_id ORDER BY ab.created_at DESC) AS rn\n            FROM app_builds ab\n            WHERE ab.status NOT IN ('building', 'queued')\n        )\n        SELECT r.id AS \"id!\", r.image_tag AS \"image_tag!\"\n        FROM ranked r\n        WHERE r.rn > $1\n          AND r.image_tag IS NOT NULL\n          AND NOT EXISTS (SELECT 1 FROM app_instances ai WHERE ai.current_image_tag = r.image_tag)\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "image_tag!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "3bb0c10a0e75f9f8cc6e67ca6dd21c3a9a8666e479c3aae157aaac783ddeaf98"
+}

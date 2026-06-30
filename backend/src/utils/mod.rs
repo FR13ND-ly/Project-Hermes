@@ -28,3 +28,4 @@ pub mod leader;
 pub mod locks;
 pub mod screenshot;
 pub mod chaos;
+pub mod gc;

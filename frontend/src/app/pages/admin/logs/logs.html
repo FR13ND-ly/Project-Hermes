@@ -53,6 +53,13 @@
         >
           Authentication Logs
         </button>
+        <button
+          (click)="onTabChange('gc')"
+          class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
+          [class]="activeTab() === 'gc' ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
+        >
+          GC Worker
+        </button>
       </div>
 
       <!-- Controls -->
@@ -127,6 +134,19 @@
           }
           @if (filteredAuthLogs().length === 0) {
             <div class="h-full flex items-center justify-center text-zinc-650 text-xs italic">No audit records logged.</div>
+          }
+        }
+
+        <!-- GC worker run view -->
+        @if (activeTab() === 'gc') {
+          @for (line of filteredGcLogs(); track $index) {
+            <div class="whitespace-pre-wrap leading-relaxed"
+                 [class]="line.type === 'warn' ? 'text-red-400' : (line.type === 'muted' ? 'text-zinc-550' : 'text-emerald-300')">
+              {{ line.text }}
+            </div>
+          }
+          @if (filteredGcLogs().length === 0) {
+            <div class="h-full flex items-center justify-center text-zinc-650 text-xs italic">No garbage-collection runs recorded yet. The worker runs hourly.</div>
           }
         }
       }

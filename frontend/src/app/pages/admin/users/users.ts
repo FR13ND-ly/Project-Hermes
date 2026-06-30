@@ -30,6 +30,13 @@ export class AdminUsers implements OnInit {
   readonly users = signal<User[]>([]);
   readonly loadingUsers = signal(false);
 
+  // Change-my-password signals (self-service for the logged-in admin / root).
+  readonly currentPassword = signal('');
+  readonly newPassword = signal('');
+  readonly confirmPassword = signal('');
+  readonly changingPassword = signal(false);
+  readonly passwordError = signal<string | null>(null);
+
   constructor() {
     // Security check: only super admins are allowed here
     const user = this.auth.currentUser();
@@ -83,6 +90,45 @@ export class AdminUsers implements OnInit {
       error: (err) => {
         this.provisioningError.set(err.error?.message || 'Failed to register user.');
         this.provisioningUser.set(false);
+      }
+    });
+  }
+
+  onChangePassword(): void {
+    const current = this.currentPassword();
+    const next = this.newPassword();
+    const confirm = this.confirmPassword();
+
+    if (!current || !next) {
+      this.passwordError.set('Current and new password are required.');
+      return;
+    }
+    if (next.length < 8) {
+      this.passwordError.set('New password must be at least 8 characters.');
+      return;
+    }
+    if (next !== confirm) {
+      this.passwordError.set('New password and confirmation do not match.');
+      return;
+    }
+    if (next === current) {
+      this.passwordError.set('New password must be different from the current one.');
+      return;
+    }
+
+    this.changingPassword.set(true);
+    this.passwordError.set(null);
+    this.auth.changePassword(current, next).subscribe({
+      next: () => {
+        this.changingPassword.set(false);
+        this.currentPassword.set('');
+        this.newPassword.set('');
+        this.confirmPassword.set('');
+        this.toast.success('Your password has been changed.');
+      },
+      error: (err) => {
+        this.changingPassword.set(false);
+        this.passwordError.set(err.error?.message || err.error?.error?.message || 'Failed to change password.');
       }
     });
   }

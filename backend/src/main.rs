@@ -41,6 +41,10 @@ async fn main() -> Result<(), anyhow::Error> {
     // Durable build/deploy job workers (survive restarts; replace fire-and-forget).
     crate::utils::job_queue::start_workers(pool.clone(), 2);
 
+    // Garbage-collection worker: reclaims superseded build images from the registry,
+    // old build/job rows and Evicted pods (leader-gated; gates each tick internally).
+    crate::utils::gc::start_gc_worker(pool.clone());
+
     info!("Executing schema migrations...");
     sqlx::migrate!("./migrations")
         .run(&pool)

@@ -31,6 +31,55 @@
     <p class="text-xs text-zinc-550">Register new accounts and manage existing users on the Hermes OS platform.</p>
   </div>
 
+  <!-- Change My Password (self-service for the logged-in admin / root) -->
+  <div class="bg-[#0a0a0a]/90 p-6 rounded-lg border border-zinc-900 space-y-5 shadow-lg font-mono">
+    <div class="border-b border-zinc-900 pb-2.5">
+      <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Your Account · Change Password</h4>
+      <p class="text-[11px] text-zinc-550 mt-0.5">Update the password for <span class="text-zinc-300">{{ auth.currentUser()?.username }}</span> (requires your current password).</p>
+    </div>
+
+    @if (passwordError()) {
+      <div class="p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-xs">{{ passwordError() }}</div>
+    }
+
+    <div class="grid gap-4 sm:grid-cols-3">
+      <div class="space-y-1.5">
+        <label for="cur-pwd" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Current Password</label>
+        <input id="cur-pwd" type="password" autocomplete="current-password" placeholder="••••••••"
+          [ngModel]="currentPassword()" (ngModelChange)="currentPassword.set($event)" [disabled]="changingPassword()"
+          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+      </div>
+      <div class="space-y-1.5">
+        <label for="new-pwd" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">New Password</label>
+        <input id="new-pwd" type="password" autocomplete="new-password" placeholder="min. 8 characters"
+          [ngModel]="newPassword()" (ngModelChange)="newPassword.set($event)" [disabled]="changingPassword()"
+          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+      </div>
+      <div class="space-y-1.5">
+        <label for="conf-pwd" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Confirm New Password</label>
+        <input id="conf-pwd" type="password" autocomplete="new-password" placeholder="repeat new password"
+          [ngModel]="confirmPassword()" (ngModelChange)="confirmPassword.set($event)" [disabled]="changingPassword()"
+          (keyup.enter)="onChangePassword()"
+          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+      </div>
+    </div>
+
+    <div class="flex justify-end">
+      <button (click)="onChangePassword()" [disabled]="changingPassword()"
+        class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2">
+        @if (changingPassword()) {
+          <svg class="animate-spin h-3.5 w-3.5 text-black" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <span>Updating...</span>
+        } @else {
+          <span>Change Password</span>
+        }
+      </button>
+    </div>
+  </div>
+
   <!-- Top Section: Form and Info -->
   <div class="grid gap-6 lg:grid-cols-12 font-mono">
     

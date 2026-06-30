@@ -1,38 +1,122 @@
 <div class="space-y-6 animate-fade-in font-mono" *ngIf="parent.app() && data() as d">
 
-  <!-- 1. Path-aware request flow -->
+  <!-- 1. Live traffic topology: Client → entrypoints → Service → pods -->
   <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-5 shadow-sm">
     <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between gap-3">
       <div>
-        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Request Flow</h3>
-        <p class="text-[10px] text-zinc-555 mt-0.5">How traffic reaches your containers — and where it breaks</p>
+        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Traffic Topology</h3>
+        <p class="text-[10px] text-zinc-555 mt-0.5">Live path from clients through the load balancer / domain to your pods</p>
       </div>
       <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border shrink-0"
-            [ngClass]="{
-              'bg-indigo-950/20 border-indigo-900/30 text-indigo-400': d.exposure === 'domain',
-              'bg-purple-950/20 border-purple-900/30 text-purple-400': d.exposure === 'loadbalancer',
-              'bg-zinc-900 border-zinc-800 text-zinc-500': d.exposure === 'internal'
-            }">
-        {{ d.exposure === 'domain' ? 'Domain · Traefik' : (d.exposure === 'loadbalancer' ? 'Load Balancer' : 'Internal only') }}
+            [ngClass]="readyPods(d) === (d.pods?.length || 0) && (d.pods?.length || 0) > 0
+              ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-400'
+              : 'bg-red-950/20 border-red-900/30 text-red-400'">
+        {{ readyPods(d) }}/{{ d.pods?.length || 0 }} pods ready
       </span>
     </div>
 
-    <div class="flex flex-col lg:flex-row items-stretch gap-2 overflow-x-auto pb-1">
-      <ng-container *ngFor="let hop of d.hops; let last = last">
-        <div class="flex-1 lg:min-w-[150px] bg-black/40 border rounded-md p-4 flex flex-col gap-1.5 shadow-inner"
-             [ngClass]="hopBorder(hop.status)">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">{{ hop.label }}</span>
-            <span class="w-2 h-2 rounded-full shrink-0" [ngClass]="dotClass(hop.status)" [title]="hop.status"></span>
+    <div class="flex items-stretch gap-0 overflow-x-auto pb-2 min-h-[150px]">
+
+      <!-- Client -->
+      <div class="flex flex-col justify-center shrink-0 w-[110px]">
+        <div class="bg-black/40 border border-zinc-800 rounded-md p-3 flex flex-col items-center gap-1 text-center shadow-inner">
+          <span class="text-base leading-none">🌐</span>
+          <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Client</span>
+          <span class="text-[9px] text-zinc-550 truncate max-w-full">internet</span>
+        </div>
+      </div>
+
+      <!-- wire: client → entry -->
+      <div class="flex-1 min-w-[44px] self-center flex flex-col items-center justify-center relative px-1">
+        <div class="wire" [class.active]="hasTraffic(d)"></div>
+        <span class="absolute -top-3.5 text-[8px] text-emerald-400/80 whitespace-nowrap" *ngIf="hasTraffic(d)">{{ trafficLabel(d) }}</span>
+      </div>
+
+      <!-- Entrypoints (domain and/or load balancer — can be both) -->
+      <div class="flex flex-col justify-center gap-2 shrink-0 w-[185px]">
+        @if (d.ingress?.fqdn) {
+          <div class="bg-black/40 border rounded-md p-3 flex flex-col gap-1 shadow-inner"
+               [ngClass]="d.ingress.status === 'active' ? 'border-indigo-900/40' : 'border-amber-900/40'">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[9px] font-bold text-indigo-300 uppercase tracking-wider">Domain · Traefik</span>
+              <span class="w-2 h-2 rounded-full shrink-0" [ngClass]="d.ingress.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'"></span>
+            </div>
+            <span class="text-[10px] font-bold text-zinc-200 truncate" [title]="d.ingress.fqdn">{{ d.ingress.fqdn }}</span>
+            <span class="text-[8px] text-zinc-550" *ngIf="d.traffic?.source === 'traefik'">{{ (d.traffic.requestRate ?? 0) | number:'1.1-2' }} r/s · {{ d.traffic.latencyMs !== null ? (d.traffic.latencyMs | number:'1.0-0') + 'ms' : '—' }}</span>
           </div>
-          <span class="text-xs font-bold text-zinc-200 truncate" [title]="hop.metric">{{ hop.metric || '—' }}</span>
-          <span class="text-[9px] text-zinc-550 truncate" *ngIf="hop.detail">{{ hop.detail }}</span>
+        }
+        @if (d.loadBalancer) {
+          <div class="bg-black/40 border rounded-md p-3 flex flex-col gap-1 shadow-inner"
+               [ngClass]="{
+                 'border-emerald-900/40': d.loadBalancer.status === 'active',
+                 'border-amber-900/40': d.loadBalancer.status === 'pending',
+                 'border-red-900/50': d.loadBalancer.status === 'missing'
+               }">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[9px] font-bold text-purple-300 uppercase tracking-wider">⚖ Load Balancer</span>
+              <span class="w-2 h-2 rounded-full shrink-0"
+                    [ngClass]="d.loadBalancer.status === 'active' ? 'bg-emerald-500' : (d.loadBalancer.status === 'pending' ? 'bg-amber-500 animate-pulse' : 'bg-red-500 animate-pulse')"></span>
+            </div>
+            <span class="text-[10px] font-bold text-zinc-200 truncate" [title]="(d.loadBalancer.externalIp || 'pending') + ':' + d.loadBalancer.externalPort">
+              {{ d.loadBalancer.externalIp || 'pending' }}:{{ d.loadBalancer.externalPort }}
+            </span>
+            <span class="text-[8px] text-zinc-550">NodePort {{ d.loadBalancer.nodePort || '—' }}</span>
+          </div>
+        }
+        @if (!d.ingress?.fqdn && !d.loadBalancer) {
+          <div class="bg-black/40 border border-zinc-900 rounded-md p-3 flex flex-col gap-1 shadow-inner">
+            <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Internal only</span>
+            <span class="text-[9px] text-zinc-550">No public entrypoint</span>
+          </div>
+        }
+      </div>
+
+      <!-- wire: entry → service -->
+      <div class="flex-1 min-w-[44px] self-center flex flex-col items-center justify-center px-1">
+        <div class="wire" [class.active]="(d.service?.endpoints?.length || 0) > 0"></div>
+      </div>
+
+      <!-- Service (ClusterIP) -->
+      <div class="flex flex-col justify-center shrink-0 w-[140px]">
+        <div class="bg-black/40 border rounded-md p-3 flex flex-col gap-1 shadow-inner"
+             [ngClass]="(d.service?.endpoints?.length || 0) > 0 ? 'border-zinc-800' : 'border-red-900/50'">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">⚙ Service</span>
+            <span class="w-2 h-2 rounded-full shrink-0" [ngClass]="(d.service?.endpoints?.length || 0) > 0 ? 'bg-emerald-500' : 'bg-red-500 animate-pulse'"></span>
+          </div>
+          <span class="text-[10px] font-bold text-zinc-200">ClusterIP :{{ d.service?.port }}</span>
+          <span class="text-[8px]" [ngClass]="(d.service?.endpoints?.length || 0) > 0 ? 'text-zinc-550' : 'text-red-400'">
+            {{ d.service?.endpoints?.length || 0 }} healthy endpoint(s)
+          </span>
         </div>
-        <div *ngIf="!last" class="flex items-center justify-center text-zinc-700 shrink-0">
-          <span class="hidden lg:block text-sm">➔</span>
-          <span class="lg:hidden text-sm">▼</span>
-        </div>
-      </ng-container>
+      </div>
+
+      <!-- wire: service → pods (broken when there are no endpoints) -->
+      <div class="flex-1 min-w-[44px] self-center flex flex-col items-center justify-center relative px-1">
+        <div class="wire" [class.active]="(d.service?.endpoints?.length || 0) > 0" [class.broken]="(d.service?.endpoints?.length || 0) === 0 && (d.pods?.length || 0) > 0"></div>
+        <span class="absolute -top-3.5 text-[8px] font-bold text-red-400 whitespace-nowrap"
+              *ngIf="(d.service?.endpoints?.length || 0) === 0 && (d.pods?.length || 0) > 0">503</span>
+      </div>
+
+      <!-- Pods (one box per pod, coloured by readiness) -->
+      <div class="flex flex-col justify-center gap-1.5 shrink-0 w-[210px] max-h-[280px] overflow-y-auto">
+        @for (pod of d.pods; track pod.name) {
+          <div class="bg-black/40 border rounded-md px-3 py-2 flex items-center gap-2 shadow-inner" [ngClass]="hopBorder(podHealth(pod))">
+            <span class="w-2 h-2 rounded-full shrink-0" [ngClass]="dotClass(podHealth(pod))"></span>
+            <div class="min-w-0 flex-1">
+              <div class="text-[10px] font-bold text-zinc-200 truncate" [title]="pod.name">{{ podShortName(pod.name) }}</div>
+              <div class="text-[8px] text-zinc-550">{{ pod.status }} · {{ pod.ready }}</div>
+            </div>
+            <span class="text-[8px] font-bold shrink-0" *ngIf="pod.restarts > 0"
+                  [ngClass]="pod.restarts >= 5 ? 'text-red-400' : 'text-amber-400'" [title]="pod.restarts + ' restarts'">⟳{{ pod.restarts }}</span>
+          </div>
+        }
+        @if (!d.pods || d.pods.length === 0) {
+          <div class="bg-red-950/10 border border-red-900/40 rounded-md px-3 py-3 flex items-center gap-2 text-red-400 text-[10px] font-bold">
+            <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0"></span> No pods running
+          </div>
+        }
+      </div>
     </div>
   </div>
 

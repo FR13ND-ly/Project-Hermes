@@ -106,6 +106,19 @@ export class AuthService {
     return this.api.get<any[]>('/users/auth-logs');
   }
 
+  getGcRuns(): Observable<any[]> {
+    return this.api.get<any[]>('/users/gc-runs');
+  }
+
+  /** Change the currently-authenticated account's own password (requires the
+   *  current password). Used by the admin console's "Change My Password" card. */
+  changePassword(currentPassword: string, newPassword: string): Observable<void> {
+    return this.api.put<void>('/auth/password-change', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+  }
+
   deleteUser(userId: string): Observable<void> {
     return this.api.delete<void>(`/users/users/${userId}`);
   }

@@ -17,12 +17,13 @@ export class AdminLogs implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
 
-  readonly activeTab = signal<'system' | 'auth'>('system');
+  readonly activeTab = signal<'system' | 'auth' | 'gc'>('system');
   readonly loading = signal(false);
 
   // Raw fetched logs
   readonly systemLogs = signal<string>('');
   readonly authEvents = signal<any[]>([]);
+  readonly gcRuns = signal<any[]>([]);
 
   // Search filter & UI signals
   readonly logSearchQuery = signal('');
@@ -56,6 +57,34 @@ export class AdminLogs implements OnInit {
     return list.filter(item => item.text.toLowerCase().includes(query));
   });
 
+  // Format each GC pass as a summary line followed by its per-phase detail lines.
+  readonly formattedGcLogs = computed(() => {
+    const lines: { text: string; type: string }[] = [];
+    for (const run of this.gcRuns()) {
+      const date = new Date(run.startedAt).toISOString().replace('T', ' ').substring(0, 19);
+      const status = String(run.status || '').toUpperCase();
+      const dur = run.durationMs != null ? ` ${run.durationMs}ms` : '';
+      const failed = run.status === 'failed';
+      lines.push({
+        text: `[${date}] [${status}] GC pass${dur} — images: ${run.imagesDeleted}, builds: ${run.buildsPruned}, jobs: ${run.jobsPruned}, pods: ${run.podsReaped}`,
+        type: failed ? 'warn' : 'info',
+      });
+      if (run.detail) {
+        for (const d of String(run.detail).split('\n')) {
+          if (d.trim()) lines.push({ text: '    ' + d, type: 'muted' });
+        }
+      }
+    }
+    return lines;
+  });
+
+  readonly filteredGcLogs = computed(() => {
+    const query = this.logSearchQuery().trim().toLowerCase();
+    const list = this.formattedGcLogs();
+    if (!query) return list;
+    return list.filter(item => item.text.toLowerCase().includes(query));
+  });
+
   constructor() {
     // Security check: super admins only
     const user = this.authService.currentUser();
@@ -69,7 +98,8 @@ export class AdminLogs implements OnInit {
       const active = this.activeTab();
       const sys = this.filteredSystemLogs();
       const auth = this.filteredAuthLogs();
-      
+      const gc = this.filteredGcLogs();
+
       if (this.autoScroll()) {
         setTimeout(() => {
           const el = document.getElementById('admin-console-box');
@@ -83,7 +113,7 @@ export class AdminLogs implements OnInit {
     this.loadLogs();
   }
 
-  onTabChange(tab: 'system' | 'auth'): void {
+  onTabChange(tab: 'system' | 'auth' | 'gc'): void {
     this.activeTab.set(tab);
     this.logSearchQuery.set('');
     this.loadLogs();
@@ -103,7 +133,7 @@ export class AdminLogs implements OnInit {
           this.toast.error(err.error?.message || 'Failed to load system logs.');
         }
       });
-    } else {
+    } else if (this.activeTab() === 'auth') {
       this.authService.getAuthLogs().subscribe({
         next: (res) => {
           this.authEvents.set(res || []);
@@ -113,6 +143,18 @@ export class AdminLogs implements OnInit {
           this.authEvents.set([]);
           this.loading.set(false);
           this.toast.error(err.error?.message || 'Failed to load audit logs.');
+        }
+      });
+    } else {
+      this.authService.getGcRuns().subscribe({
+        next: (res) => {
+          this.gcRuns.set(res || []);
+          this.loading.set(false);
+        },
+        error: (err) => {
+          this.gcRuns.set([]);
+          this.loading.set(false);
+          this.toast.error(err.error?.message || 'Failed to load GC worker runs.');
         }
       });
     }
@@ -125,9 +167,12 @@ export class AdminLogs implements OnInit {
     if (this.activeTab() === 'system') {
       text = this.filteredSystemLogs();
       filename = 'hermes-system.log';
-    } else {
+    } else if (this.activeTab() === 'auth') {
       text = this.filteredAuthLogs().map(i => i.text).join('\n');
       filename = 'hermes-auth-audit.log';
+    } else {
+      text = this.filteredGcLogs().map(i => i.text).join('\n');
+      filename = 'hermes-gc-worker.log';
     }
 
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });

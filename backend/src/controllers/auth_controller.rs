@@ -569,3 +569,50 @@ pub async fn get_system_logs(
         }
     }
 }
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GcRunResponse {
+    pub id: uuid::Uuid,
+    pub started_at: chrono::DateTime<chrono::Utc>,
+    pub finished_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub status: String,
+    pub images_deleted: i32,
+    pub builds_pruned: i32,
+    pub jobs_pruned: i32,
+    pub pods_reaped: i32,
+    pub detail: Option<String>,
+    pub duration_ms: Option<i64>,
+}
+
+/// Recent garbage-collection passes, for the admin console (Logs → GC Worker).
+pub async fn get_gc_runs(
+    State(state): State<AppState>,
+    crate::middlewares::auth_middleware::AuthenticatedUser(_claims): crate::middlewares::auth_middleware::AuthenticatedUser,
+) -> Result<Json<Vec<GcRunResponse>>, AppError> {
+    let rows = sqlx::query!(
+        "SELECT id, started_at, finished_at, status, images_deleted, builds_pruned,
+                jobs_pruned, pods_reaped, detail, duration_ms
+         FROM gc_runs ORDER BY started_at DESC LIMIT 50"
+    )
+    .fetch_all(&state.pool)
+    .await?;
+
+    let out = rows
+        .into_iter()
+        .map(|r| GcRunResponse {
+            id: r.id,
+            started_at: r.started_at,
+            finished_at: r.finished_at,
+            status: r.status,
+            images_deleted: r.images_deleted,
+            builds_pruned: r.builds_pruned,
+            jobs_pruned: r.jobs_pruned,
+            pods_reaped: r.pods_reaped,
+            detail: r.detail,
+            duration_ms: r.duration_ms,
+        })
+        .collect();
+
+    Ok(Json(out))
+}

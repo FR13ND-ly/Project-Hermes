@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, started_at, finished_at, status, images_deleted, builds_pruned,\n                jobs_pruned, pods_reaped, detail, duration_ms\n         FROM gc_runs ORDER BY started_at DESC LIMIT 50",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "started_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "finished_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "images_deleted",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "builds_pruned",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "jobs_pruned",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "pods_reaped",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "detail",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "duration_ms",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "93a34261b57a20f5616b83401faf777e92ccf9c0c9f2036cd669fb93fa776341"
+}

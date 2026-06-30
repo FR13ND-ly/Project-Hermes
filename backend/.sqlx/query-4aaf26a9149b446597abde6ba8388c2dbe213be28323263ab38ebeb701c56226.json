@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM jobs WHERE status IN ('succeeded', 'failed')\n         AND updated_at < now() - ($1::int * interval '1 day')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4aaf26a9149b446597abde6ba8388c2dbe213be28323263ab38ebeb701c56226"
+}

@@ -26,6 +26,7 @@ pub fn routes(state: AppState) -> Router {
         .route("/users/:id/toggle-suspend", post(auth_controller::toggle_user_suspend))
         .route("/system-logs", get(auth_controller::get_system_logs))
         .route("/auth-logs", get(auth_controller::get_auth_logs))
+        .route("/gc-runs", get(auth_controller::get_gc_runs))
         .layer(from_fn(enforce_super_admin));
 
     Router::new()

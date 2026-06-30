@@ -9,7 +9,16 @@ import { AppDetailComponent } from '../../app-detail';
   standalone: true,
   imports: [CommonModule, DecimalPipe],
   templateUrl: './networking.html',
-  styles: ``,
+  styles: `
+    .wire { position: relative; width: 100%; height: 2px; background: #27272a; border-radius: 9999px; overflow: hidden; }
+    .wire.active::after {
+      content: ''; position: absolute; top: 0; bottom: 0; width: 40%;
+      background: linear-gradient(90deg, transparent, #34d399, transparent);
+      animation: wireflow 1.5s linear infinite;
+    }
+    .wire.broken { background: #7f1d1d; }
+    @keyframes wireflow { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
+  `,
 })
 export class AppNetworkingComponent implements OnInit, OnDestroy {
   readonly parent = inject(AppDetailComponent);
@@ -88,5 +97,42 @@ export class AppNetworkingComponent implements OnInit, OnDestroy {
     if (bps < 1024) return `${bps.toFixed(0)} B/s`;
     if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(1)} KB/s`;
     return `${(bps / (1024 * 1024)).toFixed(2)} MB/s`;
+  }
+
+  /** Health of a single pod from its phase + ready ratio ("a/b"). */
+  podHealth(pod: any): 'ok' | 'degraded' | 'down' {
+    if (!pod || pod.status !== 'Running') return 'down';
+    const [a, b] = String(pod.ready || '').split('/').map((n) => +n || 0);
+    if (b > 0 && a === b) return 'ok';
+    if (a > 0) return 'degraded';
+    return 'down';
+  }
+
+  /** Short pod label: drop the long deployment prefix, keep the replica suffix. */
+  podShortName(name: string): string {
+    if (!name) return '?';
+    const parts = name.split('-');
+    return parts.length > 2 ? parts.slice(-2).join('-') : name;
+  }
+
+  /** Is any traffic flowing (HTTP rate or pod network throughput)? */
+  hasTraffic(d: any): boolean {
+    const t = d?.traffic;
+    if (!t) return false;
+    return (t.requestRate ?? 0) > 0 || (t.netRxBps ?? 0) > 0 || (t.netTxBps ?? 0) > 0;
+  }
+
+  /** A compact traffic figure for the client→entry wire. */
+  trafficLabel(d: any): string {
+    const t = d?.traffic;
+    if (!t) return '';
+    if (t.source === 'traefik') return `${(t.requestRate ?? 0).toFixed(2)} r/s`;
+    if (t.source === 'network') return `↓${this.formatBps(t.netRxBps)}`;
+    return '';
+  }
+
+  /** Count of ready pods (parsed from each pod's "a/b" ratio). */
+  readyPods(d: any): number {
+    return (d?.pods || []).filter((p: any) => this.podHealth(p) === 'ok').length;
   }
 }
