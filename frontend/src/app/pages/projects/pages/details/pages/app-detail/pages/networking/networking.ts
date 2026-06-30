@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
+import { CommonModule, DecimalPipe } from '@angular/common';
 import { Subscription, interval } from 'rxjs';
 import { startWith, switchMap } from 'rxjs/operators';
 import { AppDetailComponent } from '../../app-detail';
@@ -7,7 +7,7 @@ import { AppDetailComponent } from '../../app-detail';
 @Component({
   selector: 'app-app-networking',
   standalone: true,
-  imports: [CommonModule, DatePipe, DecimalPipe],
+  imports: [CommonModule, DecimalPipe],
   templateUrl: './networking.html',
   styles: ``,
 })
@@ -58,5 +58,33 @@ export class AppNetworkingComponent implements OnInit, OnDestroy {
     }
     const total = this.data.traffic.requestRate;
     return ((val || 0) / total) * 100;
+  }
+
+  /** Tailwind classes for a hop/health status dot. */
+  dotClass(status: string): string {
+    switch (status) {
+      case 'ok': return 'bg-emerald-500';
+      case 'degraded': return 'bg-amber-500 animate-pulse';
+      case 'down': return 'bg-red-500 animate-pulse';
+      default: return 'bg-zinc-700';
+    }
+  }
+
+  /** Border accent for a hop card by status. */
+  hopBorder(status: string): string {
+    switch (status) {
+      case 'ok': return 'border-emerald-900/40';
+      case 'degraded': return 'border-amber-900/40';
+      case 'down': return 'border-red-900/50';
+      default: return 'border-zinc-900';
+    }
+  }
+
+  /** Human-readable bytes/sec. */
+  formatBps(bps: number | null | undefined): string {
+    if (bps === null || bps === undefined) return 'N/A';
+    if (bps < 1024) return `${bps.toFixed(0)} B/s`;
+    if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(1)} KB/s`;
+    return `${(bps / (1024 * 1024)).toFixed(2)} MB/s`;
   }
 }

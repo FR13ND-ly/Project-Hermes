@@ -80,6 +80,30 @@ export interface AppBuild {
   isLive?: boolean;
 }
 
+export interface TimelineStep {
+  key: string;
+  label: string;
+  /** 'done' | 'active' | 'failed' | 'pending' | 'skipped' | 'warning' */
+  status: string;
+  detail?: string | null;
+}
+
+export interface DeploymentTimeline {
+  buildId: string;
+  overallStatus: string;
+  phase: string;
+  gitRepository?: string | null;
+  branch?: string | null;
+  commitSha?: string | null;
+  commitMessage?: string | null;
+  imageTag?: string | null;
+  failureCategory?: string | null;
+  failureReason?: string | null;
+  durationSec?: number | null;
+  createdAt: string;
+  steps: TimelineStep[];
+}
+
 export interface BuildQueueItem {
   id: string;
   kind: 'app' | 'database' | 'serverless';
@@ -224,6 +248,10 @@ export class ProjectService {
 
   getBuildDetails(appId: string, buildId: string): Observable<AppBuild> {
     return this.api.get<AppBuild>(`/apps/${appId}/builds/${buildId}`);
+  }
+
+  getBuildTimeline(appId: string, buildId: string): Observable<DeploymentTimeline> {
+    return this.api.get<DeploymentTimeline>(`/apps/${appId}/builds/${buildId}/timeline`);
   }
 
   retryBuild(appId: string, buildId: string): Observable<any> {

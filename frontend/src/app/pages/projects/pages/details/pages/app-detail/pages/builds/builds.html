@@ -29,36 +29,86 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-1 px-1">
-        @for (step of parent.buildPhaseSteps; track step.key; let i = $index; let last = $last) {
-          <div class="flex flex-col items-center gap-1.5 shrink-0 w-16">
-            <div
-              class="w-6 h-6 rounded-full flex items-center justify-center border text-[9px] font-bold transition-all duration-300"
-              [ngClass]="{
-                'bg-emerald-500 border-emerald-500 text-black': !parent.isBuildFailed(build) && parent.stepState(build, i) === 'done',
-                'bg-amber-500 border-amber-500 text-black animate-pulse': !parent.isBuildFailed(build) && parent.stepState(build, i) === 'active',
-                'bg-zinc-900 border-zinc-800 text-zinc-600': parent.isBuildFailed(build) || parent.stepState(build, i) === 'pending'
-              }"
-            >
-              @if (!parent.isBuildFailed(build) && parent.stepState(build, i) === 'done') {
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-3 h-3">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                </svg>
-              } @else {
-                {{ i + 1 }}
-              }
+      @if (parent.timeline(); as tl) {
+        <!-- Full repo→live deployment timeline (backend-derived) -->
+        <div class="flex items-start gap-0.5 px-1 overflow-x-auto pb-1">
+          @for (step of tl.steps; track step.key; let last = $last) {
+            <div class="flex flex-col items-center gap-1.5 shrink-0 w-[58px]" [title]="step.detail || step.label">
+              <div
+                class="w-6 h-6 rounded-full flex items-center justify-center border text-[9px] font-bold transition-all duration-300"
+                [ngClass]="{
+                  'bg-emerald-500 border-emerald-500 text-black': step.status === 'done',
+                  'bg-amber-500 border-amber-500 text-black animate-pulse': step.status === 'active',
+                  'bg-red-600 border-red-600 text-white': step.status === 'failed',
+                  'bg-amber-950/40 border-amber-700/60 text-amber-400': step.status === 'warning',
+                  'bg-zinc-900 border-zinc-800 text-zinc-600': step.status === 'pending',
+                  'bg-zinc-950 border-zinc-900 text-zinc-700': step.status === 'skipped'
+                }"
+              >
+                @switch (step.status) {
+                  @case ('done') {
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-3 h-3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  }
+                  @case ('failed') {
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-3 h-3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  }
+                  @case ('warning') { ! }
+                  @case ('active') { <span class="w-2 h-2 rounded-full bg-black"></span> }
+                  @case ('skipped') { – }
+                  @default { <span class="w-1.5 h-1.5 rounded-full bg-zinc-600"></span> }
+                }
+              </div>
+              <span
+                class="text-[8px] font-mono uppercase tracking-wider text-center leading-tight"
+                [class]="step.status === 'pending' || step.status === 'skipped' ? 'text-zinc-650' : (step.status === 'failed' ? 'text-red-400' : 'text-zinc-300')"
+              >{{ step.label }}</span>
             </div>
-            <span
-              class="text-[8px] font-mono uppercase tracking-wider text-center leading-tight"
-              [class]="(!parent.isBuildFailed(build) && parent.stepState(build, i) !== 'pending') ? 'text-zinc-300' : 'text-zinc-650'"
-            >{{ step.label }}</span>
-          </div>
-          @if (!last) {
-            <div class="h-px flex-1 mb-4 transition-colors duration-300"
-                 [class]="(!parent.isBuildFailed(build) && parent.stepState(build, i) === 'done') ? 'bg-emerald-600' : 'bg-zinc-800'"></div>
+            @if (!last) {
+              <div class="h-px flex-1 min-w-[6px] mt-3 transition-colors duration-300"
+                   [class]="step.status === 'done' ? 'bg-emerald-600' : (step.status === 'failed' ? 'bg-red-800' : 'bg-zinc-800')"></div>
+            }
           }
+        </div>
+        @if (parent.currentTimelineDetail(); as d) {
+          <div class="mt-2 px-1 text-[10px] text-zinc-400 font-sans truncate">{{ d }}</div>
         }
-      </div>
+      } @else {
+        <!-- Fallback: phase-only stepper while the richer timeline loads -->
+        <div class="flex items-center gap-1 px-1">
+          @for (step of parent.buildPhaseSteps; track step.key; let i = $index; let last = $last) {
+            <div class="flex flex-col items-center gap-1.5 shrink-0 w-16">
+              <div
+                class="w-6 h-6 rounded-full flex items-center justify-center border text-[9px] font-bold transition-all duration-300"
+                [ngClass]="{
+                  'bg-emerald-500 border-emerald-500 text-black': !parent.isBuildFailed(build) && parent.stepState(build, i) === 'done',
+                  'bg-amber-500 border-amber-500 text-black animate-pulse': !parent.isBuildFailed(build) && parent.stepState(build, i) === 'active',
+                  'bg-zinc-900 border-zinc-800 text-zinc-600': parent.isBuildFailed(build) || parent.stepState(build, i) === 'pending'
+                }"
+              >
+                @if (!parent.isBuildFailed(build) && parent.stepState(build, i) === 'done') {
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-3 h-3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                } @else {
+                  {{ i + 1 }}
+                }
+              </div>
+              <span
+                class="text-[8px] font-mono uppercase tracking-wider text-center leading-tight"
+                [class]="(!parent.isBuildFailed(build) && parent.stepState(build, i) !== 'pending') ? 'text-zinc-300' : 'text-zinc-650'"
+              >{{ step.label }}</span>
+            </div>
+            @if (!last) {
+              <div class="h-px flex-1 mb-4 transition-colors duration-300"
+                   [class]="(!parent.isBuildFailed(build) && parent.stepState(build, i) === 'done') ? 'bg-emerald-600' : 'bg-zinc-800'"></div>
+            }
+          }
+        </div>
+      }
 
       @if (parent.isBuildFailed(build)) {
         <div class="mt-4 p-3 rounded border border-red-900/40 bg-red-950/20 flex items-start gap-2">

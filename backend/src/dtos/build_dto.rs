@@ -62,3 +62,38 @@ pub struct BuildDetailResponse {
     pub commit_sha: Option<String>,
     pub duration_sec: Option<i32>,
 }
+
+/// One step in the repo→live deployment journey.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimelineStep {
+    /// Stable identifier: source, webhook, queue, clone, build, push, deploy, route, health, live.
+    pub key: String,
+    pub label: String,
+    /// "done" | "active" | "failed" | "pending" | "skipped" | "warning".
+    pub status: String,
+    /// Human-readable extra context (commit, image, URL, error, …).
+    pub detail: Option<String>,
+}
+
+/// The full, stitched-together deployment timeline for a single build: source →
+/// CI/CD webhook → queue → clone → build → push → deploy → route → health → live.
+/// Derived from the build record, the instance state and the webhook metadata so
+/// the user sees every stage — and exactly which one failed — in one place.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeploymentTimeline {
+    pub build_id: Uuid,
+    pub overall_status: String,
+    pub phase: String,
+    pub git_repository: Option<String>,
+    pub branch: Option<String>,
+    pub commit_sha: Option<String>,
+    pub commit_message: Option<String>,
+    pub image_tag: Option<String>,
+    pub failure_category: Option<String>,
+    pub failure_reason: Option<String>,
+    pub duration_sec: Option<i32>,
+    pub created_at: DateTime<Utc>,
+    pub steps: Vec<TimelineStep>,
+}

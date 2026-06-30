@@ -1,0 +1,120 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ab.id, ab.status, ab.phase, ab.failure_category, ab.failure_reason,\n                  ab.duration_sec, ab.created_at, ab.commit_sha, ab.commit_message, ab.image_tag,\n                  ai.branch_name, ai.status::text AS \"instance_status!\",\n                  ai.assigned_domain, ai.external_port, ai.meta_data, ai.current_image_tag,\n                  a.git_repository\n           FROM app_builds ab\n           JOIN app_instances ai ON ab.app_instance_id = ai.id\n           JOIN apps a ON ab.app_id = a.id\n           WHERE ab.id = $1 AND ab.app_id = $2 AND a.workspace_id = $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "phase",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "failure_category",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "failure_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "duration_sec",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "commit_sha",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "commit_message",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "image_tag",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "branch_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "instance_status!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "assigned_domain",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 13,
+        "name": "external_port",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "meta_data",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 15,
+        "name": "current_image_tag",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "git_repository",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      null,
+      true,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "b0021092c12ef781fb952635d729c8a95c60117adb88aa39e995294882c498b6"
+}

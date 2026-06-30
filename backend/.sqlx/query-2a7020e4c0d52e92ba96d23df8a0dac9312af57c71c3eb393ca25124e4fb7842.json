@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE app_builds SET status = 'failed', phase = 'failed', logs = logs || $1, duration_sec = $2, failure_reason = $4, failure_category = 'MANIFEST' WHERE id = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2a7020e4c0d52e92ba96d23df8a0dac9312af57c71c3eb393ca25124e4fb7842"
+}

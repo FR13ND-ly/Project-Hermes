@@ -3,7 +3,7 @@ import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
 import { Details } from '../../details';
-import { ProjectService, AppDetail, AppBuild, EnvResponse, AppInstance, ProjectEnvResponse } from '../../../../../../core/services/project.service';
+import { ProjectService, AppDetail, AppBuild, EnvResponse, AppInstance, ProjectEnvResponse, DeploymentTimeline } from '../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 import { DomainService, Domain } from '../../../../../../core/services/domain.service';
@@ -107,6 +107,60 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     { key: 'deploying', label: 'Deploying to cluster' },
     { key: 'running', label: 'Live' },
   ];
+
+  // Backend-derived deployment timeline (source → webhook → … → Traefik → live),
+  // the authoritative, richer replacement for the phase-only client stepper above.
+  readonly timeline = signal<DeploymentTimeline | null>(null);
+  private timelinePoll: any = null;
+
+  /** Fetch the full repo→live timeline for a build, and keep it fresh while the
+   *  build is still in progress (steps advance: clone → build → deploy → live). */
+  loadTimeline(buildId: string): void {
+    const appId = this.appId();
+    if (!appId) return;
+    this.projectService.getBuildTimeline(appId, buildId).subscribe({
+      next: (tl) => {
+        // Ignore a stale response if the user switched builds meanwhile.
+        if (this.selectedBuildId() === buildId) {
+          this.timeline.set(tl);
+        }
+        const live = tl.overallStatus === 'building'
+          || tl.steps.some(s => s.status === 'active');
+        if (live && this.selectedBuildId() === buildId) {
+          this.scheduleTimelinePoll(buildId);
+        } else {
+          this.clearTimelinePoll();
+        }
+      },
+      error: () => {/* non-fatal: the stepper just won't refine */},
+    });
+  }
+
+  private scheduleTimelinePoll(buildId: string): void {
+    this.clearTimelinePoll();
+    this.timelinePoll = setTimeout(() => this.loadTimeline(buildId), 3000);
+  }
+
+  private clearTimelinePoll(): void {
+    if (this.timelinePoll) {
+      clearTimeout(this.timelinePoll);
+      this.timelinePoll = null;
+    }
+  }
+
+  /** The most relevant one-liner to show under the stepper: the failed step's
+   *  diagnostic, else the currently-active step, else the live URL. */
+  currentTimelineDetail(): string | null {
+    const tl = this.timeline();
+    if (!tl) return null;
+    const failed = tl.steps.find(s => s.status === 'failed');
+    if (failed) return failed.detail ? `${failed.label}: ${failed.detail}` : `${failed.label} failed`;
+    const active = tl.steps.find(s => s.status === 'active');
+    if (active) return active.detail ? `${active.label}: ${active.detail}` : `${active.label}…`;
+    const live = tl.steps.find(s => s.key === 'live' && s.status === 'done');
+    if (live?.detail) return `Live at ${live.detail}`;
+    return null;
+  }
 
   // The build whose lifecycle the stepper reflects: the selected one, else the latest.
   readonly displayBuild = computed(() => this.selectedBuild() || this.builds()[0] || null);
@@ -771,7 +825,9 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.selectedBuildId.set(build.id);
     this.loadingBuildLogs.set(true);
     this.disconnectLogs(); // Pause live container logs
-    
+
+    this.timeline.set(null);
+    this.loadTimeline(build.id);
     this.fetchBuildLogs(build.id);
   }
 
@@ -831,6 +887,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       this.disconnectBuildLogs();
       this.loadBuilds(true);
       this.loadAppDetails();
+      this.loadTimeline(buildId);
 
       // Retrieve full logs from database
       this.projectService.getBuildDetails(appId, buildId).subscribe({
@@ -849,6 +906,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       this.buildLogsEventSource.close();
       this.buildLogsEventSource = null;
     }
+    this.clearTimelinePoll();
   }
 
   formatDuration(seconds: number | undefined): string {

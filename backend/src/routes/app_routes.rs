@@ -26,6 +26,7 @@ pub fn routes(state: AppState) -> Router {
         .route("/apps/:id/builds", get(app_controller::list_app_builds))
         .route("/apps/:id/builds/:build_id", get(app_controller::get_build_details))
         .route("/apps/:id/builds/:build_id/logs/stream", get(app_controller::stream_build_logs))
+        .route("/apps/:id/builds/:build_id/timeline", get(app_controller::get_build_timeline))
         .layer(from_fn_with_state(state.clone(), check_permission))
         .layer(Extension(RequiredPermission("app:read")));
 

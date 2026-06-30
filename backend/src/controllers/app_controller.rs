@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use crate::app_state::AppState;
 use crate::models::app_model::{App, AppInstance, AppInstanceType, AppStatus};
 use crate::dtos::app_dto::{CreateAppRequest, CreateBranchRequest, AppDetailedResponse, AppInstanceResponse, ConfigureServerlessRequest};
-use crate::dtos::build_dto::{BuildResponse, BuildDetailResponse, BuildQueueItem};
+use crate::dtos::build_dto::{BuildResponse, BuildDetailResponse, BuildQueueItem, DeploymentTimeline, TimelineStep};
 use crate::dtos::metrics_dto::MetricsHistoryResponse;
 use crate::middlewares::auth_middleware::AuthenticatedUser;
 use crate::utils::error::AppError;
@@ -256,21 +256,19 @@ pub async fn try_register_github_webhook(
                 Err(err_msg) => format!("[System] GitHub Webhook registration: Warning! Failed to register push webhook: {}\n", err_msg)
             };
 
+            // Atomic append (logs = logs || $1): the build worker writes the same
+            // column concurrently, and an append-only write means the webhook line
+            // survives the build's own log write instead of being clobbered by it.
+            // Retry until the build row exists (it's enqueued just before this).
             for _ in 0..5 {
-                if let Ok(Some(build_rec)) = sqlx::query!(
-                    "SELECT id, logs FROM app_builds WHERE app_instance_id = $1 ORDER BY created_at DESC LIMIT 1",
-                    inst_id
+                let res = sqlx::query!(
+                    "UPDATE app_builds SET logs = logs || $1
+                     WHERE id = (SELECT id FROM app_builds WHERE app_instance_id = $2 ORDER BY created_at DESC LIMIT 1)",
+                    log_line, inst_id
                 )
-                .fetch_optional(&pool)
-                .await {
-                    let mut updated_logs = build_rec.logs;
-                    updated_logs.push_str(&log_line);
-                    let _ = sqlx::query!(
-                        "UPDATE app_builds SET logs = $1 WHERE id = $2",
-                        updated_logs, build_rec.id
-                    )
-                    .execute(&pool)
-                    .await;
+                .execute(&pool)
+                .await;
+                if matches!(res, Ok(ref r) if r.rows_affected() > 0) {
                     break;
                 }
                 tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
@@ -1600,45 +1598,11 @@ pub async fn get_build_details(
     .await?
     .ok_or_else(|| AppError::NotFound("Build log record not found.".to_string()))?;
 
-    let mut logs = record.logs;
-    if record.status == "building" {
-        if let Ok(k8s_client) = crate::utils::k8s::K8sManager::get_client().await {
-            let namespace = format!("hermes-ws-{}", ws_id);
-            let builder_pod_name = format!("hermes-builder-{}", record.app_instance_id);
-            let pods: kube::Api<k8s_openapi::api::core::v1::Pod> = kube::Api::namespaced(k8s_client, &namespace);
-            
-            if let Ok(_pod) = pods.get(&builder_pod_name).await {
-                let mut live_logs = String::new();
-                live_logs.push_str("=========================================\n");
-                live_logs.push_str(" STAGE 1: CODE DOWNLOAD (GIT CLONE) (LIVE)\n");
-                live_logs.push_str("=========================================\n");
-                
-                let cloner_params = kube::api::LogParams {
-                    container: Some("cloner".to_string()),
-                    ..Default::default()
-                };
-                match pods.logs(&builder_pod_name, &cloner_params).await {
-                    Ok(l) => live_logs.push_str(&l),
-                    Err(_) => live_logs.push_str("Downloading the code or preparing the container...\n"),
-                }
+    // The DB log column is kept live by the build's log pump, so it's authoritative
+    // for every phase (clone, build, deploy, summary). No need to re-fetch from the
+    // builder pod here — doing so would actually drop the webhook/deploy lines.
+    let logs = record.logs;
 
-                live_logs.push_str("\n\n=========================================\n");
-                live_logs.push_str(" STAGE 2: IMAGE BUILD (KANIKO) (LIVE)\n");
-                live_logs.push_str("=========================================\n");
-                
-                let kaniko_params = kube::api::LogParams {
-                    container: Some("kaniko".to_string()),
-                    ..Default::default()
-                };
-                match pods.logs(&builder_pod_name, &kaniko_params).await {
-                    Ok(l) => live_logs.push_str(&l),
-                    Err(_) => live_logs.push_str("Building the docker image (Kaniko) or waiting for the container...\n"),
-                }
-                logs = live_logs;
-            }
-        }
-    }
- 
     Ok(Json(BuildDetailResponse {
         id: record.id,
         app_id: record.app_id,
@@ -1653,6 +1617,250 @@ pub async fn get_build_details(
         commit_message: record.commit_message,
         commit_sha: record.commit_sha,
         duration_sec: record.duration_sec,
+    }))
+}
+
+/// Map a build `failure_category` to the pipeline step (level) it belongs to, so a
+/// failed build marks the *right* stage as failed rather than a generic "build error".
+/// Levels: 2 queue/provision · 3 clone · 4 build · 5 push · 6 deploy.
+fn failure_step_level(category: Option<&str>) -> u8 {
+    match category.unwrap_or("") {
+        "POD_CREATE" | "MANIFEST" => 2,
+        "GIT_AUTH" | "BRANCH_MISSING" | "REPO_NOT_FOUND" | "NETWORK" | "CLONE_FAILED" => 3,
+        "NO_DOCKERFILE" | "BUILD_OOM" | "BUILD_EVICTED" | "BUILD_KILLED" | "BUILD_COMMAND"
+        | "KPACK" | "TIMEOUT" => 4,
+        "REGISTRY_AUTH" | "REGISTRY" => 5,
+        "DEPLOY" | "INTERRUPTED" => 6,
+        _ => 4, // UNKNOWN and anything new → the build step
+    }
+}
+
+/// Stitch the build record + instance state + webhook metadata into an ordered,
+/// per-step timeline. Pure function of the inputs (no I/O) so it's easy to reason
+/// about and test.
+fn build_timeline_steps(
+    status: &str,
+    phase: &str,
+    failure_category: Option<&str>,
+    failure_reason: Option<&str>,
+    instance_status: &str,
+    is_current: bool,
+    assigned_domain: Option<&str>,
+    external_port: Option<i32>,
+    image_tag: Option<&str>,
+    commit_sha: Option<&str>,
+    git_repository: &str,
+    branch: &str,
+    meta_data: &serde_json::Value,
+) -> Vec<TimelineStep> {
+    // Pipeline levels: 1 source · 2 queue · 3 clone · 4 build · 5 push · 6 deploy
+    // · 7 route · 8 health · 9 live.
+    let superseded = matches!(status, "superseded" | "cancelled");
+    let succeeded = status == "succeeded";
+    // Instance-derived signals (crash / deploy failure / live) only describe THIS build
+    // when its image is the one currently deployed — otherwise a newer build owns them.
+    let crashed = is_current && instance_status == "crashed";
+    let deploy_failed = is_current && instance_status == "failed";
+    let build_failed = matches!(status, "failed" | "timed_out") || deploy_failed;
+    let is_live = is_current && !crashed && (instance_status == "running" || phase == "deployed");
+    // Still moving: queued/building, or freshly built and now deploying on the instance.
+    let in_progress = matches!(status, "queued" | "building")
+        || (succeeded && is_current && instance_status == "building");
+    let fail_level = failure_step_level(failure_category);
+
+    // For an in-progress build, which level is currently active (and how far done).
+    let active_level: u8 = match phase {
+        "queued" | "starting" => 2,
+        "cloning" => 3,
+        "building" => 4,
+        "deploying" => 6, // build + push already done
+        "deployed" => 9,
+        _ => {
+            if status == "succeeded" {
+                6
+            } else {
+                2
+            }
+        }
+    };
+
+    let level_status = |lvl: u8| -> &'static str {
+        if superseded {
+            if lvl == 1 { "done" } else { "skipped" }
+        } else if build_failed {
+            if lvl < fail_level {
+                "done"
+            } else if lvl == fail_level {
+                "failed"
+            } else {
+                "skipped"
+            }
+        } else if crashed {
+            // Image built, pushed, deployed and routed OK; it crashed at the health gate.
+            if lvl <= 7 {
+                "done"
+            } else if lvl == 8 {
+                "failed"
+            } else {
+                "skipped"
+            }
+        } else if !in_progress {
+            // Settled and not failed: live now, a historical success, or a succeeded
+            // build whose app was later stopped — it completed the journey. Show done.
+            "done"
+        } else if lvl < active_level {
+            "done"
+        } else if lvl == active_level {
+            "active"
+        } else {
+            "pending"
+        }
+    };
+
+    let short_image = image_tag.map(|t| t.rsplit('/').next().unwrap_or(t).to_string());
+    let source_detail = {
+        let mut d = git_repository.to_string();
+        d.push_str(&format!(" @ {}", branch));
+        if let Some(sha) = commit_sha {
+            if !sha.is_empty() {
+                let short: String = sha.chars().take(7).collect();
+                d.push_str(&format!(" ({})", short));
+            }
+        }
+        d
+    };
+
+    // CI/CD webhook is an overlay (registered out-of-band), so it's derived from the
+    // instance metadata rather than from the build phase.
+    let wh = meta_data.get("github_webhook");
+    let (wh_status, wh_detail) = match wh.and_then(|w| w.get("status")).and_then(|s| s.as_str()) {
+        Some("success") => (
+            "done",
+            Some("GitHub push webhook registered — auto-deploy on push".to_string()),
+        ),
+        Some("failed") => (
+            "warning",
+            Some(
+                wh.and_then(|w| w.get("error"))
+                    .and_then(|e| e.as_str())
+                    .map(|e| format!("Webhook registration failed: {}", e))
+                    .unwrap_or_else(|| "Webhook registration failed".to_string()),
+            ),
+        ),
+        _ => ("skipped", Some("No CI/CD webhook (manual deploys only)".to_string())),
+    };
+
+    let route_label = if assigned_domain.is_some() {
+        "Route (Traefik)"
+    } else {
+        "Route (LoadBalancer)"
+    };
+    let route_detail = if let Some(d) = assigned_domain {
+        Some(format!("Traefik ingress → {}", d))
+    } else if let Some(p) = external_port {
+        Some(format!("LoadBalancer → port {}", p))
+    } else {
+        Some("Internal service only".to_string())
+    };
+
+    let live_detail = if is_live {
+        assigned_domain
+            .map(|d| format!("https://{}", d))
+            .or_else(|| external_port.map(|p| format!("http://localhost:{}", p)))
+    } else {
+        None
+    };
+
+    let mut steps = vec![
+        TimelineStep { key: "source".into(),  label: "Source".into(),             status: level_status(1).into(), detail: Some(source_detail) },
+        TimelineStep { key: "webhook".into(), label: "CI/CD Webhook".into(),       status: wh_status.into(),       detail: wh_detail },
+        TimelineStep { key: "queue".into(),   label: "Queued".into(),              status: level_status(2).into(), detail: None },
+        TimelineStep { key: "clone".into(),   label: "Clone code".into(),          status: level_status(3).into(), detail: None },
+        TimelineStep { key: "build".into(),   label: "Build image".into(),         status: level_status(4).into(), detail: None },
+        TimelineStep { key: "push".into(),    label: "Push to registry".into(),    status: level_status(5).into(), detail: short_image },
+        TimelineStep { key: "deploy".into(),  label: "Deploy to cluster".into(),   status: level_status(6).into(), detail: None },
+        TimelineStep { key: "route".into(),   label: route_label.into(),           status: level_status(7).into(), detail: route_detail },
+        TimelineStep { key: "health".into(),  label: "Health check".into(),        status: level_status(8).into(), detail: if crashed { Some("Container crashed at startup — check the env vars and start command".into()) } else { None } },
+        TimelineStep { key: "live".into(),    label: "Live".into(),                status: level_status(9).into(), detail: live_detail },
+    ];
+
+    // Surface the failure diagnostic on whichever step actually failed.
+    if let Some(reason) = failure_reason {
+        if let Some(failed) = steps.iter_mut().find(|s| s.status == "failed") {
+            if failed.detail.is_none() {
+                failed.detail = Some(reason.to_string());
+            }
+        }
+    }
+
+    steps
+}
+
+/// Deployment timeline for a build: the full repo→live journey as discrete steps,
+/// each with its own status — so a glance shows where things are and what broke.
+pub async fn get_build_timeline(
+    State(state): State<AppState>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    Path((app_id, build_id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<DeploymentTimeline>, AppError> {
+    let ws_id = claims
+        .current_workspace_id
+        .ok_or_else(|| AppError::Validation("No active workspace selected.".to_string()))?;
+
+    let rec = sqlx::query!(
+        r#"SELECT ab.id, ab.status, ab.phase, ab.failure_category, ab.failure_reason,
+                  ab.duration_sec, ab.created_at, ab.commit_sha, ab.commit_message, ab.image_tag,
+                  ai.branch_name, ai.status::text AS "instance_status!",
+                  ai.assigned_domain, ai.external_port, ai.meta_data, ai.current_image_tag,
+                  a.git_repository
+           FROM app_builds ab
+           JOIN app_instances ai ON ab.app_instance_id = ai.id
+           JOIN apps a ON ab.app_id = a.id
+           WHERE ab.id = $1 AND ab.app_id = $2 AND a.workspace_id = $3"#,
+        build_id, app_id, ws_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Build not found.".to_string()))?;
+
+    // Is this build's image the one currently deployed on the instance? Only then do
+    // the instance-derived signals (live / crashed / deploy-failed) describe THIS build
+    // rather than a newer one that superseded it.
+    let is_current = match (rec.image_tag.as_deref(), rec.current_image_tag.as_deref()) {
+        (Some(a), Some(b)) => a == b,
+        _ => false,
+    };
+
+    let steps = build_timeline_steps(
+        &rec.status,
+        &rec.phase,
+        rec.failure_category.as_deref(),
+        rec.failure_reason.as_deref(),
+        &rec.instance_status,
+        is_current,
+        rec.assigned_domain.as_deref(),
+        rec.external_port,
+        rec.image_tag.as_deref(),
+        rec.commit_sha.as_deref(),
+        &rec.git_repository,
+        &rec.branch_name,
+        &rec.meta_data,
+    );
+
+    Ok(Json(DeploymentTimeline {
+        build_id: rec.id,
+        overall_status: rec.status,
+        phase: rec.phase,
+        git_repository: Some(rec.git_repository),
+        branch: Some(rec.branch_name),
+        commit_sha: rec.commit_sha,
+        commit_message: rec.commit_message,
+        image_tag: rec.image_tag,
+        failure_category: rec.failure_category,
+        failure_reason: rec.failure_reason,
+        duration_sec: rec.duration_sec,
+        created_at: rec.created_at,
+        steps,
     }))
 }
 
@@ -1917,21 +2125,72 @@ pub struct PodObservability {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrafficStatsObservability {
+    /// Where the numbers come from: "traefik" (HTTP via ingress), "network" (pod
+    /// rx/tx throughput — the fallback for LoadBalancer/internal apps), or "none".
+    pub source: String,
     pub request_rate: Option<f64>,
     pub latency_ms: Option<f64>,
     pub status_2xx: Option<f64>,
     pub status_3xx: Option<f64>,
     pub status_4xx: Option<f64>,
     pub status_5xx: Option<f64>,
+    /// Pod network throughput (bytes/sec), available regardless of ingress.
+    pub net_rx_bps: Option<f64>,
+    pub net_tx_bps: Option<f64>,
+}
+
+/// The external LoadBalancer service (when the app is exposed on a port rather than
+/// a domain) — the hop that the old page conflated with the ClusterIP endpoints.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoadBalancerObservability {
+    pub name: String,
+    pub external_port: Option<i32>,
+    pub node_port: Option<i32>,
+    /// Allocated LB IP/hostname, or None while it's still "pending".
+    pub external_ip: Option<String>,
+    /// "active" | "pending" | "missing".
+    pub status: String,
+}
+
+/// One hop in the request path, with its own health so the UI can show exactly
+/// where traffic stops flowing.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkHop {
+    pub key: String,
+    pub label: String,
+    /// "ok" | "degraded" | "down" | "na".
+    pub status: String,
+    pub detail: Option<String>,
+    pub metric: Option<String>,
+}
+
+/// A diagnosed problem at a specific stage of the path (the "where does it break").
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkIssue {
+    pub stage: String,
+    /// "critical" | "warning".
+    pub severity: String,
+    pub message: String,
+    pub hint: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkObservabilityResponse {
+    /// "domain" | "loadbalancer" | "internal" — drives the path shown.
+    pub exposure: String,
+    /// Ordered request path (client → entry → service → pods) with per-hop health.
+    pub hops: Vec<NetworkHop>,
     pub ingress: IngressObservability,
+    pub load_balancer: Option<LoadBalancerObservability>,
     pub service: ServiceObservability,
     pub pods: Vec<PodObservability>,
     pub traffic: TrafficStatsObservability,
+    /// Diagnosed problems, ordered most-severe first.
+    pub issues: Vec<NetworkIssue>,
 }
 
 pub async fn get_instance_network_observability(
@@ -1995,6 +2254,8 @@ pub async fn get_instance_network_observability(
     let pods_api: kube::Api<k8s_openapi::api::core::v1::Pod> = kube::Api::namespaced(k8s_client.clone(), &namespace);
     let lp = kube::api::ListParams::default().labels(&format!("app={}", container_name));
     let mut pods_list = Vec::new();
+    let mut ready_pod_count = 0usize;
+    let mut total_restarts = 0i32;
     if let Ok(pod_res) = pods_api.list(&lp).await {
         for pod in pod_res.items {
             let name = pod.metadata.name.clone().unwrap_or_default();
@@ -2018,6 +2279,10 @@ pub async fn get_instance_network_observability(
                 }
             }
             let ready = format!("{}/{}", ready_containers, total_containers);
+            if total_containers > 0 && ready_containers == total_containers {
+                ready_pod_count += 1;
+            }
+            total_restarts += restarts;
 
             let ip = pod.status.as_ref().and_then(|s| s.pod_ip.clone());
             let node = pod.spec.as_ref().and_then(|s| s.node_name.clone());
@@ -2096,20 +2361,237 @@ pub async fn get_instance_network_observability(
         }
     }
 
+    // Throughput fallback: when there's no Traefik HTTP data (LoadBalancer / internal
+    // apps, the common case here), surface real pod rx/tx so traffic isn't always N/A.
+    let mut net_rx_bps = None;
+    let mut net_tx_bps = None;
+    if request_rate.is_none() {
+        net_rx_bps = crate::utils::prometheus::query_instant(&format!(
+            "sum(rate(container_network_receive_bytes_total{{namespace=\"{}\",pod=~\"{}-.*\"}}[5m]))",
+            namespace, container_name
+        )).await;
+        net_tx_bps = crate::utils::prometheus::query_instant(&format!(
+            "sum(rate(container_network_transmit_bytes_total{{namespace=\"{}\",pod=~\"{}-.*\"}}[5m]))",
+            namespace, container_name
+        )).await;
+    }
+
+    let traffic_source = if request_rate.is_some() {
+        "traefik"
+    } else if net_rx_bps.is_some() || net_tx_bps.is_some() {
+        "network"
+    } else {
+        "none"
+    }.to_string();
+
     let traffic = TrafficStatsObservability {
+        source: traffic_source,
         request_rate,
         latency_ms,
         status_2xx,
         status_3xx,
         status_4xx,
         status_5xx,
+        net_rx_bps,
+        net_tx_bps,
     };
 
+    // Exposure mode determines the request path that gets drawn.
+    let exposure = if instance.assigned_domain.is_some() {
+        "domain"
+    } else if instance.external_port.is_some() {
+        "loadbalancer"
+    } else {
+        "internal"
+    }.to_string();
+
+    // The real external LoadBalancer service (distinct from the ClusterIP endpoints).
+    let mut load_balancer = None;
+    if instance.external_port.is_some() {
+        let services_api: kube::Api<k8s_openapi::api::core::v1::Service> =
+            kube::Api::namespaced(k8s_client.clone(), &namespace);
+        let lb_name = format!("{}-external", container_name);
+        match services_api.get_opt(&lb_name).await {
+            Ok(Some(svc)) => {
+                let (mut ext_port, mut node_port) = (None, None);
+                if let Some(ports) = svc.spec.as_ref().and_then(|s| s.ports.as_ref()) {
+                    if let Some(p) = ports.first() {
+                        ext_port = Some(p.port);
+                        node_port = p.node_port;
+                    }
+                }
+                let external_ip = svc.status.as_ref()
+                    .and_then(|s| s.load_balancer.as_ref())
+                    .and_then(|lb| lb.ingress.as_ref())
+                    .and_then(|ings| ings.first())
+                    .and_then(|ing| ing.ip.clone().or_else(|| ing.hostname.clone()));
+                let status = if external_ip.is_some() { "active" } else { "pending" }.to_string();
+                load_balancer = Some(LoadBalancerObservability {
+                    name: lb_name,
+                    external_port: ext_port.or(instance.external_port),
+                    node_port,
+                    external_ip,
+                    status,
+                });
+            }
+            _ => {
+                load_balancer = Some(LoadBalancerObservability {
+                    name: lb_name,
+                    external_port: instance.external_port,
+                    node_port: None,
+                    external_ip: None,
+                    status: "missing".to_string(),
+                });
+            }
+        }
+    }
+
+    let pod_count = pods_list.len();
+    let endpoint_count = service.endpoints.len();
+    let running = instance.status == AppStatus::Running;
+
+    // --- Per-hop request path: client → entry → service → pods, each with health. ---
+    let mut hops: Vec<NetworkHop> = Vec::new();
+    hops.push(NetworkHop {
+        key: "client".into(),
+        label: "Client".into(),
+        status: "ok".into(),
+        detail: None,
+        metric: instance.assigned_domain.clone().map(|d| format!("https://{}", d))
+            .or_else(|| instance.external_port.map(|p| format!("localhost:{}", p))),
+    });
+    match exposure.as_str() {
+        "domain" => {
+            let st = if ingress.status == "active" { "ok" } else if running { "degraded" } else { "down" };
+            hops.push(NetworkHop {
+                key: "ingress".into(),
+                label: "Ingress (Traefik)".into(),
+                status: st.into(),
+                detail: Some("HTTP routing".into()),
+                metric: instance.assigned_domain.clone(),
+            });
+        }
+        "loadbalancer" => {
+            let (st, detail) = match load_balancer.as_ref().map(|l| l.status.as_str()) {
+                Some("active") => ("ok", "External LoadBalancer"),
+                Some("pending") => ("degraded", "LB IP pending"),
+                _ => ("down", "LB service missing"),
+            };
+            hops.push(NetworkHop {
+                key: "loadbalancer".into(),
+                label: "Load Balancer".into(),
+                status: st.into(),
+                detail: Some(detail.into()),
+                metric: instance.external_port.map(|p| format!(":{}", p)),
+            });
+        }
+        _ => {
+            hops.push(NetworkHop {
+                key: "internal".into(),
+                label: "Internal only".into(),
+                status: "na".into(),
+                detail: Some("No public entrypoint".into()),
+                metric: None,
+            });
+        }
+    }
+    hops.push(NetworkHop {
+        key: "service".into(),
+        label: "Service".into(),
+        status: (if endpoint_count > 0 { "ok" } else { "down" }).into(),
+        detail: Some(format!("ClusterIP :{}", instance.internal_port)),
+        metric: Some(format!("{} endpoint(s)", endpoint_count)),
+    });
+    let pods_status = if pod_count == 0 || ready_pod_count == 0 {
+        "down"
+    } else if ready_pod_count < pod_count {
+        "degraded"
+    } else {
+        "ok"
+    };
+    hops.push(NetworkHop {
+        key: "pods".into(),
+        label: "Pods".into(),
+        status: pods_status.into(),
+        detail: if total_restarts > 0 { Some(format!("{} restart(s)", total_restarts)) } else { None },
+        metric: Some(format!("{}/{} ready", ready_pod_count, pod_count)),
+    });
+
+    // --- Diagnose where the path breaks. ---
+    let mut issues: Vec<NetworkIssue> = Vec::new();
+    if pod_count == 0 {
+        issues.push(NetworkIssue {
+            stage: "Pods".into(),
+            severity: "critical".into(),
+            message: "No pods are running for this instance.".into(),
+            hint: Some("The app may be stopped or the latest deploy failed — check the build/deploy logs.".into()),
+        });
+    } else if ready_pod_count == 0 {
+        issues.push(NetworkIssue {
+            stage: "Pods".into(),
+            severity: "critical".into(),
+            message: "Pods are running but none are Ready.".into(),
+            hint: Some(format!("The readiness probe is failing — the app likely isn't listening on port {}. Check the start command and logs.", instance.internal_port)),
+        });
+    } else if ready_pod_count < pod_count {
+        issues.push(NetworkIssue {
+            stage: "Pods".into(),
+            severity: "warning".into(),
+            message: format!("Only {}/{} pods are Ready.", ready_pod_count, pod_count),
+            hint: Some("Some replicas are failing their readiness probe and won't receive traffic.".into()),
+        });
+    }
+    if pod_count > 0 && endpoint_count == 0 {
+        issues.push(NetworkIssue {
+            stage: "Service".into(),
+            severity: "critical".into(),
+            message: "The service has no healthy endpoints — requests return 503.".into(),
+            hint: Some("No pod is Ready, so the service has nothing to route to.".into()),
+        });
+    }
+    if total_restarts >= 5 {
+        issues.push(NetworkIssue {
+            stage: "Pods".into(),
+            severity: "warning".into(),
+            message: format!("Pods have restarted {} times (possible CrashLoop).", total_restarts),
+            hint: Some("Inspect the container logs and start command; the built image is valid (rollback is available).".into()),
+        });
+    }
+    match exposure.as_str() {
+        "domain" if running && ingress.status != "active" => issues.push(NetworkIssue {
+            stage: "Ingress".into(),
+            severity: "warning".into(),
+            message: "Domain is mapped but the Traefik route is inactive.".into(),
+            hint: Some("Check the domain's DNS and whether the TLS certificate has been issued.".into()),
+        }),
+        "loadbalancer" => match load_balancer.as_ref().map(|l| l.status.as_str()) {
+            Some("pending") => issues.push(NetworkIssue {
+                stage: "Load Balancer".into(),
+                severity: "warning".into(),
+                message: "The LoadBalancer has no external IP yet (pending).".into(),
+                hint: Some("The cluster's LB controller hasn't assigned an address; on single-node clusters the node IP is used.".into()),
+            }),
+            Some("missing") | None => issues.push(NetworkIssue {
+                stage: "Load Balancer".into(),
+                severity: "critical".into(),
+                message: "The external LoadBalancer service is missing.".into(),
+                hint: Some("Re-apply the deployment (reload) to recreate the external service.".into()),
+            }),
+            _ => {}
+        },
+        _ => {}
+    }
+    issues.sort_by_key(|i| if i.severity == "critical" { 0 } else { 1 });
+
     Ok(Json(NetworkObservabilityResponse {
+        exposure,
+        hops,
         ingress,
+        load_balancer,
         service,
         pods: pods_list,
         traffic,
+        issues,
     }))
 }
 
@@ -2448,9 +2930,9 @@ pub async fn stream_build_logs(
         AppError::Validation("No active workspace selected.".to_string())
     })?;
 
-    // Verify build belongs to app and workspace
-    let build = sqlx::query!(
-        "SELECT ab.id, ab.status, ab.logs, ab.app_instance_id
+    // Verify the build exists and belongs to this app + workspace (authorization).
+    sqlx::query_scalar!(
+        "SELECT ab.id
          FROM app_builds ab
          JOIN apps a ON ab.app_id = a.id
          WHERE ab.id = $1 AND ab.app_id = $2 AND a.workspace_id = $3",
@@ -2461,150 +2943,26 @@ pub async fn stream_build_logs(
     .ok_or_else(|| AppError::NotFound("Build not found.".to_string()))?;
 
     let pool = state.pool.clone();
-    let instance_id = build.app_instance_id;
 
     let sse_stream = async_stream::stream! {
-        // 1. If build is already completed, stream static logs from DB
-        if build.status != "building" {
-            for line in build.logs.lines() {
-                yield Ok(Event::default().data(line.to_string()));
-            }
-            return;
-        }
-
-        // 2. Build is active, connect to Kubernetes and stream live logs
-        let k8s_client = match crate::utils::k8s::K8sManager::get_client().await {
-            Ok(c) => c,
-            Err(e) => {
-                yield Ok(Event::default().data(format!("[System Error] The connection to Kubernetes failed: {}", e)));
-                return;
-            }
-        };
-
-        let namespace = format!("hermes-ws-{}", ws_id);
-        let builder_pod_name = format!("hermes-builder-{}", instance_id);
-        let pods_api: kube::Api<k8s_openapi::api::core::v1::Pod> = kube::Api::namespaced(k8s_client, &namespace);
-
-        // Wait for the build pod to be scheduled/started (max 30 seconds)
-        let mut pod_ready = false;
-        for _ in 0..15 {
-            if let Ok(pod) = pods_api.get(&builder_pod_name).await {
-                if pod.status.is_some() {
-                    pod_ready = true;
-                    break;
-                }
-            }
-            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-        }
-
-        if !pod_ready {
-            yield Ok(Event::default().data("[System] Initializing the build environment...".to_string()));
-        }
-
-        // --- STAGE 1: CLONER ---
-        yield Ok(Event::default().data("=========================================\n STAGE 1: CODE DOWNLOAD (GIT CLONE) (LIVE)\n=========================================\n".to_string()));
-
-        let cloner_params = kube::api::LogParams {
-            container: Some("cloner".to_string()),
-            follow: true,
-            ..Default::default()
-        };
-
-        let mut cloner_stream_success = false;
-        if let Ok(log_stream) = pods_api.log_stream(&builder_pod_name, &cloner_params).await {
-            cloner_stream_success = true;
-            use futures_util::io::AsyncBufReadExt;
-            let mut lines = log_stream.lines();
-            while let Some(line_res) = lines.next().await {
-                match line_res {
-                    Ok(line) => {
-                        yield Ok(Event::default().data(line));
-                    }
-                    Err(_) => {
-                        break;
-                    }
-                }
-            }
-        }
-
-        if !cloner_stream_success {
-            yield Ok(Event::default().data("Preparing the code clone...".to_string()));
-            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-        }
-
-        // --- STAGE 2: KANIKO ---
-        yield Ok(Event::default().data("\n\n=========================================\n STAGE 2: IMAGE BUILD (KANIKO) (LIVE)\n=========================================\n".to_string()));
-
-        // Wait for the Kaniko container to become active (max 120 seconds, useful when pulling a large image)
-        let mut kaniko_active = false;
-        for _ in 0..60 {
-            if let Ok(pod) = pods_api.get(&builder_pod_name).await {
-                if let Some(status) = pod.status {
-                    let container_statuses = status.container_statuses.unwrap_or_default();
-                    if let Some(kaniko_status) = container_statuses.iter().find(|c| c.name == "kaniko") {
-                        if kaniko_status.state.as_ref().map(|s| s.running.is_some() || s.terminated.is_some()).unwrap_or(false) {
-                            kaniko_active = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-        }
-
-        if !kaniko_active {
-            yield Ok(Event::default().data("Waiting for the build engine (Kaniko) to start...".to_string()));
-            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-        }
-
-        let kaniko_params = kube::api::LogParams {
-            container: Some("kaniko".to_string()),
-            follow: true,
-            ..Default::default()
-        };
-
-        if let Ok(log_stream) = pods_api.log_stream(&builder_pod_name, &kaniko_params).await {
-            use futures_util::io::AsyncBufReadExt;
-            let mut lines = log_stream.lines();
-            while let Some(line_res) = lines.next().await {
-                match line_res {
-                    Ok(line) => {
-                        yield Ok(Event::default().data(line));
-                    }
-                    Err(_) => {
-                        break;
-                    }
-                }
-            }
-        }
-
-        // --- STAGE 3: DEPLOY & FINALIZE (LIVE) ---
-        // Cloner/Kaniko were streamed live above, but the orchestrator also writes
-        // logs (deploy, error classification, final summary) to the DB AFTER Kaniko
-        // finishes. We stream them incrementally here, tracking what's appended to the
-        // `logs` column until the build is no longer `building` — so the user sees
-        // everything without refreshing the page.
-        let mut last_len: usize = sqlx::query_scalar!("SELECT logs FROM app_builds WHERE id = $1", build_id)
-            .fetch_optional(&pool)
-            .await
-            .ok()
-            .flatten()
-            .map(|l| l.len())
-            .unwrap_or(0);
-        let mut separator_sent = false;
-        // Up to ~6 minutes for the post-build phases (240 * 1500ms).
-        for _ in 0..240 {
+        // The DB `logs` column is the live source of truth: the build worker's log
+        // pump streams clone+build output into it as it happens, and the deploy phase
+        // + final summary append to the same column. So we simply tail it — replay
+        // whatever already exists, then send newly-appended lines until the build
+        // leaves the "building" state. This needs no Kubernetes access, works on any
+        // control-plane replica, and survives client reconnects (the DB has it all).
+        let mut last_len: usize = 0;
+        // Cap the tail at ~20 minutes (covers the 15-min build limit + deploy), 1s cadence.
+        for _ in 0..1200 {
             match sqlx::query!("SELECT status, logs FROM app_builds WHERE id = $1", build_id)
                 .fetch_optional(&pool)
                 .await
             {
                 Ok(Some(row)) => {
                     if row.logs.len() > last_len {
+                        // `last_len` is always a previous full length (a char boundary),
+                        // so this slice never splits a UTF-8 character.
                         if let Some(appended) = row.logs.get(last_len..) {
-                            if !separator_sent {
-                                yield Ok(Event::default().data("\n=========================================\n ETAPA 3: DEPLOY & FINALIZARE (LIVE)\n=========================================".to_string()));
-                                separator_sent = true;
-                            }
                             for line in appended.lines() {
                                 yield Ok(Event::default().data(line.to_string()));
                             }
@@ -2612,13 +2970,14 @@ pub async fn stream_build_logs(
                         }
                     }
                     if row.status != "building" {
-                        yield Ok(Event::default().data(format!("\n--- Build finalizat (status: {}) ---", row.status)));
+                        yield Ok(Event::default().data(format!("\n--- Build finished (status: {}) ---", row.status)));
                         break;
                     }
                 }
+                // Build row gone or query failed: nothing left to stream.
                 _ => break,
             }
-            tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
         }
     };
 

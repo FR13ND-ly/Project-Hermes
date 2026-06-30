@@ -198,7 +198,7 @@ pub async fn run_kpack_build(
     let duration_sec = start_instant.elapsed().as_secs() as i32;
     crate::utils::metrics::record_build_finished("succeeded", duration_sec as f64);
     let _ = sqlx::query!(
-        "UPDATE app_builds SET status = $1, logs = $2, duration_sec = $3, failure_reason = $4, failure_category = $5, phase = $6 WHERE id = $7",
+        "UPDATE app_builds SET status = $1, logs = logs || $2, duration_sec = $3, failure_reason = $4, failure_category = $5, phase = $6 WHERE id = $7",
         "succeeded", format!("kpack build succeeded.\nImage: {}\n", image_ref), duration_sec, Option::<String>::None, Option::<String>::None, "deploying", build_id
     )
     .execute(&pool)
@@ -233,7 +233,7 @@ async fn fail_kpack_build(
     let duration_sec = start_instant.elapsed().as_secs() as i32;
     crate::utils::metrics::record_build_finished("failed", duration_sec as f64);
     let _ = sqlx::query!(
-        "UPDATE app_builds SET status = $1, logs = $2, duration_sec = $3, failure_reason = $4, failure_category = $5, phase = $6 WHERE id = $7",
+        "UPDATE app_builds SET status = $1, logs = logs || $2, duration_sec = $3, failure_reason = $4, failure_category = $5, phase = $6 WHERE id = $7",
         "failed", format!("kpack build failed.\n{}\n", msg), duration_sec, Some(msg.to_string()), Some("KPACK".to_string()), "failed", build_id
     )
     .execute(pool)
@@ -248,6 +248,117 @@ async fn fail_kpack_build(
             phase: Some("failed".to_string()),
         }
     );
+}
+
+/// Append a buffered chunk to a build's log column, then clear the buffer. Atomic
+/// (`logs = logs || $1`) so it never races with the other concurrent log writers.
+async fn flush_build_log(pool: &sqlx::PgPool, build_id: Uuid, buf: &mut String) {
+    if buf.is_empty() {
+        return;
+    }
+    let _ = sqlx::query!(
+        "UPDATE app_builds SET logs = logs || $1 WHERE id = $2",
+        buf.as_str(), build_id
+    )
+    .execute(pool)
+    .await;
+    buf.clear();
+}
+
+/// Stream one builder-pod container's logs (follow) into the build's log column,
+/// batching writes: flush on ~4KB, on a 500ms idle gap, and when the stream ends.
+/// Idle-flushing keeps quiet phases (e.g. a long `npm install`) visible promptly
+/// without issuing a DB write per line on chatty builds.
+async fn stream_container_logs(
+    pool: &sqlx::PgPool,
+    pods: &Api<k8s_openapi::api::core::v1::Pod>,
+    pod_name: &str,
+    container: &str,
+    build_id: Uuid,
+) {
+    use futures_util::{io::AsyncBufReadExt, StreamExt};
+
+    let params = kube::api::LogParams {
+        container: Some(container.to_string()),
+        follow: true,
+        ..Default::default()
+    };
+    let stream = match pods.log_stream(pod_name, &params).await {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+    let mut lines = stream.lines();
+    let mut buf = String::new();
+    loop {
+        match tokio::time::timeout(std::time::Duration::from_millis(500), lines.next()).await {
+            Ok(Some(Ok(line))) => {
+                buf.push_str(&line);
+                buf.push('\n');
+                if buf.len() >= 4096 {
+                    flush_build_log(pool, build_id, &mut buf).await;
+                }
+            }
+            // Stream error or end-of-stream: flush the remainder and stop.
+            Ok(Some(Err(_))) | Ok(None) => {
+                flush_build_log(pool, build_id, &mut buf).await;
+                break;
+            }
+            // Idle gap with no new line: flush so quiet phases stay live.
+            Err(_) => {
+                flush_build_log(pool, build_id, &mut buf).await;
+            }
+        }
+    }
+}
+
+/// Live log pump: persist the builder pod's clone + image-build output to the build
+/// record AS IT HAPPENS, making the DB the single source of truth. The log is then
+/// visible on refresh/reconnect and even when no client is watching — the SSE
+/// endpoint just tails this same column. Spawned alongside the status-poll loop.
+async fn pump_builder_logs(
+    pool: sqlx::PgPool,
+    pods: Api<k8s_openapi::api::core::v1::Pod>,
+    pod_name: String,
+    build_id: Uuid,
+) {
+    // Wait for the pod to be registered (up to ~30s) before tailing.
+    for _ in 0..15 {
+        if pods.get(&pod_name).await.map(|p| p.status.is_some()).unwrap_or(false) {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    }
+
+    // STAGE 1: cloner (init container — git clone).
+    let mut header = String::from(
+        "=========================================\n STAGE 1: CODE DOWNLOAD (GIT CLONE)\n=========================================\n",
+    );
+    flush_build_log(&pool, build_id, &mut header).await;
+    stream_container_logs(&pool, &pods, &pod_name, "cloner", build_id).await;
+
+    // STAGE 2: kaniko (image build). Wait for it to start — pulling the base image
+    // can take a while — then follow its output to completion.
+    let mut header = String::from(
+        "\n\n=========================================\n STAGE 2: IMAGE BUILD (KANIKO)\n=========================================\n",
+    );
+    flush_build_log(&pool, build_id, &mut header).await;
+    for _ in 0..60 {
+        if let Ok(pod) = pods.get(&pod_name).await {
+            let started = pod
+                .status
+                .as_ref()
+                .and_then(|s| s.container_statuses.as_ref())
+                .and_then(|cs| cs.iter().find(|c| c.name == "kaniko"))
+                .and_then(|c| c.state.as_ref())
+                .map(|st| st.running.is_some() || st.terminated.is_some())
+                .unwrap_or(false);
+            if started {
+                break;
+            }
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    }
+    stream_container_logs(&pool, &pods, &pod_name, "kaniko", build_id).await;
 }
 
 pub async fn run_ephemeral_build(
@@ -1052,7 +1163,7 @@ fi"#,
             let error_msg = format!("Error generating the build pod manifest: {}", e);
             let duration_sec = start_instant.elapsed().as_secs() as i32;
             let _ = sqlx::query!(
-                "UPDATE app_builds SET status = 'failed', phase = 'failed', logs = $1, duration_sec = $2, failure_reason = $4, failure_category = 'MANIFEST' WHERE id = $3",
+                "UPDATE app_builds SET status = 'failed', phase = 'failed', logs = logs || $1, duration_sec = $2, failure_reason = $4, failure_category = 'MANIFEST' WHERE id = $3",
                 error_msg, duration_sec, build_id, "Generating the build pod manifest failed."
             )
             .execute(&pool)
@@ -1094,7 +1205,7 @@ fi"#,
         );
         let duration_sec = start_instant.elapsed().as_secs() as i32;
         let _ = sqlx::query!(
-            "UPDATE app_builds SET status = 'failed', phase = 'failed', logs = $1, duration_sec = $2, failure_reason = $4, failure_category = 'POD_CREATE' WHERE id = $3",
+            "UPDATE app_builds SET status = 'failed', phase = 'failed', logs = logs || $1, duration_sec = $2, failure_reason = $4, failure_category = 'POD_CREATE' WHERE id = $3",
             error_msg, duration_sec, build_id, "Creating the build pod failed (likely insufficient resource quota in the workspace)."
         )
         .execute(&pool)
@@ -1129,6 +1240,15 @@ fi"#,
 
     // Builder pod created: the init "cloner" container runs first (git clone).
     set_build_phase(&pool, build_id, meta.workspace_id, meta.app_id, "cloning").await;
+
+    // Spawn the live log pump: it persists clone+build output to the build record as
+    // it streams, so logs survive refresh/reconnect and don't need a watching client.
+    let mut log_pump = tokio::spawn(pump_builder_logs(
+        pool.clone(),
+        Api::namespaced(k8s_client.clone(), &namespace),
+        builder_pod_name.clone(),
+        build_id,
+    ));
 
     let mut success = false;
     let mut cancelled = false;
@@ -1185,6 +1305,7 @@ fi"#,
     // marking the build failed. The pod is owned by whoever initiated the
     // cancellation (the cancel endpoint or the superseding build).
     if cancelled {
+        log_pump.abort();
         if has_registry_creds {
             let secrets: Api<k8s_openapi::api::core::v1::Secret> = Api::namespaced(k8s_client.clone(), &namespace);
             let _ = secrets.delete(&registry_secret_name, &DeleteParams::default()).await;
@@ -1200,15 +1321,23 @@ fi"#,
         return;
     }
 
-    // Capture builder pod logs from both cloner and build steps
+    // The live pump streamed clone+build output to the DB as it happened; give it a
+    // bounded window to flush the tail, then abort if it's still running (e.g. a
+    // timed-out build whose container hasn't stopped) so finalization isn't blocked.
+    if tokio::time::timeout(std::time::Duration::from_secs(15), &mut log_pump).await.is_err() {
+        log_pump.abort();
+    }
+
+    // Re-read the container logs once more — NOT to persist them (the pump already
+    // did that, live), but to parse the cloner's HERMES_DETECT_* markers below and
+    // to classify the failure cause. Done before the pod is deleted.
     let mut cloner_logs = String::new();
     let cloner_params = kube::api::LogParams {
         container: Some("cloner".to_string()),
         ..Default::default()
     };
-    match pods.logs(&builder_pod_name, &cloner_params).await {
-        Ok(logs) => cloner_logs.push_str(&logs),
-        Err(e) => cloner_logs.push_str(&format!("Could not fetch the cloner logs: {}\n", e)),
+    if let Ok(logs) = pods.logs(&builder_pod_name, &cloner_params).await {
+        cloner_logs.push_str(&logs);
     }
 
     let mut kaniko_logs = String::new();
@@ -1216,9 +1345,8 @@ fi"#,
         container: Some("kaniko".to_string()),
         ..Default::default()
     };
-    match pods.logs(&builder_pod_name, &kaniko_params).await {
-        Ok(logs) => kaniko_logs.push_str(&logs),
-        Err(e) => kaniko_logs.push_str(&format!("Could not fetch the Kaniko/Build logs: {}\n", e)),
+    if let Ok(logs) = pods.logs(&builder_pod_name, &kaniko_params).await {
+        kaniko_logs.push_str(&logs);
     }
 
     let mut cloner_duration_str = "N/A".to_string();
@@ -1287,16 +1415,10 @@ fi"#,
         let _ = secrets.delete(&git_token_secret_name, &DeleteParams::default()).await;
     }
 
+    // STAGE 1 (clone) and STAGE 2 (image build) were streamed to the DB live by the
+    // pump; here we only append the STAGE 3 result footer and (below) set the build's
+    // terminal status/phase/duration. We do NOT re-write the stage logs.
     let mut build_logs = String::new();
-    build_logs.push_str("=========================================\n");
-    build_logs.push_str(&format!(" STAGE 1: CODE DOWNLOAD (GIT CLONE) [Duration: {}]\n", cloner_duration_str));
-    build_logs.push_str("=========================================\n");
-    build_logs.push_str(&cloner_logs);
-
-    build_logs.push_str("\n\n=========================================\n");
-    build_logs.push_str(&format!(" STAGE 2: IMAGE BUILD (KANIKO) [Duration: {}]\n", kaniko_duration_str));
-    build_logs.push_str("=========================================\n");
-    build_logs.push_str(&kaniko_logs);
 
     let total_build_duration_str = format!("{}s", start_instant.elapsed().as_secs());
 
@@ -1321,7 +1443,7 @@ fi"#,
 
     if success {
         build_logs.push_str("\n\n=========================================\n");
-        build_logs.push_str(&format!(" STAGE 3: BUILD SUCCEEDED (SUCCESS) [Total Build Time: {}]\n", total_build_duration_str));
+        build_logs.push_str(&format!(" STAGE 3: BUILD SUCCEEDED (SUCCESS) [Clone: {} · Image: {} · Total: {}]\n", cloner_duration_str, kaniko_duration_str, total_build_duration_str));
         build_logs.push_str("=========================================\n");
         build_logs.push_str("The Docker image was built successfully and pushed to the registry.\n");
         build_logs.push_str("Starting the launch phase in the Kubernetes cluster...\n");
@@ -1348,7 +1470,7 @@ fi"#,
     }
 
     let _ = sqlx::query!(
-        "UPDATE app_builds SET status = $1, logs = $2, duration_sec = $3, failure_reason = $4, failure_category = $5, phase = $6 WHERE id = $7",
+        "UPDATE app_builds SET status = $1, logs = logs || $2, duration_sec = $3, failure_reason = $4, failure_category = $5, phase = $6 WHERE id = $7",
         status_str, build_logs, duration_sec, failure_reason, failure_category, terminal_phase, build_id
     )
     .execute(&pool)
@@ -1520,22 +1642,18 @@ fi"#,
 }
 
 async fn append_deploy_log(pool: &sqlx::PgPool, instance_id: Uuid, log_line: &str) {
-    if let Ok(Some(build_rec)) = sqlx::query!(
-        "SELECT id, logs FROM app_builds WHERE app_instance_id = $1 ORDER BY created_at DESC LIMIT 1",
-        instance_id
+    // Atomic append to the instance's latest build log. `logs = logs || $1` in a
+    // single statement (instead of read-then-write) prevents lost updates when the
+    // build worker, the deploy phase, and the webhook registration all write
+    // concurrently — the root cause of vanishing log lines.
+    let line = format!("{}\n", log_line);
+    let _ = sqlx::query!(
+        "UPDATE app_builds SET logs = logs || $1
+         WHERE id = (SELECT id FROM app_builds WHERE app_instance_id = $2 ORDER BY created_at DESC LIMIT 1)",
+        line, instance_id
     )
-    .fetch_optional(pool)
-    .await {
-        let mut updated_logs = build_rec.logs;
-        updated_logs.push_str(log_line);
-        updated_logs.push_str("\n");
-        let _ = sqlx::query!(
-            "UPDATE app_builds SET logs = $1 WHERE id = $2",
-            updated_logs, build_rec.id
-        )
-        .execute(pool)
-        .await;
-    }
+    .execute(pool)
+    .await;
 }
 
 #[tracing::instrument(skip_all, fields(instance_id = %instance_id))]
@@ -1651,32 +1769,24 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
 
                     let deploy_duration_str = format!("{}s", deploy_start_instant.elapsed().as_secs());
 
-                    if let Ok(Some(build_rec)) = sqlx::query!(
-                        "SELECT id, logs FROM app_builds WHERE app_instance_id = $1 ORDER BY created_at DESC LIMIT 1",
-                        instance_id
-                    )
-                    .fetch_optional(&pool)
-                    .await {
-                        let mut updated_logs = build_rec.logs;
-                        updated_logs.push_str("\n=========================================\n");
-                        updated_logs.push_str(&format!(" STAGE 4: DEPLOY SUCCEEDED (SERVERLESS) [Duration: {}]\n", deploy_duration_str));
-                        updated_logs.push_str("=========================================\n");
-                        updated_logs.push_str(&format!("- Namespace: {} -> OK\n", namespace));
-                        updated_logs.push_str(&format!("- Knative Service: {} (Min Scale: {}, Max Scale: {}, Concurrency: {}) -> OK\n", app_name, min_scale, max_scale, target_concurrency));
-                        if let Some(ref domain) = meta.assigned_domain {
-                            updated_logs.push_str(&format!("- Ingress Domeniu: http://{} -> OK\n", domain));
-                        }
-                        updated_logs.push_str("\n=========================================\n");
-                        updated_logs.push_str(" THE SERVERLESS SERVICE HAS BEEN LAUNCHED AND IS ACTIVE!\n");
-                        updated_logs.push_str("=========================================\n");
-                        
-                        let _ = sqlx::query!(
-                            "UPDATE app_builds SET logs = $1 WHERE id = $2",
-                            updated_logs, build_rec.id
-                        )
-                        .execute(&pool)
-                        .await;
+                    let mut summary = String::new();
+                    summary.push_str("\n=========================================\n");
+                    summary.push_str(&format!(" STAGE 4: DEPLOY SUCCEEDED (SERVERLESS) [Duration: {}]\n", deploy_duration_str));
+                    summary.push_str("=========================================\n");
+                    summary.push_str(&format!("- Namespace: {} -> OK\n", namespace));
+                    summary.push_str(&format!("- Knative Service: {} (Min Scale: {}, Max Scale: {}, Concurrency: {}) -> OK\n", app_name, min_scale, max_scale, target_concurrency));
+                    if let Some(ref domain) = meta.assigned_domain {
+                        summary.push_str(&format!("- Ingress domain: http://{} -> OK\n", domain));
                     }
+                    summary.push_str("\n=========================================\n");
+                    summary.push_str(" THE SERVERLESS SERVICE HAS BEEN LAUNCHED AND IS ACTIVE!\n");
+                    summary.push_str("=========================================\n");
+                    let _ = sqlx::query!(
+                        "UPDATE app_builds SET logs = logs || $1 WHERE id = (SELECT id FROM app_builds WHERE app_instance_id = $2 ORDER BY created_at DESC LIMIT 1)",
+                        summary, instance_id
+                    )
+                    .execute(&pool)
+                    .await;
                     return; // SUCCESS!
                 }
                 Err(e) => {
@@ -1786,42 +1896,34 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
 
                             let deploy_duration_str = format!("{}s", deploy_start_instant.elapsed().as_secs());
 
-                            if let Ok(Some(build_rec)) = sqlx::query!(
-                                "SELECT id, logs FROM app_builds WHERE app_instance_id = $1 ORDER BY created_at DESC LIMIT 1",
-                                instance_id
-                            )
-                            .fetch_optional(&pool)
-                            .await {
-                                let mut updated_logs = build_rec.logs;
-                                updated_logs.push_str("\n=========================================\n");
-                                updated_logs.push_str(&format!(" STAGE 4: DEPLOY (DEPLOYED) [Duration: {}]\n", deploy_duration_str));
-                                updated_logs.push_str("=========================================\n");
-                                updated_logs.push_str(&format!("- Namespace: {} -> OK\n", namespace));
-                                updated_logs.push_str(&format!("- Deployment: {} (Internal Port: {}) -> OK\n", app_name, meta.internal_port));
-                                if let Some(ext_port) = meta.external_port {
-                                    updated_logs.push_str(&format!("- LoadBalancer Service: external port {} -> OK\n", ext_port));
-                                    updated_logs.push_str(&format!("  -> Reachable at: http://localhost:{}\n", ext_port));
-                                }
-                                if let Some(ref domain) = meta.assigned_domain {
-                                    updated_logs.push_str(&format!("- Ingress routes: http://{} -> OK\n", domain));
-                                }
-                                updated_logs.push_str("\n=========================================\n");
-                                if let Some(ref reason) = crash {
-                                    // Image built & deployed fine, but the container crashed at startup.
-                                    updated_logs.push_str(&format!(" WARNING: Build & deploy OK, but the application crashed at startup: {}\n", reason));
-                                    updated_logs.push_str(" The image is valid (you can roll back). Check the environment variables and the start command.\n");
-                                } else {
-                                    updated_logs.push_str(" THE APPLICATION HAS BEEN LAUNCHED AND IS ACTIVE!\n");
-                                }
-                                updated_logs.push_str("=========================================\n");
-
-                                let _ = sqlx::query!(
-                                    "UPDATE app_builds SET logs = $1 WHERE id = $2",
-                                    updated_logs, build_rec.id
-                                )
-                                .execute(&pool)
-                                .await;
+                            let mut summary = String::new();
+                            summary.push_str("\n=========================================\n");
+                            summary.push_str(&format!(" STAGE 4: DEPLOY (DEPLOYED) [Duration: {}]\n", deploy_duration_str));
+                            summary.push_str("=========================================\n");
+                            summary.push_str(&format!("- Namespace: {} -> OK\n", namespace));
+                            summary.push_str(&format!("- Deployment: {} (Internal Port: {}) -> OK\n", app_name, meta.internal_port));
+                            if let Some(ext_port) = meta.external_port {
+                                summary.push_str(&format!("- LoadBalancer Service: external port {} -> OK\n", ext_port));
+                                summary.push_str(&format!("  -> Reachable at: http://localhost:{}\n", ext_port));
                             }
+                            if let Some(ref domain) = meta.assigned_domain {
+                                summary.push_str(&format!("- Ingress routes: http://{} -> OK\n", domain));
+                            }
+                            summary.push_str("\n=========================================\n");
+                            if let Some(ref reason) = crash {
+                                // Image built & deployed fine, but the container crashed at startup.
+                                summary.push_str(&format!(" WARNING: Build & deploy OK, but the application crashed at startup: {}\n", reason));
+                                summary.push_str(" The image is valid (you can roll back). Check the environment variables and the start command.\n");
+                            } else {
+                                summary.push_str(" THE APPLICATION HAS BEEN LAUNCHED AND IS ACTIVE!\n");
+                            }
+                            summary.push_str("=========================================\n");
+                            let _ = sqlx::query!(
+                                "UPDATE app_builds SET logs = logs || $1 WHERE id = (SELECT id FROM app_builds WHERE app_instance_id = $2 ORDER BY created_at DESC LIMIT 1)",
+                                summary, instance_id
+                            )
+                            .execute(&pool)
+                            .await;
                             match crash {
                                 Some(ref reason) => tracing::warn!(duration = %deploy_duration_str, "App deployed but crashed at startup: {}", reason),
                                 None => tracing::info!(duration = %deploy_duration_str, "App deploy succeeded"),
@@ -1842,29 +1944,21 @@ pub async fn deploy_compiled_app(pool: PgPool, instance_id: Uuid, image_tag: Str
 
     // Log failed deployment to latest build record
     let deploy_duration_str = format!("{}s", deploy_start_instant.elapsed().as_secs());
-    if let Ok(Some(build_rec)) = sqlx::query!(
-        "SELECT id, logs FROM app_builds WHERE app_instance_id = $1 ORDER BY created_at DESC LIMIT 1",
-        instance_id
-    )
-    .fetch_optional(&pool)
-    .await {
-        let mut updated_logs = build_rec.logs;
-        updated_logs.push_str("\n\n=========================================\n");
-        updated_logs.push_str(&format!(" STAGE 4: DEPLOY FAILED (DEPLOYMENT FAILED) [Duration: {}]\n", deploy_duration_str));
-        updated_logs.push_str("=========================================\n");
-        if let Some(ref err_msg) = deploy_error {
-            updated_logs.push_str(&format!("Error provisioning Kubernetes resources in the cluster:\n{}\n", err_msg));
-        } else {
-            updated_logs.push_str("Error provisioning Kubernetes resources in the cluster.\n");
-        }
-
-        let _ = sqlx::query!(
-            "UPDATE app_builds SET logs = $1, phase = 'failed', failure_reason = $3, failure_category = 'DEPLOY' WHERE id = $2",
-            updated_logs, build_rec.id, "Deploying the Kubernetes resources failed (see stage 4 in the logs). The image was built correctly."
-        )
-        .execute(&pool)
-        .await;
+    let mut summary = String::new();
+    summary.push_str("\n\n=========================================\n");
+    summary.push_str(&format!(" STAGE 4: DEPLOY FAILED (DEPLOYMENT FAILED) [Duration: {}]\n", deploy_duration_str));
+    summary.push_str("=========================================\n");
+    if let Some(ref err_msg) = deploy_error {
+        summary.push_str(&format!("Error provisioning Kubernetes resources in the cluster:\n{}\n", err_msg));
+    } else {
+        summary.push_str("Error provisioning Kubernetes resources in the cluster.\n");
     }
+    let _ = sqlx::query!(
+        "UPDATE app_builds SET logs = logs || $1, phase = 'failed', failure_reason = $3, failure_category = 'DEPLOY' WHERE id = (SELECT id FROM app_builds WHERE app_instance_id = $2 ORDER BY created_at DESC LIMIT 1)",
+        summary, instance_id, "Deploying the Kubernetes resources failed (see stage 4 in the logs). The image was built correctly."
+    )
+    .execute(&pool)
+    .await;
 
     match deploy_error {
         Some(ref err) => tracing::warn!(duration = %deploy_duration_str, "App deploy failed: {}", err),
