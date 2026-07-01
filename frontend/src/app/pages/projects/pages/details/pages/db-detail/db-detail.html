@@ -33,11 +33,12 @@
       </div>
 
       <!-- Grouped tab navigation (sub-tabs render below) -->
-      <nav class="flex items-center flex-wrap gap-1" aria-label="Database sections">
+      <nav class="flex items-center flex-wrap gap-5" aria-label="Database sections">
         @for (g of tabGroups; track g.id) {
           <a
             [routerLink]="activeGroup().id === g.id ? currentTabPath() : g.default"
-            [class]="activeGroup().id === g.id ? 'px-3 py-1.5 rounded text-[13px] font-semibold cursor-pointer transition-all border bg-zinc-50 text-zinc-950 border-zinc-50' : 'px-3 py-1.5 rounded text-[13px] font-semibold cursor-pointer transition-all border bg-transparent text-zinc-450 hover:text-zinc-50 border-zinc-850'"
+            class="tab"
+            [class.is-active]="activeGroup().id === g.id"
           >
             {{ g.label }}
           </a>

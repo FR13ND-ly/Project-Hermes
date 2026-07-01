@@ -247,7 +247,16 @@ html[data-theme="retro"] { --accent: #ffb000; --accent-hover: #e0a020; --accent-
   }
 
   /* ---- Cards / panels ---- */
-  .card { background: var(--surface-panel); border: 1px solid var(--surface-border); border-radius: 8px; }
+  .card {
+    background: var(--surface-panel);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    /* Subtle depth: a hairline top highlight + a soft drop, so cards sit ON the
+       canvas instead of being flat rectangles. Reads on dark; invisible on light. */
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, var(--color-zinc-50) 4%, transparent),
+      0 1px 2px rgba(0, 0, 0, 0.22);
+  }
 
   /* Frosted glass panel — looks great floating over the background glow. Opt-in:
      add `.glass` to a container instead of `.card` / a solid bg. */
@@ -259,10 +268,12 @@ html[data-theme="retro"] { --accent: #ffb000; --accent-hover: #e0a020; --accent-
     border-radius: 8px;
   }
 
-  /* ---- Dropdown / menu ---- */
+  /* ---- Dropdown / menu (frosted — floats over the canvas glow) ---- */
   .menu {
-    background: var(--surface-panel);
-    border: 1px solid var(--surface-border);
+    background: color-mix(in oklab, var(--surface-panel) 74%, transparent);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    border: 1px solid color-mix(in oklab, var(--color-zinc-50) 10%, transparent);
     border-radius: 8px;
     box-shadow: 0 12px 34px -12px rgba(0,0,0,.55);
     padding: 0.25rem;
@@ -291,13 +302,34 @@ html[data-theme="retro"] { --accent: #ffb000; --accent-hover: #e0a020; --accent-
     white-space: nowrap;
   }
 
-  /* ---- Dialog surface ---- */
+  /* ---- Dialog surface (lightly frosted over the dimmed backdrop) ---- */
   .dialog {
-    background: var(--surface-panel);
-    border: 1px solid var(--surface-border);
+    background: color-mix(in oklab, var(--surface-panel) 86%, transparent);
+    backdrop-filter: blur(18px) saturate(1.35);
+    -webkit-backdrop-filter: blur(18px) saturate(1.35);
+    border: 1px solid color-mix(in oklab, var(--color-zinc-50) 10%, transparent);
     border-radius: 10px;
     box-shadow: 0 24px 64px -16px rgba(0,0,0,.6);
   }
+
+  /* ---- Tabs (single style app-wide: quiet text + indigo underline when active) ---- */
+  .tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.625rem 0.125rem;
+    margin-bottom: -1px;               /* sit on the container's border line */
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-zinc-400);
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color .12s ease, border-color .12s ease;
+  }
+  .tab:hover { color: var(--color-zinc-200); }
+  .tab.is-active { color: var(--color-zinc-50); border-bottom-color: var(--accent); }
 }
 
 /* Sidebar nav item (left navigation shell). */

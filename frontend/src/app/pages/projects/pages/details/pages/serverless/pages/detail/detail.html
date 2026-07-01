@@ -16,12 +16,12 @@
   </div>
 
   <!-- Grouped tabs (sub-tabs render below) -->
-  <div class="flex items-center flex-wrap gap-4 border-b border-zinc-900 text-[13px] pb-3.5">
+  <div class="flex items-center flex-wrap gap-5 border-b border-zinc-900">
     @for (g of tabGroups; track g.id) {
       <a
         [routerLink]="activeGroup().id === g.id ? currentTabPath() : g.default"
-        [class]="activeGroup().id === g.id ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 font-bold' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 border-b-2 border-transparent'"
-        class="cursor-pointer transition-all"
+        class="tab"
+        [class.is-active]="activeGroup().id === g.id"
       >
         {{ g.label }}
       </a>

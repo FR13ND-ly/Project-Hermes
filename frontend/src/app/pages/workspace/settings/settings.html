@@ -40,19 +40,11 @@
   @if (workspace()) {
     
     <!-- Sub-Tabs Navigation -->
-    <div class="flex items-center border-b border-zinc-900 pb-3 mb-5 gap-4 text-[13px] font-mono">
-      <button 
-        (click)="activeSubTab.set('general')" 
-        [class]="activeSubTab() === 'general' ? 'border-b-2 border-zinc-50 text-zinc-50 pb-1.5 font-bold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-1.5 transition-all'"
-        class="cursor-pointer"
-      >
+    <div class="flex items-center border-b border-zinc-900 mb-5 gap-5">
+      <button (click)="activeSubTab.set('general')" class="tab" [class.is-active]="activeSubTab() === 'general'">
         General Settings
       </button>
-      <button
-        (click)="activeSubTab.set('members')"
-        [class]="activeSubTab() === 'members' ? 'border-b-2 border-zinc-50 text-zinc-50 pb-1.5 font-bold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-1.5 transition-all'"
-        class="cursor-pointer"
-      >
+      <button (click)="activeSubTab.set('members')" class="tab" [class.is-active]="activeSubTab() === 'members'">
         Team Members ({{ members().length }})
       </button>
     </div>

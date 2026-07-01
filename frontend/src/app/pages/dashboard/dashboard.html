@@ -85,7 +85,7 @@
     <div class="grid gap-5 md:grid-cols-2">
 
       <!-- Memory -->
-      <div class="bg-zinc-900 p-6 rounded-lg border border-zinc-800 flex flex-col gap-5 shadow-sm">
+      <div class="card p-6 flex flex-col gap-5">
         <div class="flex items-start justify-between gap-4">
           <div class="flex items-center gap-3 min-w-0">
             <div class="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0" aria-hidden="true">
@@ -131,7 +131,7 @@
       </div>
 
       <!-- Storage -->
-      <div class="bg-zinc-900 p-6 rounded-lg border border-zinc-800 flex flex-col gap-5 shadow-sm">
+      <div class="card p-6 flex flex-col gap-5">
         <div class="flex items-start justify-between gap-4">
           <div class="flex items-center gap-3 min-w-0">
             <div class="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0" aria-hidden="true">
@@ -216,7 +216,7 @@
 
       <!-- Empty State -->
       @if (!loading() && !error() && projects().length === 0) {
-        <div class="bg-zinc-900 py-14 px-8 rounded-lg border border-zinc-800 flex flex-col items-center justify-center text-center max-w-md mx-auto shadow-sm">
+        <div class="card py-14 px-8 flex flex-col items-center justify-center text-center max-w-md mx-auto">
           <div class="w-12 h-12 rounded-lg border border-zinc-800 bg-zinc-950 flex items-center justify-center text-zinc-500 mb-4" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
               <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.008 1.24l.885 1.77a2.25 2.25 0 002.007 1.24h1.98a2.25 2.25 0 002.007-1.24l.885-1.77a2.25 2.25 0 012.007-1.24h3.86m-18 0h18M2.25 9l.223-1.338A2.25 2.25 0 014.718 5.75h14.564a2.25 2.25 0 012.245 1.912L21.75 9m-18 0v8.25A2.25 2.25 0 006 19.5h12a2.25 2.25 0 002.25-2.25V9M12 9v6.75m0-6.75l-3 3m3-3l3 3" />
@@ -239,7 +239,7 @@
           @for (project of projects(); track project.id) {
             <a
               [routerLink]="['/projects', project.id]"
-              class="group bg-zinc-900 p-5 rounded-lg border border-zinc-800 hover:border-indigo-500/50 hover:bg-zinc-900/60 transition-all flex flex-col justify-between shadow-sm cursor-pointer"
+              class="group card p-5 hover:border-indigo-500/50 transition-all flex flex-col justify-between cursor-pointer"
               role="gridcell"
             >
               <div class="space-y-2.5">

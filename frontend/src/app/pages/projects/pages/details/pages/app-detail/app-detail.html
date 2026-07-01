@@ -86,7 +86,7 @@
             <button
               (click)="onReloadInstance()"
               [disabled]="reloadingInstance() || redeployingInstance() || getSelectedInstance()?.status === 'building'"
-              class="px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer transition-all flex items-center gap-1.5 font-mono disabled:opacity-55"
+              class="btn btn-secondary btn-sm"
               title="Re-applies the current image with updated env (no rebuild)"
             >
               @if (reloadingInstance()) {
@@ -107,7 +107,7 @@
             <button
               (click)="onRedeployInstance()"
               [disabled]="redeployingInstance() || reloadingInstance() || getSelectedInstance()?.status === 'building'"
-              class="px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer transition-all flex items-center gap-1.5 font-mono disabled:opacity-55"
+              class="btn btn-secondary btn-sm"
               title="Full rebuild: clone from Git, rebuild image and redeploy"
             >
               @if (redeployingInstance()) {
@@ -129,7 +129,7 @@
               <button 
                 (click)="onStopInstance()"
                 [disabled]="stoppingInstance()"
-                class="px-3 py-1.5 rounded bg-red-950/20 border border-red-900/30 hover:border-red-900/50 hover:bg-red-950/35 text-red-400 text-[13px] font-bold cursor-pointer transition-all flex items-center gap-1.5 font-mono disabled:opacity-55"
+                class="btn btn-sm bg-red-950/20 border-red-900/30 hover:border-red-900/50 hover:bg-red-950/35 text-red-400"
               >
                 @if (stoppingInstance()) {
                   <svg class="animate-spin h-3.5 w-3.5 text-red-455" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -148,7 +148,7 @@
               <button
                 (click)="onStartInstance()"
                 [disabled]="startingInstance()"
-                class="px-3 py-1.5 rounded bg-emerald-950/20 border border-emerald-900/30 hover:border-emerald-900/50 hover:bg-emerald-950/35 text-emerald-450 text-[13px] font-bold cursor-pointer transition-all flex items-center gap-1.5 font-mono disabled:opacity-55"
+                class="btn btn-sm bg-emerald-950/20 border-emerald-900/30 hover:border-emerald-900/50 hover:bg-emerald-950/35 text-emerald-450"
               >
                 @if (startingInstance()) {
                   <svg class="animate-spin h-3.5 w-3.5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -168,12 +168,12 @@
           }
 
           <!-- Two-tier tab nav: top-level purpose groups (sub-tabs render below the header) -->
-          <div class="flex items-center bg-zinc-900 border border-zinc-800 p-0.5 rounded font-mono text-xs">
+          <div class="flex items-center gap-5">
             @for (g of tabGroups; track g.id) {
               <a
                 [routerLink]="activeGroup().id === g.id ? currentTabPath() : g.default"
-                class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
-                [class]="activeGroup().id === g.id ? 'bg-zinc-50 text-zinc-950 font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
+                class="tab"
+                [class.is-active]="activeGroup().id === g.id"
               >
                 {{ g.label }}
               </a>
