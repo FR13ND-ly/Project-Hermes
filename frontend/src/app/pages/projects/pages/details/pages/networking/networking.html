@@ -45,10 +45,10 @@
     </div>
 
     <!-- Unified HTTP Entries list -->
-    <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-sans">
+    <div class="card p-5 space-y-4 font-sans">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3 gap-2">
         <div>
-          <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">HTTP Routes & Domains in Workspace</h3>
+          <h3 class="text-sm font-semibold text-zinc-100">HTTP Routes & Domains in Workspace</h3>
           <p class="text-[13px] text-zinc-550 font-sans">Central routing panel for all automatic branches and custom domains.</p>
         </div>
         <button 
@@ -155,9 +155,9 @@
     </div>
 
     <!-- Databases & Serverless Functions exposed LoadBalancer TCP/UDP ports -->
-    <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-sans">
+    <div class="card p-5 space-y-4 font-sans">
       <div class="border-b border-zinc-900 pb-2.5">
-        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Externally Exposed TCP/UDP Ports</h3>
+        <h3 class="text-sm font-semibold text-zinc-100">Externally Exposed TCP/UDP Ports</h3>
         <p class="text-[13px] text-zinc-550">External LoadBalancer IPs allocated to cluster instances for direct connections from outside the network.</p>
       </div>
 
@@ -305,7 +305,7 @@
           
           <!-- Box A: Connected Info -->
           <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
-            <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">App Connection</h3>
+            <h3 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2.5">App Connection</h3>
             
             <div class="space-y-3.5 text-[13px]">
               <div class="flex justify-between border-b border-zinc-900/60 pb-2">
@@ -343,7 +343,7 @@
 
           <!-- Box B: SSL certificate information -->
           <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
-            <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Security & TLS (SSL) Certificate</h3>
+            <h3 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2.5">Security & TLS (SSL) Certificate</h3>
             
             <div class="space-y-3.5 text-[13px]">
               <div class="flex justify-between border-b border-zinc-900/60 pb-2">
@@ -369,9 +369,9 @@
         </div>
 
         <!-- SSL Diagnostics Checklist -->
-        <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+        <div class="card p-5 space-y-4">
           <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
-            <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Verificare Diagnostic DNS & SSL</h3>
+            <h3 class="text-sm font-semibold text-zinc-100">Verificare Diagnostic DNS & SSL</h3>
             <button (click)="refreshDiagnostics()" class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 hover:text-zinc-50 text-xs font-bold uppercase cursor-pointer">Re-test</button>
           </div>
 
@@ -434,7 +434,7 @@
         <div class="bg-zinc-950 border border-zinc-900 rounded-lg p-5 shadow-inner">
           <div class="flex items-center justify-between border-b border-zinc-900 pb-3 mb-4">
             <div class="flex items-center gap-2">
-              <h4 class="text-[13px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Nginx Access Logs</h4>
+              <h4 class="text-sm font-semibold text-zinc-100 font-mono">Nginx Access Logs</h4>
               <code class="text-[11px] text-zinc-600 font-mono hidden sm:inline">/var/log/nginx/{{ route.fqdn }}.access.log</code>
             </div>
             @if (logsSupported()) {
@@ -469,7 +469,7 @@
       <div class="space-y-6 animate-fade-in font-sans">
         @if (route.type === 'automatic') {
           <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 shadow-sm space-y-3 font-sans">
-            <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Automatic Route Settings</h4>
+            <h4 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2.5">Automatic Route Settings</h4>
             <p class="text-[13px] text-zinc-500 leading-relaxed font-sans">
               This HTTP Ingress route is managed directly by Kubernetes for branch <code class="px-1 py-0.2 rounded bg-zinc-950 text-zinc-50 font-mono">{{ route.branchName }}</code>.
               Nginx proxy-pass parameters and transfer limits are tied to your application instance lifecycle.
@@ -483,11 +483,11 @@
         } @else {
           <!-- Editable Domain settings -->
           <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
-            <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Edit Custom Domain Settings</h4>
+            <h4 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2.5">Edit Custom Domain Settings</h4>
             
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="space-y-1.5">
-                <label for="edit-routing-type" class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Nginx Routing Type</label>
+                <label for="edit-routing-type" class="text-xs font-semibold text-zinc-500">Nginx Routing Type</label>
                 <select 
                   id="edit-routing-type"
                   [ngModel]="editRoutingType()"
@@ -501,54 +501,54 @@
               </div>
 
               <div class="space-y-1.5">
-                <label for="edit-max-body" class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Nginx Body Size Limit (MB)</label>
+                <label for="edit-max-body" class="text-xs font-semibold text-zinc-500">Nginx Body Size Limit (MB)</label>
                 <input 
                   id="edit-max-body"
                   type="number" 
                   [ngModel]="editClientMaxBodySize()"
                   (ngModelChange)="editClientMaxBodySize.set($event)"
-                  class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  class="block w-full px-3 py-2 text-[13px] input font-mono"
                 />
               </div>
             </div>
 
             @if (editRoutingType() === 'reverse_proxy') {
               <div class="space-y-1.5 animate-fade-in">
-                <label for="edit-target" class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Target Container Address (nginx_target_host)</label>
+                <label for="edit-target" class="text-xs font-semibold text-zinc-500">Target Container Address (nginx_target_host)</label>
                 <input 
                   id="edit-target"
                   type="text" 
                   placeholder="ex. http://hermes-app-service-name:8080"
                   [ngModel]="editNginxTargetHost()"
                   (ngModelChange)="editNginxTargetHost.set($event)"
-                  class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  class="block w-full px-3 py-2 text-[13px] input font-mono"
                 />
               </div>
             }
 
             @if (editRoutingType() === 'static_host') {
               <div class="space-y-1.5 animate-fade-in">
-                <label for="edit-root" class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Static Root Directory (nginx_root_path)</label>
+                <label for="edit-root" class="text-xs font-semibold text-zinc-500">Static Root Directory (nginx_root_path)</label>
                 <input 
                   id="edit-root"
                   type="text" 
                   placeholder="ex. /var/www/html"
                   [ngModel]="editNginxRootPath()"
                   (ngModelChange)="editNginxRootPath.set($event)"
-                  class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  class="block w-full px-3 py-2 text-[13px] input font-mono"
                 />
               </div>
             }
 
             @if (editRoutingType() === 'custom') {
               <div class="space-y-1.5 animate-fade-in">
-                <label for="edit-custom-config" class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Nginx Custom Configuration File</label>
+                <label for="edit-custom-config" class="text-xs font-semibold text-zinc-500">Nginx Custom Configuration File</label>
                 <textarea 
                   id="edit-custom-config"
                   rows="6"
                   [ngModel]="editNginxConfigContent()"
                   (ngModelChange)="editNginxConfigContent.set($event)"
-                  class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  class="block w-full px-3 py-2 text-[13px] input font-mono"
                 ></textarea>
               </div>
             }
@@ -561,7 +561,7 @@
                 (ngModelChange)="editIsSsl.set($event)"
                 class="w-4 h-4 bg-zinc-950 border-zinc-850 rounded focus:ring-0 text-zinc-50 cursor-pointer accent-zinc-50"
               />
-              <label for="edit-ssl-check" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer">Generate / Keep Automatic SSL Certificate</label>
+              <label for="edit-ssl-check" class="text-xs font-semibold text-zinc-400 cursor-pointer">Generate / Keep Automatic SSL Certificate</label>
             </div>
 
             <div class="pt-4 border-t border-zinc-900 flex justify-between items-center gap-2">

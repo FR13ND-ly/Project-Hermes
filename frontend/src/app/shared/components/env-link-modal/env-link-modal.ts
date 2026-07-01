@@ -24,7 +24,7 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
         >
           <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-900">
             <div>
-              <h3 class="text-[13px] font-bold text-zinc-200 uppercase tracking-wider">{{ title() }}</h3>
+              <h3 class="text-sm font-semibold text-zinc-100">{{ title() }}</h3>
               <p class="text-[11px] text-zinc-550 mt-0.5">Live reference — changes in the pool propagate automatically.</p>
             </div>
             <button
@@ -44,7 +44,7 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
               placeholder="Search by name..."
               [ngModel]="search()"
               (ngModelChange)="search.set($event)"
-              class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+              class="block w-full px-3 py-2 text-[13px] input"
             />
           </div>
 

@@ -1,4 +1,4 @@
-<div class="space-y-6 animate-fade-in font-mono" *ngIf="parent.app()">
+<div class="space-y-6 animate-fade-in" *ngIf="parent.app()">
 
   <!-- Active experiment banner (with live auto-revert progress) -->
   @if (active(); as exp) {
@@ -44,7 +44,7 @@
        [class]="active() ? 'border-amber-900/50' : 'border-zinc-800'">
     <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between gap-3">
       <div>
-        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Live Impact</h3>
+        <h3 class="text-sm font-semibold text-zinc-100">Live Impact</h3>
         <p class="text-xs text-zinc-555 mt-0.5 font-sans">Pods &amp; replicas in real time — watch the fault land and the app self-heal.</p>
       </div>
       <div class="flex items-center gap-1.5 shrink-0">
@@ -122,9 +122,9 @@
   </div>
 
   <!-- Launcher -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-5 shadow-sm">
+  <div class="card p-5 space-y-5">
     <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Chaos Simulator</h3>
+      <h3 class="text-sm font-semibold text-zinc-100">Chaos Simulator</h3>
       <p class="text-xs text-zinc-555 mt-0.5 font-sans">Inject a controlled, auto-reverting failure to test resilience. Open the Networking &amp; Pods tab to watch the request flow degrade and recover.</p>
     </div>
 
@@ -238,9 +238,9 @@
   </div>
 
   <!-- History -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-3.5 shadow-sm">
+  <div class="card p-5 space-y-3.5">
     <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
-      <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Experiment History</h3>
+      <h3 class="text-sm font-semibold text-zinc-100">Experiment History</h3>
       <span class="text-[11px] text-zinc-600 shrink-0">{{ history().length }} total</span>
     </div>
 

@@ -2,12 +2,12 @@
 
   <!-- Telemetry Graphs -->
   @if (parent.activeInstanceId()) {
-    <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm animate-fade-in">
+    <div class="card p-5 space-y-4 animate-fade-in">
       
       <!-- Controls & Header -->
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3">
         <div>
-          <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Instance Telemetry (Prometheus)</h3>
+          <h3 class="text-sm font-semibold text-zinc-100">Instance Telemetry (Prometheus)</h3>
           <p class="text-xs text-zinc-555 font-mono mt-0.5">Real-time K8s resource usage tracking</p>
         </div>
 
@@ -17,7 +17,7 @@
             <select 
               [ngModel]="parent.activeInstanceId()"
               (ngModelChange)="parent.onInstanceChange($event)"
-              class="block bg-zinc-950 border border-zinc-800 text-zinc-300 text-[13px] font-semibold py-1.5 pl-3 pr-8 rounded focus:outline-none appearance-none cursor-pointer hover:border-zinc-500 w-44 font-mono truncate"
+              class="input py-1.5 pl-3 pr-8 font-semibold appearance-none cursor-pointer w-44 font-mono truncate"
             >
               @for (inst of parent.app()?.instances; track inst.id) {
                 <option [value]="inst.id">{{ inst.containerName }}</option>
@@ -230,7 +230,7 @@
       </div>
     </div>
   } @else {
-    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-12 text-center text-zinc-550 text-[13px] font-mono">
+    <div class="card p-12 text-center text-zinc-550 text-[13px] font-mono">
       No active instance for this application. Start the application to view telemetry data.
     </div>
   }

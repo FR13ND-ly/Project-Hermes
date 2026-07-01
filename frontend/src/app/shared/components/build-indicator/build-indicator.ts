@@ -38,7 +38,7 @@ import { WebSocketService } from '../../../core/services/websocket.service';
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                 </svg>
-                <span class="text-[13px] font-bold text-zinc-200 uppercase tracking-wider font-mono">Active processes</span>
+                <span class="text-sm font-semibold text-zinc-100 font-mono">Active processes</span>
               </div>
               <button (click)="expanded.set(false)" class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-zinc-50 cursor-pointer" title="Collapse">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15" /></svg>

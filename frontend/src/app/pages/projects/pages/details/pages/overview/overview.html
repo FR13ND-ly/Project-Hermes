@@ -1,7 +1,7 @@
-<div class="space-y-6 animate-fade-in font-mono">
+<div class="space-y-6 animate-fade-in">
 
   <!-- Welcome / Project Metadata Summary Header -->
-  <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm">
+  <div class="card p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
     <div class="space-y-1">
       <h2 class="text-sm font-bold text-zinc-300 uppercase tracking-wider">Project Dashboard</h2>
       <p class="text-[13px] text-zinc-550 max-w-2xl leading-relaxed">
@@ -18,7 +18,7 @@
   <div class="grid gap-4 grid-cols-2 md:grid-cols-4">
     <!-- Stat 1: Apps Count -->
     <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
-      <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Applications</span>
+      <span class="text-[11px] font-semibold text-zinc-500">Applications</span>
       <div class="flex items-baseline justify-between mt-1">
         <span class="text-xl font-extrabold text-zinc-50">{{ parent.apps().length }}</span>
         @if (totalBuildingApps > 0) {
@@ -31,7 +31,7 @@
 
     <!-- Stat 2: Running Pods -->
     <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
-      <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Active Instances (K8s Pods)</span>
+      <span class="text-[11px] font-semibold text-zinc-500">Active Instances (K8s Pods)</span>
       <div class="flex items-baseline justify-between mt-1">
         <span class="text-xl font-extrabold text-zinc-50">{{ totalRunningPods }}</span>
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500" [class.animate-pulse]="totalRunningPods > 0"></span>
@@ -40,7 +40,7 @@
 
     <!-- Stat 3: Databases -->
     <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
-      <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Databases</span>
+      <span class="text-[11px] font-semibold text-zinc-500">Databases</span>
       <div class="flex items-baseline justify-between mt-1">
         <span class="text-xl font-extrabold text-zinc-50">{{ databases().length }}</span>
         <span class="text-[11px] text-zinc-500 font-bold">SQL & NoSQL</span>
@@ -48,8 +48,8 @@
     </div>
 
     <!-- Stat 4: Workspace Limits -->
-    <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-800 flex flex-col justify-between h-20 shadow-sm">
-      <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Workspace RAM Limit</span>
+    <div class="card p-4 flex flex-col justify-between h-20">
+      <span class="text-[11px] font-semibold text-zinc-500">Workspace RAM Limit</span>
       <div class="flex items-baseline justify-between mt-1">
         <span class="text-sm font-extrabold text-zinc-300">Autoscaled</span>
         <span class="text-[11px] text-zinc-550 font-semibold">Quota K8s</span>
@@ -63,7 +63,7 @@
     <!-- Left Column (2/3 width): Applications Listing -->
     <div class="lg:col-span-2 space-y-4">
       <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
-        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Active Services (Applications)</h3>
+        <h3 class="text-sm font-semibold text-zinc-100">Active Services (Applications)</h3>
         <a [routerLink]="['/projects', parent.projectId(), 'apps']" class="text-xs text-zinc-400 hover:text-zinc-50 underline">
           View all →
         </a>
@@ -190,7 +190,7 @@
       <!-- Databases listing -->
       <div class="space-y-4">
         <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
-          <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Databases</h3>
+          <h3 class="text-sm font-semibold text-zinc-100">Databases</h3>
           <a [routerLink]="['/projects', parent.projectId(), 'databases']" class="text-xs text-zinc-400 hover:text-zinc-50 underline">
             View all →
           </a>

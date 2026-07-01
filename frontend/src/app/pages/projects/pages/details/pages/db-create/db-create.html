@@ -23,7 +23,7 @@
     <div class="grid gap-5 md:grid-cols-2">
       <!-- DB Name -->
       <div class="space-y-2">
-        <label for="db-name-input" class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Database Name</label>
+        <label for="db-name-input" class="text-xs font-semibold text-zinc-400">Database Name</label>
         <input 
           id="db-name-input"
           type="text" 
@@ -36,7 +36,7 @@
       </div>
 
       <div class="space-y-2">
-        <label class="text-xs font-bold text-zinc-400 uppercase tracking-wider block">Technology Type</label>
+        <label class="text-xs font-semibold text-zinc-400 block">Technology Type</label>
         <div class="grid grid-cols-3 gap-2">
           @for (type of ['postgres', 'redis', 'mongodb']; track type) {
             <button
@@ -147,7 +147,7 @@
         <!-- External Port -->
         @if (isExternal()) {
           <div class="flex items-center gap-2 animate-fade-in shrink-0">
-            <label for="ext-port-input" class="text-xs font-bold text-zinc-550 uppercase tracking-wider">Public Port:</label>
+            <label for="ext-port-input" class="text-xs font-semibold text-zinc-500">Public Port:</label>
             <input 
               id="ext-port-input"
               type="number" 
@@ -179,7 +179,7 @@
     </label>
     @if (publishToEnv()) {
       <div class="flex items-center gap-2 pl-6 animate-fade-in">
-        <label for="db-env-key" class="text-xs font-bold text-zinc-550 uppercase tracking-wider shrink-0">Key name:</label>
+        <label for="db-env-key" class="text-xs font-semibold text-zinc-500 shrink-0">Key name:</label>
         <input
           id="db-env-key"
           type="text"
@@ -187,7 +187,7 @@
           [ngModel]="envKeyName()"
           (ngModelChange)="envKeyName.set($event)"
           [disabled]="provisioning()"
-          class="block w-full max-w-xs px-2.5 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono uppercase font-bold"
+          class="block w-full max-w-xs px-2.5 py-1.5 text-[13px] input font-mono uppercase font-bold"
         />
       </div>
       <p class="text-[11px] text-zinc-600 pl-6 leading-relaxed font-sans">The value is secret (encrypted). You can reveal it anytime from the "Environments" tab.</p>

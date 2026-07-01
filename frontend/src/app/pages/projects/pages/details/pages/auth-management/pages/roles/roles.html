@@ -4,7 +4,7 @@
     <!-- Tab Header & Toggle -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-900 pb-3">
       <div>
-        <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider font-mono">Access Control Configuration (RBAC)</h4>
+        <h4 class="text-sm font-semibold text-zinc-100">Access Control Configuration (RBAC)</h4>
         <p class="text-xs text-zinc-550 mt-1 font-sans">Configure the public permissions associated with each user role.</p>
       </div>
       
@@ -39,7 +39,7 @@
             [ngModel]="parent.newVisualRoleName()"
             (ngModelChange)="parent.newVisualRoleName.set($event)"
             (keyup.enter)="parent.onAddVisualRole()"
-            class="block w-full px-2.5 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-700 font-mono"
+            class="block w-full px-2.5 py-1.5 text-[13px] input font-mono"
           />
           <button 
             (click)="parent.onAddVisualRole()"

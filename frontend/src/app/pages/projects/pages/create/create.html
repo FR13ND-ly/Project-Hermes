@@ -14,7 +14,7 @@
   </div>
 
   <!-- Form Card -->
-  <div class="bg-zinc-900 p-6 rounded-lg border border-zinc-800 shadow-xl space-y-6">
+  <div class="card p-6 shadow-xl space-y-6">
     
     <!-- Error Message -->
     @if (error()) {
@@ -37,7 +37,7 @@
           [ngModel]="projectName()"
           (ngModelChange)="projectName.set($event)"
           [disabled]="loading()"
-          class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+          class="block w-full px-3 py-2 text-sm input"
           required
           aria-required="true"
         />
@@ -51,7 +51,7 @@
             [ngModel]="selectedCloudflareId()"
             (ngModelChange)="selectedCloudflareId.set($event)"
             [disabled]="loading()"
-            class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer"
+            class="block w-full px-3 py-2 text-sm input cursor-pointer"
           >
             <option value="">No Cloudflare</option>
             @for (cf of cloudflareCredentials(); track cf.id) {

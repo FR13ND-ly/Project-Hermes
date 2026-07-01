@@ -1,6 +1,6 @@
 <div class="space-y-4 max-w-3xl animate-fade-in" *ngIf="detailParent.selectedInstance() as inst">
-  <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5">
-    <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5 mb-3">URL-uri rute</h4>
+  <div class="card p-5">
+    <h4 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2.5 mb-3">URL-uri rute</h4>
     @if ((inst.routes || []).length === 0) {
       <p class="text-[13px] text-zinc-600 italic font-sans">No routes defined. Go to the "Routes" tab.</p>
     } @else {
@@ -18,7 +18,7 @@
       </div>
     }
   </div>
-  <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 text-[13px] text-zinc-400 font-sans">
+  <div class="card p-5 text-[13px] text-zinc-400 font-sans">
     <p>Memory: {{ inst.memoryLimitMb ? inst.memoryLimitMb + ' MB' : 'Unlimited' }} · Autoscale 0→5 (scale-to-zero).</p>
     <p class="text-zinc-600 mt-1">Build logs are in the "Builds" tab.</p>
   </div>

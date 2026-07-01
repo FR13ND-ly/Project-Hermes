@@ -3,7 +3,7 @@
   <!-- Section Header + service selector/creator -->
   <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-900 pb-4 gap-4">
     <div>
-      <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Authentication (BaaS)</h3>
+      <h3 class="text-sm font-semibold text-zinc-100">Authentication (BaaS)</h3>
       <p class="text-[13px] text-zinc-550">End-user authentication services — project resources, independent of applications.</p>
     </div>
 
@@ -12,7 +12,7 @@
         <select
           [ngModel]="selectedService()?.id"
           (ngModelChange)="selectServiceById($event)"
-          class="px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 cursor-pointer"
+          class="px-3 py-1.5 text-[13px] input cursor-pointer"
         >
           @for (s of services(); track s.id) {
             <option [value]="s.id">{{ s.name }}</option>

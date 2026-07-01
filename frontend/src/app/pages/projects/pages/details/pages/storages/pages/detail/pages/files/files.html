@@ -53,7 +53,7 @@
           placeholder="Search files..."
           [ngModel]="parent.searchQuery()"
           (ngModelChange)="parent.searchQuery.set($event)"
-          class="block w-full pl-8 pr-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors font-mono"
+          class="block w-full pl-8 pr-3 py-1.5 text-[13px] input font-mono"
         />
       </div>
 
@@ -93,7 +93,7 @@
             [ngModel]="parent.newFolderName()"
             (ngModelChange)="parent.newFolderName.set($event)"
             (keyup.enter)="parent.onCreateFolder()"
-            class="px-2.5 py-1 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors font-mono w-40"
+            class="px-2.5 py-1 text-[13px] input font-mono w-40"
           />
           <button 
             (click)="parent.onCreateFolder()"
@@ -259,7 +259,7 @@
             <div class="border-t border-zinc-955 p-2 bg-zinc-950/40 flex items-center justify-between gap-1">
               @if (item.status === 'processing' || item.status === 'pending_upload') {
                 <div class="flex items-center gap-1.5 w-full justify-between">
-                  <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider pl-1.5 animate-pulse">
+                  <span class="text-[11px] font-semibold text-zinc-500 pl-1.5 animate-pulse">
                     {{ item.status === 'processing' ? parent.stageLabel(item.processingStage) : 'Uploading...' }}
                   </span>
                   @if (item.id) {

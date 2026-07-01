@@ -1,7 +1,7 @@
-<div class="space-y-6 animate-fade-in font-mono" *ngIf="selectedInstance() as inst">
+<div class="space-y-6 animate-fade-in" *ngIf="selectedInstance() as inst">
   <a [routerLink]="['/projects', parent.projectId(), 'serverless']" class="text-[13px] text-zinc-550 hover:text-zinc-50 cursor-pointer block">← Back to instance list</a>
 
-  <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex items-center justify-between">
+  <div class="card p-5 flex items-center justify-between">
     <div>
       <div class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full" [class]="inst.status === 'active' ? 'bg-emerald-500' : inst.status === 'building' ? 'bg-amber-500 animate-pulse' : inst.status === 'failed' ? 'bg-red-500' : 'bg-zinc-600'"></span>

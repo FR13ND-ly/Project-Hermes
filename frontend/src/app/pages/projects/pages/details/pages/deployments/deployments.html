@@ -6,8 +6,8 @@
     <div class="lg:col-span-1 space-y-4">
       
       <!-- Real-time Live Logs selector header/card -->
-      <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm">
-        <h3 class="text-[13px] font-bold text-zinc-400 uppercase tracking-wider">Active Console</h3>
+      <div class="card p-4 space-y-3">
+        <h3 class="text-sm font-semibold text-zinc-100">Active Console</h3>
         
         <button 
           (click)="onBackToLiveLogs()"
@@ -42,9 +42,9 @@
       </div>
 
       <!-- Historical builds logs list card -->
-      <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm flex flex-col">
+      <div class="card p-4 space-y-3 flex flex-col">
         <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
-          <h3 class="text-[13px] font-bold text-zinc-400 uppercase tracking-wider">Build History</h3>
+          <h3 class="text-sm font-semibold text-zinc-100">Build History</h3>
 
           <button
             (click)="loadBuilds()"
@@ -133,7 +133,7 @@
     <div class="lg:col-span-2 space-y-4">
       <div class="flex items-center justify-between bg-zinc-900/50 p-3 rounded-lg border border-zinc-900">
         <div>
-          <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">
+          <h3 class="text-sm font-semibold text-zinc-100">
             {{ selectedBuildId() ? 'Build Logs (ID: ' + selectedBuildId()?.substring(0, 8) + ')' : 'Live Console (Stdout)' }}
           </h3>
           <p class="text-xs text-zinc-550 font-mono">

@@ -64,7 +64,7 @@
       @for (project of projects(); track project.id) {
         <a 
           [routerLink]="['/projects', project.id]"
-          class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 hover:border-zinc-500 transition-colors flex flex-col justify-between group shadow-sm cursor-pointer"
+          class="card p-5 hover:border-zinc-500 transition-colors flex flex-col justify-between group cursor-pointer"
           role="gridcell"
           [attr.aria-label]="'Open project ' + project.name"
         >

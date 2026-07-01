@@ -2,7 +2,7 @@
   
   <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
     <div>
-      <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Project Applications</h3>
+      <h3 class="text-sm font-semibold text-zinc-100">Project Applications</h3>
       <p class="text-xs text-zinc-500 font-mono mt-0.5">Complete list of active services and their configurations</p>
     </div>
 
@@ -42,7 +42,7 @@
     <div class="grid gap-4 md:grid-cols-1">
       @for (app of parent.apps(); track app.id) {
         <div 
-          class="bg-zinc-900 rounded-lg border border-zinc-800 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:border-zinc-700 transition-all shadow-sm"
+          class="card p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:border-zinc-700 transition-all"
           [class.border-zinc-550]="parent.selectedApp()?.id === app.id"
         >
           <div class="space-y-1.5 min-w-0 flex-1">

@@ -6,7 +6,7 @@
     <!-- Section Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-900 pb-4 gap-4">
       <div>
-        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Object Storage & Buckets</h3>
+        <h3 class="text-sm font-semibold text-zinc-100">Object Storage & Buckets</h3>
         <p class="text-[13px] text-zinc-555">Manage static files, media and storage rules for your workspace.</p>
       </div>
       
@@ -123,7 +123,7 @@
     <!-- PVC (Persistent Volumes) -->
     <div class="bg-zinc-900 rounded border border-zinc-900 shadow-sm">
       <div class="border-b border-zinc-900 px-5 py-3.5">
-        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Volume Persistente (PVC)</h3>
+        <h3 class="text-sm font-semibold text-zinc-100">Volume Persistente (PVC)</h3>
         <p class="text-xs text-zinc-555 mt-0.5">Automatically created at build from application <code>VOLUME</code> directives. Browse their contents here.</p>
       </div>
       @if (parent.loadingPvcs()) {
@@ -200,7 +200,7 @@
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
-          <input type="text" placeholder="Search files..." [ngModel]="parent.searchQuery()" (ngModelChange)="parent.searchQuery.set($event)" class="px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 font-mono w-40" />
+          <input type="text" placeholder="Search files..." [ngModel]="parent.searchQuery()" (ngModelChange)="parent.searchQuery.set($event)" class="px-3 py-1.5 text-[13px] input font-mono w-40" />
           <div class="flex rounded border border-zinc-800 overflow-hidden">
             <button (click)="parent.viewMode.set('grid')" class="px-2.5 py-1.5 text-[13px] cursor-pointer" [class]="parent.viewMode() === 'grid' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'" title="Grid">▦</button>
             <button (click)="parent.viewMode.set('list')" class="px-2.5 py-1.5 text-[13px] cursor-pointer" [class]="parent.viewMode() === 'list' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'" title="List">≣</button>
@@ -216,7 +216,7 @@
       <!-- New folder inline form -->
       @if (parent.showFolderForm()) {
         <div class="bg-zinc-900 border border-zinc-900 rounded p-3 flex items-center gap-2 animate-fade-in">
-          <input type="text" placeholder="New folder name" [ngModel]="parent.newFolderName()" (ngModelChange)="parent.newFolderName.set($event)" (keyup.enter)="parent.createPvcFolder()" class="flex-1 px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 font-mono" />
+          <input type="text" placeholder="New folder name" [ngModel]="parent.newFolderName()" (ngModelChange)="parent.newFolderName.set($event)" (keyup.enter)="parent.createPvcFolder()" class="flex-1 px-3 py-1.5 text-[13px] input font-mono" />
           <button (click)="parent.createPvcFolder()" [disabled]="!parent.newFolderName().trim()" class="px-3 py-1.5 rounded btn-primary text-[13px] font-semibold disabled:opacity-50 cursor-pointer">Create</button>
           <button (click)="parent.showFolderForm.set(false); parent.newFolderName.set('')" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-[13px] cursor-pointer">Cancel</button>
         </div>

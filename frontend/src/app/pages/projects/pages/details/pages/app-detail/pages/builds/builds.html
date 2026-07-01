@@ -1,10 +1,10 @@
-<div class="space-y-4 animate-fade-in font-mono">
+<div class="space-y-4 animate-fade-in">
   <!-- Build lifecycle stepper -->
   @if (parent.displayBuild(); as build) {
     <div class="bg-zinc-900 p-4 rounded-lg border mb-4 font-mono"
          [class]="parent.isBuildFailed(build) ? 'border-red-900/40' : 'border-zinc-800'">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Build Lifecycle</h3>
+        <h3 class="text-sm font-semibold text-zinc-100">Build Lifecycle</h3>
         <div class="flex items-center gap-3">
           <span class="text-[11px] font-mono text-zinc-600">{{ build.branchName }} · {{ build.id.substring(0, 8) }}</span>
           @if (parent.isBuildInProgress(build)) {
@@ -149,9 +149,9 @@
   <div class="grid gap-4 lg:grid-cols-3 font-mono">
     <!-- Sidebar Selector (Build History) -->
     <div class="lg:col-span-1 space-y-4">
-      <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm flex flex-col">
+      <div class="card p-4 space-y-3 flex flex-col">
         <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
-          <h3 class="text-[13px] font-bold text-zinc-400 uppercase tracking-wider">Build History</h3>
+          <h3 class="text-sm font-semibold text-zinc-100">Build History</h3>
           <button 
             (click)="parent.loadBuilds()" 
             class="text-zinc-505 hover:text-zinc-300 p-1.5 rounded border border-zinc-900 bg-zinc-950 hover:border-zinc-500 transition-all cursor-pointer"
@@ -243,7 +243,7 @@
     <div class="lg:col-span-2 space-y-4">
       <div class="flex items-center justify-between bg-zinc-900/50 p-3 rounded-lg border border-zinc-900">
         <div>
-          <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">
+          <h3 class="text-sm font-semibold text-zinc-100">
             Build Logs @if (parent.selectedBuildId()) { (ID: {{ parent.selectedBuildId()?.substring(0, 8) }}) }
             @if (parent.selectedBuild()?.isLive) {
               <span class="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[11px] font-bold border bg-emerald-950/30 border-emerald-800/50 text-emerald-300 uppercase align-middle">

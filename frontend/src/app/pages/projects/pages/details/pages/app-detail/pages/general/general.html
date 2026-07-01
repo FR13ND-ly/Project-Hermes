@@ -1,23 +1,23 @@
 <div class="space-y-6 animate-fade-in max-w-2xl font-mono" *ngIf="parent.app()">
 
   <!-- General config: ports + build/start commands -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+  <div class="card p-5 space-y-4">
     <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">General Configuration</h3>
+      <h3 class="text-sm font-semibold text-zinc-100">General Configuration</h3>
       <p class="text-xs text-zinc-555 mt-0.5 font-mono">Settings will trigger an asynchronous service redeployment</p>
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2">
       <!-- Port Intern -->
       <div class="space-y-1.5">
-        <label for="port-lim" class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Internal Container Port</label>
+        <label for="port-lim" class="text-xs font-semibold text-zinc-400">Internal Container Port</label>
         <input 
           id="port-lim"
           type="number" 
           placeholder="8080" 
           [ngModel]="parent.internalPort()"
           (ngModelChange)="parent.internalPort.set($event)"
-          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+          class="block w-full px-3 py-2 text-[13px] input"
           required
         />
         <span class="text-[11px] text-zinc-600 block">The port your application listens on. Auto-detected from <code>EXPOSE</code> (Dockerfile) at build time, until you set it manually here.</span>
@@ -25,14 +25,14 @@
 
       <!-- Port Extern -->
       <div class="space-y-1.5">
-        <label for="ext-port-lim" class="text-xs font-bold text-zinc-400 uppercase tracking-wider">External Port (Optional)</label>
+        <label for="ext-port-lim" class="text-xs font-semibold text-zinc-400">External Port (Optional)</label>
         <input
           id="ext-port-lim"
           type="number"
           placeholder="Auto-generated if empty" 
           [ngModel]="parent.externalPort()"
           (ngModelChange)="parent.externalPort.set($event)"
-          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+          class="block w-full px-3 py-2 text-[13px] input"
         />
         <span class="text-[11px] text-zinc-600 block">Leave empty to allocate a random port.</span>
       </div>
@@ -41,27 +41,27 @@
     <!-- Build/Start Commands -->
     <div class="grid gap-4 sm:grid-cols-2 pt-2 border-t border-zinc-900/40">
       <div class="space-y-1.5">
-        <label for="build-cmd-lim" class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Build Command</label>
+        <label for="build-cmd-lim" class="text-xs font-semibold text-zinc-400">Build Command</label>
         <input 
           id="build-cmd-lim"
           type="text" 
           placeholder="ex. npm run build" 
           [ngModel]="parent.buildCommand()"
           (ngModelChange)="parent.buildCommand.set($event)"
-          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+          class="block w-full px-3 py-2 text-[13px] input font-mono"
         />
         <span class="text-[11px] text-zinc-600 block">Run during build. E.g.: npm run build</span>
       </div>
 
       <div class="space-y-1.5">
-        <label for="start-cmd-lim" class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Start Command</label>
+        <label for="start-cmd-lim" class="text-xs font-semibold text-zinc-400">Start Command</label>
         <input 
           id="start-cmd-lim"
           type="text" 
           placeholder="ex. npm start" 
           [ngModel]="parent.startCommand()"
           (ngModelChange)="parent.startCommand.set($event)"
-          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+          class="block w-full px-3 py-2 text-[13px] input font-mono"
         />
         <span class="text-[11px] text-zinc-600 block">Run at startup. E.g.: npx ng serve --host 0.0.0.0 --port 4000</span>
       </div>
@@ -80,10 +80,10 @@
   </div>
 
   <!-- Domains & Routing -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+  <div class="card p-5 space-y-4">
     <div class="border-b border-zinc-900 pb-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
-        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Domains & Routing</h3>
+        <h3 class="text-sm font-semibold text-zinc-100">Domains & Routing</h3>
         <p class="text-xs text-zinc-555 mt-0.5 font-mono">Associate a custom domain with this application (Reverse Proxy)</p>
       </div>
       <button

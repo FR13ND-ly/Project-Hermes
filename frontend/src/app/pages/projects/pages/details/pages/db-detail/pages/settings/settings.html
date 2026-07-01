@@ -1,8 +1,8 @@
 <div class="space-y-6 animate-fade-in">
   <!-- Editable limits form -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4">
+  <div class="card p-5 space-y-4">
     <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Resize Physical Resources</h3>
+      <h3 class="text-sm font-semibold text-zinc-100">Resize Physical Resources</h3>
       <p class="text-xs text-zinc-550">Update the maximum RAM and CPU quota allocated to the database container.</p>
     </div>
     
@@ -49,7 +49,7 @@
     <!-- Backup automat settings -->
     <div class="border-t border-zinc-900 pt-4.5 space-y-4">
       <div>
-        <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Automated Backups</h3>
+        <h3 class="text-sm font-semibold text-zinc-100">Automated Backups</h3>
         <p class="text-xs text-zinc-550">Periodic automatic backup runs as a real cron job, visible and editable.</p>
       </div>
 
@@ -80,7 +80,7 @@
             <p class="text-[11px] text-zinc-550">The oldest backups are automatically deleted when the limit is reached.</p>
           </div>
           <div class="flex items-center justify-end gap-2">
-            <button (click)="showAddBackup.set(false)" [disabled]="savingBackup()" class="px-3 py-1.5 rounded text-zinc-400 hover:text-zinc-50 text-[13px] font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer">Cancel</button>
+            <button (click)="showAddBackup.set(false)" [disabled]="savingBackup()" class="btn btn-secondary btn-sm">Cancel</button>
             <button (click)="onEnableBackup()" [disabled]="savingBackup()" class="px-3.5 py-1.5 rounded btn-primary text-[13px] font-semibold shadow disabled:opacity-50 cursor-pointer">{{ savingBackup() ? 'Enabling...' : 'Enable' }}</button>
           </div>
         </div>

@@ -1,10 +1,10 @@
-<div class="space-y-6 animate-fade-in font-mono" *ngIf="parent.app() && data() as d">
+<div class="space-y-6 animate-fade-in" *ngIf="parent.app() && data() as d">
 
   <!-- 1. Live traffic topology: Client → entrypoints → Service → pods -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-5 shadow-sm">
+  <div class="card p-5 space-y-5">
     <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between gap-3">
       <div>
-        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Traffic Topology</h3>
+        <h3 class="text-sm font-semibold text-zinc-100">Traffic Topology</h3>
         <p class="text-xs text-zinc-555 mt-0.5">Live path from clients through the load balancer / domain to your pods</p>
       </div>
       <div class="flex items-center gap-2 shrink-0">
@@ -72,7 +72,7 @@
         }
         @if (!d.ingress?.fqdn && !d.loadBalancer) {
           <div class="bg-zinc-950/40 border border-zinc-900 rounded-md p-3 flex flex-col gap-1 shadow-inner">
-            <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Internal only</span>
+            <span class="text-[11px] font-semibold text-zinc-500">Internal only</span>
             <span class="text-[11px] text-zinc-550">No public entrypoint</span>
           </div>
         }
@@ -166,18 +166,18 @@
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <!-- Traefik HTTP view -->
     <ng-container *ngIf="d.traffic?.source === 'traefik'">
-      <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm">
-        <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Traffic Load</span>
+      <div class="card p-5 space-y-2">
+        <span class="text-xs font-semibold text-zinc-400">Traffic Load</span>
         <p class="text-2xl font-black text-zinc-50">{{ (d.traffic.requestRate | number:'1.1-2') }} r/s</p>
         <p class="text-[11px] text-zinc-500">Incoming HTTP requests/sec via Traefik (last 5m)</p>
       </div>
-      <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm">
-        <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Response Latency</span>
+      <div class="card p-5 space-y-2">
+        <span class="text-xs font-semibold text-zinc-400">Response Latency</span>
         <p class="text-2xl font-black text-zinc-50">{{ d.traffic.latencyMs !== null ? (d.traffic.latencyMs | number:'1.0-0') + ' ms' : 'N/A' }}</p>
         <p class="text-[11px] text-zinc-500">Average round-trip through the proxy</p>
       </div>
-      <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm">
-        <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Response Status Codes</span>
+      <div class="card p-5 space-y-2">
+        <span class="text-xs font-semibold text-zinc-400">Response Status Codes</span>
         <div class="h-2 rounded bg-zinc-900 overflow-hidden flex mt-1" *ngIf="d.traffic.requestRate > 0; else noTraffic">
           <div [style.width.%]="getTrafficClassRatio(d.traffic.status2xx)" class="h-full bg-emerald-500" title="2xx"></div>
           <div [style.width.%]="getTrafficClassRatio(d.traffic.status3xx)" class="h-full bg-indigo-500" title="3xx"></div>
@@ -194,17 +194,17 @@
 
     <!-- Pod network throughput fallback (LoadBalancer / internal apps) -->
     <ng-container *ngIf="d.traffic?.source === 'network'">
-      <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm">
-        <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Inbound Throughput</span>
+      <div class="card p-5 space-y-2">
+        <span class="text-xs font-semibold text-zinc-400">Inbound Throughput</span>
         <p class="text-2xl font-black text-zinc-50">{{ formatBps(d.traffic.netRxBps) }}</p>
         <p class="text-[11px] text-zinc-500">Pod network received (last 5m)</p>
       </div>
-      <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm">
-        <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Outbound Throughput</span>
+      <div class="card p-5 space-y-2">
+        <span class="text-xs font-semibold text-zinc-400">Outbound Throughput</span>
         <p class="text-2xl font-black text-zinc-50">{{ formatBps(d.traffic.netTxBps) }}</p>
         <p class="text-[11px] text-zinc-500">Pod network transmitted (last 5m)</p>
       </div>
-      <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 flex flex-col justify-center shadow-sm">
+      <div class="card p-5 flex flex-col justify-center">
         <p class="text-xs text-zinc-500 leading-relaxed font-sans">
           No HTTP-level metrics here — this app is exposed via a Load Balancer/port, not a Traefik domain.
           Attach a domain to see request rate, latency and status codes.
@@ -213,15 +213,15 @@
     </ng-container>
 
     <!-- No data at all -->
-    <div *ngIf="d.traffic?.source === 'none'" class="md:col-span-3 bg-zinc-900 p-5 rounded-lg border border-zinc-800 text-center shadow-sm">
+    <div *ngIf="d.traffic?.source === 'none'" class="md:col-span-3 card p-5 text-center shadow-sm">
       <p class="text-[13px] text-zinc-500">No traffic metrics available. Prometheus isn't reachable or hasn't collected data yet.</p>
     </div>
   </div>
 
   <!-- 4. Load Balancer details (when exposed on a port) -->
-  <div *ngIf="d.loadBalancer" class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-3.5 shadow-sm">
+  <div *ngIf="d.loadBalancer" class="card p-5 space-y-3.5">
     <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
-      <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">External Load Balancer</h3>
+      <h3 class="text-sm font-semibold text-zinc-100">External Load Balancer</h3>
       <span class="px-1.5 py-0.2 rounded text-[11px] font-bold uppercase tracking-wider border"
             [ngClass]="{
               'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': d.loadBalancer.status === 'active',
@@ -238,9 +238,9 @@
   </div>
 
   <!-- 5. Backend targets (ClusterIP endpoints) -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-3.5 shadow-sm">
+  <div class="card p-5 space-y-3.5">
     <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Service Backend Targets</h3>
+      <h3 class="text-sm font-semibold text-zinc-100">Service Backend Targets</h3>
       <p class="text-xs text-zinc-555 mt-0.5">Ready pod endpoints the service routes to (pod IP : port)</p>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -255,10 +255,10 @@
   </div>
 
   <!-- 6. Pods table -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+  <div class="card p-5 space-y-4">
     <div class="border-b border-zinc-900 pb-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
-        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Containers &amp; Pods</h3>
+        <h3 class="text-sm font-semibold text-zinc-100">Containers &amp; Pods</h3>
         <p class="text-xs text-zinc-555 mt-0.5">Runtime instances mapped to cluster nodes</p>
       </div>
       <span class="text-[11px] text-zinc-555 shrink-0">{{ d.pods?.length || 0 }} pods</span>
@@ -306,24 +306,24 @@
 <div class="space-y-6 animate-fade-in font-mono max-w-2xl mt-6" *ngIf="parent.app()">
 
   <!-- Container Resource Quotas -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+  <div class="card p-5 space-y-4">
     <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Container Resource Quotas (Kubernetes)</h3>
+      <h3 class="text-sm font-semibold text-zinc-100">Container Resource Quotas (Kubernetes)</h3>
       <p class="text-xs text-zinc-555 mt-0.5 font-mono">Settings will trigger an asynchronous service redeployment</p>
     </div>
     <div class="grid gap-4 sm:grid-cols-2">
       <div class="space-y-1.5">
-        <label for="cpu-lim" class="text-xs font-bold text-zinc-400 uppercase tracking-wider">CPU Limit (Millicores)</label>
+        <label for="cpu-lim" class="text-xs font-semibold text-zinc-400">CPU Limit (Millicores)</label>
         <input id="cpu-lim" type="number" placeholder="500"
           [ngModel]="parent.cpuLimit()" (ngModelChange)="parent.cpuLimit.set($event)"
-          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors" required />
+          class="block w-full px-3 py-2 text-[13px] input" required />
         <span class="text-[11px] text-zinc-600 block">e.g.: 500m = 0.5 CPU cores (vCPU). Set 0 for Unlimited.</span>
       </div>
       <div class="space-y-1.5">
-        <label for="mem-lim" class="text-xs font-bold text-zinc-400 uppercase tracking-wider">RAM Limit (MB)</label>
+        <label for="mem-lim" class="text-xs font-semibold text-zinc-400">RAM Limit (MB)</label>
         <input id="mem-lim" type="number" placeholder="1024"
           [ngModel]="parent.memLimit()" (ngModelChange)="parent.memLimit.set($event)"
-          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors" required />
+          class="block w-full px-3 py-2 text-[13px] input" required />
         <span class="text-[11px] text-zinc-600 block">Minimum recommended: 256 MB. Set 0 for Unlimited.</span>
       </div>
     </div>
@@ -336,45 +336,45 @@
   </div>
 
   <!-- Scaling & Availability -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+  <div class="card p-5 space-y-4">
     <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Scaling &amp; Availability</h3>
+      <h3 class="text-sm font-semibold text-zinc-100">Scaling &amp; Availability</h3>
       <p class="text-xs text-zinc-555 mt-0.5 font-mono">Number of replicas, autoscaling and auto-sleep for this application. Applied on the next deploy.</p>
     </div>
     <div class="grid gap-4 sm:grid-cols-2">
       <div class="space-y-1.5">
-        <label for="replicas-min" class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Replicas Min</label>
+        <label for="replicas-min" class="text-xs font-semibold text-zinc-400">Replicas Min</label>
         <input id="replicas-min" type="number" min="1" max="5"
           [ngModel]="parent.replicasMin()" (ngModelChange)="parent.replicasMin.set($event)" [disabled]="parent.savingSettings()"
-          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors" />
+          class="block w-full px-3 py-2 text-[13px] input" />
         <span class="text-[11px] text-zinc-600 block">Number of pods always running.</span>
       </div>
       <div class="space-y-1.5">
-        <label for="replicas-max" class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Replicas Max</label>
+        <label for="replicas-max" class="text-xs font-semibold text-zinc-400">Replicas Max</label>
         <input id="replicas-max" type="number" min="1" max="10"
           [ngModel]="parent.replicasMax()" (ngModelChange)="parent.replicasMax.set($event)" [disabled]="parent.savingSettings()"
-          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors" />
+          class="block w-full px-3 py-2 text-[13px] input" />
         <span class="text-[11px] text-zinc-600 block">If Max &gt; Min, the autoscaler (HPA) is enabled.</span>
       </div>
     </div>
     <div class="space-y-1.5 border-t border-zinc-900/40 pt-3">
-      <label for="autoscale-cpu" class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Autoscale at CPU (%)</label>
+      <label for="autoscale-cpu" class="text-xs font-semibold text-zinc-400">Autoscale at CPU (%)</label>
       <input id="autoscale-cpu" type="number" min="1" max="100"
         [ngModel]="parent.autoscaleCpuPercent()" (ngModelChange)="parent.autoscaleCpuPercent.set($event)" [disabled]="parent.savingSettings()"
-        class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors" />
+        class="block w-full px-3 py-2 text-[13px] input" />
       <span class="text-[11px] text-zinc-600 block">When Max &gt; Min, the autoscaler adds pods (up to Max) when average CPU exceeds this threshold.</span>
     </div>
     <div class="space-y-2 border-t border-zinc-900/40 pt-3">
       <label class="flex items-center gap-2 cursor-pointer">
         <input type="checkbox" [ngModel]="parent.autoSleepEnabled()" (ngModelChange)="parent.autoSleepEnabled.set($event)" [disabled]="parent.savingSettings()" class="accent-zinc-50 w-3.5 h-3.5 cursor-pointer" />
-        <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Auto-sleep (stop on inactivity)</span>
+        <span class="text-xs font-semibold text-zinc-400">Auto-sleep (stop on inactivity)</span>
       </label>
       @if (parent.autoSleepEnabled()) {
         <div class="space-y-1.5 pl-5">
-          <label for="auto-sleep-min" class="text-xs font-bold text-zinc-400 uppercase tracking-wider block">Inactive (minutes) → scale 0</label>
+          <label for="auto-sleep-min" class="text-xs font-semibold text-zinc-400 block">Inactive (minutes) → scale 0</label>
           <input id="auto-sleep-min" type="number" min="1"
             [ngModel]="parent.autoSleepAfterMinutes()" (ngModelChange)="parent.autoSleepAfterMinutes.set($event)" [disabled]="parent.savingSettings()"
-            class="block w-full max-w-[200px] px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors" />
+            class="block w-full max-w-[200px] px-3 py-2 text-[13px] input" />
         </div>
       }
       <span class="text-[11px] text-zinc-600 block leading-relaxed">When active, the instance is stopped (scale 0) after that many minutes of inactivity. <span class="text-amber-500/80">Does not wake up on traffic</span> — restart via Start or redeploy. Default: off.</span>

@@ -36,7 +36,7 @@
             <select 
               [ngModel]="selectedApp()?.id" 
               (ngModelChange)="onSelectApp($event)"
-              class="block w-full bg-zinc-950 border border-zinc-800 text-zinc-300 text-[13px] font-semibold py-1.5 pl-3 pr-8 rounded focus:outline-none appearance-none cursor-pointer hover:border-zinc-500 transition-colors"
+              class="input w-full py-1.5 pl-3 pr-8 font-semibold appearance-none cursor-pointer"
               aria-label="Select active application"
             >
               @for (app of apps(); track app.id) {

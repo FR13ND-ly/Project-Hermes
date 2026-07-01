@@ -18,7 +18,7 @@
 
     <!-- Login & Activation Form Card -->
     @if (mode() === 'login') {
-      <div class="bg-zinc-900 p-6 rounded-lg border border-zinc-800 shadow-xl space-y-6 animate-fade-in">
+      <div class="card p-6 shadow-xl space-y-6 animate-fade-in">
         
         <form class="space-y-4" (ngSubmit)="onSubmit()">
           <!-- Error Message -->
@@ -33,14 +33,14 @@
 
           <!-- Identity Input -->
           <div class="space-y-1.5">
-            <label for="identity" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider font-mono">Email or Username</label>
+            <label for="identity" class="text-xs font-semibold text-zinc-400 font-mono">Email or Username</label>
             <input 
               id="identity" 
               name="identity" 
               type="text" 
               required 
               aria-required="true"
-              class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" 
+              class="block w-full px-3 py-2 text-sm input font-mono" 
               placeholder="admin@hermes.platform"
               [ngModel]="loginIdentity()"
               (ngModelChange)="loginIdentity.set($event)"
@@ -50,14 +50,14 @@
 
           <!-- Password Input -->
           <div class="space-y-1.5">
-            <label for="password" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider font-mono">Password</label>
+            <label for="password" class="text-xs font-semibold text-zinc-400 font-mono">Password</label>
             <input 
               id="password" 
               name="password" 
               type="password" 
               required 
               aria-required="true"
-              class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" 
+              class="block w-full px-3 py-2 text-sm input font-mono" 
               placeholder="••••••••••••"
               [ngModel]="password()"
               (ngModelChange)="password.set($event)"
@@ -69,7 +69,7 @@
           <button 
             type="submit" 
             [disabled]="loading()"
-            class="relative flex w-full items-center justify-center rounded bg-zinc-50 hover:bg-zinc-200 py-2.5 text-[13px] font-semibold text-zinc-950 shadow transition-all cursor-pointer disabled:opacity-50 font-sans"
+            class="btn btn-primary w-full py-2.5 font-sans"
           >
             @if (!loading()) {
               <span>Sign In</span>
@@ -87,7 +87,7 @@
         
       </div>
     } @else {
-      <div class="bg-zinc-900 p-6 rounded-lg border border-zinc-800 shadow-xl space-y-6 animate-fade-in font-mono text-[13px]">
+      <div class="card p-6 shadow-xl space-y-6 animate-fade-in font-mono text-[13px]">
         
         @if (activationSuccess()) {
           <div class="space-y-3 py-2 text-center">
@@ -117,13 +117,13 @@
 
             <!-- Email Input -->
             <div class="space-y-1.5">
-              <label for="act-email" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Email</label>
+              <label for="act-email" class="text-xs font-semibold text-zinc-400">Email</label>
               <input 
                 id="act-email" 
                 name="act-email" 
                 type="email" 
                 required 
-                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors" 
+                class="block w-full px-3 py-2 input" 
                 placeholder="e.g. name@company.com"
                 [ngModel]="activateEmail()"
                 (ngModelChange)="activateEmail.set($event)"
@@ -133,13 +133,13 @@
 
             <!-- Temporary Password Input -->
             <div class="space-y-1.5">
-              <label for="temp-pwd" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Temporary Password</label>
+              <label for="temp-pwd" class="text-xs font-semibold text-zinc-400">Temporary Password</label>
               <input 
                 id="temp-pwd" 
                 name="temp-pwd" 
                 type="password" 
                 required 
-                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors" 
+                class="block w-full px-3 py-2 input" 
                 placeholder="Provided by the admin"
                 [ngModel]="temporaryPassword()"
                 (ngModelChange)="temporaryPassword.set($event)"
@@ -149,13 +149,13 @@
 
             <!-- New Password Input -->
             <div class="space-y-1.5">
-              <label for="new-pwd" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">New Permanent Password</label>
+              <label for="new-pwd" class="text-xs font-semibold text-zinc-400">New Permanent Password</label>
               <input 
                 id="new-pwd" 
                 name="new-pwd" 
                 type="password" 
                 required 
-                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors" 
+                class="block w-full px-3 py-2 input" 
                 placeholder="Min. 6 characters"
                 [ngModel]="newPassword()"
                 (ngModelChange)="newPassword.set($event)"
@@ -165,13 +165,13 @@
 
             <!-- Confirm New Password Input -->
             <div class="space-y-1.5">
-              <label for="confirm-pwd" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Confirm New Password</label>
+              <label for="confirm-pwd" class="text-xs font-semibold text-zinc-400">Confirm New Password</label>
               <input 
                 id="confirm-pwd" 
                 name="confirm-pwd" 
                 type="password" 
                 required 
-                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors" 
+                class="block w-full px-3 py-2 input" 
                 placeholder="Re-enter the password"
                 [ngModel]="confirmNewPassword()"
                 (ngModelChange)="confirmNewPassword.set($event)"
@@ -183,7 +183,7 @@
             <button 
               type="submit" 
               [disabled]="activationLoading() || !activateEmail() || !temporaryPassword() || !newPassword() || !confirmNewPassword()"
-              class="relative flex w-full items-center justify-center rounded bg-zinc-50 hover:bg-zinc-200 py-2.5 text-[13px] font-semibold text-zinc-950 shadow transition-all cursor-pointer disabled:opacity-50 font-sans"
+              class="btn btn-primary w-full py-2.5 font-sans"
             >
               @if (!activationLoading()) {
                 <span>Activate Account</span>

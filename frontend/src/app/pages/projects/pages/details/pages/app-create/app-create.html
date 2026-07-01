@@ -19,9 +19,9 @@
       <div class="max-w-3xl mx-auto">
         
         <!-- GitHub Repository List (Full width) -->
-        <div class="bg-zinc-900 rounded-lg border border-zinc-800 p-5 space-y-4 shadow-xl">
+        <div class="card p-5 space-y-4 shadow-xl">
           <div class="flex items-center justify-between">
-            <span class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Import from GitHub</span>
+            <span class="text-sm font-semibold text-zinc-100">Import from GitHub</span>
             <!-- Direct Custom Git URL Link fallback -->
             <button
               (click)="onUseCustomGitUrl()"
@@ -45,12 +45,12 @@
           } @else {
             <!-- Credential selector -->
             <div class="flex items-center gap-2 bg-zinc-950 border border-zinc-900 p-3 rounded-lg">
-              <label for="cred-select" class="text-xs font-bold text-zinc-400 uppercase tracking-wider shrink-0">Credential</label>
+              <label for="cred-select" class="text-xs font-semibold text-zinc-400 shrink-0">Credential</label>
               <select
                 id="cred-select"
                 [ngModel]="selectedCredentialId()"
                 (ngModelChange)="onSelectCredential($event)"
-                class="block w-full px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+                class="block w-full px-3 py-1.5 text-[13px] input font-mono cursor-pointer"
               >
                 @for (c of credentials(); track c.id) {
                   <option [value]="c.id">{{ c.label }} · {{ c.provider }}{{ c.username ? ' (@' + c.username + ')' : '' }}</option>
@@ -148,7 +148,7 @@
       </div>
 
       <!-- Deployment Form details card -->
-      <div class="bg-zinc-900 p-6 rounded-lg border border-zinc-800 shadow-xl space-y-6">
+      <div class="card p-6 shadow-xl space-y-6">
         
         <!-- Project Type Auto-Detecting Banner -->
         @if (detectingType()) {
@@ -158,7 +158,7 @@
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
             </svg>
             <div class="space-y-0.5">
-              <h4 class="text-[13px] font-bold text-zinc-400 uppercase tracking-wider">Repository Analysis</h4>
+              <h4 class="text-sm font-semibold text-zinc-100">Repository Analysis</h4>
               <p class="text-xs text-zinc-550 font-medium font-sans">Analyzing code structure for automatic project type detection...</p>
             </div>
           </div>
@@ -272,7 +272,7 @@
           <!-- Fields Grid -->
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="space-y-1.5">
-              <label for="new-app-name" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider font-sans">Application Name</label>
+              <label for="new-app-name" class="text-xs font-semibold text-zinc-400 font-sans">Application Name</label>
               <input
                 id="new-app-name"
                 type="text"
@@ -280,13 +280,13 @@
                 [ngModel]="appName()"
                 (ngModelChange)="onAppNameChange($event)"
                 [disabled]="deployingApp()"
-                class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+                class="block w-full px-3 py-2 text-sm input"
                 required
               />
             </div>
     
             <div class="space-y-1.5">
-              <label for="new-app-branch" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider font-sans">Git Branch</label>
+              <label for="new-app-branch" class="text-xs font-semibold text-zinc-400 font-sans">Git Branch</label>
               @if (loadingBranches()) {
                 <div class="flex items-center gap-2 h-[38px] px-3 py-2 bg-zinc-950 border border-zinc-800 rounded text-zinc-555 text-[13px] font-sans">
                   <svg class="animate-spin h-3.5 w-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24">
@@ -301,7 +301,7 @@
                   [ngModel]="branchName()"
                   (ngModelChange)="onBranchChange($event)"
                   [disabled]="deployingApp()"
-                  class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer"
+                  class="block w-full px-3 py-2 text-sm input cursor-pointer"
                 >
                   @for (branch of branches(); track branch) {
                     <option [value]="branch">{{ branch }}</option>
@@ -315,14 +315,14 @@
                   [ngModel]="branchName()"
                   (ngModelChange)="onBranchChange($event)"
                   [disabled]="deployingApp()"
-                  class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+                  class="block w-full px-3 py-2 text-sm input"
                 />
               }
             </div>
           </div>
     
           <div class="space-y-1.5 font-sans">
-            <label for="new-app-git" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Git Repository URL</label>
+            <label for="new-app-git" class="text-xs font-semibold text-zinc-400">Git Repository URL</label>
             <input
               id="new-app-git"
               type="text"
@@ -330,13 +330,13 @@
               [ngModel]="gitRepository()"
               (ngModelChange)="gitRepository.set($event)"
               [disabled]="deployingApp() || !!selectedImportRepo()"
-              class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors disabled:opacity-50 font-mono"
+              class="block w-full px-3 py-2 text-sm input disabled:opacity-50 font-mono"
               required
             />
           </div>
 
           <div class="space-y-1.5 font-sans">
-            <label for="new-app-git-subpath" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Project Subdirectory (Optional)</label>
+            <label for="new-app-git-subpath" class="text-xs font-semibold text-zinc-400">Project Subdirectory (Optional)</label>
             <div class="flex gap-2">
               @if (detectedSubdirectories().length > 0 && subpathSelectionMode() === 'select') {
                 <select
@@ -344,7 +344,7 @@
                   [ngModel]="selectedSubpathOption()"
                   (ngModelChange)="onSubpathSelectChange($event)"
                   [disabled]="deployingApp()"
-                  class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer font-mono"
+                  class="block w-full px-3 py-2 text-sm input cursor-pointer font-mono"
                 >
                   <option value="">Root (project root)</option>
                   @for (sub of detectedSubdirectories(); track sub) {
@@ -361,7 +361,7 @@
                     [ngModel]="gitSubpath()"
                     (ngModelChange)="onSubpathInputChange($event)"
                     [disabled]="deployingApp()"
-                    class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono pr-24"
+                    class="block w-full px-3 py-2 text-sm input font-mono pr-24"
                   />
                   @if (detectedSubdirectories().length > 0) {
                     <button
@@ -393,7 +393,7 @@
         @if (createStep() === 2) {
           <div class="grid gap-4 sm:grid-cols-2 font-sans">
             <div class="space-y-1.5">
-              <label for="new-app-port" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Internal Container Port</label>
+              <label for="new-app-port" class="text-xs font-semibold text-zinc-400">Internal Container Port</label>
               <input 
                 id="new-app-port"
                 type="number" 
@@ -401,12 +401,12 @@
                 [ngModel]="internalPort()"
                 (ngModelChange)="internalPort.set($event)"
                 [disabled]="deployingApp()"
-                class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+                class="block w-full px-3 py-2 text-sm input"
               />
             </div>
     
             <div class="space-y-1.5">
-              <label for="new-app-ext-port" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">External Port (Optional)</label>
+              <label for="new-app-ext-port" class="text-xs font-semibold text-zinc-400">External Port (Optional)</label>
               <input
                 id="new-app-ext-port"
                 type="number"
@@ -414,7 +414,7 @@
                 [ngModel]="externalPort()"
                 (ngModelChange)="externalPort.set($event)"
                 [disabled]="deployingApp()"
-                class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+                class="block w-full px-3 py-2 text-sm input"
               />
             </div>
           </div>
@@ -431,7 +431,7 @@
                   [ngModel]="networkName()"
                   (ngModelChange)="networkName.set($event)"
                   [disabled]="deployingApp()"
-                  class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+                  class="block w-full px-3 py-2 text-sm input"
                 />
                 <p class="text-xs text-zinc-650 font-sans">Address at which other apps can reach it. Empty = auto. E.g. <span class="text-zinc-400">backend</span> → http://backend:{{ internalPort() }}</p>
               </div>
@@ -467,7 +467,7 @@
                   [ngModel]="buildCommand()"
                   (ngModelChange)="buildCommand.set($event)"
                   [disabled]="deployingApp()"
-                  class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+                  class="block w-full px-3 py-2 text-sm input"
                 />
               </div>
     
@@ -480,7 +480,7 @@
                   [ngModel]="startCommand()"
                   (ngModelChange)="startCommand.set($event)"
                   [disabled]="deployingApp()"
-                  class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+                  class="block w-full px-3 py-2 text-sm input"
                 />
               </div>
             </div>
@@ -493,7 +493,7 @@
           <div class="pt-4 border-t border-zinc-900 space-y-3 font-sans">
             <div class="flex items-center justify-between gap-2 flex-wrap">
               <div>
-                <h4 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Environment Variables</h4>
+                <h4 class="text-xs font-semibold text-zinc-400">Environment Variables</h4>
                 <p class="text-xs text-zinc-650">Optional · injected into the container on first deploy</p>
               </div>
               <div class="flex items-center gap-2">
@@ -554,7 +554,7 @@
                     [ngModel]="row.key"
                     (ngModelChange)="updateEnvRow($index, 'key', $event)"
                     [disabled]="deployingApp()"
-                    class="flex-1 px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors uppercase font-mono font-bold"
+                    class="flex-1 px-3 py-2 text-[13px] input uppercase font-mono font-bold"
                   />
                   <input
                     type="text"
@@ -562,7 +562,7 @@
                     [ngModel]="row.value"
                     (ngModelChange)="updateEnvRow($index, 'value', $event)"
                     [disabled]="deployingApp()"
-                    class="flex-1 px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                    class="flex-1 px-3 py-2 text-[13px] input font-mono"
                   />
                   <button
                     type="button"
@@ -599,7 +599,7 @@
         <!-- docker-compose split preview modal -->
         @if (showComposePreview() && composePlan(); as plan) {
           <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm animate-fade-in" (click)="showComposePreview.set(false)">
-            <div class="w-full max-w-3xl bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl flex flex-col max-h-[85vh]" (click)="$event.stopPropagation()">
+            <div class="w-full max-w-3xl card shadow-2xl flex flex-col max-h-[85vh]" (click)="$event.stopPropagation()">
               <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-900">
                 <div>
                   <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider font-mono">Split from docker-compose</h3>
@@ -634,15 +634,15 @@
                             <div class="grid gap-2 sm:grid-cols-3">
                               <div class="space-y-1">
                                 <label class="text-[11px] uppercase text-zinc-500 font-sans">Name</label>
-                                <input type="text" [ngModel]="db.name" (ngModelChange)="updateDbName(i, $event)" class="block w-full px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
+                                <input type="text" [ngModel]="db.name" (ngModelChange)="updateDbName(i, $event)" class="block w-full px-2 py-1.5 text-[13px] input" />
                               </div>
                               <div class="space-y-1">
                                 <label class="text-[11px] uppercase text-zinc-500 font-sans">Version</label>
-                                <input type="text" [ngModel]="db.version" (ngModelChange)="updateDbVersion(i, $event)" class="block w-full px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
+                                <input type="text" [ngModel]="db.version" (ngModelChange)="updateDbVersion(i, $event)" class="block w-full px-2 py-1.5 text-[13px] input" />
                               </div>
                               <div class="space-y-1">
                                 <label class="text-[11px] uppercase text-zinc-500 font-sans">Internal port</label>
-                                <input type="number" [ngModel]="db.internalPort" (ngModelChange)="updateDbInternalPort(i, $event)" class="block w-full px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
+                                <input type="number" [ngModel]="db.internalPort" (ngModelChange)="updateDbInternalPort(i, $event)" class="block w-full px-2 py-1.5 text-[13px] input" />
                               </div>
                             </div>
                             
@@ -655,7 +655,7 @@
                               @if (db.publishToEnv) {
                                 <div class="flex items-center gap-2 pl-6 animate-fade-in">
                                   <label class="text-[11px] font-bold text-zinc-550 uppercase tracking-wider shrink-0 font-sans">Key name:</label>
-                                  <input type="text" placeholder="DATABASE_URL (implicit)" [ngModel]="db.envKey" (ngModelChange)="updateDbEnvKey(i, $event)" class="block w-full max-w-xs px-2 py-1 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 uppercase font-bold" />
+                                  <input type="text" placeholder="DATABASE_URL (implicit)" [ngModel]="db.envKey" (ngModelChange)="updateDbEnvKey(i, $event)" class="block w-full max-w-xs px-2 py-1 text-xs input uppercase font-bold" />
                                 </div>
                               }
                             </div>
@@ -707,7 +707,7 @@
               <div class="flex items-center justify-between gap-2 px-5 py-3 border-t border-zinc-900">
                 <span class="text-xs text-zinc-500 font-sans">{{ composeSelectedCount() }} resources selected</span>
                 <div class="flex items-center gap-2">
-                  <button (click)="showComposePreview.set(false)" class="px-3 py-1.5 rounded text-zinc-400 hover:text-zinc-50 text-[13px] font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer font-sans">Cancel</button>
+                  <button (click)="showComposePreview.set(false)" class="btn btn-secondary btn-sm font-sans">Cancel</button>
                   <button (click)="onApplyComposeSplit()" [disabled]="applyingCompose() || composeSelectedCount() === 0"
                     class="px-4 py-1.5 rounded btn-primary text-[13px] font-bold shadow disabled:opacity-50 cursor-pointer font-sans">
                     {{ applyingCompose() ? 'Creating...' : 'Create All' }}
@@ -720,7 +720,7 @@
         <!-- Per-service editor dialog (opened from "Edit") -->
         @if (editingAppIndex() !== null && plan.apps[editingAppIndex()!]; as eApp) {
           <div class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm animate-fade-in" (click)="closeAppEditor()">
-            <div class="w-full max-w-3xl bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl flex flex-col max-h-[90vh]" (click)="$event.stopPropagation()">
+            <div class="w-full max-w-3xl card shadow-2xl flex flex-col max-h-[90vh]" (click)="$event.stopPropagation()">
               <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-900">
                 <div>
                   <h3 class="text-sm font-bold text-zinc-50 font-sans">Edit service</h3>
@@ -743,15 +743,15 @@
                     <div class="grid gap-3 sm:grid-cols-3">
                       <div class="space-y-1.5">
                         <label class="text-[13px] font-medium text-zinc-400 font-sans">Name</label>
-                        <input type="text" [ngModel]="eApp.name" (ngModelChange)="updateAppName(editingAppIndex()!, $event)" class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 font-sans" />
+                        <input type="text" [ngModel]="eApp.name" (ngModelChange)="updateAppName(editingAppIndex()!, $event)" class="block w-full px-3 py-2 text-sm input font-sans" />
                       </div>
                       <div class="space-y-1.5">
                         <label class="text-[13px] font-medium text-zinc-400 font-sans">Internal port</label>
-                        <input type="number" [ngModel]="eApp.internalPort" (ngModelChange)="updateAppInternalPort(editingAppIndex()!, $event)" class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
+                        <input type="number" [ngModel]="eApp.internalPort" (ngModelChange)="updateAppInternalPort(editingAppIndex()!, $event)" class="block w-full px-3 py-2 text-sm input" />
                       </div>
                       <div class="space-y-1.5">
                         <label class="text-[13px] font-medium text-zinc-400 font-sans">External port <span class="text-zinc-650">(optional)</span></label>
-                        <input type="number" [ngModel]="eApp.externalPort" (ngModelChange)="updateAppExternalPort(editingAppIndex()!, $event)" placeholder="auto" class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
+                        <input type="number" [ngModel]="eApp.externalPort" (ngModelChange)="updateAppExternalPort(editingAppIndex()!, $event)" placeholder="auto" class="block w-full px-3 py-2 text-sm input" />
                       </div>
                     </div>
                     @if (eApp.volumes.length > 0) {
@@ -765,7 +765,7 @@
                     <div class="grid gap-3 sm:grid-cols-2 font-sans">
                       <div class="space-y-1.5">
                         <label class="text-[13px] font-medium text-zinc-400">Service name (network)</label>
-                        <input type="text" [ngModel]="eApp.networkName" (ngModelChange)="updateAppNetworkName(editingAppIndex()!, $event)" placeholder="auto (recommended)" class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
+                        <input type="text" [ngModel]="eApp.networkName" (ngModelChange)="updateAppNetworkName(editingAppIndex()!, $event)" placeholder="auto (recommended)" class="block w-full px-3 py-2 text-sm input" />
                         <p class="text-[13px] text-zinc-650">Address at which other apps can reach it. Empty = auto. E.g. <span class="font-mono text-zinc-400">http://{{ eApp.networkName && eApp.networkName.length ? eApp.networkName : 'backend' }}:{{ eApp.internalPort }}</span></p>
                       </div>
                       <div class="space-y-1.5">
@@ -793,7 +793,7 @@
                       <div class="flex items-center gap-2">
                         <input type="text" [ngModel]="e.key" (ngModelChange)="updateAppEnvKey(editingAppIndex()!, j, $event)" placeholder="KEY" class="flex-1 min-w-0 px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 uppercase focus:outline-none focus:border-zinc-500" />
                         <span class="text-zinc-700">=</span>
-                        <input type="text" [ngModel]="e.value" (ngModelChange)="updateAppEnvValue(editingAppIndex()!, j, $event)" placeholder="value" class="flex-1 min-w-0 px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
+                        <input type="text" [ngModel]="e.value" (ngModelChange)="updateAppEnvValue(editingAppIndex()!, j, $event)" placeholder="value" class="flex-1 min-w-0 px-3 py-2 text-sm input" />
                         <button type="button" (click)="removeAppEnv(editingAppIndex()!, j)" class="w-8 h-8 flex items-center justify-center rounded text-zinc-650 hover:text-red-400 hover:bg-red-950/30 cursor-pointer shrink-0">✕</button>
                       </div>
                     }
@@ -814,7 +814,7 @@
         <button
           (click)="createStep() === 1 ? onBackToSelection() : prevCreateStep()"
           [disabled]="deployingApp()"
-          class="px-4 py-2 rounded text-zinc-400 hover:text-zinc-50 text-[13px] font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer"
+          class="btn btn-secondary"
         >
           {{ createStep() === 1 ? 'Back to Repo' : '← Back' }}
         </button>

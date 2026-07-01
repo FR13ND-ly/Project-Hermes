@@ -17,7 +17,7 @@
       </div>
 
       @if (auth.currentUser()?.is_super_admin) {
-        <div class="w-full bg-zinc-900 p-6 rounded-lg border border-zinc-800 shadow-lg space-y-4 text-left">
+        <div class="w-full card p-6 shadow-lg space-y-4 text-left">
           <div class="space-y-2">
             <label for="new-ws-name" class="text-xs font-semibold text-zinc-400">Workspace name</label>
             <input
@@ -47,7 +47,7 @@
           </button>
         </div>
       } @else {
-        <div class="w-full bg-zinc-900 p-6 rounded-lg border border-zinc-800 shadow-lg text-center">
+        <div class="w-full card p-6 shadow-lg text-center">
           <p class="text-sm text-zinc-300">You don't have access to any workspace yet.</p>
           <p class="text-sm text-zinc-500 mt-1.5">Contact a platform administrator to be added to a workspace.</p>
         </div>

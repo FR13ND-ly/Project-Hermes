@@ -4,24 +4,24 @@
     
     <!-- Column A: General Config -->
     <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-      <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">General Config</h4>
+      <h4 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2">General Config</h4>
 
       <!-- Bucket Display Name -->
       <div class="space-y-1.5">
-        <label for="edit-name" class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Bucket Name</label>
+        <label for="edit-name" class="text-xs font-semibold text-zinc-500">Bucket Name</label>
         <input 
           id="edit-name"
           type="text" 
           [ngModel]="parent.editName()"
           (ngModelChange)="parent.editName.set($event)"
-          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+          class="block w-full px-3 py-2 text-[13px] input font-mono"
         />
       </div>
 
       <!-- Bucket size slider -->
       <div class="space-y-1.5 pt-1.5">
         <div class="flex items-center justify-between">
-          <label class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Maximum Bucket Limit</label>
+          <label class="text-xs font-semibold text-zinc-500">Maximum Bucket Limit</label>
           <span class="text-zinc-50 text-[13px] font-bold font-mono">{{ parent.editMaxSizeGb() }} GB</span>
         </div>
         <input
@@ -37,7 +37,7 @@
 
       <!-- Per-file size limit -->
       <div class="space-y-1.5 pt-1.5">
-        <label class="text-xs font-semibold text-zinc-500 uppercase tracking-wider block">Max size / file (MB)</label>
+        <label class="text-xs font-semibold text-zinc-500 block">Max size / file (MB)</label>
         <div class="flex items-center gap-2">
           <input
             type="number"
@@ -46,7 +46,7 @@
             placeholder="0 = unlimited"
             [ngModel]="parent.editMaxFileSizeMb()"
             (ngModelChange)="parent.editMaxFileSizeMb.set($event)"
-            class="block w-32 px-2.5 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+            class="block w-32 px-2.5 py-1.5 text-[13px] input font-mono"
           />
           <span class="text-xs text-zinc-600">0 = unlimited</span>
         </div>
@@ -72,7 +72,7 @@
       
       <!-- Type restrictions -->
       <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-        <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">File Type Limits</h4>
+        <h4 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2">File Type Limits</h4>
         
         <div class="grid grid-cols-2 gap-3 pt-1">
           <div class="flex items-center gap-2">
@@ -100,16 +100,16 @@
 
       <!-- Image processing rules -->
       <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-        <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Automatic Image Optimization</h4>
+        <h4 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2">Automatic Image Optimization</h4>
         
         <div class="grid gap-4 grid-cols-2">
           <div class="space-y-1">
-            <label for="opt-format" class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Target format</label>
+            <label for="opt-format" class="text-[11px] font-semibold text-zinc-500">Target format</label>
             <select 
               id="opt-format" 
               [ngModel]="parent.convertImageTo()"
               (ngModelChange)="parent.convertImageTo.set($event)"
-              class="block w-full px-2.5 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              class="block w-full px-2.5 py-1.5 text-[13px] input font-mono"
             >
               <option value="original">Keep Original</option>
               <option value="webp">Optimize to WebP</option>
@@ -120,7 +120,7 @@
           
           <div class="space-y-1">
             <div class="flex items-center justify-between">
-              <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Compression quality</label>
+              <label class="text-[11px] font-semibold text-zinc-500">Compression quality</label>
               <span class="text-zinc-50 text-[13px] font-bold font-mono">{{ parent.imageQuality() }}%</span>
             </div>
             <input 
@@ -153,7 +153,7 @@
                 placeholder="name (e.g. thumb)"
                 [ngModel]="v.name"
                 (ngModelChange)="parent.updateVariant($index, { name: $event })"
-                class="flex-1 min-w-0 px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="flex-1 min-w-0 px-2 py-1.5 text-[13px] input font-mono"
               />
               <div class="flex items-center gap-1 shrink-0">
                 <input
@@ -163,14 +163,14 @@
                   placeholder="px"
                   [ngModel]="v.maxWidth"
                   (ngModelChange)="parent.updateVariant($index, { maxWidth: $event })"
-                  class="w-20 px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  class="w-20 px-2 py-1.5 text-[13px] input font-mono"
                 />
                 <span class="text-xs text-zinc-600">px</span>
               </div>
               <select
                 [ngModel]="v.format"
                 (ngModelChange)="parent.updateVariant($index, { format: $event })"
-                class="w-28 shrink-0 px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="w-28 shrink-0 px-2 py-1.5 text-[13px] input font-mono"
               >
                 <option value="original">original</option>
                 <option value="webp">webp</option>
@@ -191,7 +191,7 @@
 
       <!-- Text compression -->
       <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-        <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Text pre-compression (CSS/JS/HTML)</h4>
+        <h4 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2">Text pre-compression (CSS/JS/HTML)</h4>
         
         <div class="flex items-center gap-6 pt-1">
           <div class="flex items-center gap-2">

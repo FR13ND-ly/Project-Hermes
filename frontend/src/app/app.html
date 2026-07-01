@@ -38,7 +38,7 @@
             @if (showWorkspaceDropdown()) {
               <div class="fixed inset-0 z-40" (click)="showWorkspaceDropdown.set(false)"></div>
               <div class="absolute left-0 right-0 mt-1 menu z-50">
-                <div class="px-2.5 py-1.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Workspaces</div>
+                <div class="px-2.5 py-1.5 text-[11px] font-semibold text-zinc-500">Workspaces</div>
                 <div class="max-h-64 overflow-y-auto">
                   @for (ws of workspaces(); track ws.id) {
                     <button

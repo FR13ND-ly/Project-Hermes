@@ -6,7 +6,7 @@
     <!-- Section Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-900 pb-4 gap-4">
       <div>
-        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Object Storage & Buckets</h3>
+        <h3 class="text-sm font-semibold text-zinc-100">Object Storage & Buckets</h3>
         <p class="text-[13px] text-zinc-555">Manage static files, media and storage rules for your workspace.</p>
       </div>
       
@@ -123,7 +123,7 @@
     <!-- PVC (Persistent Volumes) -->
     <div class="bg-zinc-900 rounded border border-zinc-900 shadow-sm">
       <div class="border-b border-zinc-900 px-5 py-3.5">
-        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Volume Persistente (PVC)</h3>
+        <h3 class="text-sm font-semibold text-zinc-100">Volume Persistente (PVC)</h3>
         <p class="text-xs text-zinc-555 mt-0.5">Automatically created at build from application <code>VOLUME</code> directives. Browse their contents here.</p>
       </div>
       @if (loadingPvcs()) {
@@ -200,7 +200,7 @@
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
-          <input type="text" placeholder="Search files..." [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" class="px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 font-mono w-40" />
+          <input type="text" placeholder="Search files..." [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" class="px-3 py-1.5 text-[13px] input font-mono w-40" />
           <div class="flex rounded border border-zinc-800 overflow-hidden">
             <button (click)="viewMode.set('grid')" class="px-2.5 py-1.5 text-[13px] cursor-pointer" [class]="viewMode() === 'grid' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'" title="Grid">▦</button>
             <button (click)="viewMode.set('list')" class="px-2.5 py-1.5 text-[13px] cursor-pointer" [class]="viewMode() === 'list' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'" title="List">≣</button>
@@ -216,7 +216,7 @@
       <!-- New folder inline form -->
       @if (showFolderForm()) {
         <div class="bg-zinc-900 border border-zinc-900 rounded p-3 flex items-center gap-2 animate-fade-in">
-          <input type="text" placeholder="New folder name" [ngModel]="newFolderName()" (ngModelChange)="newFolderName.set($event)" (keyup.enter)="createPvcFolder()" class="flex-1 px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 font-mono" />
+          <input type="text" placeholder="New folder name" [ngModel]="newFolderName()" (ngModelChange)="newFolderName.set($event)" (keyup.enter)="createPvcFolder()" class="flex-1 px-3 py-1.5 text-[13px] input font-mono" />
           <button (click)="createPvcFolder()" [disabled]="!newFolderName().trim()" class="px-3 py-1.5 rounded btn-primary text-[13px] font-semibold disabled:opacity-50 cursor-pointer">Create</button>
           <button (click)="showFolderForm.set(false); newFolderName.set('')" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-[13px] cursor-pointer">Cancel</button>
         </div>
@@ -402,7 +402,7 @@
                 placeholder="Search files..."
                 [ngModel]="searchQuery()"
                 (ngModelChange)="searchQuery.set($event)"
-                class="block w-full pl-8 pr-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors font-mono"
+                class="block w-full pl-8 pr-3 py-1.5 text-[13px] input font-mono"
               />
             </div>
 
@@ -442,7 +442,7 @@
                   [ngModel]="newFolderName()"
                   (ngModelChange)="newFolderName.set($event)"
                   (keyup.enter)="onCreateFolder()"
-                  class="px-2.5 py-1 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors font-mono w-40"
+                  class="px-2.5 py-1 text-[13px] input font-mono w-40"
                 />
                 <button 
                   (click)="onCreateFolder()"
@@ -608,7 +608,7 @@
                   <div class="border-t border-zinc-955 p-2 bg-zinc-950/40 flex items-center justify-between gap-1">
                     @if (item.status === 'processing' || item.status === 'pending_upload') {
                       <div class="flex items-center gap-1.5 w-full justify-between">
-                        <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider pl-1.5 animate-pulse">
+                        <span class="text-[11px] font-semibold text-zinc-500 pl-1.5 animate-pulse">
                           {{ item.status === 'processing' ? stageLabel(item.processingStage) : 'Uploading...' }}
                         </span>
                         @if (item.id) {
@@ -799,7 +799,7 @@
       <div class="space-y-4 animate-fade-in">
         <div class="border border-zinc-900 bg-zinc-950 rounded p-5 shadow-inner">
           <div class="flex items-center justify-between border-b border-zinc-900 pb-3 mb-4">
-            <h4 class="text-[13px] font-bold text-zinc-400 uppercase tracking-wider">Bucket Audit Log</h4>
+            <h4 class="text-sm font-semibold text-zinc-100">Bucket Audit Log</h4>
             <span class="text-[11px] text-zinc-650 bg-zinc-950 px-2 py-0.5 rounded uppercase font-semibold">Live Events</span>
           </div>
 
@@ -833,24 +833,24 @@
           
           <!-- Column A: General Config -->
           <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-            <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">General Config</h4>
+            <h4 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2">General Config</h4>
 
             <!-- Bucket Display Name -->
             <div class="space-y-1.5">
-              <label for="edit-name" class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Bucket Name</label>
+              <label for="edit-name" class="text-xs font-semibold text-zinc-500">Bucket Name</label>
               <input 
                 id="edit-name"
                 type="text" 
                 [ngModel]="editName()"
                 (ngModelChange)="editName.set($event)"
-                class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="block w-full px-3 py-2 text-[13px] input font-mono"
               />
             </div>
 
             <!-- Bucket size slider -->
             <div class="space-y-1.5 pt-1.5">
               <div class="flex items-center justify-between">
-                <label class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Maximum Bucket Limit</label>
+                <label class="text-xs font-semibold text-zinc-500">Maximum Bucket Limit</label>
                 <span class="text-zinc-50 text-[13px] font-bold font-mono">{{ editMaxSizeGb() }} GB</span>
               </div>
               <input
@@ -866,7 +866,7 @@
 
             <!-- Per-file size limit -->
             <div class="space-y-1.5 pt-1.5">
-              <label class="text-xs font-semibold text-zinc-500 uppercase tracking-wider block">Max size / file (MB)</label>
+              <label class="text-xs font-semibold text-zinc-500 block">Max size / file (MB)</label>
               <div class="flex items-center gap-2">
                 <input
                   type="number"
@@ -875,7 +875,7 @@
                   placeholder="0 = unlimited"
                   [ngModel]="editMaxFileSizeMb()"
                   (ngModelChange)="editMaxFileSizeMb.set($event)"
-                  class="block w-32 px-2.5 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  class="block w-32 px-2.5 py-1.5 text-[13px] input font-mono"
                 />
                 <span class="text-xs text-zinc-600">0 = unlimited</span>
               </div>
@@ -901,7 +901,7 @@
             
             <!-- Type restrictions -->
             <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-              <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">File Type Limits</h4>
+              <h4 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2">File Type Limits</h4>
               
               <div class="grid grid-cols-2 gap-3 pt-1">
                 <div class="flex items-center gap-2">
@@ -929,16 +929,16 @@
 
             <!-- Image processing rules -->
             <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-              <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Automatic Image Optimization</h4>
+              <h4 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2">Automatic Image Optimization</h4>
               
               <div class="grid gap-4 grid-cols-2">
                 <div class="space-y-1">
-                  <label for="opt-format" class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Target format</label>
+                  <label for="opt-format" class="text-[11px] font-semibold text-zinc-500">Target format</label>
                   <select 
                     id="opt-format" 
                     [ngModel]="convertImageTo()"
                     (ngModelChange)="convertImageTo.set($event)"
-                    class="block w-full px-2.5 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                    class="block w-full px-2.5 py-1.5 text-[13px] input font-mono"
                   >
                     <option value="original">Keep Original</option>
                     <option value="webp">Optimize to WebP</option>
@@ -949,7 +949,7 @@
                 
                 <div class="space-y-1">
                   <div class="flex items-center justify-between">
-                    <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Compression quality</label>
+                    <label class="text-[11px] font-semibold text-zinc-500">Compression quality</label>
                     <span class="text-zinc-50 text-[13px] font-bold font-mono">{{ imageQuality() }}%</span>
                   </div>
                   <input 
@@ -982,7 +982,7 @@
                       placeholder="name (e.g. thumb)"
                       [ngModel]="v.name"
                       (ngModelChange)="updateVariant($index, { name: $event })"
-                      class="flex-1 min-w-0 px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                      class="flex-1 min-w-0 px-2 py-1.5 text-[13px] input font-mono"
                     />
                     <div class="flex items-center gap-1 shrink-0">
                       <input
@@ -992,14 +992,14 @@
                         placeholder="px"
                         [ngModel]="v.maxWidth"
                         (ngModelChange)="updateVariant($index, { maxWidth: $event })"
-                        class="w-20 px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                        class="w-20 px-2 py-1.5 text-[13px] input font-mono"
                       />
                       <span class="text-xs text-zinc-600">px</span>
                     </div>
                     <select
                       [ngModel]="v.format"
                       (ngModelChange)="updateVariant($index, { format: $event })"
-                      class="w-28 shrink-0 px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                      class="w-28 shrink-0 px-2 py-1.5 text-[13px] input font-mono"
                     >
                       <option value="original">original</option>
                       <option value="webp">webp</option>
@@ -1020,7 +1020,7 @@
 
             <!-- Text compression -->
             <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-              <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Text pre-compression (CSS/JS/HTML)</h4>
+              <h4 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2">Text pre-compression (CSS/JS/HTML)</h4>
               
               <div class="flex items-center gap-6 pt-1">
                 <div class="flex items-center gap-2">
@@ -1105,7 +1105,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-purple-400">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
             </svg>
-            <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">API Integration — Connecting External Applications</h4>
+            <h4 class="text-sm font-semibold text-zinc-100">API Integration — Connecting External Applications</h4>
           </div>
           <p class="text-[13px] text-zinc-500 leading-relaxed font-sans">
             Buckets are private. External applications access files using the bucket's
@@ -1116,7 +1116,7 @@
 
         <!-- Bucket credentials (key pair) -->
         <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-2 shadow-sm">
-          <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Bucket Credentials</h4>
+          <h4 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2">Bucket Credentials</h4>
           <p class="text-[13px] text-zinc-500 leading-relaxed font-sans">
             Access is done with the <span class="font-mono text-zinc-300">app_id</span> /
             <span class="font-mono text-zinc-300">secret_key</span> pair, automatically published to the project
@@ -1128,12 +1128,12 @@
 
         <!-- Code Snippets -->
         <div class="space-y-4">
-            <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Usage Examples</h4>
+            <h4 class="text-sm font-semibold text-zinc-100">Usage Examples</h4>
 
             <!-- .env snippet -->
             <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow-sm">
               <div class="flex items-center justify-between bg-zinc-950/60 border-b border-zinc-900 px-4 py-2">
-                <span class="text-[11px] font-bold text-zinc-555 uppercase tracking-wider">.env</span>
+                <span class="text-[11px] font-semibold text-zinc-500">.env</span>
                 <button
                   (click)="copyToClipboard(getEnvSnippet())"
                   class="text-[11px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
@@ -1145,7 +1145,7 @@
             <!-- cURL Upload -->
             <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow-sm">
               <div class="flex items-center justify-between bg-zinc-950/60 border-b border-zinc-900 px-4 py-2">
-                <span class="text-[11px] font-bold text-zinc-555 uppercase tracking-wider">cURL — Upload File</span>
+                <span class="text-[11px] font-semibold text-zinc-500">cURL — Upload File</span>
                 <button
                   (click)="copyToClipboard(getUploadSnippet())"
                   class="text-[11px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
@@ -1157,7 +1157,7 @@
             <!-- Node.js snippet -->
             <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow-sm">
               <div class="flex items-center justify-between bg-zinc-950/60 border-b border-zinc-900 px-4 py-2">
-                <span class="text-[11px] font-bold text-zinc-555 uppercase tracking-wider">Node.js — Upload File</span>
+                <span class="text-[11px] font-semibold text-zinc-500">Node.js — Upload File</span>
                 <button
                   (click)="copyToClipboard(getNodeSnippet())"
                   class="text-[11px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
@@ -1169,7 +1169,7 @@
             <!-- List Files -->
             <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow-sm">
               <div class="flex items-center justify-between bg-zinc-950/60 border-b border-zinc-900 px-4 py-2">
-                <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">cURL — List Files</span>
+                <span class="text-[11px] font-semibold text-zinc-500">cURL — List Files</span>
                 <button
                   (click)="copyToClipboard(getListSnippet())"
                   class="text-[11px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
@@ -1181,7 +1181,7 @@
             <!-- Download Private File -->
             <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow-sm">
               <div class="flex items-center justify-between bg-zinc-950/60 border-b border-zinc-900 px-4 py-2">
-                <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">cURL — Download Private File</span>
+                <span class="text-[11px] font-semibold text-zinc-500">cURL — Download Private File</span>
                 <button
                   (click)="copyToClipboard(getDownloadSnippet())"
                   class="text-[11px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"

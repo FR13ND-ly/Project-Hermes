@@ -6,7 +6,7 @@
     <!-- Preview Screenshot Card -->
     <div class="space-y-2">
       <div class="flex items-center justify-between">
-        <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider font-mono">App Preview</h3>
+        <h3 class="text-xs font-semibold text-zinc-400">App Preview</h3>
         <button
           (click)="parent.onRecaptureScreenshot()"
           [disabled]="parent.recapturingScreenshot() || parent.getSelectedInstance()?.status !== 'running'"
@@ -51,11 +51,11 @@
     </div>
 
     <!-- Active Branch Deployments (Instances) Card -->
-    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 shadow-sm space-y-4 font-mono">
+    <div class="card p-5 space-y-4 font-mono">
       <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
         <div class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
-          <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Active Deployments (Branches)</h3>
+          <h3 class="text-sm font-semibold text-zinc-100">Active Deployments (Branches)</h3>
         </div>
         <span class="text-[11px] text-zinc-555 font-mono">{{ (parent.app()?.instances || []).length }} active</span>
       </div>
@@ -122,11 +122,11 @@
   <div class="lg:col-span-2 space-y-6">
     
     <!-- Specs & Resources Card -->
-    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 space-y-4 font-mono shadow-sm">
+    <div class="card p-5 space-y-4 font-mono">
       <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
         <div class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
-          <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Service Specs & Resources</h3>
+          <h3 class="text-sm font-semibold text-zinc-100">Service Specs & Resources</h3>
         </div>
         <a [routerLink]="['../general']" class="text-[11px] text-zinc-500 hover:text-zinc-50 cursor-pointer uppercase tracking-wider">Configure →</a>
       </div>
@@ -178,7 +178,7 @@
     </div>
 
     <!-- Domains & Routing Card -->
-    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 space-y-4 font-mono shadow-sm">
+    <div class="card p-5 space-y-4 font-mono">
       <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
         <div class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
@@ -255,11 +255,11 @@
     </div>
 
     <!-- Build History Card -->
-    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 space-y-4 font-mono shadow-sm">
+    <div class="card p-5 space-y-4 font-mono">
       <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
         <div class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
-          <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Build History</h3>
+          <h3 class="text-sm font-semibold text-zinc-100">Build History</h3>
         </div>
         <a [routerLink]="['../builds']" class="text-[11px] text-zinc-500 hover:text-zinc-50 cursor-pointer uppercase tracking-wider">All Builds →</a>
       </div>
@@ -310,9 +310,9 @@
   </div>
 
   <!-- Persistent Volumes (PVC) -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-3 shadow-sm lg:col-span-5">
+  <div class="card p-5 space-y-3 lg:col-span-5">
     <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Persistent Volumes (PVC)</h3>
+      <h3 class="text-sm font-semibold text-zinc-100">Persistent Volumes (PVC)</h3>
       <p class="text-xs text-zinc-555 mt-0.5 font-sans leading-relaxed">
         Persistent volumes are automatically created at build time, from the <code>VOLUME</code> directives in the Dockerfile. They are managed and browsed centrally in <strong>Storage</strong>.
       </p>

@@ -1,4 +1,4 @@
-<div class="space-y-5 animate-fade-in font-mono">
+<div class="space-y-5 animate-fade-in">
   @if (parent.integration(); as i) {
     <!-- Auto-published to project pool -->
     <div class="p-4 rounded-lg border border-zinc-800 bg-zinc-950 space-y-3 font-sans relative overflow-hidden">
@@ -10,7 +10,7 @@
           </svg>
         </div>
         <div class="space-y-1 w-full">
-          <h4 class="text-[13px] font-bold text-zinc-200 uppercase tracking-wider font-mono">Automatically published to pool</h4>
+          <h4 class="text-sm font-semibold text-zinc-100 font-mono">Automatically published to pool</h4>
           <p class="text-[13px] text-zinc-400 leading-relaxed font-sans">
             <span class="font-mono text-zinc-300">HERMES_AUTH_SECRET</span>, <span class="font-mono text-zinc-300">HERMES_AUTH_APP_ID</span> and
             <span class="font-mono text-zinc-300">HERMES_AUTH_API_URL</span> are automatically published to the project pool — no action needed.
@@ -20,15 +20,15 @@
       </div>
     </div>
 
-    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 space-y-4 shadow-sm">
+    <div class="card p-5 space-y-4">
       <div class="border-b border-zinc-900 pb-3">
-        <h4 class="text-[13px] font-bold text-zinc-200 uppercase tracking-wider">Auth Integration (local validation)</h4>
+        <h4 class="text-sm font-semibold text-zinc-100">Auth Integration (local validation)</h4>
         <p class="text-xs text-zinc-550 mt-0.5 font-sans leading-relaxed">Your app validates tokens <strong>locally</strong>, using the secret below — no calls to Hermes. The secret is already injected into env as <span class="font-mono text-zinc-300">{{ i.authSecretEnvKey }}</span>.</p>
       </div>
 
       <!-- Service ID -->
       <div class="space-y-1.5">
-        <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Service ID (BaaS)</span>
+        <span class="text-[11px] font-semibold text-zinc-500">Service ID (BaaS)</span>
         <div class="flex items-center gap-2">
           <code class="flex-1 px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ i.baasId }}</code>
           <button (click)="parent.copyText(i.baasId, 'Service ID')" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-xs font-semibold cursor-pointer shrink-0">Copy</button>
@@ -37,7 +37,7 @@
 
       <!-- Auth secret -->
       <div class="space-y-1.5">
-        <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{{ i.authSecretEnvKey }}</span>
+        <span class="text-[11px] font-semibold text-zinc-500">{{ i.authSecretEnvKey }}</span>
         <div class="flex items-center gap-2">
           <code class="flex-1 px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ parent.revealSecret() ? i.authSecret : '••••••••••••••••••••••••••••' }}</code>
           <button (click)="parent.revealSecret.set(!parent.revealSecret())" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-xs font-semibold cursor-pointer shrink-0">{{ parent.revealSecret() ? 'Hide' : 'Show' }}</button>
@@ -49,7 +49,7 @@
 
       <!-- Endpoints -->
       <div class="space-y-2 pt-1">
-        <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Endpoints</span>
+        <span class="text-[11px] font-semibold text-zinc-500">Endpoints</span>
         @for (ep of [
           { label: 'Register', url: i.registerEndpoint },
           { label: 'Login', url: i.loginEndpoint },
@@ -68,14 +68,14 @@
     </div>
 
     <!-- Snippet -->
-    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 space-y-3 shadow-sm">
+    <div class="card p-5 space-y-3">
       <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
-        <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Integration example (Express)</h4>
+        <h4 class="text-xs font-semibold text-zinc-300">Integration example (Express)</h4>
         <button (click)="parent.copyText(parent.integrationSnippet(), 'Snippet')" class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-xs font-semibold cursor-pointer">Copy</button>
       </div>
       <pre class="text-[13px] leading-relaxed text-zinc-300 bg-zinc-950 border border-zinc-900 rounded p-3.5 overflow-x-auto whitespace-pre">{{ parent.integrationSnippet() }}</pre>
     </div>
   } @else if (!parent.loading()) {
-    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-10 text-center text-[13px] text-zinc-600">Select an application to view integration data.</div>
+    <div class="card p-10 text-center text-[13px] text-zinc-600">Select an application to view integration data.</div>
   }
 </div>
