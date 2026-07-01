@@ -1,31 +1,28 @@
 <div class="space-y-6 animate-fade-in">
   
-  <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
-    <div>
-      <h3 class="text-sm font-semibold text-zinc-100">Project Applications</h3>
-      <p class="text-xs text-zinc-500 font-mono mt-0.5">Complete list of active services and their configurations</p>
+  <div class="flex items-center justify-between gap-4">
+    <div class="space-y-0.5">
+      <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Applications</h2>
+      <p class="text-[13px] text-zinc-500">Active services in this project and their configuration.</p>
     </div>
 
-    <div class="flex items-center gap-3">
-      <button 
-        (click)="refreshApps()" 
-        class="text-zinc-550 hover:text-zinc-300 p-1.5 rounded border border-zinc-900 bg-zinc-950 hover:border-zinc-500 transition-all cursor-pointer"
+    <div class="flex items-center gap-2 shrink-0">
+      <button
+        (click)="refreshApps()"
+        class="btn btn-ghost btn-sm px-2"
         title="Refresh"
         aria-label="Refresh application list"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
         </svg>
       </button>
 
-      <button 
-        (click)="onAddApp()"
-        class="px-2.5 py-1.5 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5"
-      >
+      <button (click)="onAddApp()" class="btn btn-primary btn-sm">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
-        Add Application
+        Add application
       </button>
     </div>
   </div>
@@ -41,13 +38,13 @@
   } @else {
     <div class="grid gap-4 md:grid-cols-1">
       @for (app of parent.apps(); track app.id) {
-        <div 
-          class="card p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:border-zinc-700 transition-all"
-          [class.border-zinc-550]="parent.selectedApp()?.id === app.id"
+        <div
+          class="card p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 hover:border-indigo-500/40 transition-all"
+          [class.border-indigo-500/50]="parent.selectedApp()?.id === app.id"
         >
-          <div class="space-y-1.5 min-w-0 flex-1">
+          <div class="space-y-2 min-w-0 flex-1">
             <div class="flex items-center gap-2.5 flex-wrap">
-              <h4 class="text-sm font-bold text-zinc-50 font-mono truncate cursor-pointer hover:underline" (click)="onViewDetails(app, 'overview')">
+              <h4 class="text-sm font-semibold text-zinc-50 truncate cursor-pointer hover:text-indigo-300 transition-colors" (click)="onViewDetails(app, 'overview')">
                 {{ app.name }}
               </h4>
               
@@ -99,43 +96,18 @@
             </div>
           </div>
 
-          <!-- Actions Grid -->
-          <div class="flex items-center gap-2.5 sm:self-center flex-wrap sm:flex-nowrap">
-            <button 
-              (click)="onViewDetails(app, 'telemetry')"
-              class="px-2.5 py-1.5 rounded text-xs font-semibold border transition-all cursor-pointer bg-zinc-950 border-zinc-850 hover:border-zinc-500 hover:text-zinc-50 text-zinc-450"
-            >
-              Telemetry
-            </button>
-            <button
-              (click)="onViewDetails(app, 'logs')"
-              class="px-2.5 py-1.5 rounded text-xs font-semibold border transition-all cursor-pointer bg-zinc-950 border-zinc-850 hover:border-zinc-500 hover:text-zinc-50 text-zinc-450"
-            >
-              Logs & Console
-            </button>
-            <button
-              (click)="onViewDetails(app, 'env')"
-              class="px-2.5 py-1.5 rounded text-xs font-semibold border transition-all cursor-pointer bg-zinc-950 border-zinc-855 hover:border-zinc-500 hover:text-zinc-50 text-zinc-450"
-            >
-              Env Variables
-            </button>
-            <button
-              (click)="onDeleteApp(app)"
-              class="px-2.5 py-1.5 rounded text-xs font-semibold border transition-all cursor-pointer bg-zinc-950 hover:bg-red-950/20 border-zinc-855 hover:border-red-900/40 text-red-500 hover:text-red-400"
-            >
-              Delete
-            </button>
+          <!-- Actions -->
+          <div class="flex items-center gap-2 sm:self-center flex-wrap sm:flex-nowrap">
+            <button (click)="onViewDetails(app, 'telemetry')" class="btn btn-secondary btn-sm">Metrics</button>
+            <button (click)="onViewDetails(app, 'logs')" class="btn btn-secondary btn-sm">Logs</button>
+            <button (click)="onViewDetails(app, 'env')" class="btn btn-secondary btn-sm">Env</button>
+            <button (click)="onDeleteApp(app)" class="btn btn-danger btn-sm">Delete</button>
           </div>
         </div>
       } @empty {
-        <div class="bg-zinc-900 rounded-lg border border-zinc-850 p-12 text-center space-y-4">
-          <p class="text-[13px] text-zinc-550">No applications registered in this project.</p>
-          <button
-            (click)="onAddApp()"
-            class="px-3 py-1.5 rounded btn-primary text-[13px] font-semibold transition-colors cursor-pointer"
-          >
-            Add First Application
-          </button>
+        <div class="card py-14 px-8 text-center space-y-4">
+          <p class="text-sm text-zinc-400">No applications registered in this project.</p>
+          <button (click)="onAddApp()" class="btn btn-primary">Add your first application</button>
         </div>
       }
     </div>

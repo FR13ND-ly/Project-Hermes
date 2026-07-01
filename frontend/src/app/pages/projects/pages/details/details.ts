@@ -188,9 +188,7 @@ export class Details implements OnInit, OnDestroy {
   }
 
   tabClass(tab: string): string {
-    const base = 'px-3 py-2.5 rounded-md text-[13px] flex items-center gap-2.5 transition-colors cursor-pointer';
-    return this.isTabActive(tab)
-      ? `${base} font-semibold text-zinc-50 bg-zinc-900 border border-zinc-850`
-      : `${base} text-zinc-400 hover:text-zinc-200 hover:bg-zinc-950/40`;
+    // Same nav language as the global sidebar (.nav-item, indigo tint when active).
+    return this.isTabActive(tab) ? 'nav-item is-active' : 'nav-item';
   }
 }
