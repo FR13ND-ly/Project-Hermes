@@ -3,7 +3,7 @@
   <!-- Specs Grid -->
   <div class="grid gap-4 md:grid-cols-3">
     <!-- Database technology -->
-    <div class="bg-zinc-900 p-4.5 rounded-xl border border-zinc-800 shadow-sm flex items-center justify-between">
+    <div class="bg-zinc-900 p-4.5 rounded-lg border border-zinc-800 shadow-sm flex items-center justify-between">
       <div class="space-y-1">
         <span class="text-xs text-zinc-555 uppercase font-mono tracking-wider">Technology & Type</span>
         <div class="text-sm font-bold text-zinc-50 uppercase">{{ dbDetail.db()?.type }}</div>
@@ -14,7 +14,7 @@
     </div>
 
     <!-- Resource CPU -->
-    <div class="bg-zinc-900 p-4.5 rounded-xl border border-zinc-800 shadow-sm flex items-center justify-between">
+    <div class="bg-zinc-900 p-4.5 rounded-lg border border-zinc-800 shadow-sm flex items-center justify-between">
       <div class="space-y-1">
         <span class="text-xs text-zinc-555 uppercase font-mono tracking-wider">CPU Limit</span>
         <div class="text-sm font-bold text-zinc-50 font-mono">{{ dbDetail.db()?.cpuLimit || 0 }}m <span class="text-[13px] text-zinc-500 font-sans font-normal">(cores)</span></div>
@@ -27,7 +27,7 @@
     </div>
 
     <!-- Resource Memory -->
-    <div class="bg-zinc-900 p-4.5 rounded-xl border border-zinc-800 shadow-sm flex items-center justify-between">
+    <div class="bg-zinc-900 p-4.5 rounded-lg border border-zinc-800 shadow-sm flex items-center justify-between">
       <div class="space-y-1">
         <span class="text-xs text-zinc-555 uppercase font-mono tracking-wider">Memory Limit</span>
         <div class="text-sm font-bold text-zinc-50 font-mono">{{ dbDetail.db()?.memoryLimitMb || 0 }} MB</div>
@@ -41,7 +41,7 @@
   </div>
 
   <!-- Cluster Routing Info -->
-  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Cluster Routes & Networking</h3>
     </div>
@@ -68,7 +68,7 @@
   </div>
 
   <!-- Credentials and Connection Panel -->
-  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4">
     <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
       <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Credentials & Connection</h3>
       <div class="flex items-center gap-2">

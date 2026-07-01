@@ -1,7 +1,7 @@
 <div class="space-y-6 animate-fade-in font-mono" *ngIf="selectedInstance() as inst">
   <a [routerLink]="['/projects', parent.projectId(), 'serverless']" class="text-[13px] text-zinc-550 hover:text-zinc-50 cursor-pointer block">← Back to instance list</a>
 
-  <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex items-center justify-between">
+  <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex items-center justify-between">
     <div>
       <div class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full" [class]="inst.status === 'active' ? 'bg-emerald-500' : inst.status === 'building' ? 'bg-amber-500 animate-pulse' : inst.status === 'failed' ? 'bg-red-500' : 'bg-zinc-600'"></span>
@@ -10,7 +10,7 @@
       </div>
       <p class="text-xs text-zinc-550 mt-1 font-sans">{{ (inst.routes || []).length }} routes · {{ inst.assignedDomain || (inst.externalPort ? ('localhost:' + inst.externalPort) : 'not deployed') }}</p>
     </div>
-    <button (click)="onDeployInstance()" [disabled]="deploying() || inst.status === 'building'" class="px-4 py-2 rounded btn-accent text-[13px] font-bold cursor-pointer disabled:opacity-50">
+    <button (click)="onDeployInstance()" [disabled]="deploying() || inst.status === 'building'" class="px-4 py-2 rounded btn-primary text-[13px] font-bold cursor-pointer disabled:opacity-50">
       {{ deploying() || inst.status === 'building' ? 'Building...' : '🚀 Deploy' }}
     </button>
   </div>

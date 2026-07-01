@@ -7,11 +7,10 @@ import { AuthService } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
 import { DecimalPipe, CommonModule } from '@angular/common';
-import { WorkspaceNav } from '../../../shared/components/workspace-nav/workspace-nav';
 
 @Component({
   selector: 'app-workspace-settings',
-  imports: [DecimalPipe, CommonModule, FormsModule, WorkspaceNav],
+  imports: [DecimalPipe, CommonModule, FormsModule],
   templateUrl: './settings.html',
   styleUrl: './settings.css',
 })

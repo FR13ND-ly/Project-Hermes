@@ -1,7 +1,7 @@
 <div class="space-y-4 animate-fade-in font-mono">
   <!-- Build lifecycle stepper -->
   @if (parent.displayBuild(); as build) {
-    <div class="bg-zinc-900 p-4 rounded-xl border mb-4 font-mono"
+    <div class="bg-zinc-900 p-4 rounded-lg border mb-4 font-mono"
          [class]="parent.isBuildFailed(build) ? 'border-red-900/40' : 'border-zinc-800'">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Build Lifecycle</h3>
@@ -127,7 +127,7 @@
           <button
             (click)="parent.onRetryBuild(build)"
             [disabled]="parent.retryingBuild()"
-            class="px-3 py-1.5 rounded btn-accent text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50 shrink-0 flex items-center gap-1.5"
+            class="px-3 py-1.5 rounded btn-primary text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50 shrink-0 flex items-center gap-1.5"
           >
             @if (parent.retryingBuild()) {
               <svg class="animate-spin h-3 w-3 text-zinc-950" fill="none" viewBox="0 0 24 24">
@@ -149,7 +149,7 @@
   <div class="grid gap-4 lg:grid-cols-3 font-mono">
     <!-- Sidebar Selector (Build History) -->
     <div class="lg:col-span-1 space-y-4">
-      <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-3 shadow-sm flex flex-col">
+      <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm flex flex-col">
         <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
           <h3 class="text-[13px] font-bold text-zinc-400 uppercase tracking-wider">Build History</h3>
           <button 
@@ -241,7 +241,7 @@
 
     <!-- Terminal Output View -->
     <div class="lg:col-span-2 space-y-4">
-      <div class="flex items-center justify-between bg-zinc-900/50 p-3 rounded-xl border border-zinc-900">
+      <div class="flex items-center justify-between bg-zinc-900/50 p-3 rounded-lg border border-zinc-900">
         <div>
           <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">
             Build Logs @if (parent.selectedBuildId()) { (ID: {{ parent.selectedBuildId()?.substring(0, 8) }}) }

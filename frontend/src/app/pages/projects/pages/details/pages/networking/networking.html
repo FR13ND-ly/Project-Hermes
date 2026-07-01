@@ -27,7 +27,7 @@
   <!-- MAIN LIST VIEW (selectedRoute is null) -->
   @if (selectedRoute() === null) {
     <!-- Local Development Help -->
-    <div class="p-4 rounded-xl border border-zinc-800 bg-zinc-950 space-y-3 font-sans">
+    <div class="p-4 rounded-lg border border-zinc-800 bg-zinc-950 space-y-3 font-sans">
       <div class="flex items-start gap-3">
         <div class="p-2 bg-indigo-950/45 border border-indigo-900/30 rounded text-indigo-400 shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
@@ -45,7 +45,7 @@
     </div>
 
     <!-- Unified HTTP Entries list -->
-    <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm font-sans">
+    <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-sans">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3 gap-2">
         <div>
           <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">HTTP Routes & Domains in Workspace</h3>
@@ -53,7 +53,7 @@
         </div>
         <button 
           [routerLink]="['/projects', parent.projectId(), 'networking', 'create']"
-          class="px-3 py-1.5 rounded btn-accent text-[13px] font-semibold cursor-pointer transition-colors flex items-center gap-1.5"
+          class="px-3 py-1.5 rounded btn-primary text-[13px] font-semibold cursor-pointer transition-colors flex items-center gap-1.5"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -155,7 +155,7 @@
     </div>
 
     <!-- Databases & Serverless Functions exposed LoadBalancer TCP/UDP ports -->
-    <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm font-sans">
+    <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-sans">
       <div class="border-b border-zinc-900 pb-2.5">
         <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Externally Exposed TCP/UDP Ports</h3>
         <p class="text-[13px] text-zinc-550">External LoadBalancer IPs allocated to cluster instances for direct connections from outside the network.</p>
@@ -243,7 +243,7 @@
     </div>
 
     <!-- Route title header -->
-    <div class="p-5 rounded-xl border border-zinc-800 bg-zinc-900 flex flex-col md:flex-row md:items-center md:justify-between gap-4 font-sans shadow-sm">
+    <div class="p-5 rounded-lg border border-zinc-800 bg-zinc-900 flex flex-col md:flex-row md:items-center md:justify-between gap-4 font-sans shadow-sm">
       <div class="space-y-1">
         <div class="flex items-center gap-2.5 flex-wrap">
           <h2 class="text-base font-bold text-zinc-50 tracking-tight select-all font-mono">{{ route.fqdn }}</h2>
@@ -264,7 +264,7 @@
           href="http://{{ route.fqdn }}" 
           target="_blank" 
           rel="noopener"
-          class="px-3.5 py-1.5 rounded btn-accent text-[13px] font-semibold cursor-pointer transition-colors flex items-center gap-1"
+          class="px-3.5 py-1.5 rounded btn-primary text-[13px] font-semibold cursor-pointer transition-colors flex items-center gap-1"
         >
           Open Link
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
@@ -304,7 +304,7 @@
         <div class="grid gap-6 md:grid-cols-2">
           
           <!-- Box A: Connected Info -->
-          <div class="bg-zinc-900 border border-zinc-900 rounded-xl p-5 space-y-4 shadow-sm">
+          <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
             <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">App Connection</h3>
             
             <div class="space-y-3.5 text-[13px]">
@@ -342,7 +342,7 @@
           </div>
 
           <!-- Box B: SSL certificate information -->
-          <div class="bg-zinc-900 border border-zinc-900 rounded-xl p-5 space-y-4 shadow-sm">
+          <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
             <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Security & TLS (SSL) Certificate</h3>
             
             <div class="space-y-3.5 text-[13px]">
@@ -369,7 +369,7 @@
         </div>
 
         <!-- SSL Diagnostics Checklist -->
-        <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm">
+        <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
           <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
             <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Verificare Diagnostic DNS & SSL</h3>
             <button (click)="refreshDiagnostics()" class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 hover:text-zinc-50 text-xs font-bold uppercase cursor-pointer">Re-test</button>
@@ -431,7 +431,7 @@
     <!-- TAB 2: REAL NGINX ACCESS LOGS -->
     @if (activeTab() === 'logs') {
       <div class="space-y-4 animate-fade-in font-sans">
-        <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5 shadow-inner">
+        <div class="bg-zinc-950 border border-zinc-900 rounded-lg p-5 shadow-inner">
           <div class="flex items-center justify-between border-b border-zinc-900 pb-3 mb-4">
             <div class="flex items-center gap-2">
               <h4 class="text-[13px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Nginx Access Logs</h4>
@@ -468,7 +468,7 @@
     @if (activeTab() === 'settings') {
       <div class="space-y-6 animate-fade-in font-sans">
         @if (route.type === 'automatic') {
-          <div class="bg-zinc-900 border border-zinc-900 rounded-xl p-5 shadow-sm space-y-3 font-sans">
+          <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 shadow-sm space-y-3 font-sans">
             <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Automatic Route Settings</h4>
             <p class="text-[13px] text-zinc-500 leading-relaxed font-sans">
               This HTTP Ingress route is managed directly by Kubernetes for branch <code class="px-1 py-0.2 rounded bg-zinc-950 text-zinc-50 font-mono">{{ route.branchName }}</code>.
@@ -482,7 +482,7 @@
           </div>
         } @else {
           <!-- Editable Domain settings -->
-          <div class="bg-zinc-900 border border-zinc-900 rounded-xl p-5 space-y-4 shadow-sm">
+          <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
             <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Edit Custom Domain Settings</h4>
             
             <div class="grid gap-4 sm:grid-cols-2">
@@ -575,7 +575,7 @@
               <button 
                 (click)="onSaveDomainSettings()"
                 [disabled]="updatingSettings()"
-                class="px-4 py-1.5 rounded btn-accent text-[13px] font-semibold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                class="px-4 py-1.5 rounded btn-primary text-[13px] font-semibold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
               >
                 @if (updatingSettings()) {
                   <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

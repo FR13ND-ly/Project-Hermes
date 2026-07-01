@@ -1,7 +1,7 @@
 <div class="space-y-6 animate-fade-in max-w-2xl font-mono" *ngIf="parent.app()">
 
   <!-- General config: ports + build/start commands -->
-  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">General Configuration</h3>
       <p class="text-xs text-zinc-555 mt-0.5 font-mono">Settings will trigger an asynchronous service redeployment</p>
@@ -72,7 +72,7 @@
       <button
         (click)="parent.onSaveSettings()"
         [disabled]="parent.savingSettings()"
-        class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
+        class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
       >
         {{ parent.savingSettings() ? 'Saving...' : 'Save Settings' }}
       </button>
@@ -80,7 +80,7 @@
   </div>
 
   <!-- Domains & Routing -->
-  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
     <div class="border-b border-zinc-900 pb-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
         <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Domains & Routing</h3>
@@ -88,7 +88,7 @@
       </div>
       <button
         (click)="parent.onOpenAddDomainModal()"
-        class="px-3 py-1.5 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+        class="px-3 py-1.5 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -99,7 +99,7 @@
   </div>
 
   <!-- Danger Zone (Delete App) -->
-  <div class="bg-red-950/5 p-5 rounded-xl border border-red-900/20 space-y-4 shadow-sm">
+  <div class="bg-red-950/5 p-5 rounded-lg border border-red-900/20 space-y-4 shadow-sm">
     <div class="border-b border-red-900/10 pb-2.5">
       <h3 class="text-[13px] font-bold text-red-400 uppercase tracking-wider">Danger Zone</h3>
       <p class="text-xs text-red-500/60 mt-0.5">Irreversible application management actions</p>

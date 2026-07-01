@@ -44,7 +44,7 @@
           <p class="text-[13px] text-zinc-500 mb-6">Create a bucket to store images, code or other static resources.</p>
           <button 
             [routerLink]="['/projects', parent.parent.projectId(), 'storages', 'create']"
-            class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer"
+            class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer"
           >
             Create First Bucket
           </button>
@@ -206,7 +206,7 @@
             <button (click)="parent.viewMode.set('list')" class="px-2.5 py-1.5 text-[13px] cursor-pointer" [class]="parent.viewMode() === 'list' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'" title="List">≣</button>
           </div>
           <button (click)="parent.showFolderForm.set(!parent.showFolderForm())" class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer">+ Dosar</button>
-          <label class="px-2.5 py-1.5 rounded btn-accent text-[13px] font-semibold cursor-pointer">
+          <label class="px-2.5 py-1.5 rounded btn-primary text-[13px] font-semibold cursor-pointer">
             {{ parent.uploading() ? 'Uploading ' + parent.uploadProgress() + '%' : 'Upload' }}
             <input type="file" class="hidden" (change)="parent.onPvcFileSelected($event)" [disabled]="parent.uploading()" />
           </label>
@@ -217,7 +217,7 @@
       @if (parent.showFolderForm()) {
         <div class="bg-zinc-900 border border-zinc-900 rounded p-3 flex items-center gap-2 animate-fade-in">
           <input type="text" placeholder="New folder name" [ngModel]="parent.newFolderName()" (ngModelChange)="parent.newFolderName.set($event)" (keyup.enter)="parent.createPvcFolder()" class="flex-1 px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 font-mono" />
-          <button (click)="parent.createPvcFolder()" [disabled]="!parent.newFolderName().trim()" class="px-3 py-1.5 rounded btn-accent text-[13px] font-semibold disabled:opacity-50 cursor-pointer">Create</button>
+          <button (click)="parent.createPvcFolder()" [disabled]="!parent.newFolderName().trim()" class="px-3 py-1.5 rounded btn-primary text-[13px] font-semibold disabled:opacity-50 cursor-pointer">Create</button>
           <button (click)="parent.showFolderForm.set(false); parent.newFolderName.set('')" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-[13px] cursor-pointer">Cancel</button>
         </div>
       }

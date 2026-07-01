@@ -1,7 +1,7 @@
 <div class="space-y-6 animate-fade-in font-mono" *ngIf="parent.app() && data() as d">
 
   <!-- 1. Live traffic topology: Client → entrypoints → Service → pods -->
-  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-5 shadow-sm">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-5 shadow-sm">
     <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between gap-3">
       <div>
         <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Traffic Topology</h3>
@@ -166,17 +166,17 @@
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <!-- Traefik HTTP view -->
     <ng-container *ngIf="d.traffic?.source === 'traefik'">
-      <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-2 shadow-sm">
+      <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm">
         <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Traffic Load</span>
         <p class="text-2xl font-black text-zinc-50">{{ (d.traffic.requestRate | number:'1.1-2') }} r/s</p>
         <p class="text-[11px] text-zinc-500">Incoming HTTP requests/sec via Traefik (last 5m)</p>
       </div>
-      <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-2 shadow-sm">
+      <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm">
         <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Response Latency</span>
         <p class="text-2xl font-black text-zinc-50">{{ d.traffic.latencyMs !== null ? (d.traffic.latencyMs | number:'1.0-0') + ' ms' : 'N/A' }}</p>
         <p class="text-[11px] text-zinc-500">Average round-trip through the proxy</p>
       </div>
-      <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-2 shadow-sm">
+      <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm">
         <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Response Status Codes</span>
         <div class="h-2 rounded bg-zinc-900 overflow-hidden flex mt-1" *ngIf="d.traffic.requestRate > 0; else noTraffic">
           <div [style.width.%]="getTrafficClassRatio(d.traffic.status2xx)" class="h-full bg-emerald-500" title="2xx"></div>
@@ -194,17 +194,17 @@
 
     <!-- Pod network throughput fallback (LoadBalancer / internal apps) -->
     <ng-container *ngIf="d.traffic?.source === 'network'">
-      <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-2 shadow-sm">
+      <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm">
         <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Inbound Throughput</span>
         <p class="text-2xl font-black text-zinc-50">{{ formatBps(d.traffic.netRxBps) }}</p>
         <p class="text-[11px] text-zinc-500">Pod network received (last 5m)</p>
       </div>
-      <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-2 shadow-sm">
+      <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-2 shadow-sm">
         <span class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Outbound Throughput</span>
         <p class="text-2xl font-black text-zinc-50">{{ formatBps(d.traffic.netTxBps) }}</p>
         <p class="text-[11px] text-zinc-500">Pod network transmitted (last 5m)</p>
       </div>
-      <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 flex flex-col justify-center shadow-sm">
+      <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 flex flex-col justify-center shadow-sm">
         <p class="text-xs text-zinc-500 leading-relaxed font-sans">
           No HTTP-level metrics here — this app is exposed via a Load Balancer/port, not a Traefik domain.
           Attach a domain to see request rate, latency and status codes.
@@ -213,13 +213,13 @@
     </ng-container>
 
     <!-- No data at all -->
-    <div *ngIf="d.traffic?.source === 'none'" class="md:col-span-3 bg-zinc-900 p-5 rounded-xl border border-zinc-800 text-center shadow-sm">
+    <div *ngIf="d.traffic?.source === 'none'" class="md:col-span-3 bg-zinc-900 p-5 rounded-lg border border-zinc-800 text-center shadow-sm">
       <p class="text-[13px] text-zinc-500">No traffic metrics available. Prometheus isn't reachable or hasn't collected data yet.</p>
     </div>
   </div>
 
   <!-- 4. Load Balancer details (when exposed on a port) -->
-  <div *ngIf="d.loadBalancer" class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-3.5 shadow-sm">
+  <div *ngIf="d.loadBalancer" class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-3.5 shadow-sm">
     <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
       <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">External Load Balancer</h3>
       <span class="px-1.5 py-0.2 rounded text-[11px] font-bold uppercase tracking-wider border"
@@ -238,7 +238,7 @@
   </div>
 
   <!-- 5. Backend targets (ClusterIP endpoints) -->
-  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-3.5 shadow-sm">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-3.5 shadow-sm">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Service Backend Targets</h3>
       <p class="text-xs text-zinc-555 mt-0.5">Ready pod endpoints the service routes to (pod IP : port)</p>
@@ -255,7 +255,7 @@
   </div>
 
   <!-- 6. Pods table -->
-  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
     <div class="border-b border-zinc-900 pb-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
         <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Containers &amp; Pods</h3>
@@ -306,7 +306,7 @@
 <div class="space-y-6 animate-fade-in font-mono max-w-2xl mt-6" *ngIf="parent.app()">
 
   <!-- Container Resource Quotas -->
-  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Container Resource Quotas (Kubernetes)</h3>
       <p class="text-xs text-zinc-555 mt-0.5 font-mono">Settings will trigger an asynchronous service redeployment</p>
@@ -329,14 +329,14 @@
     </div>
     <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
       <button (click)="parent.onSaveSettings()" [disabled]="parent.savingSettings()"
-        class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50">
+        class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50">
         {{ parent.savingSettings() ? 'Saving...' : 'Save Settings' }}
       </button>
     </div>
   </div>
 
   <!-- Scaling & Availability -->
-  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Scaling &amp; Availability</h3>
       <p class="text-xs text-zinc-555 mt-0.5 font-mono">Number of replicas, autoscaling and auto-sleep for this application. Applied on the next deploy.</p>
@@ -381,7 +381,7 @@
     </div>
     <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
       <button (click)="parent.onSaveSettings()" [disabled]="parent.savingSettings()"
-        class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50">
+        class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50">
         {{ parent.savingSettings() ? 'Saving...' : 'Save Settings' }}
       </button>
     </div>
@@ -399,7 +399,7 @@
 </div>
 
 <!-- Error -->
-<div *ngIf="error() && !loading()" class="bg-red-950/10 border border-red-900/30 rounded-xl p-5 text-center space-y-2 font-mono max-w-xl mx-auto">
+<div *ngIf="error() && !loading()" class="bg-red-950/10 border border-red-900/30 rounded-lg p-5 text-center space-y-2 font-mono max-w-xl mx-auto">
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-8 h-8 text-red-500 mx-auto">
     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
   </svg>

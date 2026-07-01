@@ -146,8 +146,15 @@ html, body {
   width: 100%;
   height: 100%;
   background-color: var(--surface-page);
-  background-image: radial-gradient(circle, var(--surface-dot) 1px, transparent 1px);
-  background-size: 24px 24px;
+  /* Layered "canvas": a soft accent aurora glowing down from the top + a faint fading
+     grid. Fixed attachment so it sits behind scrolling content like a backdrop. All
+     theme-aware — indigo glow on dark/light, amber on retro (via --accent). */
+  background-image:
+    radial-gradient(ellipse 90% 55% at 50% -8%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 70%),
+    linear-gradient(to right, color-mix(in oklab, var(--surface-dot) 55%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--surface-dot) 55%, transparent) 1px, transparent 1px);
+  background-size: 100% 100%, 46px 46px, 46px 46px;
+  background-attachment: fixed;
   color: var(--surface-text);
   /* Modern-SaaS base: sans body, comfortable reading rhythm. Mono is reserved for
      data/IDs via explicit `font-mono`. Larger line-height gives the denser views air. */
@@ -170,12 +177,134 @@ html, body {
 html[data-theme="light"] { --accent: #4f46e5; --accent-hover: #4338ca; }
 html[data-theme="retro"] { --accent: #ffb000; --accent-hover: #e0a020; --accent-fg: #140f02; }
 
-.btn-accent {
-  background: var(--accent);
-  color: var(--accent-fg);
-  transition: background-color 0.15s ease;
+/* ============================================================================
+ * COMPONENT SYSTEM — one definition per primitive so buttons / inputs / menus /
+ * cards / badges look identical everywhere. Primary = NEUTRAL (zinc scale, so it
+ * flips per theme); indigo is the ACCENT (links, active states, focus rings, the
+ * occasional accent CTA). Tight/corporate radii. In @layer components so a page can
+ * still override with a utility when it genuinely needs to.
+ * ========================================================================== */
+@layer components {
+  /* ---- Buttons ---- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    padding: 0.5rem 0.875rem;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease;
+  }
+  .btn:disabled, .btn[disabled] { opacity: .5; cursor: not-allowed; }
+  .btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 35%, transparent);
+  }
+  .btn-sm { padding: 0.375rem 0.625rem; font-size: 12px; }
+  .btn-lg { padding: 0.625rem 1.125rem; font-size: 14px; }
+
+  /* Primary = neutral (light-on-dark / dark-on-light). */
+  .btn-primary { background: var(--color-zinc-50); color: var(--color-zinc-950); }
+  .btn-primary:hover:not(:disabled) { background: var(--color-zinc-200); }
+
+  /* Secondary = quiet surface + border. */
+  .btn-secondary { background: var(--color-zinc-900); color: var(--color-zinc-200); border-color: var(--color-zinc-800); }
+  .btn-secondary:hover:not(:disabled) { background: var(--color-zinc-800); border-color: var(--color-zinc-700); color: var(--color-zinc-50); }
+
+  /* Ghost = text until hover. */
+  .btn-ghost { background: transparent; color: var(--color-zinc-400); }
+  .btn-ghost:hover:not(:disabled) { background: var(--color-zinc-900); color: var(--color-zinc-50); }
+
+  /* Accent = indigo — reserved for the rare true-accent action. */
+  .btn-accent { background: var(--accent); color: var(--accent-fg); }
+  .btn-accent:hover:not(:disabled) { background: var(--accent-hover); }
+
+  /* Danger = destructive. */
+  .btn-danger { background: transparent; color: #f87171; border-color: rgba(248,113,113,.35); }
+  .btn-danger:hover:not(:disabled) { background: rgba(127,29,29,.28); border-color: rgba(248,113,113,.55); color: #fca5a5; }
+
+  /* ---- Inputs ---- */
+  .input {
+    width: 100%;
+    background: var(--surface-input);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 13px;
+    color: var(--surface-text);
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .input::placeholder { color: var(--color-zinc-600); }
+  .input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
+  }
+
+  /* ---- Cards / panels ---- */
+  .card { background: var(--surface-panel); border: 1px solid var(--surface-border); border-radius: 8px; }
+
+  /* ---- Dropdown / menu ---- */
+  .menu {
+    background: var(--surface-panel);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    box-shadow: 0 12px 34px -12px rgba(0,0,0,.55);
+    padding: 0.25rem;
+  }
+  .menu-item {
+    display: flex; align-items: center; gap: 0.5rem;
+    width: 100%; text-align: left;
+    padding: 0.5rem 0.625rem;
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--color-zinc-300);
+    cursor: pointer;
+    transition: background-color .12s ease, color .12s ease;
+  }
+  .menu-item:hover { background: var(--color-zinc-800); color: var(--color-zinc-50); }
+  .menu-item.is-active { color: var(--color-zinc-50); background: color-mix(in oklab, var(--accent) 14%, transparent); }
+
+  /* ---- Badges / chips ---- */
+  .badge {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+
+  /* ---- Dialog surface ---- */
+  .dialog {
+    background: var(--surface-panel);
+    border: 1px solid var(--surface-border);
+    border-radius: 10px;
+    box-shadow: 0 24px 64px -16px rgba(0,0,0,.6);
+  }
 }
-.btn-accent:hover { background: var(--accent-hover); }
+
+/* Sidebar nav item (left navigation shell). */
+.nav-item {
+  display: flex; align-items: center; gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-zinc-400);
+  transition: background-color .12s ease, color .12s ease;
+  cursor: pointer;
+}
+.nav-item:hover { background: var(--color-zinc-900); color: var(--color-zinc-100); }
+.nav-item.is-active { background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--color-zinc-50); }
+.nav-item.is-active svg { color: var(--accent); }
 
 /* Retro CRT flourish: a soft phosphor glow on the terminal-style headings. */
 html[data-theme="retro"] body {

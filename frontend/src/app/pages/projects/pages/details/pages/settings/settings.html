@@ -1,7 +1,7 @@
 <div class="space-y-6 animate-fade-in">
 
   <!-- Cloudflare / Ingress Card (project-level) -->
-  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Integrare Cloudflare & Ingress</h3>
       <p class="text-[13px] text-zinc-550">DNS configuration used when attaching domains for this project's resources.</p>
@@ -59,7 +59,7 @@
       <button
         (click)="onSaveCloudflareSettings()"
         [disabled]="savingCloudflare()"
-        class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
+        class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
       >
         @if (!savingCloudflare()) {
           <span>Save Cloudflare</span>
@@ -75,7 +75,7 @@
   </div>
 
   <!-- Webhooks Integrations Card -->
-  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Webhook Integrations (Slack & Discord)</h3>
       <p class="text-[13px] text-zinc-550">Send automatic real-time alerts when incidents occur on Slack or Discord.</p>
@@ -128,7 +128,7 @@
         <button 
           (click)="onCreateWebhook()"
           [disabled]="!newWebhookName().trim() || !newWebhookUrl().trim()"
-          class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow disabled:opacity-50 cursor-pointer font-sans"
+          class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow disabled:opacity-50 cursor-pointer font-sans"
         >
           Add Integration
         </button>
@@ -184,7 +184,7 @@
   </div>
 
   <!-- SSH Keys Card -->
-  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Project SSH Keys (Deploy Keys)</h3>
       <p class="text-[13px] text-zinc-550">Configure SSH keys so Hermes can connect to private Git repositories or dependencies from GitLab, Bitbucket and other servers.</p>
@@ -247,7 +247,7 @@
         <button 
           (click)="onCreateSshKey()"
           [disabled]="!newSshKeyName().trim() || !newSshKeyHost().trim() || (!autoGenerateSsh() && !newSshKeyPrivateKey().trim()) || generatingSshKey()"
-          class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow disabled:opacity-50 cursor-pointer font-sans flex items-center gap-1.5"
+          class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow disabled:opacity-50 cursor-pointer font-sans flex items-center gap-1.5"
         >
           @if (generatingSshKey()) {
             <svg class="animate-spin h-3 w-3 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -320,7 +320,7 @@
   </div>
 
   <!-- Danger Zone: Delete Project (always visible) -->
-  <div class="bg-zinc-900 p-5 rounded-xl border border-red-900/30 space-y-4 shadow-sm font-mono mt-6">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-red-900/30 space-y-4 shadow-sm font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-[13px] font-bold text-red-500 uppercase tracking-wider">Delete Project</h3>
       <p class="text-[13px] text-zinc-550">Completely removes the project and all associated resources from the system. This action is irreversible.</p>

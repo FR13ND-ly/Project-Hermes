@@ -20,7 +20,7 @@
 
       <button 
         (click)="onAddApp()"
-        class="px-2.5 py-1.5 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5"
+        class="px-2.5 py-1.5 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -42,7 +42,7 @@
     <div class="grid gap-4 md:grid-cols-1">
       @for (app of parent.apps(); track app.id) {
         <div 
-          class="bg-zinc-900 rounded-xl border border-zinc-800 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:border-zinc-700 transition-all shadow-sm"
+          class="bg-zinc-900 rounded-lg border border-zinc-800 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:border-zinc-700 transition-all shadow-sm"
           [class.border-zinc-550]="parent.selectedApp()?.id === app.id"
         >
           <div class="space-y-1.5 min-w-0 flex-1">
@@ -128,11 +128,11 @@
           </div>
         </div>
       } @empty {
-        <div class="bg-zinc-900 rounded-xl border border-zinc-850 p-12 text-center space-y-4">
+        <div class="bg-zinc-900 rounded-lg border border-zinc-850 p-12 text-center space-y-4">
           <p class="text-[13px] text-zinc-550">No applications registered in this project.</p>
           <button
             (click)="onAddApp()"
-            class="px-3 py-1.5 rounded btn-accent text-[13px] font-semibold transition-colors cursor-pointer"
+            class="px-3 py-1.5 rounded btn-primary text-[13px] font-semibold transition-colors cursor-pointer"
           >
             Add First Application
           </button>

@@ -79,7 +79,7 @@
     <button 
       (click)="onCreateInstance()" 
       [disabled]="creating() || !newName().trim()" 
-      class="px-4 py-1.5 rounded btn-accent text-[13px] font-bold shadow cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+      class="px-4 py-1.5 rounded btn-primary text-[13px] font-bold shadow cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
     >
       @if (creating()) {
         <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

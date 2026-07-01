@@ -1,5 +1,5 @@
 <div class="space-y-6 animate-fade-in">
-  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
       <div>
         <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Backups</h3>
@@ -8,7 +8,7 @@
       <button 
         (click)="onCreateBackup()"
         [disabled]="dbDetail.db()?.status !== 'running'"
-        class="px-3 py-1.5 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+        class="px-3 py-1.5 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

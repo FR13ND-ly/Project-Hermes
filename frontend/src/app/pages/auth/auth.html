@@ -18,7 +18,7 @@
 
     <!-- Login & Activation Form Card -->
     @if (mode() === 'login') {
-      <div class="bg-zinc-900 p-6 rounded-xl border border-zinc-800 shadow-xl space-y-6 animate-fade-in">
+      <div class="bg-zinc-900 p-6 rounded-lg border border-zinc-800 shadow-xl space-y-6 animate-fade-in">
         
         <form class="space-y-4" (ngSubmit)="onSubmit()">
           <!-- Error Message -->
@@ -87,7 +87,7 @@
         
       </div>
     } @else {
-      <div class="bg-zinc-900 p-6 rounded-xl border border-zinc-800 shadow-xl space-y-6 animate-fade-in font-mono text-[13px]">
+      <div class="bg-zinc-900 p-6 rounded-lg border border-zinc-800 shadow-xl space-y-6 animate-fade-in font-mono text-[13px]">
         
         @if (activationSuccess()) {
           <div class="space-y-3 py-2 text-center">

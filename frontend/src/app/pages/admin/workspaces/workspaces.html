@@ -47,14 +47,14 @@
 
   @if (!loading()) {
     @if (workspaces().length === 0) {
-      <div class="bg-zinc-900 p-10 rounded-xl border border-zinc-800 text-center text-[13px] text-zinc-500">
+      <div class="bg-zinc-900 p-10 rounded-lg border border-zinc-800 text-center text-[13px] text-zinc-500">
         There are no workspaces on the platform.
       </div>
     }
 
     <div class="grid gap-4 md:grid-cols-2">
       @for (ws of workspaces(); track ws.id) {
-        <div class="rounded-xl border border-zinc-800 bg-zinc-900 shadow-sm overflow-hidden flex flex-col">
+        <div class="rounded-lg border border-zinc-800 bg-zinc-900 shadow-sm overflow-hidden flex flex-col">
 
           <!-- Card header -->
           <div class="flex items-start justify-between px-5 py-3.5 border-b border-zinc-900 bg-zinc-950">

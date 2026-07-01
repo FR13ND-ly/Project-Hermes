@@ -4,18 +4,18 @@
       <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Serverless Instances (Knative)</h3>
       <p class="text-xs text-zinc-550 mt-0.5 font-sans">One instance = one container hosting multiple routes (method + path + code). The domain attaches at the instance level.</p>
     </div>
-    <button routerLink="create" class="px-3 py-1.5 rounded btn-accent text-[13px] font-semibold shadow cursor-pointer">+ Create Instance</button>
+    <button routerLink="create" class="px-3 py-1.5 rounded btn-primary text-[13px] font-semibold shadow cursor-pointer">+ Create Instance</button>
   </div>
 
   @if (loading()) {
     <div class="flex justify-center py-16"><svg class="animate-spin h-5 w-5 text-zinc-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg></div>
   } @else if (instances().length === 0) {
-    <div class="bg-zinc-900 p-10 rounded-xl border border-zinc-800 text-center max-w-sm mx-auto">
+    <div class="bg-zinc-900 p-10 rounded-lg border border-zinc-800 text-center max-w-sm mx-auto">
       <h4 class="text-[13px] font-bold text-zinc-200 uppercase tracking-wider">No instances</h4>
       <p class="text-[13px] text-zinc-550 mt-1 font-sans">Create a serverless instance and add routes inside it.</p>
     </div>
   } @else {
-    <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
       <table class="w-full text-left text-[13px]">
         <thead>
           <tr class="border-b border-zinc-900 bg-zinc-950 text-[11px] text-zinc-500 uppercase tracking-wider">

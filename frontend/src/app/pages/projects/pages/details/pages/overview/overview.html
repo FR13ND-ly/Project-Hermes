@@ -1,7 +1,7 @@
 <div class="space-y-6 animate-fade-in font-mono">
 
   <!-- Welcome / Project Metadata Summary Header -->
-  <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm">
+  <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm">
     <div class="space-y-1">
       <h2 class="text-sm font-bold text-zinc-300 uppercase tracking-wider">Project Dashboard</h2>
       <p class="text-[13px] text-zinc-550 max-w-2xl leading-relaxed">
@@ -17,7 +17,7 @@
   <!-- Status / Stats Counter Grid -->
   <div class="grid gap-4 grid-cols-2 md:grid-cols-4">
     <!-- Stat 1: Apps Count -->
-    <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
+    <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
       <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Applications</span>
       <div class="flex items-baseline justify-between mt-1">
         <span class="text-xl font-extrabold text-zinc-50">{{ parent.apps().length }}</span>
@@ -30,7 +30,7 @@
     </div>
 
     <!-- Stat 2: Running Pods -->
-    <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
+    <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
       <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Active Instances (K8s Pods)</span>
       <div class="flex items-baseline justify-between mt-1">
         <span class="text-xl font-extrabold text-zinc-50">{{ totalRunningPods }}</span>
@@ -39,7 +39,7 @@
     </div>
 
     <!-- Stat 3: Databases -->
-    <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
+    <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
       <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Databases</span>
       <div class="flex items-baseline justify-between mt-1">
         <span class="text-xl font-extrabold text-zinc-50">{{ databases().length }}</span>
@@ -48,7 +48,7 @@
     </div>
 
     <!-- Stat 4: Workspace Limits -->
-    <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex flex-col justify-between h-20 shadow-sm">
+    <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-800 flex flex-col justify-between h-20 shadow-sm">
       <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Workspace RAM Limit</span>
       <div class="flex items-baseline justify-between mt-1">
         <span class="text-sm font-extrabold text-zinc-300">Autoscaled</span>
@@ -71,7 +71,7 @@
 
       <div class="space-y-4">
         @for (app of parent.apps(); track app.id) {
-          <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-850 hover:border-zinc-700 transition-all flex flex-col md:flex-row gap-4 shadow-sm group">
+          <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-850 hover:border-zinc-700 transition-all flex flex-col md:flex-row gap-4 shadow-sm group">
             
             <!-- Vercel-style Screenshot Preview or Sleek Gradient Placeholder -->
             <div class="relative w-full h-32 md:w-48 rounded border border-zinc-900 overflow-hidden bg-zinc-950 flex items-center justify-center shrink-0">
@@ -165,7 +165,7 @@
                 <button (click)="onViewApp(app, 'logs')" class="px-2.5 py-1 rounded bg-zinc-950 hover:bg-zinc-950 text-zinc-400 hover:text-zinc-50 text-[11px] font-bold border border-zinc-850 uppercase tracking-wide cursor-pointer">
                   Logs
                 </button>
-                <button (click)="onViewApp(app, 'telemetry')" class="px-2.5 py-1 rounded btn-accent text-[11px] font-bold border border-zinc-50 uppercase tracking-wide cursor-pointer">
+                <button (click)="onViewApp(app, 'telemetry')" class="px-2.5 py-1 rounded btn-primary text-[11px] font-bold border border-zinc-50 uppercase tracking-wide cursor-pointer">
                   Manage →
                 </button>
               </div>
@@ -173,7 +173,7 @@
 
           </div>
         } @empty {
-          <div class="bg-zinc-950/30 border border-zinc-900 p-8 rounded-xl text-center space-y-3">
+          <div class="bg-zinc-950/30 border border-zinc-900 p-8 rounded-lg text-center space-y-3">
             <p class="text-[13px] text-zinc-550">No applications configured in this project.</p>
             <button [routerLink]="['/projects', parent.projectId(), 'apps', 'create']" class="px-3 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 text-zinc-50 text-xs font-bold tracking-wider uppercase cursor-pointer">
               Add Application
@@ -206,7 +206,7 @@
             </div>
           } @else {
             @for (db of databases(); track db.id) {
-              <div class="bg-zinc-900 p-3 rounded-xl border border-zinc-850 flex items-center justify-between gap-3 shadow-inner">
+              <div class="bg-zinc-900 p-3 rounded-lg border border-zinc-850 flex items-center justify-between gap-3 shadow-inner">
                 <div class="space-y-1 min-w-0">
                   <div class="flex items-center gap-2 flex-wrap">
                     <span class="text-[13px] font-bold text-zinc-200 truncate">{{ db.name }}</span>
@@ -230,7 +230,7 @@
                 </span>
               </div>
             } @empty {
-              <div class="bg-zinc-950/30 border border-zinc-900 p-6 rounded-xl text-center text-[13px] text-zinc-650">
+              <div class="bg-zinc-950/30 border border-zinc-900 p-6 rounded-lg text-center text-[13px] text-zinc-650">
                 No active databases.
               </div>
             }
@@ -239,7 +239,7 @@
       </div>
 
       <!-- Quick Navigation Shortcuts -->
-      <div class="bg-zinc-900/40 p-4 rounded-xl border border-zinc-900 space-y-3">
+      <div class="bg-zinc-900/40 p-4 rounded-lg border border-zinc-900 space-y-3">
         <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-900 pb-1.5">Quick Links</h4>
         <ul class="space-y-2 text-[13px] text-zinc-500 font-semibold">
           <li>

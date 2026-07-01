@@ -19,7 +19,7 @@
       <div class="max-w-3xl mx-auto">
         
         <!-- GitHub Repository List (Full width) -->
-        <div class="bg-zinc-900 rounded-xl border border-zinc-800 p-5 space-y-4 shadow-xl">
+        <div class="bg-zinc-900 rounded-lg border border-zinc-800 p-5 space-y-4 shadow-xl">
           <div class="flex items-center justify-between">
             <span class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Import from GitHub</span>
             <!-- Direct Custom Git URL Link fallback -->
@@ -33,18 +33,18 @@
           
           @if (credentials().length === 0) {
             <!-- No git credentials yet -->
-            <div class="bg-zinc-950/40 border border-zinc-850 rounded-xl p-5 flex flex-col items-center text-center space-y-3">
+            <div class="bg-zinc-950/40 border border-zinc-850 rounded-lg p-5 flex flex-col items-center text-center space-y-3">
               <h3 class="text-sm font-semibold text-zinc-50 font-sans">No Git Credentials</h3>
               <p class="text-zinc-400 text-[13px] leading-relaxed max-w-sm font-sans">
                 Add an access token (GitHub or GitLab) in workspace settings to browse and import repositories. Or use a custom URL.
               </p>
-              <a [routerLink]="['/workspace/settings']" class="px-3 py-1.5 rounded btn-accent text-[13px] font-semibold cursor-pointer font-sans">
+              <a [routerLink]="['/workspace/settings']" class="px-3 py-1.5 rounded btn-primary text-[13px] font-semibold cursor-pointer font-sans">
                 Add Git Credential
               </a>
             </div>
           } @else {
             <!-- Credential selector -->
-            <div class="flex items-center gap-2 bg-zinc-950 border border-zinc-900 p-3 rounded-xl">
+            <div class="flex items-center gap-2 bg-zinc-950 border border-zinc-900 p-3 rounded-lg">
               <label for="cred-select" class="text-xs font-bold text-zinc-400 uppercase tracking-wider shrink-0">Credential</label>
               <select
                 id="cred-select"
@@ -104,7 +104,7 @@
                     </div>
                     <button
                       (click)="onImportRepo(repo)"
-                      class="px-3 py-1 rounded btn-accent text-[13px] font-semibold transition-colors cursor-pointer ml-3 flex-shrink-0 font-sans"
+                      class="px-3 py-1 rounded btn-primary text-[13px] font-semibold transition-colors cursor-pointer ml-3 flex-shrink-0 font-sans"
                     >
                       Import
                     </button>
@@ -148,11 +148,11 @@
       </div>
 
       <!-- Deployment Form details card -->
-      <div class="bg-zinc-900 p-6 rounded-xl border border-zinc-800 shadow-xl space-y-6">
+      <div class="bg-zinc-900 p-6 rounded-lg border border-zinc-800 shadow-xl space-y-6">
         
         <!-- Project Type Auto-Detecting Banner -->
         @if (detectingType()) {
-          <div class="bg-zinc-950/40 border border-zinc-850 p-4 rounded-xl flex items-center gap-3 animate-pulse">
+          <div class="bg-zinc-950/40 border border-zinc-850 p-4 rounded-lg flex items-center gap-3 animate-pulse">
             <svg class="animate-spin h-5 w-5 text-zinc-500" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
@@ -166,7 +166,7 @@
 
         <!-- Project Type Detected Banner -->
         @if (!detectingType() && detectedType()) {
-          <div class="border rounded-xl p-4 flex flex-col gap-2 transition-all duration-300"
+          <div class="border rounded-lg p-4 flex flex-col gap-2 transition-all duration-300"
                [ngClass]="{
                  'bg-cyan-950/20 border-cyan-800/30 text-cyan-300': detectedType() === 'dockerfile',
                  'bg-purple-950/20 border-purple-800/30 text-purple-300': detectedType() === 'nextjs',
@@ -250,7 +250,7 @@
 
         <!-- docker-compose auto-split banner -->
         @if (composeDetected()) {
-          <div class="flex items-center justify-between gap-3 p-3 rounded-xl border border-cyan-900/40 bg-cyan-950/15 animate-fade-in">
+          <div class="flex items-center justify-between gap-3 p-3 rounded-lg border border-cyan-900/40 bg-cyan-950/15 animate-fade-in">
             <div class="flex items-center gap-2.5 min-w-0">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5 text-cyan-400 shrink-0">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
@@ -541,7 +541,7 @@
                     type="button"
                     (click)="applyNewAppEnvJson()"
                     [disabled]="deployingApp()"
-                    class="px-3 py-1.5 rounded btn-accent text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
+                    class="px-3 py-1.5 rounded btn-primary text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
                   >Apply JSON</button>
                 </div>
               </div>
@@ -599,7 +599,7 @@
         <!-- docker-compose split preview modal -->
         @if (showComposePreview() && composePlan(); as plan) {
           <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm animate-fade-in" (click)="showComposePreview.set(false)">
-            <div class="w-full max-w-3xl bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl flex flex-col max-h-[85vh]" (click)="$event.stopPropagation()">
+            <div class="w-full max-w-3xl bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl flex flex-col max-h-[85vh]" (click)="$event.stopPropagation()">
               <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-900">
                 <div>
                   <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider font-mono">Split from docker-compose</h3>
@@ -709,7 +709,7 @@
                 <div class="flex items-center gap-2">
                   <button (click)="showComposePreview.set(false)" class="px-3 py-1.5 rounded text-zinc-400 hover:text-zinc-50 text-[13px] font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer font-sans">Cancel</button>
                   <button (click)="onApplyComposeSplit()" [disabled]="applyingCompose() || composeSelectedCount() === 0"
-                    class="px-4 py-1.5 rounded btn-accent text-[13px] font-bold shadow disabled:opacity-50 cursor-pointer font-sans">
+                    class="px-4 py-1.5 rounded btn-primary text-[13px] font-bold shadow disabled:opacity-50 cursor-pointer font-sans">
                     {{ applyingCompose() ? 'Creating...' : 'Create All' }}
                   </button>
                 </div>
@@ -720,7 +720,7 @@
         <!-- Per-service editor dialog (opened from "Edit") -->
         @if (editingAppIndex() !== null && plan.apps[editingAppIndex()!]; as eApp) {
           <div class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm animate-fade-in" (click)="closeAppEditor()">
-            <div class="w-full max-w-3xl bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl flex flex-col max-h-[90vh]" (click)="$event.stopPropagation()">
+            <div class="w-full max-w-3xl bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl flex flex-col max-h-[90vh]" (click)="$event.stopPropagation()">
               <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-900">
                 <div>
                   <h3 class="text-sm font-bold text-zinc-50 font-sans">Edit service</h3>
@@ -802,7 +802,7 @@
               </div>
 
               <div class="flex justify-end gap-2 px-6 py-4 border-t border-zinc-900">
-                <button (click)="closeAppEditor()" class="px-4 py-2 rounded btn-accent text-[13px] font-bold cursor-pointer font-sans">Done</button>
+                <button (click)="closeAppEditor()" class="px-4 py-2 rounded btn-primary text-[13px] font-bold cursor-pointer font-sans">Done</button>
               </div>
             </div>
           </div>
@@ -823,7 +823,7 @@
           <button
             (click)="nextCreateStep()"
             [disabled]="deployingApp() || (createStep() === 1 && (!appName() || !gitRepository()))"
-            class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
+            class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
           >
             Continue →
           </button>
@@ -831,7 +831,7 @@
           <button
             (click)="onDeployApp()"
             [disabled]="deployingApp() || !appName() || !gitRepository()"
-            class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+            class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
           >
             @if (!deployingApp()) {
               <span>Launch Application</span>

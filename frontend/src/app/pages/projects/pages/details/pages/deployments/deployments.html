@@ -6,7 +6,7 @@
     <div class="lg:col-span-1 space-y-4">
       
       <!-- Real-time Live Logs selector header/card -->
-      <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-3 shadow-sm">
+      <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm">
         <h3 class="text-[13px] font-bold text-zinc-400 uppercase tracking-wider">Active Console</h3>
         
         <button 
@@ -42,7 +42,7 @@
       </div>
 
       <!-- Historical builds logs list card -->
-      <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-3 shadow-sm flex flex-col">
+      <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm flex flex-col">
         <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
           <h3 class="text-[13px] font-bold text-zinc-400 uppercase tracking-wider">Build History</h3>
 
@@ -131,7 +131,7 @@
 
     <!-- Main Terminal Console (Right 2 cols) -->
     <div class="lg:col-span-2 space-y-4">
-      <div class="flex items-center justify-between bg-zinc-900/50 p-3 rounded-xl border border-zinc-900">
+      <div class="flex items-center justify-between bg-zinc-900/50 p-3 rounded-lg border border-zinc-900">
         <div>
           <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">
             {{ selectedBuildId() ? 'Build Logs (ID: ' + selectedBuildId()?.substring(0, 8) + ')' : 'Live Console (Stdout)' }}

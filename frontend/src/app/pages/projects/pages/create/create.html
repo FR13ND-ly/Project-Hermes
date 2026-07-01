@@ -14,7 +14,7 @@
   </div>
 
   <!-- Form Card -->
-  <div class="bg-zinc-900 p-6 rounded-xl border border-zinc-800 shadow-xl space-y-6">
+  <div class="bg-zinc-900 p-6 rounded-lg border border-zinc-800 shadow-xl space-y-6">
     
     <!-- Error Message -->
     @if (error()) {
@@ -72,7 +72,7 @@
         <button 
           (click)="onCreateProject()"
           [disabled]="loading() || !projectName().trim()"
-          class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 disabled:hover:bg-zinc-50 flex items-center gap-1.5"
+          class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 disabled:hover:bg-zinc-50 flex items-center gap-1.5"
         >
           @if (!loading()) {
             <span>Create Project</span>

@@ -7,7 +7,7 @@
   </div>
   <button 
     [routerLink]="['/projects', parent.parent.projectId(), 'cron', 'create']"
-    class="px-3 py-1.5 rounded btn-accent text-[13px] font-bold shadow cursor-pointer transition-colors flex items-center gap-1.5"
+    class="px-3 py-1.5 rounded btn-primary text-[13px] font-bold shadow cursor-pointer transition-colors flex items-center gap-1.5"
   >
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -25,7 +25,7 @@
     <span class="text-[13px] text-zinc-500 font-mono">Loading cron jobs...</span>
   </div>
 } @else if (parent.cronJobs().length === 0) {
-  <div class="flex flex-col items-center justify-center border border-dashed border-zinc-800 rounded-xl p-12 text-center space-y-4">
+  <div class="flex flex-col items-center justify-center border border-dashed border-zinc-800 rounded-lg p-12 text-center space-y-4">
     <div class="p-3 bg-zinc-955 border border-zinc-900 rounded-full text-zinc-650">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -38,7 +38,7 @@
   </div>
 } @else {
   <!-- Jobs Grid/List -->
-  <div class="border border-zinc-900 rounded-xl overflow-hidden bg-zinc-950/40">
+  <div class="border border-zinc-900 rounded-lg overflow-hidden bg-zinc-950/40">
     <div class="overflow-x-auto">
       <table class="w-full text-left border-collapse text-[13px] font-mono">
         <thead>

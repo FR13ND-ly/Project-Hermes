@@ -1,5 +1,5 @@
 <div class="space-y-6 max-w-2xl animate-fade-in">
-  <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4">
+  <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 space-y-4">
     <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Instance configuration</h4>
     <div class="grid gap-3 sm:grid-cols-2">
       <div class="space-y-1.5">
@@ -27,7 +27,7 @@
     </div>
   </div>
 
-  <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-3">
+  <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 space-y-3">
     <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
       <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Domeniu & Rutare</h4>
       <button (click)="onOpenAddDomainModal()" class="px-2.5 py-1 rounded border border-zinc-800 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50 text-xs font-semibold cursor-pointer">+ Associate Domain</button>
@@ -44,18 +44,18 @@
 
   <div class="flex items-center justify-between">
     <button (click)="onDeleteInstance()" class="px-3 py-2 rounded border border-red-950/40 text-red-500/90 hover:bg-red-950/20 text-[13px] font-semibold cursor-pointer">Delete Instance</button>
-    <button (click)="onSaveSettings()" [disabled]="savingSettings()" class="px-4 py-2 rounded btn-accent text-[13px] font-bold cursor-pointer disabled:opacity-50">{{ savingSettings() ? 'Saving...' : 'Save Settings' }}</button>
+    <button (click)="onSaveSettings()" [disabled]="savingSettings()" class="px-4 py-2 rounded btn-primary text-[13px] font-bold cursor-pointer disabled:opacity-50">{{ savingSettings() ? 'Saving...' : 'Save Settings' }}</button>
   </div>
 
   <!-- ================= REGISTER DOMAIN MODAL ================= -->
   @if (showAddDomainModal()) {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/70 backdrop-blur-sm p-4" (click)="showAddDomainModal.set(false)">
-      <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4" (click)="$event.stopPropagation()">
+      <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-lg p-5 space-y-4" (click)="$event.stopPropagation()">
         <h3 class="text-[13px] font-bold text-zinc-200 uppercase tracking-wider">Register Domain</h3>
         <input type="text" placeholder="api.exemplu.ro" [ngModel]="newDomainFqdn()" (ngModelChange)="newDomainFqdn.set($event)" class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
         <div class="flex justify-end gap-2">
           <button (click)="showAddDomainModal.set(false)" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 hover:bg-zinc-900 text-[13px] font-semibold cursor-pointer">Cancel</button>
-          <button (click)="onRegisterDomain()" [disabled]="addingDomain()" class="px-3 py-1.5 rounded btn-accent text-[13px] font-semibold cursor-pointer disabled:opacity-50">{{ addingDomain() ? 'Registering...' : 'Register' }}</button>
+          <button (click)="onRegisterDomain()" [disabled]="addingDomain()" class="px-3 py-1.5 rounded btn-primary text-[13px] font-semibold cursor-pointer disabled:opacity-50">{{ addingDomain() ? 'Registering...' : 'Register' }}</button>
         </div>
       </div>
     </div>

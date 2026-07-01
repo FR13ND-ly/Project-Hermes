@@ -31,7 +31,7 @@
           [ngModel]="dbName()"
           (ngModelChange)="dbName.set($event)"
           [disabled]="provisioning()"
-          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded-xl text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded-lg text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
         />
       </div>
 
@@ -43,7 +43,7 @@
               type="button"
               (click)="onTypeChange($any(type))"
               [disabled]="provisioning()"
-              class="py-2.5 px-1.5 rounded-xl border text-[11px] font-bold text-center uppercase transition-all cursor-pointer flex items-center justify-center font-mono"
+              class="py-2.5 px-1.5 rounded-lg border text-[11px] font-bold text-center uppercase transition-all cursor-pointer flex items-center justify-center font-mono"
               [ngClass]="dbType() === type ? 'bg-zinc-900 border-zinc-500 text-zinc-50 shadow-md shadow-black/30 scale-[1.02]' : 'bg-zinc-950 border-zinc-850 text-zinc-400 hover:text-zinc-50 hover:border-zinc-700'"
             >
               <span>{{ type }}</span>
@@ -71,7 +71,7 @@
           [ngModel]="cpuLimit()"
           (ngModelChange)="cpuLimit.set($event)"
           [disabled]="provisioning()"
-          class="w-full h-1.5 bg-zinc-950 rounded-xl appearance-none cursor-pointer accent-zinc-50 custom-slider"
+          class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-zinc-50 custom-slider"
         />
         <div class="flex justify-between text-[11px] text-zinc-600 font-mono">
           <span>Unlimited (0)</span>
@@ -93,7 +93,7 @@
           [ngModel]="memLimit()"
           (ngModelChange)="memLimit.set($event)"
           [disabled]="provisioning()"
-          class="w-full h-1.5 bg-zinc-950 rounded-xl appearance-none cursor-pointer accent-zinc-50 custom-slider"
+          class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-zinc-50 custom-slider"
         />
         <div class="flex justify-between text-[11px] text-zinc-600 font-mono">
           <span>Unlimited (0)</span>
@@ -115,7 +115,7 @@
           [ngModel]="storageGb()"
           (ngModelChange)="storageGb.set($event)"
           [disabled]="provisioning()"
-          class="w-full h-1.5 bg-zinc-950 rounded-xl appearance-none cursor-pointer accent-zinc-50 custom-slider"
+          class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-zinc-50 custom-slider"
         />
         <div class="flex justify-between text-[11px] text-zinc-600 font-mono">
           <span>1 GB</span>
@@ -155,7 +155,7 @@
               [ngModel]="externalPort()"
               (ngModelChange)="externalPort.set($event)"
               [disabled]="provisioning()"
-              class="block w-24 px-2.5 py-1 text-[13px] bg-zinc-950 border border-zinc-850 rounded-xl text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              class="block w-24 px-2.5 py-1 text-[13px] bg-zinc-950 border border-zinc-850 rounded-lg text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
             />
           </div>
         }
@@ -196,7 +196,7 @@
 
   <!-- Error inside modal -->
   @if (error()) {
-    <div class="p-3 rounded-xl border border-red-500/20 bg-red-950/20 text-red-400 text-[13px] flex items-start gap-2.5 animate-fade-in" role="alert">
+    <div class="p-3 rounded-lg border border-red-500/20 bg-red-950/20 text-red-400 text-[13px] flex items-start gap-2.5 animate-fade-in" role="alert">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0 mt-0.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
       </svg>
@@ -209,7 +209,7 @@
     <button 
       (click)="onCancel()"
       [disabled]="provisioning()"
-      class="px-4 py-2 rounded-xl text-zinc-450 hover:text-zinc-50 text-[13px] font-semibold border border-zinc-850 hover:bg-zinc-955 transition-colors cursor-pointer"
+      class="px-4 py-2 rounded-lg text-zinc-450 hover:text-zinc-50 text-[13px] font-semibold border border-zinc-850 hover:bg-zinc-955 transition-colors cursor-pointer"
     >
       Cancel
     </button>
@@ -217,7 +217,7 @@
     <button
       (click)="onCreateDatabase()"
       [disabled]="provisioning() || !dbName()"
-      class="px-4.5 py-2.5 rounded-xl btn-accent text-[13px] font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+      class="px-4.5 py-2.5 rounded-lg btn-primary text-[13px] font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
     >
       @if (!provisioning()) {
         <span>Provision</span>

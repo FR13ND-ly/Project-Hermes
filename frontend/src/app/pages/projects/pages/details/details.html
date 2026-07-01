@@ -76,7 +76,7 @@
       <div class="flex flex-col lg:flex-row gap-8 items-start pt-4">
         
         <!-- Sidebar Navigation -->
-        <nav class="w-full lg:w-60 shrink-0 flex flex-col gap-1 bg-zinc-950/70 border border-zinc-900 rounded-xl p-2.5 font-mono text-[13px] shadow-inner" role="tablist" aria-label="Project Details Menu">
+        <nav class="w-full lg:w-60 shrink-0 flex flex-col gap-1 bg-zinc-950/70 border border-zinc-900 rounded-lg p-2.5 font-mono text-[13px] shadow-inner" role="tablist" aria-label="Project Details Menu">
           <a 
             [routerLink]="['/projects', projectId()]"
             [class]="tabClass('overview')"
@@ -212,7 +212,7 @@
         </nav>
 
         <!-- Main Content Area -->
-        <div class="flex-1 min-w-0 w-full bg-zinc-950/30 border border-zinc-900/60 rounded-xl p-5">
+        <div class="flex-1 min-w-0 w-full bg-zinc-950/30 border border-zinc-900/60 rounded-lg p-5">
           <router-outlet></router-outlet>
         </div>
 

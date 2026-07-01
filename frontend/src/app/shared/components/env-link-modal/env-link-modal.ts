@@ -19,7 +19,7 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
         (click)="close()"
       >
         <div
-          class="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden font-mono"
+          class="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden font-mono"
           (click)="$event.stopPropagation()"
         >
           <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-900">
@@ -88,7 +88,7 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
           <div class="flex items-center justify-end px-5 py-3 border-t border-zinc-900">
             <button
               (click)="close()"
-              class="px-3.5 py-1.5 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer"
+              class="px-3.5 py-1.5 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer"
             >
               Done
             </button>

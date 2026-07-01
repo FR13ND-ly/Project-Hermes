@@ -15,11 +15,11 @@
       </div>
     } @else {
       @if (parent.apiKeys().length === 0) {
-        <div class="bg-zinc-900 border border-zinc-900 rounded-xl p-10 text-center text-zinc-550 text-[13px] font-mono">
+        <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-10 text-center text-zinc-550 text-[13px] font-mono">
           No API keys generated for this application.
         </div>
       } @else {
-        <div class="bg-zinc-900 border border-zinc-900 rounded-xl overflow-hidden shadow-sm font-mono text-[13px]">
+        <div class="bg-zinc-900 border border-zinc-900 rounded-lg overflow-hidden shadow-sm font-mono text-[13px]">
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="border-b border-zinc-950 bg-zinc-950/60 text-zinc-550 uppercase tracking-wider text-[11px] font-bold">
@@ -60,7 +60,7 @@
       <h4 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider font-mono">Generate New Key</h4>
     </div>
 
-    <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl space-y-4 shadow-sm">
+    <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-lg space-y-4 shadow-sm">
       <!-- Name Input -->
       <div class="space-y-1.5">
         <label for="key-name" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider font-mono">API Key Name</label>
@@ -91,7 +91,7 @@
       <button 
         (click)="parent.onCreateApiKey()"
         [disabled]="!parent.newKeyName().trim() || parent.creatingKey()"
-        class="w-full py-2 rounded btn-accent text-[13px] font-semibold shadow disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5 font-sans"
+        class="w-full py-2 rounded btn-primary text-[13px] font-semibold shadow disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5 font-sans"
       >
         @if (parent.creatingKey()) {
           <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -110,7 +110,7 @@
 <!-- MODAL 3: GENERATED API KEY DISPLAY -->
 @if (parent.showGeneratedKeyModal() && parent.generatedKeySecret()) {
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/90 backdrop-blur-xs animate-fade-in font-mono">
-    <div class="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-6 space-y-6">
+    <div class="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl p-6 space-y-6">
       <div class="space-y-1">
         <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider">API Key Generated</h3>
         <p class="text-zinc-500 text-[13px] font-sans">The server-to-server access key was created successfully.</p>
@@ -151,7 +151,7 @@
       <div class="flex justify-end pt-2">
         <button 
           (click)="parent.showGeneratedKeyModal.set(false); parent.generatedKeySecret.set(null)"
-          class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow cursor-pointer transition-colors font-sans"
+          class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow cursor-pointer transition-colors font-sans"
         >
           I've saved the key, close window
         </button>

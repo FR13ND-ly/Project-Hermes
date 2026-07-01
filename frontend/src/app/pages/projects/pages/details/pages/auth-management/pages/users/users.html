@@ -1,7 +1,7 @@
 <div class="space-y-4 animate-fade-in">
   
   <!-- Search & Info Bar -->
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-900 border border-zinc-850 p-4 rounded-xl">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-900 border border-zinc-850 p-4 rounded-lg">
     <!-- Search input -->
     <div class="relative w-full sm:max-w-xs">
       <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
@@ -33,12 +33,12 @@
     </div>
   } @else {
     @if (parent.filteredUsers().length === 0) {
-      <div class="bg-zinc-900 border border-zinc-900 rounded-xl p-10 text-center space-y-2">
+      <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-10 text-center space-y-2">
         <p class="text-[13px] text-zinc-500">No users found.</p>
         <p class="text-xs text-zinc-650">Create accounts via the application's public registration API.</p>
       </div>
     } @else {
-      <div class="bg-zinc-900 border border-zinc-900 rounded-xl overflow-hidden shadow-sm">
+      <div class="bg-zinc-900 border border-zinc-900 rounded-lg overflow-hidden shadow-sm">
         <table class="w-full text-left border-collapse text-[13px]">
           <thead>
             <tr class="border-b border-zinc-950 bg-zinc-950/60 text-zinc-550 uppercase tracking-wider text-[11px] font-bold">
@@ -112,7 +112,7 @@
       </div>
 
       <!-- Pagination Controls -->
-      <div class="flex items-center justify-between bg-zinc-900 border border-zinc-900 rounded-xl p-3 text-[13px] font-mono">
+      <div class="flex items-center justify-between bg-zinc-900 border border-zinc-900 rounded-lg p-3 text-[13px] font-mono">
         <div class="text-zinc-500 text-xs">
           Page <span class="text-zinc-50 font-bold">{{ parent.currentPage() }}</span> of <span class="text-zinc-50 font-bold">{{ parent.totalPages() }}</span>
         </div>
@@ -140,7 +140,7 @@
 <!-- MODAL 1: RESET PASSWORD -->
 @if (parent.showResetPasswordModal() && parent.selectedUser(); as user) {
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-xs animate-fade-in font-mono">
-    <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-6 space-y-6">
+    <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl p-6 space-y-6">
       <div class="space-y-1">
         <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider">Reset User Password</h3>
         <p class="text-zinc-550 text-[13px] leading-relaxed font-sans">Enter a new password for user <span class="text-zinc-300 font-bold font-mono select-all">{{ user.identifier }}</span>.</p>
@@ -172,7 +172,7 @@
         <button
           (click)="parent.onResetPasswordSubmit()"
           [disabled]="!parent.newPassword().trim() || parent.resettingPassword()"
-          class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow disabled:opacity-50 transition-all cursor-pointer"
+          class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow disabled:opacity-50 transition-all cursor-pointer"
         >
           Reset Password
         </button>
@@ -184,7 +184,7 @@
 <!-- MODAL 2: MANAGE USER ROLES -->
 @if (parent.showRoleModal() && parent.selectedUser(); as user) {
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-xs animate-fade-in font-mono">
-    <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-6 space-y-5">
+    <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl p-6 space-y-5">
       <div class="space-y-1 border-b border-zinc-900 pb-3">
         <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider">Manage User Roles</h3>
         <p class="text-zinc-550 text-[13px] font-sans">Active roles for <span class="text-zinc-300 font-bold font-mono">{{ user.identifier }}</span></p>
@@ -227,7 +227,7 @@
           <button 
             (click)="parent.onAssignRoleSubmit()"
             [disabled]="!parent.newRoleName().trim() || parent.assigningRole()"
-            class="px-4 py-1.5 rounded btn-accent text-[13px] font-semibold shadow disabled:opacity-50 transition-all cursor-pointer shrink-0 font-sans"
+            class="px-4 py-1.5 rounded btn-primary text-[13px] font-semibold shadow disabled:opacity-50 transition-all cursor-pointer shrink-0 font-sans"
           >
             Assign
           </button>

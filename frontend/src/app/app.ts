@@ -1,5 +1,5 @@
 import { Component, inject, computed, signal, effect, HostListener } from '@angular/core';
-import { RouterOutlet, RouterLink, Router } from '@angular/router';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from './core/services/auth';
 import { WorkspaceService, Workspace, WorkspaceUsage } from './core/services/workspace.service';
@@ -10,7 +10,7 @@ import { BuildIndicator } from './shared/components/build-indicator/build-indica
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, FormsModule, BuildIndicator],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule, BuildIndicator],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

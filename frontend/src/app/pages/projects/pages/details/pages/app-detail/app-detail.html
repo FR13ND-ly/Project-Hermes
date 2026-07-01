@@ -217,7 +217,7 @@
   <!-- Modal: Add Domain Custom for this App -->
   @if (showAddDomainModal()) {
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm animate-fade-in">
-      <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl p-5 shadow-2xl space-y-4 font-mono">
+      <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-lg p-5 shadow-2xl space-y-4 font-mono">
         
         <div class="flex items-center justify-between border-b border-zinc-900 pb-3">
           <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider">Add Domain for {{ app()?.name }}</h3>
@@ -287,7 +287,7 @@
           <button 
             (click)="onAddDomainSubmit()"
             [disabled]="addingDomain() || !appDomainFqdn().trim() || !getSelectedInstanceContainerName()"
-            class="px-4 py-1.5 rounded btn-accent text-[13px] font-semibold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+            class="px-4 py-1.5 rounded btn-primary text-[13px] font-semibold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
           >
             @if (addingDomain()) {
               <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

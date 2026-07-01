@@ -1,8 +1,5 @@
 <div class="space-y-6 animate-fade-in">
 
-  <!-- Workspace-level nav (Projects / Workspace Settings) -->
-  <app-workspace-nav />
-
   <!-- Section Header -->
   <div class="border-b border-zinc-900 pb-4">
     <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider font-mono">Workspace Settings</h3>
@@ -67,7 +64,7 @@
         @if (usage()) {
           <div class="grid gap-4 md:grid-cols-3">
             <!-- Memory Usage Gauge Card -->
-            <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 flex flex-col justify-between shadow-sm">
+            <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2.5">
                   <div class="w-8 h-8 rounded bg-zinc-950 border border-zinc-900 flex items-center justify-center text-zinc-400">
@@ -106,7 +103,7 @@
             </div>
 
             <!-- Storage Usage Gauge Card -->
-            <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 flex flex-col justify-between shadow-sm">
+            <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2.5">
                   <div class="w-8 h-8 rounded bg-zinc-950 border border-zinc-900 flex items-center justify-center text-zinc-400">
@@ -145,7 +142,7 @@
             </div>
 
             <!-- CPU Usage Gauge Card -->
-            <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 flex flex-col justify-between shadow-sm">
+            <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2.5">
                   <div class="w-8 h-8 rounded bg-zinc-950 border border-zinc-900 flex items-center justify-center text-zinc-400">
@@ -186,7 +183,7 @@
         }
 
         <!-- Configuration Form Details Card -->
-        <div class="bg-zinc-900 p-6 rounded-xl border border-zinc-800 space-y-6 shadow-sm">
+        <div class="bg-zinc-900 p-6 rounded-lg border border-zinc-800 space-y-6 shadow-sm">
           
           <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
             <h4 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider font-mono">General Settings & Limits</h4>
@@ -256,7 +253,7 @@
             <button 
               (click)="onSaveSettings()"
               [disabled]="saving() || !wsName().trim()"
-              class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
+              class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
             >
               @if (!saving()) {
                 <span>Save Settings</span>
@@ -273,7 +270,7 @@
         </div>
 
         <!-- Git Credentials card -->
-        <div class="bg-zinc-900 border border-zinc-850 rounded-xl p-5 space-y-4 shadow-sm font-mono mt-6">
+        <div class="bg-zinc-900 border border-zinc-850 rounded-lg p-5 space-y-4 shadow-sm font-mono mt-6">
           <div class="border-b border-zinc-900 pb-2.5">
             <h4 class="text-[13px] font-bold text-zinc-355 uppercase tracking-wider">Git Credentials</h4>
             <p class="text-xs text-zinc-550 mt-0.5 font-sans">Access tokens (GitHub / GitLab) used when importing and cloning repositories. Select a credential when creating an application.</p>
@@ -333,14 +330,14 @@
               <span class="text-xs text-zinc-500 font-sans">Accept self-signed SSL certificates <span class="text-zinc-650">(self-hosted)</span></span>
             </label>
             <button (click)="onAddCredential()" [disabled]="addingCred()"
-              class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
+              class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
               {{ addingCred() ? 'Verifying...' : 'Add Credential' }}
             </button>
           </div>
         </div>
 
         <!-- Cloudflare Tokens card -->
-        <div class="bg-zinc-900 border border-zinc-850 rounded-xl p-5 space-y-4 shadow-sm font-mono mt-6">
+        <div class="bg-zinc-900 border border-zinc-850 rounded-lg p-5 space-y-4 shadow-sm font-mono mt-6">
           <div class="border-b border-zinc-900 pb-2.5">
             <h4 class="text-[13px] font-bold text-zinc-355 uppercase tracking-wider">Cloudflare Tokens</h4>
             <p class="text-xs text-zinc-550 mt-0.5 font-sans">Tokens for custom domain DNS. One token = one domain (includes Zone ID + domain). Select a token when creating a project, or change it from project settings.</p>
@@ -393,7 +390,7 @@
           </div>
           <div class="flex items-center justify-end pt-1">
             <button (click)="onAddCloudflareCredential()" [disabled]="addingCf()"
-              class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
+              class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
               {{ addingCf() ? 'Adding...' : 'Add Token' }}
             </button>
           </div>
@@ -406,7 +403,7 @@
       <div class="space-y-6 animate-fade-in">
         
         <!-- Add Member Form Card -->
-        <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm">
+        <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
           <div>
             <h4 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider font-mono">Add New Member</h4>
             <p class="text-xs text-zinc-500 mt-1">Enter the email of an existing account to add them to this workspace.</p>
@@ -438,7 +435,7 @@
             <button 
               (click)="onInviteMember()"
               [disabled]="invitingMember() || !newMemberEmail().trim()"
-              class="px-4 py-2 rounded btn-accent font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 font-sans"
+              class="px-4 py-2 rounded btn-primary font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 font-sans"
             >
               @if (invitingMember()) {
                 <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -457,7 +454,7 @@
         </div>
 
         <!-- Members List Card -->
-        <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden shadow-sm">
           <div class="p-4 bg-zinc-950/40 border-b border-zinc-900">
             <h4 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider font-mono">Active Members</h4>
           </div>

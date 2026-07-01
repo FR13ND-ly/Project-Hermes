@@ -44,7 +44,7 @@
       <span class="text-[13px] text-zinc-500 font-mono">Loading incidents...</span>
     </div>
   } @else if (filteredIncidents().length === 0) {
-    <div class="flex flex-col items-center justify-center border border-dashed border-zinc-800 rounded-xl p-12 text-center space-y-4">
+    <div class="flex flex-col items-center justify-center border border-dashed border-zinc-800 rounded-lg p-12 text-center space-y-4">
       <div class="p-3 bg-zinc-950 border border-zinc-900 rounded-full text-zinc-600">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
@@ -68,7 +68,7 @@
     <div class="space-y-4">
       @for (incident of filteredIncidents(); track incident.id) {
         <div 
-          class="border rounded-xl bg-zinc-950/40 overflow-hidden transition-all duration-300"
+          class="border rounded-lg bg-zinc-950/40 overflow-hidden transition-all duration-300"
           [class.border-red-900/60]="!incident.resolvedAt"
           [class.border-zinc-900]="incident.resolvedAt"
           [class.shadow-lg]="!incident.resolvedAt"
@@ -127,7 +127,7 @@
                 <button 
                   (click)="onResolveIncident(incident)"
                   [disabled]="resolvingId() === incident.id"
-                  class="px-2.5 py-1.5 rounded btn-accent text-xs font-bold shadow cursor-pointer transition-colors flex items-center gap-1 disabled:opacity-50"
+                  class="px-2.5 py-1.5 rounded btn-primary text-xs font-bold shadow cursor-pointer transition-colors flex items-center gap-1 disabled:opacity-50"
                 >
                   @if (resolvingId() === incident.id) {
                     <svg class="animate-spin h-3 w-3 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

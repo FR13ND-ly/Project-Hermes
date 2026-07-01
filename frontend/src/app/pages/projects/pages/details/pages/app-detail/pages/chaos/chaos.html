@@ -2,7 +2,7 @@
 
   <!-- Active experiment banner (with live auto-revert progress) -->
   @if (active(); as exp) {
-    <div class="bg-zinc-900 p-5 rounded-xl border border-amber-900/40 shadow-sm space-y-3">
+    <div class="bg-zinc-900 p-5 rounded-lg border border-amber-900/40 shadow-sm space-y-3">
       <div class="flex items-start justify-between gap-3">
         <div class="flex items-start gap-3 min-w-0">
           <span class="text-lg leading-none mt-0.5 shrink-0">{{ kindIcon(exp.kind) }}</span>
@@ -40,7 +40,7 @@
   }
 
   <!-- Live impact: watch the blast radius here instead of jumping to Networking -->
-  <div class="bg-zinc-900 p-5 rounded-xl border shadow-sm space-y-4 transition-colors duration-500"
+  <div class="bg-zinc-900 p-5 rounded-lg border shadow-sm space-y-4 transition-colors duration-500"
        [class]="active() ? 'border-amber-900/50' : 'border-zinc-800'">
     <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between gap-3">
       <div>
@@ -122,7 +122,7 @@
   </div>
 
   <!-- Launcher -->
-  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-5 shadow-sm">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-5 shadow-sm">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Chaos Simulator</h3>
       <p class="text-xs text-zinc-555 mt-0.5 font-sans">Inject a controlled, auto-reverting failure to test resilience. Open the Networking &amp; Pods tab to watch the request flow degrade and recover.</p>
@@ -226,7 +226,7 @@
       <button
         (click)="run()"
         [disabled]="submitting() || !!active()"
-        class="px-4 py-2 rounded btn-accent text-[13px] font-bold uppercase tracking-wider shadow transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0 justify-center"
+        class="px-4 py-2 rounded btn-primary text-[13px] font-bold uppercase tracking-wider shadow transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0 justify-center"
       >
         <svg *ngIf="submitting()" class="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -238,7 +238,7 @@
   </div>
 
   <!-- History -->
-  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-3.5 shadow-sm">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-3.5 shadow-sm">
     <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
       <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Experiment History</h3>
       <span class="text-[11px] text-zinc-600 shrink-0">{{ history().length }} total</span>

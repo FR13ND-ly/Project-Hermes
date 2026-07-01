@@ -196,7 +196,7 @@
     <button 
       (click)="onCreateCronJob()"
       [disabled]="creatingCron() || !newCronName().trim() || !newCronSchedule().trim() || !newCronCommand().trim() || !selectedTargetId()"
-      class="px-4 py-1.5 rounded btn-accent text-[13px] font-bold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+      class="px-4 py-1.5 rounded btn-primary text-[13px] font-bold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
     >
       @if (creatingCron()) {
         <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

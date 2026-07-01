@@ -31,7 +31,7 @@ import { WebSocketService } from '../../../core/services/websocket.service';
             <span class="text-xs text-zinc-500 uppercase tracking-wider font-mono">build</span>
           </button>
         } @else {
-          <div class="w-72 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden">
+          <div class="w-72 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden">
             <div class="flex items-center justify-between px-3.5 py-2.5 border-b border-zinc-900">
               <div class="flex items-center gap-2">
                 <svg class="animate-spin h-3.5 w-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24">
