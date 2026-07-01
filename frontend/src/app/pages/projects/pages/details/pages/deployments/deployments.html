@@ -6,19 +6,19 @@
     <div class="lg:col-span-1 space-y-4">
       
       <!-- Real-time Live Logs selector header/card -->
-      <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm">
+      <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm">
         <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Active Console</h3>
         
         <button 
           (click)="onBackToLiveLogs()"
           class="w-full text-left p-3 rounded border text-xs transition-all flex items-center justify-between cursor-pointer"
-          [class.border-white]="!selectedBuildId()"
+          [class.border-zinc-50]="!selectedBuildId()"
           [class.border-zinc-900]="selectedBuildId()"
           [class.bg-zinc-950]="!selectedBuildId()"
-          [class.bg-black]="selectedBuildId()"
+          [class.bg-zinc-950]="selectedBuildId()"
         >
           <div class="space-y-0.5">
-            <span class="font-bold" [class.text-white]="!selectedBuildId()" [class.text-zinc-400]="selectedBuildId()">
+            <span class="font-bold" [class.text-zinc-50]="!selectedBuildId()" [class.text-zinc-400]="selectedBuildId()">
               Standard Output (Live)
             </span>
             <p class="text-[9px] text-zinc-550 font-mono">Real-time stdout</p>
@@ -42,13 +42,13 @@
       </div>
 
       <!-- Historical builds logs list card -->
-      <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm flex flex-col">
+      <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm flex flex-col">
         <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
           <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Build History</h3>
 
           <button
             (click)="loadBuilds()"
-            class="text-zinc-500 hover:text-zinc-300 p-1.5 rounded border border-zinc-900 bg-black hover:border-zinc-500 transition-all cursor-pointer"
+            class="text-zinc-500 hover:text-zinc-300 p-1.5 rounded border border-zinc-900 bg-zinc-950 hover:border-zinc-500 transition-all cursor-pointer"
             title="Refresh"
             aria-label="Refresh build history"
           >
@@ -61,7 +61,7 @@
         <!-- Loading State -->
         @if (buildsLoading()) {
           <div class="flex justify-center py-12">
-            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg class="animate-spin h-5 w-5 text-zinc-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
@@ -81,14 +81,14 @@
             @for (build of builds(); track build.id) {
               <button 
                 (click)="onViewBuildLogs(build)"
-                class="w-full text-left p-3 rounded border bg-black text-xs transition-all hover:border-zinc-500 hover:bg-zinc-950 flex flex-col gap-2 cursor-pointer"
-                [class.border-white]="selectedBuildId() === build.id"
+                class="w-full text-left p-3 rounded border bg-zinc-950 text-xs transition-all hover:border-zinc-500 hover:bg-zinc-950 flex flex-col gap-2 cursor-pointer"
+                [class.border-zinc-50]="selectedBuildId() === build.id"
                 [class.border-zinc-900]="selectedBuildId() !== build.id"
               >
                 <!-- Commit Message / Details -->
                 <div class="space-y-1 w-full">
                   <div class="flex items-center justify-between gap-2">
-                    <span class="font-bold text-zinc-200 truncate max-w-[130px] block" [class.text-white]="selectedBuildId() === build.id">
+                    <span class="font-bold text-zinc-200 truncate max-w-[130px] block" [class.text-zinc-50]="selectedBuildId() === build.id">
                       {{ build.commitMessage || 'Manual Launch' }}
                     </span>
                     <span 
@@ -131,7 +131,7 @@
 
     <!-- Main Terminal Console (Right 2 cols) -->
     <div class="lg:col-span-2 space-y-4">
-      <div class="flex items-center justify-between bg-[#0a0a0a]/50 p-3 rounded-lg border border-zinc-900">
+      <div class="flex items-center justify-between bg-zinc-900/50 p-3 rounded-lg border border-zinc-900">
         <div>
           <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">
             {{ selectedBuildId() ? 'Build Logs (ID: ' + selectedBuildId()?.substring(0, 8) + ')' : 'Live Console (Stdout)' }}
@@ -145,7 +145,7 @@
           @if (selectedBuildId()) {
             <button 
               (click)="onBackToLiveLogs()"
-              class="px-2.5 py-1 rounded text-[10px] font-semibold bg-white text-black border border-white cursor-pointer hover:bg-zinc-200 transition-colors"
+              class="px-2.5 py-1 rounded text-[10px] font-semibold bg-zinc-50 text-zinc-950 border border-zinc-50 cursor-pointer hover:bg-zinc-200 transition-colors"
             >
               ← Back to Live Logs
             </button>
@@ -153,7 +153,7 @@
             <button 
               (click)="toggleAutoScroll()"
               class="px-2.5 py-1 rounded text-[10px] font-semibold transition-colors border cursor-pointer"
-              [class]="autoScroll() ? 'bg-white text-black border-white' : 'bg-black text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-white'"
+              [class]="autoScroll() ? 'bg-zinc-50 text-zinc-950 border-zinc-50' : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-zinc-50'"
             >
               Autoscroll: {{ autoScroll() ? 'ON' : 'OFF' }}
             </button>
@@ -172,7 +172,7 @@
         @if (selectedBuildId()) {
           @if (loadingBuildLogs()) {
             <div class="flex flex-col items-center justify-center h-full space-y-2 text-zinc-500">
-              <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg class="animate-spin h-5 w-5 text-zinc-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>

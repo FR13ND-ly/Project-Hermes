@@ -3,21 +3,21 @@
   <!-- Specs Grid -->
   <div class="grid gap-4 md:grid-cols-3">
     <!-- Database technology -->
-    <div class="bg-[#0a0a0a] p-4.5 rounded-lg border border-zinc-800 shadow-sm flex items-center justify-between">
+    <div class="bg-zinc-900 p-4.5 rounded-lg border border-zinc-800 shadow-sm flex items-center justify-between">
       <div class="space-y-1">
         <span class="text-[10px] text-zinc-555 uppercase font-mono tracking-wider">Technology & Type</span>
-        <div class="text-sm font-bold text-white uppercase">{{ dbDetail.db()?.type }}</div>
+        <div class="text-sm font-bold text-zinc-50 uppercase">{{ dbDetail.db()?.type }}</div>
       </div>
-      <div class="w-10 h-10 rounded bg-zinc-950 border border-zinc-850 flex items-center justify-center text-white font-mono font-black text-sm uppercase">
+      <div class="w-10 h-10 rounded bg-zinc-950 border border-zinc-850 flex items-center justify-center text-zinc-50 font-mono font-black text-sm uppercase">
         {{ dbDetail.db()?.type?.substring(0, 2) }}
       </div>
     </div>
 
     <!-- Resource CPU -->
-    <div class="bg-[#0a0a0a] p-4.5 rounded-lg border border-zinc-800 shadow-sm flex items-center justify-between">
+    <div class="bg-zinc-900 p-4.5 rounded-lg border border-zinc-800 shadow-sm flex items-center justify-between">
       <div class="space-y-1">
         <span class="text-[10px] text-zinc-555 uppercase font-mono tracking-wider">CPU Limit</span>
-        <div class="text-sm font-bold text-white font-mono">{{ dbDetail.db()?.cpuLimit || 0 }}m <span class="text-xs text-zinc-500 font-sans font-normal">(cores)</span></div>
+        <div class="text-sm font-bold text-zinc-50 font-mono">{{ dbDetail.db()?.cpuLimit || 0 }}m <span class="text-xs text-zinc-500 font-sans font-normal">(cores)</span></div>
       </div>
       <div class="text-zinc-500">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -27,10 +27,10 @@
     </div>
 
     <!-- Resource Memory -->
-    <div class="bg-[#0a0a0a] p-4.5 rounded-lg border border-zinc-800 shadow-sm flex items-center justify-between">
+    <div class="bg-zinc-900 p-4.5 rounded-lg border border-zinc-800 shadow-sm flex items-center justify-between">
       <div class="space-y-1">
         <span class="text-[10px] text-zinc-555 uppercase font-mono tracking-wider">Memory Limit</span>
-        <div class="text-sm font-bold text-white font-mono">{{ dbDetail.db()?.memoryLimitMb || 0 }} MB</div>
+        <div class="text-sm font-bold text-zinc-50 font-mono">{{ dbDetail.db()?.memoryLimitMb || 0 }} MB</div>
       </div>
       <div class="text-zinc-500">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -41,7 +41,7 @@
   </div>
 
   <!-- Cluster Routing Info -->
-  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Cluster Routes & Networking</h3>
     </div>
@@ -68,13 +68,13 @@
   </div>
 
   <!-- Credentials and Connection Panel -->
-  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4">
     <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
       <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Credentials & Connection</h3>
       <div class="flex items-center gap-2">
         <button
           (click)="dbDetail.onRevealCredentials()"
-          class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer border border-zinc-800 transition-colors flex items-center gap-1.5"
+          class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-50 text-xs font-semibold cursor-pointer border border-zinc-800 transition-colors flex items-center gap-1.5"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-500">
             <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
@@ -103,12 +103,12 @@
           <span>DATABASE_URL Connection String</span>
           <button 
             (click)="dbDetail.copyToClipboard(dbDetail.connectionUrl() || '')"
-            class="text-white hover:underline cursor-pointer"
+            class="text-zinc-50 hover:underline cursor-pointer"
           >
             Copy URL
           </button>
         </div>
-        <div class="p-3 rounded bg-black border border-zinc-900 font-mono text-xs text-emerald-400 select-all truncate">
+        <div class="p-3 rounded bg-zinc-950 border border-zinc-900 font-mono text-xs text-emerald-400 select-all truncate">
           {{ dbDetail.connectionUrl() }}
         </div>
       </div>
@@ -117,18 +117,18 @@
         <!-- Username -->
         <div class="space-y-1">
           <span class="text-[9px] text-zinc-555 uppercase tracking-wider font-semibold">Username</span>
-          <div class="flex items-center justify-between p-2 rounded bg-black border border-zinc-900">
+          <div class="flex items-center justify-between p-2 rounded bg-zinc-950 border border-zinc-900">
             <span class="text-zinc-300 select-all">{{ dbDetail.databaseUser() }}</span>
-            <button (click)="dbDetail.copyToClipboard(dbDetail.databaseUser() || '')" class="text-zinc-500 hover:text-white">Copy</button>
+            <button (click)="dbDetail.copyToClipboard(dbDetail.databaseUser() || '')" class="text-zinc-500 hover:text-zinc-50">Copy</button>
           </div>
         </div>
 
         <!-- Password -->
         <div class="space-y-1">
           <span class="text-[9px] text-zinc-555 uppercase tracking-wider font-semibold">Password</span>
-          <div class="flex items-center justify-between p-2 rounded bg-black border border-zinc-900">
+          <div class="flex items-center justify-between p-2 rounded bg-zinc-950 border border-zinc-900">
             <span class="text-zinc-300 select-all">{{ dbDetail.databasePassword() }}</span>
-            <button (click)="dbDetail.copyToClipboard(dbDetail.databasePassword() || '')" class="text-zinc-500 hover:text-white">Copy</button>
+            <button (click)="dbDetail.copyToClipboard(dbDetail.databasePassword() || '')" class="text-zinc-500 hover:text-zinc-50">Copy</button>
           </div>
         </div>
       </div>

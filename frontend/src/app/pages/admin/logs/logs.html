@@ -4,22 +4,22 @@
   <div class="flex items-center gap-2 border-b border-zinc-900 pb-3 font-mono text-xs select-none">
     <a
       routerLink="/admin/users"
-      routerLinkActive="bg-white text-black font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-white"
+      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-50"
     >
       Users
     </a>
     <a
       routerLink="/admin/workspaces"
-      routerLinkActive="bg-white text-black font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-white"
+      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-50"
     >
       Workspaces
     </a>
     <a
       routerLink="/admin/logs"
-      routerLinkActive="bg-white text-black font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-white"
+      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-50"
     >
       Logs
     </a>
@@ -34,7 +34,7 @@
   </div>
 
   <!-- Console Tabs and Actions -->
-  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono">
     
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3">
       <!-- Selector for sub-logs -->
@@ -42,21 +42,21 @@
         <button
           (click)="onTabChange('system')"
           class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
-          [class]="activeTab() === 'system' ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
+          [class]="activeTab() === 'system' ? 'bg-zinc-50 text-zinc-950 font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
         >
           System Logs
         </button>
         <button
           (click)="onTabChange('auth')"
           class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
-          [class]="activeTab() === 'auth' ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
+          [class]="activeTab() === 'auth' ? 'bg-zinc-50 text-zinc-950 font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
         >
           Authentication Logs
         </button>
         <button
           (click)="onTabChange('gc')"
           class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
-          [class]="activeTab() === 'gc' ? 'bg-white text-black font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
+          [class]="activeTab() === 'gc' ? 'bg-zinc-50 text-zinc-950 font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
         >
           GC Worker
         </button>
@@ -69,12 +69,12 @@
           placeholder="Filter logs..." 
           [ngModel]="logSearchQuery()"
           (ngModelChange)="logSearchQuery.set($event)"
-          class="bg-black border border-zinc-850 text-zinc-300 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 w-32 sm:w-44 font-mono"
+          class="bg-zinc-950 border border-zinc-850 text-zinc-300 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 w-32 sm:w-44 font-mono"
         />
 
         <button 
           (click)="loadLogs()"
-          class="p-1.5 rounded border border-zinc-850 bg-black hover:border-zinc-500 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+          class="p-1.5 rounded border border-zinc-850 bg-zinc-950 hover:border-zinc-500 text-zinc-500 hover:text-zinc-50 transition-colors cursor-pointer"
           title="Refresh Logs"
           [disabled]="loading()"
         >
@@ -85,7 +85,7 @@
 
         <button 
           (click)="onDownloadLogs()"
-          class="p-1.5 rounded border border-zinc-850 bg-black hover:border-zinc-500 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+          class="p-1.5 rounded border border-zinc-850 bg-zinc-950 hover:border-zinc-500 text-zinc-500 hover:text-zinc-50 transition-colors cursor-pointer"
           title="Download log file"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
@@ -96,7 +96,7 @@
         <button 
           (click)="toggleAutoScroll()"
           class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border cursor-pointer transition-all"
-          [class]="autoScroll() ? 'bg-white text-black border-white' : 'bg-black text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-white'"
+          [class]="autoScroll() ? 'bg-zinc-50 text-zinc-950 border-zinc-50' : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-zinc-50'"
         >
           Autoscroll: {{ autoScroll() ? 'ON' : 'OFF' }}
         </button>
@@ -106,11 +106,11 @@
     <!-- Console view screen -->
     <div 
       id="admin-console-box"
-      class="terminal-view h-[500px] p-4 overflow-y-auto font-mono text-xs text-zinc-300 space-y-1.5 scroll-smooth select-text bg-black border border-zinc-900 rounded"
+      class="terminal-view h-[500px] p-4 overflow-y-auto font-mono text-xs text-zinc-300 space-y-1.5 scroll-smooth select-text bg-zinc-950 border border-zinc-900 rounded"
     >
       @if (loading()) {
         <div class="flex flex-col items-center justify-center h-full space-y-2 text-zinc-550">
-          <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+          <svg class="animate-spin h-5 w-5 text-zinc-50" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
           </svg>

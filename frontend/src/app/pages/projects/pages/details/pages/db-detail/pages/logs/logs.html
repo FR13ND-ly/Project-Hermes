@@ -1,5 +1,5 @@
 <div class="space-y-4 animate-fade-in">
-  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4">
     <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
       <div>
         <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Container Logs</h3>
@@ -12,7 +12,7 @@
             type="checkbox" 
             [ngModel]="autoScroll()" 
             (ngModelChange)="toggleAutoScroll()" 
-            class="w-3.5 h-3.5 bg-black rounded border-zinc-800 accent-white"
+            class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-800 accent-zinc-50"
           />
           Autoscroll
         </label>
@@ -22,7 +22,7 @@
     <!-- Logs Window container (fixed height and scrollbar) -->
     <div 
       id="db-logs-window" 
-      class="bg-black border border-zinc-900 rounded p-4 h-[400px] overflow-y-auto font-mono text-[11px] text-zinc-350 space-y-1 select-text scroll-container"
+      class="bg-zinc-950 border border-zinc-900 rounded p-4 h-[400px] overflow-y-auto font-mono text-[11px] text-zinc-350 space-y-1 select-text scroll-container"
     >
       @for (line of logs(); track $index) {
         <div class="leading-relaxed hover:bg-zinc-950/60 px-1 rounded transition-colors whitespace-pre-wrap">{{ line }}</div>

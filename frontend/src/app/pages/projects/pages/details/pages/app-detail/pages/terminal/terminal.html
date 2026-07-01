@@ -1,4 +1,4 @@
-<div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm animate-fade-in font-mono">
+<div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm animate-fade-in font-mono">
   <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3">
     <div>
       <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Container Terminal</h3>
@@ -10,7 +10,7 @@
         <select 
           [ngModel]="parent.activeInstanceId()"
           (ngModelChange)="onInstanceChange($event)"
-          class="bg-black border border-zinc-855 text-zinc-300 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 font-mono"
+          class="bg-zinc-950 border border-zinc-855 text-zinc-300 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 font-mono"
         >
           @for (inst of parent.app()!.instances; track inst.id) {
             <option [value]="inst.id">{{ inst.containerName }} ({{ inst.status }})</option>
@@ -23,7 +23,7 @@
   @if (parent.activeInstanceId()) {
     <div 
       id="terminal-container"
-      class="terminal-view h-[450px] overflow-hidden bg-black border border-zinc-900 rounded mb-3"
+      class="terminal-view h-[450px] overflow-hidden bg-zinc-950 border border-zinc-900 rounded mb-3"
     ></div>
 
     @if (parent.getSelectedInstance()?.status !== 'running') {
@@ -35,7 +35,7 @@
       </div>
     }
   } @else {
-    <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-12 text-center text-zinc-555 text-xs">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-12 text-center text-zinc-555 text-xs">
       No active instance for this application. Start the application to access terminal.
     </div>
   }

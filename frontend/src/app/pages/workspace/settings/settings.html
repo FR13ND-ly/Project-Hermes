@@ -1,5 +1,8 @@
 <div class="space-y-6 animate-fade-in">
-  
+
+  <!-- Workspace-level nav (Projects / Workspace Settings) -->
+  <app-workspace-nav />
+
   <!-- Section Header -->
   <div class="border-b border-zinc-900 pb-4">
     <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Workspace Settings</h3>
@@ -9,7 +12,7 @@
   <!-- Loading State -->
   @if (loading() && !workspace()) {
     <div class="flex flex-col items-center justify-center py-16 gap-2">
-      <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <svg class="animate-spin h-5 w-5 text-zinc-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
@@ -43,14 +46,14 @@
     <div class="flex items-center border-b border-zinc-900 pb-3 mb-5 gap-4 text-xs font-mono">
       <button 
         (click)="activeSubTab.set('general')" 
-        [class]="activeSubTab() === 'general' ? 'border-b-2 border-white text-white pb-1.5 font-bold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-1.5 transition-all'"
+        [class]="activeSubTab() === 'general' ? 'border-b-2 border-zinc-50 text-zinc-50 pb-1.5 font-bold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-1.5 transition-all'"
         class="cursor-pointer"
       >
         General Settings
       </button>
       <button
         (click)="activeSubTab.set('members')"
-        [class]="activeSubTab() === 'members' ? 'border-b-2 border-white text-white pb-1.5 font-bold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-1.5 transition-all'"
+        [class]="activeSubTab() === 'members' ? 'border-b-2 border-zinc-50 text-zinc-50 pb-1.5 font-bold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-1.5 transition-all'"
         class="cursor-pointer"
       >
         Team Members ({{ members().length }})
@@ -64,10 +67,10 @@
         @if (usage()) {
           <div class="grid gap-4 md:grid-cols-3">
             <!-- Memory Usage Gauge Card -->
-            <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
+            <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded bg-black border border-zinc-900 flex items-center justify-center text-zinc-400">
+                  <div class="w-8 h-8 rounded bg-zinc-950 border border-zinc-900 flex items-center justify-center text-zinc-400">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125z" />
                     </svg>
@@ -77,7 +80,7 @@
                     <p class="text-[9px] text-zinc-500 font-mono">Kubernetes RAM Limits</p>
                   </div>
                 </div>
-                <span class="text-lg font-bold text-white font-mono">
+                <span class="text-lg font-bold text-zinc-50 font-mono">
                   {{ usage()?.usedMemoryMb }} <span class="text-xs text-zinc-500 font-sans">/ @if (usage()?.maxMemoryMb === 0) { Unlimited } @else { {{ usage()?.maxMemoryMb }} MB }</span>
                 </span>
               </div>
@@ -89,7 +92,7 @@
                 aria-valuemin="0"
                 aria-valuemax="100"
               >
-                <div class="w-full h-1.5 bg-black rounded-full overflow-hidden border border-zinc-900">
+                <div class="w-full h-1.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-900">
                   <div 
                     class="bg-zinc-400 h-full transition-all duration-500" 
                     [style.width.%]="usage()?.maxMemoryMb === 0 ? 0 : ((usage()!.usedMemoryMb / usage()!.maxMemoryMb) * 100)"
@@ -103,10 +106,10 @@
             </div>
 
             <!-- Storage Usage Gauge Card -->
-            <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
+            <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded bg-black border border-zinc-900 flex items-center justify-center text-zinc-400">
+                  <div class="w-8 h-8 rounded bg-zinc-950 border border-zinc-900 flex items-center justify-center text-zinc-400">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
                     </svg>
@@ -116,7 +119,7 @@
                     <p class="text-[9px] text-zinc-500 font-mono">Storage Volume Limits</p>
                   </div>
                 </div>
-                <span class="text-lg font-bold text-white font-mono">
+                <span class="text-lg font-bold text-zinc-50 font-mono">
                   {{ usage()?.usedStorageGb }} <span class="text-xs text-zinc-500 font-sans">/ @if (usage()?.maxStorageGb === 0) { Unlimited } @else { {{ usage()?.maxStorageGb }} GB }</span>
                 </span>
               </div>
@@ -128,7 +131,7 @@
                 aria-valuemin="0"
                 aria-valuemax="100"
               >
-                <div class="w-full h-1.5 bg-black rounded-full overflow-hidden border border-zinc-900">
+                <div class="w-full h-1.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-900">
                   <div 
                     class="bg-zinc-400 h-full transition-all duration-500" 
                     [style.width.%]="usage()?.maxStorageGb === 0 ? 0 : ((usage()!.usedStorageGb / usage()!.maxStorageGb) * 100)"
@@ -142,10 +145,10 @@
             </div>
 
             <!-- CPU Usage Gauge Card -->
-            <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
+            <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded bg-black border border-zinc-900 flex items-center justify-center text-zinc-400">
+                  <div class="w-8 h-8 rounded bg-zinc-950 border border-zinc-900 flex items-center justify-center text-zinc-400">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
                     </svg>
@@ -155,7 +158,7 @@
                     <p class="text-[9px] text-zinc-500 font-mono">Kubernetes CPU Limits</p>
                   </div>
                 </div>
-                <span class="text-lg font-bold text-white font-mono">
+                <span class="text-lg font-bold text-zinc-50 font-mono">
                   {{ usage()?.usedCpuMillicores }} <span class="text-xs text-zinc-500 font-sans">/ @if (usage()?.maxCpuMillicores === 0) { Unlimited } @else { {{ usage()?.maxCpuMillicores }} m }</span>
                 </span>
               </div>
@@ -167,7 +170,7 @@
                 aria-valuemin="0"
                 aria-valuemax="100"
               >
-                <div class="w-full h-1.5 bg-black rounded-full overflow-hidden border border-zinc-900">
+                <div class="w-full h-1.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-900">
                   <div
                     class="bg-zinc-400 h-full transition-all duration-500"
                     [style.width.%]="usage()?.maxCpuMillicores === 0 ? 0 : ((usage()!.usedCpuMillicores / usage()!.maxCpuMillicores) * 100)"
@@ -183,7 +186,7 @@
         }
 
         <!-- Configuration Form Details Card -->
-        <div class="bg-[#0a0a0a] p-6 rounded-lg border border-zinc-800 space-y-6 shadow-sm">
+        <div class="bg-zinc-900 p-6 rounded-lg border border-zinc-800 space-y-6 shadow-sm">
           
           <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
             <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">General Settings & Limits</h4>
@@ -201,7 +204,7 @@
                 [ngModel]="wsName()"
                 (ngModelChange)="wsName.set($event)"
                 [disabled]="saving()"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
             </div>
 
@@ -214,7 +217,7 @@
                 [ngModel]="maxMemory()"
                 (ngModelChange)="maxMemory.set($event)"
                 [disabled]="saving()"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
             </div>
 
@@ -227,7 +230,7 @@
                 [ngModel]="maxStorage()"
                 (ngModelChange)="maxStorage.set($event)"
                 [disabled]="saving()"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
             </div>
 
@@ -240,7 +243,7 @@
                 [ngModel]="maxCpu()"
                 (ngModelChange)="maxCpu.set($event)"
                 [disabled]="saving()"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
               <p class="text-[9px] text-zinc-600 font-mono">1000m = 1 vCPU. Applied as a ResourceQuota on the namespace (requests + limits).</p>
             </div>
@@ -253,12 +256,12 @@
             <button 
               (click)="onSaveSettings()"
               [disabled]="saving() || !wsName().trim()"
-              class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
+              class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
             >
               @if (!saving()) {
                 <span>Save Settings</span>
               } @else {
-                <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
@@ -270,7 +273,7 @@
         </div>
 
         <!-- Git Credentials card -->
-        <div class="bg-[#0a0a0a] border border-zinc-850 rounded-lg p-5 space-y-4 shadow-sm font-mono mt-6">
+        <div class="bg-zinc-900 border border-zinc-850 rounded-lg p-5 space-y-4 shadow-sm font-mono mt-6">
           <div class="border-b border-zinc-900 pb-2.5">
             <h4 class="text-xs font-bold text-zinc-355 uppercase tracking-wider">Git Credentials</h4>
             <p class="text-[10px] text-zinc-550 mt-0.5 font-sans">Access tokens (GitHub / GitLab) used when importing and cloning repositories. Select a credential when creating an application.</p>
@@ -285,7 +288,7 @@
                 <div class="flex items-center justify-between gap-3 py-2">
                   <div class="flex items-center gap-2 min-w-0">
                     <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 shrink-0">{{ c.provider }}</span>
-                    <span class="text-xs text-white truncate">{{ c.label }}</span>
+                    <span class="text-xs text-zinc-50 truncate">{{ c.label }}</span>
                     <span class="text-[10px] text-zinc-600 truncate">{{ c.host }}{{ c.username ? ' · @' + c.username : '' }}</span>
                   </div>
                   <button (click)="onDeleteCredential(c)" class="px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-red-950/20 cursor-pointer shrink-0">Delete</button>
@@ -299,7 +302,7 @@
             <div class="space-y-1.5">
               <label for="cred-provider" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Provider</label>
               <select id="cred-provider" [ngModel]="newCredProvider()" (ngModelChange)="newCredProvider.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer">
+                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer">
                 <option value="github">GitHub</option>
                 <option value="gitlab">GitLab</option>
               </select>
@@ -308,36 +311,36 @@
               <label for="cred-host" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Host (optional)</label>
               <input id="cred-host" type="text" placeholder="github.com / gitlab.com"
                 [ngModel]="newCredHost()" (ngModelChange)="newCredHost.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
             <div class="space-y-1.5">
               <label for="cred-label" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Label</label>
               <input id="cred-label" type="text" placeholder="e.g. GitHub personal"
                 [ngModel]="newCredLabel()" (ngModelChange)="newCredLabel.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
             <div class="space-y-1.5">
               <label for="cred-token" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Token (PAT)</label>
               <input id="cred-token" type="password" placeholder="ghp_… / glpat-…"
                 [ngModel]="newCredToken()" (ngModelChange)="newCredToken.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
           </div>
           <div class="flex items-center justify-between pt-1">
             <label class="flex items-center gap-2 cursor-pointer select-none">
               <input type="checkbox" [ngModel]="newCredSkipTls()" (ngModelChange)="newCredSkipTls.set($event)"
-                class="w-3.5 h-3.5 accent-white cursor-pointer" />
+                class="w-3.5 h-3.5 accent-zinc-50 cursor-pointer" />
               <span class="text-[10px] text-zinc-500 font-sans">Accept self-signed SSL certificates <span class="text-zinc-650">(self-hosted)</span></span>
             </label>
             <button (click)="onAddCredential()" [disabled]="addingCred()"
-              class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
+              class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
               {{ addingCred() ? 'Verifying...' : 'Add Credential' }}
             </button>
           </div>
         </div>
 
         <!-- Cloudflare Tokens card -->
-        <div class="bg-[#0a0a0a] border border-zinc-850 rounded-lg p-5 space-y-4 shadow-sm font-mono mt-6">
+        <div class="bg-zinc-900 border border-zinc-850 rounded-lg p-5 space-y-4 shadow-sm font-mono mt-6">
           <div class="border-b border-zinc-900 pb-2.5">
             <h4 class="text-xs font-bold text-zinc-355 uppercase tracking-wider">Cloudflare Tokens</h4>
             <p class="text-[10px] text-zinc-550 mt-0.5 font-sans">Tokens for custom domain DNS. One token = one domain (includes Zone ID + domain). Select a token when creating a project, or change it from project settings.</p>
@@ -352,7 +355,7 @@
                 <div class="flex items-center justify-between gap-3 py-2">
                   <div class="flex items-center gap-2 min-w-0">
                     <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-950/30 border border-amber-900/40 text-amber-400 shrink-0">CF</span>
-                    <span class="text-xs text-white truncate">{{ c.label }}</span>
+                    <span class="text-xs text-zinc-50 truncate">{{ c.label }}</span>
                     <span class="text-[10px] text-zinc-600 truncate">{{ c.baseDomain || c.zoneId }}</span>
                   </div>
                   <button (click)="onDeleteCloudflareCredential(c)" class="px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-red-950/20 cursor-pointer shrink-0">Delete</button>
@@ -367,30 +370,30 @@
               <label for="cf-label" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Label</label>
               <input id="cf-label" type="text" placeholder="e.g. parapet-software.work"
                 [ngModel]="newCfLabel()" (ngModelChange)="newCfLabel.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
             <div class="space-y-1.5">
               <label for="cf-domain" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Base domain (optional)</label>
               <input id="cf-domain" type="text" placeholder="e.g. parapet-software.work"
                 [ngModel]="newCfBaseDomain()" (ngModelChange)="newCfBaseDomain.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
             <div class="space-y-1.5">
               <label for="cf-token" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">API Token</label>
               <input id="cf-token" type="password" placeholder="cfut_…"
                 [ngModel]="newCfToken()" (ngModelChange)="newCfToken.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
             <div class="space-y-1.5">
               <label for="cf-zone" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Zone ID</label>
               <input id="cf-zone" type="text" placeholder="e.g. ac4011807d97…"
                 [ngModel]="newCfZoneId()" (ngModelChange)="newCfZoneId.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
           </div>
           <div class="flex items-center justify-end pt-1">
             <button (click)="onAddCloudflareCredential()" [disabled]="addingCf()"
-              class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
+              class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
               {{ addingCf() ? 'Adding...' : 'Add Token' }}
             </button>
           </div>
@@ -403,7 +406,7 @@
       <div class="space-y-6 animate-fade-in">
         
         <!-- Add Member Form Card -->
-        <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+        <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
           <div>
             <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Add New Member</h4>
             <p class="text-[10px] text-zinc-500 mt-1">Enter the email of an existing account to add them to this workspace.</p>
@@ -416,7 +419,7 @@
                 placeholder="user@example.com"
                 [ngModel]="newMemberEmail()"
                 (ngModelChange)="newMemberEmail.set($event)"
-                class="block w-full px-3 py-2 bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
             </div>
             
@@ -424,7 +427,7 @@
               <select 
                 [ngModel]="newMemberRole()"
                 (ngModelChange)="newMemberRole.set($event)"
-                class="block w-full px-3 py-2 bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
               >
                 <option value="admin">Administrator</option>
                 <option value="developer">Developer</option>
@@ -435,10 +438,10 @@
             <button 
               (click)="onInviteMember()"
               [disabled]="invitingMember() || !newMemberEmail().trim()"
-              class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 font-sans"
+              class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 font-sans"
             >
               @if (invitingMember()) {
-                <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                 </svg>
@@ -454,7 +457,7 @@
         </div>
 
         <!-- Members List Card -->
-        <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg overflow-hidden shadow-sm">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden shadow-sm">
           <div class="p-4 bg-zinc-950/40 border-b border-zinc-900">
             <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Active Members</h4>
           </div>
@@ -501,7 +504,7 @@
                           <select 
                             [ngModel]="member.roleName"
                             (ngModelChange)="onUpdateRole(member, $event)"
-                            class="px-2 py-0.5 bg-black border border-zinc-850 rounded text-zinc-300 focus:outline-none focus:border-zinc-500 font-mono text-[11px] cursor-pointer"
+                            class="px-2 py-0.5 bg-zinc-950 border border-zinc-850 rounded text-zinc-300 focus:outline-none focus:border-zinc-500 font-mono text-[11px] cursor-pointer"
                           >
                             <option value="admin">Admin</option>
                             <option value="developer">Developer</option>

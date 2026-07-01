@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink, RouterOutlet, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { Details } from '../../details';
 import { ProjectService, AppDetail, AppBuild, EnvResponse, AppInstance, ProjectEnvResponse, DeploymentTimeline } from '../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
@@ -34,6 +34,38 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   readonly app = signal<AppDetail | null>(null);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+
+  // --- Two-tier tab navigation --------------------------------------------
+  // The child routes stay flat (URLs unchanged); this just groups them by purpose
+  // so the header shows 5 top-level tabs instead of 9. Groups with more than one
+  // entry reveal a sub-tab row under the header.
+  readonly tabGroups: { id: string; label: string; default: string; tabs: { path: string; label: string }[] }[] = [
+    { id: 'overview', label: 'Overview', default: 'overview', tabs: [{ path: 'overview', label: 'Overview' }] },
+    { id: 'observability', label: 'Observability', default: 'telemetry', tabs: [
+      { path: 'telemetry', label: 'Metrics' },
+      { path: 'networking', label: 'Network & Pods' },
+      { path: 'logs', label: 'Logs' },
+      { path: 'chaos', label: 'Chaos' },
+    ] },
+    { id: 'builds', label: 'Builds', default: 'builds', tabs: [{ path: 'builds', label: 'Builds' }] },
+    { id: 'terminal', label: 'Terminal', default: 'terminal', tabs: [{ path: 'terminal', label: 'Terminal' }] },
+    { id: 'settings', label: 'Settings', default: 'general', tabs: [
+      { path: 'general', label: 'General' },
+      { path: 'env', label: 'Env Variables' },
+    ] },
+  ];
+  /** The active leaf route (last URL segment), tracked so the group tabs highlight. */
+  readonly currentTabPath = signal<string>('overview');
+  readonly activeGroup = computed(
+    () => this.tabGroups.find((g) => g.tabs.some((t) => t.path === this.currentTabPath())) ?? this.tabGroups[0],
+  );
+  private navSub?: Subscription;
+
+  /** Last path segment of the current URL — the active leaf tab. */
+  private leafTabPath(): string {
+    const clean = this.router.url.split('?')[0].split('#')[0];
+    return clean.split('/').filter(Boolean).pop() ?? 'overview';
+  }
 
 
   // Cache-buster for the preview <img>, bumped whenever a fresh screenshot lands.
@@ -403,6 +435,12 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       this.timeTicker.set(Date.now());
     }, 1000);
 
+    // Track the active leaf route so the grouped tab bar highlights correctly.
+    this.currentTabPath.set(this.leafTabPath());
+    this.navSub = this.router.events.subscribe((e) => {
+      if (e instanceof NavigationEnd) this.currentTabPath.set(this.leafTabPath());
+    });
+
     this.setupWsSubscriptions();
   }
 
@@ -410,6 +448,7 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.disconnectLogs();
     this.disconnectTelemetry();
     this.disconnectBuildLogs();
+    this.navSub?.unsubscribe();
     this.wsSubscriptions.unsubscribe();
     if (this.tickerInterval) {
       clearInterval(this.tickerInterval);

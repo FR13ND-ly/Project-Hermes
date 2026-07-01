@@ -4,22 +4,22 @@
   <div class="flex items-center gap-2 border-b border-zinc-900 pb-3 font-mono text-xs select-none">
     <a
       routerLink="/admin/users"
-      routerLinkActive="bg-white text-black font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-white"
+      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-50"
     >
       Users
     </a>
     <a
       routerLink="/admin/workspaces"
-      routerLinkActive="bg-white text-black font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-white"
+      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-50"
     >
       Workspaces
     </a>
     <a
       routerLink="/admin/logs"
-      routerLinkActive="bg-white text-black font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-white"
+      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-50"
     >
       Logs
     </a>
@@ -37,7 +37,7 @@
   <!-- Loading -->
   @if (loading()) {
     <div class="flex flex-col items-center justify-center py-20 gap-2">
-      <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <svg class="animate-spin h-5 w-5 text-zinc-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
       </svg>
@@ -47,19 +47,19 @@
 
   @if (!loading()) {
     @if (workspaces().length === 0) {
-      <div class="bg-[#0a0a0a] p-10 rounded-lg border border-zinc-800 text-center text-xs text-zinc-500">
+      <div class="bg-zinc-900 p-10 rounded-lg border border-zinc-800 text-center text-xs text-zinc-500">
         There are no workspaces on the platform.
       </div>
     }
 
     <div class="grid gap-4 md:grid-cols-2">
       @for (ws of workspaces(); track ws.id) {
-        <div class="rounded-lg border border-zinc-800 bg-[#0a0a0a] shadow-sm overflow-hidden flex flex-col">
+        <div class="rounded-lg border border-zinc-800 bg-zinc-900 shadow-sm overflow-hidden flex flex-col">
 
           <!-- Card header -->
-          <div class="flex items-start justify-between px-5 py-3.5 border-b border-zinc-900 bg-black">
+          <div class="flex items-start justify-between px-5 py-3.5 border-b border-zinc-900 bg-zinc-950">
             <div class="min-w-0">
-              <h3 class="text-xs font-bold text-white font-mono truncate">{{ ws.name }}</h3>
+              <h3 class="text-xs font-bold text-zinc-50 font-mono truncate">{{ ws.name }}</h3>
               <p class="text-[10px] text-zinc-600 font-mono truncate">{{ ws.slug }}</p>
             </div>
             <button
@@ -84,19 +84,19 @@
           <!-- Stats row -->
           <div class="grid grid-cols-4 divide-x divide-zinc-900 border-b border-zinc-900">
             <div class="px-3 py-3 text-center">
-              <div class="text-sm font-bold text-white font-mono">{{ ws.memberCount }}</div>
+              <div class="text-sm font-bold text-zinc-50 font-mono">{{ ws.memberCount }}</div>
               <div class="text-[9px] text-zinc-600 uppercase tracking-wider mt-0.5">Members</div>
             </div>
             <div class="px-3 py-3 text-center">
-              <div class="text-sm font-bold text-white font-mono">{{ ws.activeAppCount }}/{{ ws.appCount }}</div>
+              <div class="text-sm font-bold text-zinc-50 font-mono">{{ ws.activeAppCount }}/{{ ws.appCount }}</div>
               <div class="text-[9px] text-zinc-600 uppercase tracking-wider mt-0.5">Active apps</div>
             </div>
             <div class="px-3 py-3 text-center">
-              <div class="text-sm font-bold text-white font-mono">{{ ws.databaseCount }}</div>
+              <div class="text-sm font-bold text-zinc-50 font-mono">{{ ws.databaseCount }}</div>
               <div class="text-[9px] text-zinc-600 uppercase tracking-wider mt-0.5">Databases</div>
             </div>
             <div class="px-3 py-3 text-center">
-              <div class="text-sm font-bold text-white font-mono">{{ ws.creator || '—' }}</div>
+              <div class="text-sm font-bold text-zinc-50 font-mono">{{ ws.creator || '—' }}</div>
               <div class="text-[9px] text-zinc-600 uppercase tracking-wider mt-0.5">Creator</div>
             </div>
           </div>
@@ -124,7 +124,7 @@
           </div>
 
           <!-- Footer -->
-          <div class="px-5 py-2.5 border-t border-zinc-900 bg-black/40">
+          <div class="px-5 py-2.5 border-t border-zinc-900 bg-zinc-950/40">
             <span class="text-[9px] text-zinc-600 font-mono">Created {{ ws.createdAt | date:'mediumDate' }}</span>
           </div>
         </div>

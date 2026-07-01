@@ -14,7 +14,7 @@
       <!-- Quick Actions (e.g. Add App if project has apps) -->
       <button 
         [routerLink]="['/projects', projectId(), 'apps', 'create']"
-        class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-[11px] font-semibold border border-zinc-800 cursor-pointer transition-all flex items-center gap-1"
+        class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-50 text-[11px] font-semibold border border-zinc-800 cursor-pointer transition-all flex items-center gap-1"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3 h-3">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -26,7 +26,7 @@
     <!-- Application Selection / Context Header -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex items-center gap-3">
-        <h1 class="text-xl font-bold tracking-tight text-white">{{ project()?.name }}</h1>
+        <h1 class="text-xl font-bold tracking-tight text-zinc-50">{{ project()?.name }}</h1>
         
         @if (isInAppDetailContext && apps().length > 0) {
           <div class="h-4 w-px bg-zinc-850"></div>
@@ -36,7 +36,7 @@
             <select 
               [ngModel]="selectedApp()?.id" 
               (ngModelChange)="onSelectApp($event)"
-              class="block w-full bg-black border border-zinc-800 text-zinc-300 text-xs font-semibold py-1.5 pl-3 pr-8 rounded focus:outline-none appearance-none cursor-pointer hover:border-zinc-500 transition-colors"
+              class="block w-full bg-zinc-950 border border-zinc-800 text-zinc-300 text-xs font-semibold py-1.5 pl-3 pr-8 rounded focus:outline-none appearance-none cursor-pointer hover:border-zinc-500 transition-colors"
               aria-label="Select active application"
             >
               @for (app of apps(); track app.id) {
@@ -76,7 +76,7 @@
       <div class="flex flex-col lg:flex-row gap-8 items-start pt-4">
         
         <!-- Sidebar Navigation -->
-        <nav class="w-full lg:w-60 shrink-0 flex flex-col gap-1 bg-[#060606]/70 border border-zinc-900 rounded-lg p-2.5 font-mono text-xs shadow-inner" role="tablist" aria-label="Project Details Menu">
+        <nav class="w-full lg:w-60 shrink-0 flex flex-col gap-1 bg-zinc-950/70 border border-zinc-900 rounded-lg p-2.5 font-mono text-xs shadow-inner" role="tablist" aria-label="Project Details Menu">
           <a 
             [routerLink]="['/projects', projectId()]"
             [class]="tabClass('overview')"
@@ -212,7 +212,7 @@
         </nav>
 
         <!-- Main Content Area -->
-        <div class="flex-1 min-w-0 w-full bg-[#060606]/30 border border-zinc-900/60 rounded-lg p-5">
+        <div class="flex-1 min-w-0 w-full bg-zinc-950/30 border border-zinc-900/60 rounded-lg p-5">
           <router-outlet></router-outlet>
         </div>
 
@@ -225,7 +225,7 @@
 
 @if (loading() && !project()) {
   <div class="flex flex-col items-center justify-center py-32 gap-2">
-    <svg class="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <svg class="animate-spin h-6 w-6 text-zinc-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
     </svg>

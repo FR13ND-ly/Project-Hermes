@@ -4,7 +4,7 @@
   <div class="flex items-center gap-2">
     <a 
       [routerLink]="['../']" 
-      class="flex items-center gap-1 text-xs text-zinc-400 hover:text-white cursor-pointer transition-colors font-sans"
+      class="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-50 cursor-pointer transition-colors font-sans"
     >
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -14,10 +14,10 @@
   </div>
 
   <!-- Header -->
-  <div class="p-5 rounded-lg border border-zinc-900 bg-[#0a0a0a] flex flex-col md:flex-row md:items-center md:justify-between gap-4 font-sans shadow-sm">
+  <div class="p-5 rounded-lg border border-zinc-900 bg-zinc-900 flex flex-col md:flex-row md:items-center md:justify-between gap-4 font-sans shadow-sm">
     <div class="space-y-1">
       <div class="flex items-center gap-2.5 flex-wrap">
-        <h2 class="text-base font-bold text-white tracking-tight select-all font-mono">{{ job.name }}</h2>
+        <h2 class="text-base font-bold text-zinc-50 tracking-tight select-all font-mono">{{ job.name }}</h2>
         <span 
           class="px-2 py-0.5 rounded text-[8px] font-bold uppercase border"
           [class]="job.status.toLowerCase() === 'active' ? 'bg-emerald-950/20 text-emerald-400 border-emerald-900/40' : (job.status.toLowerCase() === 'paused' ? 'bg-amber-955/20 text-amber-400 border-amber-900/40' : 'bg-red-955/20 text-red-400 border-red-900/40')"
@@ -37,7 +37,7 @@
       routerLink="details"
       routerLinkActive
       #rlaDetails="routerLinkActive"
-      [class]="rlaDetails.isActive ? 'border-b-2 border-white text-white pb-3 px-1 text-xs font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
+      [class]="rlaDetails.isActive ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 text-xs font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
     >
       Details & Diagnostics
     </a>
@@ -45,7 +45,7 @@
       routerLink="logs"
       routerLinkActive
       #rlaLogs="routerLinkActive"
-      [class]="rlaLogs.isActive ? 'border-b-2 border-white text-white pb-3 px-1 text-xs font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
+      [class]="rlaLogs.isActive ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 text-xs font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
     >
       Execution History
     </a>
@@ -53,7 +53,7 @@
       routerLink="settings"
       routerLinkActive
       #rlaSettings="routerLinkActive"
-      [class]="rlaSettings.isActive ? 'border-b-2 border-white text-white pb-3 px-1 text-xs font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
+      [class]="rlaSettings.isActive ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 text-xs font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
     >
       Cron Settings
     </a>

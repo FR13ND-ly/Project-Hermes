@@ -10,7 +10,7 @@
   </div>
 
   <!-- PROJECT-LEVEL ENV POOL -->
-  <div class="bg-[#0a0a0a] rounded-lg border border-zinc-800 shadow-sm">
+  <div class="bg-zinc-900 rounded-lg border border-zinc-800 shadow-sm">
     <div class="flex items-center justify-between gap-3 border-b border-zinc-900 px-5 py-3.5">
       <div>
         <h3 class="text-xs font-bold text-zinc-200 uppercase tracking-wider font-mono">Variable Pool (Project)</h3>
@@ -18,7 +18,7 @@
       </div>
       <button
         (click)="toggleProjectAddForm()"
-        class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5 shrink-0 font-mono"
+        class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5 shrink-0 font-mono"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -28,32 +28,32 @@
     </div>
 
     @if (showProjectAddForm()) {
-      <div class="px-5 py-4 border-b border-zinc-900 bg-black/40 space-y-3 animate-fade-in">
+      <div class="px-5 py-4 border-b border-zinc-900 bg-zinc-950/40 space-y-3 animate-fade-in">
         <div class="grid gap-3 sm:grid-cols-2">
           <input
             type="text"
             placeholder="KEY"
             [ngModel]="pKey()"
             (ngModelChange)="pKey.set($event)"
-            class="w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 font-mono"
+            class="w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 font-mono"
           />
           <input
             type="text"
             placeholder="value"
             [ngModel]="pVal()"
             (ngModelChange)="pVal.set($event)"
-            class="w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 font-mono"
+            class="w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 font-mono"
           />
         </div>
         <div class="flex items-center justify-between gap-3">
           <label class="flex items-center gap-2 cursor-pointer select-none">
-            <input type="checkbox" [checked]="pIsSecret()" (change)="pIsSecret.set(!pIsSecret())" class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer" />
+            <input type="checkbox" [checked]="pIsSecret()" (change)="pIsSecret.set(!pIsSecret())" class="h-3.5 w-3.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer" />
             <span class="text-[10px] font-semibold text-zinc-400">Secret (encrypted, runtime only)</span>
           </label>
           <button
             (click)="saveProjectEnv()"
             [disabled]="savingProjectEnv() || !pKey().trim() || !pVal().trim()"
-            class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold disabled:opacity-50 cursor-pointer font-mono"
+            class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold disabled:opacity-50 cursor-pointer font-mono"
           >
             {{ savingProjectEnv() ? 'Saving...' : 'Save' }}
           </button>
@@ -75,12 +75,12 @@
                   (ngModelChange)="renameKey.set($event)"
                   (keyup.enter)="saveRename(env)"
                   (keyup.escape)="cancelRename()"
-                  class="px-2 py-1 text-xs bg-black border border-zinc-700 rounded text-white focus:outline-none focus:border-zinc-500 font-mono uppercase font-bold w-48"
+                  class="px-2 py-1 text-xs bg-zinc-950 border border-zinc-700 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 font-mono uppercase font-bold w-48"
                 />
                 <button (click)="saveRename(env)" [disabled]="savingRename()" class="text-[10px] text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer disabled:opacity-50">Save</button>
                 <button (click)="cancelRename()" class="text-[10px] text-zinc-500 hover:text-zinc-300 font-semibold cursor-pointer">Cancel</button>
               } @else {
-                <span class="font-mono text-xs text-white truncate">{{ env.key }}</span>
+                <span class="font-mono text-xs text-zinc-50 truncate">{{ env.key }}</span>
                 @if (env.source !== 'manual') {
                   <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 shrink-0">{{ env.source }}</span>
                 }
@@ -97,7 +97,7 @@
                 }
                 <button
                   (click)="toggleRevealProjectEnv(env)"
-                  class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                  class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-zinc-50 transition-colors cursor-pointer"
                   [title]="projectRevealed()[env.id] !== undefined ? 'Hide' : 'Reveal value'"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
@@ -107,7 +107,7 @@
                 </button>
                 <button
                   (click)="startRename(env)"
-                  class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                  class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-zinc-50 transition-colors cursor-pointer"
                   title="Rename key"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
@@ -141,7 +141,7 @@
   <!-- Loading -->
   @if (loading()) {
     <div class="flex flex-col items-center justify-center py-16 gap-2">
-      <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <svg class="animate-spin h-5 w-5 text-zinc-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
       </svg>
@@ -152,7 +152,7 @@
   @if (!loading()) {
     <!-- Empty: no apps -->
     @if (groups().length === 0) {
-      <div class="bg-[#0a0a0a] p-10 rounded-lg border border-zinc-800 flex flex-col items-center justify-center text-center max-w-sm mx-auto shadow-sm">
+      <div class="bg-zinc-900 p-10 rounded-lg border border-zinc-800 flex flex-col items-center justify-center text-center max-w-sm mx-auto shadow-sm">
         <h4 class="text-xs font-bold text-zinc-200 mb-1 uppercase tracking-wider font-mono">No Applications</h4>
         <p class="text-xs text-zinc-500">Environment variables are defined per application. Create an application first.</p>
       </div>
@@ -160,10 +160,10 @@
 
     <!-- App groups -->
     @for (app of groups(); track app.appId) {
-      <div class="rounded-lg border border-zinc-800 bg-[#0a0a0a] overflow-hidden shadow-sm">
+      <div class="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden shadow-sm">
 
         <!-- App header -->
-        <div class="flex items-center gap-2 px-5 py-3 border-b border-zinc-900 bg-black">
+        <div class="flex items-center gap-2 px-5 py-3 border-b border-zinc-900 bg-zinc-950">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-500">
             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
           </svg>
@@ -183,18 +183,18 @@
               <div class="flex items-center gap-1.5">
                 <button
                   (click)="openJsonEditor(inst.instanceId, inst.variables)"
-                  class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white text-[10px] font-semibold transition-colors cursor-pointer"
+                  class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-[10px] font-semibold transition-colors cursor-pointer"
                 >JSON</button>
                 <button
                   (click)="openAddForm(inst.instanceId)"
-                  class="px-2 py-1 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-semibold transition-colors cursor-pointer"
+                  class="px-2 py-1 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-[10px] font-semibold transition-colors cursor-pointer"
                 >+ Add</button>
               </div>
             </div>
 
             <!-- Inline add / edit form -->
             @if (addFormInstance() === inst.instanceId) {
-              <div class="px-5 py-3 bg-black border-t border-zinc-900 space-y-3">
+              <div class="px-5 py-3 bg-zinc-950 border-t border-zinc-900 space-y-3">
                 <span class="text-[10px] font-bold text-zinc-300 uppercase tracking-wider font-mono">{{ editingEnvId() ? 'Edit variable' : 'Add variable' }}</span>
                 <div class="grid gap-3 sm:grid-cols-2">
                   <input
@@ -203,14 +203,14 @@
                     [ngModel]="formKey()"
                     (ngModelChange)="formKey.set($event)"
                     [readonly]="editingEnvId() !== null"
-                    class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors uppercase font-mono font-bold read-only:opacity-60"
+                    class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors uppercase font-mono font-bold read-only:opacity-60"
                   />
                   <input
                     [type]="formIsSecret() ? 'password' : 'text'"
                     [placeholder]="editingEnvId() && formIsSecret() ? 'new value (secret)' : 'value'"
                     [ngModel]="formVal()"
                     (ngModelChange)="formVal.set($event)"
-                    class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                    class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
                   />
                 </div>
                 <div class="flex items-center justify-between">
@@ -219,19 +219,19 @@
                       type="checkbox"
                       [checked]="formIsSecret()"
                       (change)="formIsSecret.set(!formIsSecret())"
-                      class="h-3.5 w-3.5 bg-zinc-950 border border-zinc-800 rounded accent-white cursor-pointer"
+                      class="h-3.5 w-3.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer"
                     />
                     <span class="text-[10px] font-semibold text-zinc-400">Secret (encrypted)</span>
                   </label>
                   <div class="flex items-center gap-2">
                     <button
                       (click)="cancelAddForm()"
-                      class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-900 text-[10px] font-semibold cursor-pointer"
+                      class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 hover:bg-zinc-900 text-[10px] font-semibold cursor-pointer"
                     >Cancel</button>
                     <button
                       (click)="saveEnv()"
                       [disabled]="savingEnv() || !formKey().trim()"
-                      class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                      class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-[10px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
                     >{{ savingEnv() ? 'Saving...' : (editingEnvId() ? 'Save' : 'Add') }}</button>
                   </div>
                 </div>
@@ -240,7 +240,7 @@
 
             <!-- JSON editor -->
             @if (jsonInstance() === inst.instanceId) {
-              <div class="px-5 py-3 bg-black border-t border-zinc-900 space-y-3">
+              <div class="px-5 py-3 bg-zinc-950 border-t border-zinc-900 space-y-3">
                 <div class="flex items-center justify-between">
                   <span class="text-[10px] font-bold text-zinc-300 uppercase tracking-wider font-mono">Editor JSON (.env)</span>
                   <span class="text-[9px] text-amber-500/80">Overwrites all variables · secrets are not shown</span>
@@ -256,7 +256,7 @@
                   <button
                     (click)="saveJson()"
                     [disabled]="savingJson()"
-                    class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                    class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-[10px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
                   >{{ savingJson() ? 'Saving...' : 'Apply JSON' }}</button>
                 </div>
               </div>
@@ -268,7 +268,7 @@
                 <tbody class="divide-y divide-zinc-900 font-mono text-zinc-350">
                   @for (env of inst.variables; track env.id) {
                     <tr class="hover:bg-zinc-950/40 transition-colors">
-                      <td class="px-5 py-2.5 font-bold text-white tracking-wide select-all truncate max-w-[220px]">{{ env.key }}</td>
+                      <td class="px-5 py-2.5 font-bold text-zinc-50 tracking-wide select-all truncate max-w-[220px]">{{ env.key }}</td>
                       <td class="px-5 py-2.5">
                         @if (env.isSecret) {
                           <span class="px-1.5 py-0.2 bg-zinc-900 border border-zinc-800 text-[8px] font-bold text-zinc-500 rounded uppercase font-sans">Secret</span>
@@ -288,7 +288,7 @@
                       <td class="px-5 py-2.5 text-right">
                         <div class="flex items-center justify-end gap-2">
                           @if (!env.isSecret) {
-                            <button (click)="toggleReveal(env.id)" class="p-1 rounded text-zinc-500 hover:text-white hover:bg-zinc-900 transition-colors cursor-pointer" title="Show/Hide">
+                            <button (click)="toggleReveal(env.id)" class="p-1 rounded text-zinc-500 hover:text-zinc-50 hover:bg-zinc-900 transition-colors cursor-pointer" title="Show/Hide">
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -296,13 +296,13 @@
                             </button>
                           }
                           @if (!env.isSecret && env.value) {
-                            <button (click)="copyToClipboard(env.value)" class="p-1 rounded text-zinc-500 hover:text-white hover:bg-zinc-900 transition-colors cursor-pointer" title="Copy">
+                            <button (click)="copyToClipboard(env.value)" class="p-1 rounded text-zinc-500 hover:text-zinc-50 hover:bg-zinc-900 transition-colors cursor-pointer" title="Copy">
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H5.25m9.9-3.6h-9.9c-.621 0-1.125.504-1.125 1.125v13.5c0 .621.504 1.125 1.125 1.125h9.75a1.125 1.125 0 001.125-1.125V6.75a1.125 1.125 0 00-1.125-1.125h-3.6z" />
                               </svg>
                             </button>
                           }
-                          <button (click)="startEditEnv(inst.instanceId, env)" class="p-1 rounded text-zinc-500 hover:text-white hover:bg-zinc-900 transition-colors cursor-pointer" title="Edit">
+                          <button (click)="startEditEnv(inst.instanceId, env)" class="p-1 rounded text-zinc-500 hover:text-zinc-50 hover:bg-zinc-900 transition-colors cursor-pointer" title="Edit">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
                             </svg>

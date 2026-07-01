@@ -5,6 +5,7 @@ import { AuthService } from './core/services/auth';
 import { WorkspaceService, Workspace, WorkspaceUsage } from './core/services/workspace.service';
 import { ToastService } from './core/services/toast.service';
 import { ConfirmService } from './core/services/confirm.service';
+import { ThemeService } from './core/services/theme.service';
 import { BuildIndicator } from './shared/components/build-indicator/build-indicator';
 
 @Component({
@@ -19,6 +20,7 @@ export class App {
   private readonly router = inject(Router);
   readonly toast = inject(ToastService);
   readonly confirm = inject(ConfirmService);
+  readonly theme = inject(ThemeService);
 
   readonly isAuthenticated = computed(() => this.auth.isAuthenticated());
   readonly currentUser = computed(() => this.auth.currentUser());
@@ -30,6 +32,7 @@ export class App {
 
   readonly workspaces = signal<Workspace[]>([]);
   readonly showWorkspaceDropdown = signal(false);
+  readonly showUserMenu = signal(false);
   readonly showCreateWorkspaceModal = signal(false);
   readonly newWorkspaceName = signal('');
 
@@ -135,6 +138,10 @@ export class App {
     }
     if (this.showWorkspaceDropdown()) {
       this.showWorkspaceDropdown.set(false);
+      return;
+    }
+    if (this.showUserMenu()) {
+      this.showUserMenu.set(false);
     }
   }
 

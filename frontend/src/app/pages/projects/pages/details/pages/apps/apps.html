@@ -9,7 +9,7 @@
     <div class="flex items-center gap-3">
       <button 
         (click)="refreshApps()" 
-        class="text-zinc-550 hover:text-zinc-300 p-1.5 rounded border border-zinc-900 bg-black hover:border-zinc-500 transition-all cursor-pointer"
+        class="text-zinc-550 hover:text-zinc-300 p-1.5 rounded border border-zinc-900 bg-zinc-950 hover:border-zinc-500 transition-all cursor-pointer"
         title="Refresh"
         aria-label="Refresh application list"
       >
@@ -20,7 +20,7 @@
 
       <button 
         (click)="onAddApp()"
-        class="px-2.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5"
+        class="px-2.5 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -42,12 +42,12 @@
     <div class="grid gap-4 md:grid-cols-1">
       @for (app of parent.apps(); track app.id) {
         <div 
-          class="bg-[#0a0a0a] rounded-lg border border-zinc-800 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:border-zinc-700 transition-all shadow-sm"
+          class="bg-zinc-900 rounded-lg border border-zinc-800 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:border-zinc-700 transition-all shadow-sm"
           [class.border-zinc-550]="parent.selectedApp()?.id === app.id"
         >
           <div class="space-y-1.5 min-w-0 flex-1">
             <div class="flex items-center gap-2.5 flex-wrap">
-              <h4 class="text-sm font-bold text-white font-mono truncate cursor-pointer hover:underline" (click)="onViewDetails(app, 'overview')">
+              <h4 class="text-sm font-bold text-zinc-50 font-mono truncate cursor-pointer hover:underline" (click)="onViewDetails(app, 'overview')">
                 {{ app.name }}
               </h4>
               
@@ -68,7 +68,7 @@
             <div class="flex flex-col gap-1 text-[10px] text-zinc-550 font-mono mt-2">
               <div class="flex items-center gap-2">
                 <span class="text-zinc-600">Git Repo:</span>
-                <span class="text-zinc-300 truncate max-w-[280px] hover:text-white transition-colors cursor-pointer select-all">{{ app.git_repo_url }}</span>
+                <span class="text-zinc-300 truncate max-w-[280px] hover:text-zinc-50 transition-colors cursor-pointer select-all">{{ app.git_repo_url }}</span>
               </div>
               <div class="flex items-center gap-4 mt-0.5">
                 <div>
@@ -103,36 +103,36 @@
           <div class="flex items-center gap-2.5 sm:self-center flex-wrap sm:flex-nowrap">
             <button 
               (click)="onViewDetails(app, 'telemetry')"
-              class="px-2.5 py-1.5 rounded text-[10px] font-semibold border transition-all cursor-pointer bg-black border-zinc-850 hover:border-zinc-500 hover:text-white text-zinc-450"
+              class="px-2.5 py-1.5 rounded text-[10px] font-semibold border transition-all cursor-pointer bg-zinc-950 border-zinc-850 hover:border-zinc-500 hover:text-zinc-50 text-zinc-450"
             >
               Telemetry
             </button>
             <button
               (click)="onViewDetails(app, 'logs')"
-              class="px-2.5 py-1.5 rounded text-[10px] font-semibold border transition-all cursor-pointer bg-black border-zinc-850 hover:border-zinc-500 hover:text-white text-zinc-450"
+              class="px-2.5 py-1.5 rounded text-[10px] font-semibold border transition-all cursor-pointer bg-zinc-950 border-zinc-850 hover:border-zinc-500 hover:text-zinc-50 text-zinc-450"
             >
               Logs & Console
             </button>
             <button
               (click)="onViewDetails(app, 'env')"
-              class="px-2.5 py-1.5 rounded text-[10px] font-semibold border transition-all cursor-pointer bg-black border-zinc-855 hover:border-zinc-500 hover:text-white text-zinc-450"
+              class="px-2.5 py-1.5 rounded text-[10px] font-semibold border transition-all cursor-pointer bg-zinc-950 border-zinc-855 hover:border-zinc-500 hover:text-zinc-50 text-zinc-450"
             >
               Env Variables
             </button>
             <button
               (click)="onDeleteApp(app)"
-              class="px-2.5 py-1.5 rounded text-[10px] font-semibold border transition-all cursor-pointer bg-black hover:bg-red-950/20 border-zinc-855 hover:border-red-900/40 text-red-500 hover:text-red-400"
+              class="px-2.5 py-1.5 rounded text-[10px] font-semibold border transition-all cursor-pointer bg-zinc-950 hover:bg-red-950/20 border-zinc-855 hover:border-red-900/40 text-red-500 hover:text-red-400"
             >
               Delete
             </button>
           </div>
         </div>
       } @empty {
-        <div class="bg-[#0a0a0a] rounded-lg border border-zinc-850 p-12 text-center space-y-4">
+        <div class="bg-zinc-900 rounded-lg border border-zinc-850 p-12 text-center space-y-4">
           <p class="text-xs text-zinc-550">No applications registered in this project.</p>
           <button
             (click)="onAddApp()"
-            class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold transition-colors cursor-pointer"
+            class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold transition-colors cursor-pointer"
           >
             Add First Application
           </button>

@@ -2,7 +2,7 @@
 <div class="space-y-6 animate-fade-in font-sans">
   <div class="grid gap-6 md:grid-cols-2">
     <!-- Box A: Info Job -->
-    <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
+    <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
       <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Task Configuration</h3>
 
       <div class="space-y-3.5 text-xs">
@@ -16,7 +16,7 @@
         </div>
         <div class="flex justify-between border-b border-zinc-900/60 pb-2">
           <span class="text-zinc-555 font-mono">Scheduled (Cron):</span>
-          <span class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-white font-bold font-mono">{{ job.schedule }}</span>
+          <span class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-50 font-bold font-mono">{{ job.schedule }}</span>
         </div>
         <div class="flex justify-between pb-1">
           <span class="text-zinc-555 font-mono">Next Run:</span>
@@ -26,7 +26,7 @@
     </div>
 
     <!-- Box B: Diagnostic -->
-    <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
+    <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
       <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Diagnostics &amp; Status</h3>
 
       <div class="space-y-3.5 text-xs">
@@ -51,10 +51,10 @@
   </div>
 
   <!-- Command card -->
-  <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg p-5 space-y-3 shadow-sm">
+  <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 space-y-3 shadow-sm">
     <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Command to Execute</h3>
     <div class="relative">
-      <code class="text-xs bg-black p-3 rounded border border-zinc-900 block text-zinc-350 select-all font-mono whitespace-pre-wrap leading-relaxed">{{ job.command }}</code>
+      <code class="text-xs bg-zinc-950 p-3 rounded border border-zinc-900 block text-zinc-350 select-all font-mono whitespace-pre-wrap leading-relaxed">{{ job.command }}</code>
     </div>
     <p class="text-[10px] text-zinc-555 leading-normal">This command runs inside the application pod <strong>{{ parent.getAppName(job.appId || job.app_id) }}</strong> using the project's environment configuration.</p>
   </div>

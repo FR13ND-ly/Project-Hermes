@@ -12,7 +12,7 @@
         <select
           [ngModel]="selectedService()?.id"
           (ngModelChange)="selectServiceById($event)"
-          class="px-3 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 cursor-pointer"
+          class="px-3 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 cursor-pointer"
         >
           @for (s of services(); track s.id) {
             <option [value]="s.id">{{ s.name }}</option>
@@ -27,7 +27,7 @@
         }
       }      <button 
         [routerLink]="['/projects', parent.projectId(), 'auth-management', 'create']"
-        class="px-3.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-350 hover:text-white text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5"
+        class="px-3.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-350 hover:text-zinc-50 text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-550">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -39,7 +39,7 @@
 
   @if (!selectedService()) {
     <!-- Zero State: no service yet -->
-    <div class="bg-black/30 border border-zinc-900 rounded-lg p-12 text-center text-zinc-550 text-xs">
+    <div class="bg-zinc-950/30 border border-zinc-900 rounded-lg p-12 text-center text-zinc-550 text-xs">
       No authentication service in this project. Create one above to manage users,
       roles, and API keys — without needing an application.
     </div>
@@ -49,25 +49,25 @@
     <div class="flex items-center border-b border-zinc-900 pb-px font-mono text-xs">
       <a routerLink="users" routerLinkActive #rlaUsers="routerLinkActive"
         class="pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer"
-        [class]="rlaUsers.isActive ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
+        [class]="rlaUsers.isActive ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Registered Users
       </a>
       <a routerLink="roles" routerLinkActive #rlaRoles="routerLinkActive"
         class="pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer"
-        [class]="rlaRoles.isActive ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
+        [class]="rlaRoles.isActive ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Roles &amp; Permissions (JSON)
       </a>
       <a routerLink="api-keys" routerLinkActive #rlaApiKeys="routerLinkActive"
         class="pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer"
-        [class]="rlaApiKeys.isActive ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
+        [class]="rlaApiKeys.isActive ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Service API Keys (S2S)
       </a>
       <a routerLink="integration" routerLinkActive #rlaIntegration="routerLinkActive"
         class="pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer"
-        [class]="rlaIntegration.isActive ? 'border-white text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
+        [class]="rlaIntegration.isActive ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Integration
       </a>

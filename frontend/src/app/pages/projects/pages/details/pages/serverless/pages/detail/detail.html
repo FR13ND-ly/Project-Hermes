@@ -1,16 +1,16 @@
 <div class="space-y-6 animate-fade-in font-mono" *ngIf="selectedInstance() as inst">
-  <a [routerLink]="['/projects', parent.projectId(), 'serverless']" class="text-[11px] text-zinc-550 hover:text-white cursor-pointer block">← Back to instance list</a>
+  <a [routerLink]="['/projects', parent.projectId(), 'serverless']" class="text-[11px] text-zinc-550 hover:text-zinc-50 cursor-pointer block">← Back to instance list</a>
 
-  <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 flex items-center justify-between">
+  <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex items-center justify-between">
     <div>
       <div class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full" [class]="inst.status === 'active' ? 'bg-emerald-500' : inst.status === 'building' ? 'bg-amber-500 animate-pulse' : inst.status === 'failed' ? 'bg-red-500' : 'bg-zinc-600'"></span>
-        <h3 class="text-sm font-bold text-white">{{ inst.name }}</h3>
+        <h3 class="text-sm font-bold text-zinc-50">{{ inst.name }}</h3>
         <span class="text-[9px] uppercase px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">{{ inst.runtime }}</span>
       </div>
       <p class="text-[10px] text-zinc-550 mt-1 font-sans">{{ (inst.routes || []).length }} routes · {{ inst.assignedDomain || (inst.externalPort ? ('localhost:' + inst.externalPort) : 'not deployed') }}</p>
     </div>
-    <button (click)="onDeployInstance()" [disabled]="deploying() || inst.status === 'building'" class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold cursor-pointer disabled:opacity-50">
+    <button (click)="onDeployInstance()" [disabled]="deploying() || inst.status === 'building'" class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-bold cursor-pointer disabled:opacity-50">
       {{ deploying() || inst.status === 'building' ? 'Building...' : '🚀 Deploy' }}
     </button>
   </div>
@@ -21,7 +21,7 @@
       routerLink="details"
       routerLinkActive
       #rlaDetails="routerLinkActive"
-      [class]="rlaDetails.isActive ? 'border-b-2 border-white text-white pb-3 px-1 font-bold' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 border-b-2 border-transparent'" 
+      [class]="rlaDetails.isActive ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 font-bold' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 border-b-2 border-transparent'" 
       class="cursor-pointer transition-all"
     >
       Details
@@ -30,7 +30,7 @@
       routerLink="routes"
       routerLinkActive
       #rlaRoutes="routerLinkActive"
-      [class]="rlaRoutes.isActive ? 'border-b-2 border-white text-white pb-3 px-1 font-bold' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 border-b-2 border-transparent'" 
+      [class]="rlaRoutes.isActive ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 font-bold' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 border-b-2 border-transparent'" 
       class="cursor-pointer transition-all"
     >
       Routes
@@ -39,7 +39,7 @@
       routerLink="settings"
       routerLinkActive
       #rlaSettings="routerLinkActive"
-      [class]="rlaSettings.isActive ? 'border-b-2 border-white text-white pb-3 px-1 font-bold' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 border-b-2 border-transparent'" 
+      [class]="rlaSettings.isActive ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 font-bold' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 border-b-2 border-transparent'" 
       class="cursor-pointer transition-all"
     >
       Settings
@@ -48,7 +48,7 @@
       routerLink="env"
       routerLinkActive
       #rlaEnv="routerLinkActive"
-      [class]="rlaEnv.isActive ? 'border-b-2 border-white text-white pb-3 px-1 font-bold' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 border-b-2 border-transparent'" 
+      [class]="rlaEnv.isActive ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 font-bold' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 border-b-2 border-transparent'" 
       class="cursor-pointer transition-all"
     >
       Variables
@@ -57,7 +57,7 @@
       routerLink="metrics"
       routerLinkActive
       #rlaMetrics="routerLinkActive"
-      [class]="rlaMetrics.isActive ? 'border-b-2 border-white text-white pb-3 px-1 font-bold' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 border-b-2 border-transparent'" 
+      [class]="rlaMetrics.isActive ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 font-bold' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 border-b-2 border-transparent'" 
       class="cursor-pointer transition-all"
     >
       Telemetry
@@ -66,7 +66,7 @@
       routerLink="builds"
       routerLinkActive
       #rlaBuilds="routerLinkActive"
-      [class]="rlaBuilds.isActive ? 'border-b-2 border-white text-white pb-3 px-1 font-bold' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 border-b-2 border-transparent'" 
+      [class]="rlaBuilds.isActive ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 font-bold' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 border-b-2 border-transparent'" 
       class="cursor-pointer transition-all"
     >
       Builds
@@ -75,7 +75,7 @@
       routerLink="logs"
       routerLinkActive
       #rlaLogs="routerLinkActive"
-      [class]="rlaLogs.isActive ? 'border-b-2 border-white text-white pb-3 px-1 font-bold' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 border-b-2 border-transparent'" 
+      [class]="rlaLogs.isActive ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 font-bold' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 border-b-2 border-transparent'" 
       class="cursor-pointer transition-all"
     >
       Logs

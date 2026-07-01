@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-black text-zinc-100 flex flex-col">
+<div class="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
   
   @if (!isAuthenticated()) {
     <!-- Guest User (Auth Screen) -->
@@ -7,14 +7,14 @@
     <!-- Authenticated User (Top Navigation Layout) -->
     
     <!-- Top Navigation Header -->
-    <header class="sticky top-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-zinc-900 h-14 flex items-center justify-between px-6">
+    <header class="sticky top-0 z-50 bg-zinc-900/80 backdrop-blur-md border-b border-zinc-900 h-14 flex items-center justify-between px-6">
       
       <!-- Left Brand & Switcher -->
       <!-- Left Brand & Switcher -->
       <div class="flex items-center gap-2.5 relative">
         <a routerLink="/dashboard" class="flex items-center gap-2 hover:opacity-90 transition-opacity">
           <img src="/logo.png" class="w-5 h-5 object-contain" alt="Hermes Logo" />
-          <span class="text-xs font-bold tracking-wider text-white uppercase font-mono">Hermes OS</span>
+          <span class="text-xs font-bold tracking-wider text-zinc-50 uppercase font-mono">Hermes OS</span>
         </a>
         
         <span class="text-zinc-800 text-sm select-none">/</span>
@@ -22,7 +22,7 @@
         <div class="relative">
           <button 
             (click)="showWorkspaceDropdown.set(!showWorkspaceDropdown())"
-            class="flex items-center gap-1 text-xs text-zinc-350 hover:text-white font-medium px-2 py-1 rounded hover:bg-zinc-900 transition-colors cursor-pointer"
+            class="flex items-center gap-1 text-xs text-zinc-350 hover:text-zinc-50 font-medium px-2 py-1 rounded hover:bg-zinc-900 transition-colors cursor-pointer"
             aria-haspopup="listbox"
             [attr.aria-expanded]="showWorkspaceDropdown()"
           >
@@ -37,16 +37,16 @@
             <!-- Backdrop to close dropdown -->
             <div class="fixed inset-0 z-40" (click)="showWorkspaceDropdown.set(false)"></div>
             
-            <div class="absolute left-0 mt-1 w-56 rounded-md border border-zinc-850 bg-[#0a0a0a] shadow-lg ring-1 ring-black ring-opacity-5 z-50 py-1 text-xs focus:outline-none">
+            <div class="absolute left-0 mt-1 w-56 rounded-md border border-zinc-850 bg-zinc-900 shadow-lg ring-1 ring-zinc-950 ring-opacity-5 z-50 py-1 text-xs focus:outline-none">
               <div class="px-3 py-1.5 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Workspaces</div>
               
               <div class="max-h-60 overflow-y-auto">
                 @for (ws of workspaces(); track ws.id) {
                   <button 
                     (click)="onSwitchWorkspace(ws.id); showWorkspaceDropdown.set(false)"
-                    class="w-full text-left px-3 py-2 text-zinc-300 hover:text-white hover:bg-zinc-900 transition-colors flex items-center justify-between cursor-pointer"
+                    class="w-full text-left px-3 py-2 text-zinc-300 hover:text-zinc-50 hover:bg-zinc-900 transition-colors flex items-center justify-between cursor-pointer"
                     [class.bg-zinc-900]="ws.id === auth.currentWorkspaceId()"
-                    [class.text-white]="ws.id === auth.currentWorkspaceId()"
+                    [class.text-zinc-50]="ws.id === auth.currentWorkspaceId()"
                   >
                     <span>{{ ws.name }}</span>
                     @if (ws.id === auth.currentWorkspaceId()) {
@@ -63,7 +63,7 @@
 
                 <button
                   (click)="onOpenCreateWorkspaceModal(); showWorkspaceDropdown.set(false)"
-                  class="w-full text-left px-3 py-2 text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors flex items-center gap-1.5 font-semibold cursor-pointer"
+                  class="w-full text-left px-3 py-2 text-zinc-400 hover:text-zinc-50 hover:bg-zinc-900 transition-colors flex items-center gap-1.5 font-semibold cursor-pointer"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -76,32 +76,9 @@
         </div>
       </div>
 
-      <!-- Center Nav Links -->
-      <nav class="flex items-center gap-6 h-full" role="navigation" aria-label="Main Menu">
-        <a 
-          routerLink="/dashboard" 
-          routerLinkActive="text-white border-b-2 border-white!"
-          [routerLinkActiveOptions]="{exact: true}"
-          class="text-xs font-medium text-zinc-400 hover:text-white transition-colors h-full flex items-center px-1 border-b-2 border-transparent"
-        >
-          Projects
-        </a>
-        <a
-          routerLink="/workspace/settings"
-          routerLinkActive="text-white border-b-2 border-white!"
-          class="text-xs font-medium text-zinc-400 hover:text-white transition-colors h-full flex items-center px-1 border-b-2 border-transparent"
-        >
-          Workspace Settings
-        </a>
-        @if (currentUser()?.is_super_admin) {
-          <a
-            routerLink="/admin/users"
-            [class]="isAdminRouteActive() ? 'text-white border-b-2 border-white! text-xs font-medium transition-colors h-full flex items-center px-1' : 'text-zinc-400 hover:text-white transition-colors h-full flex items-center px-1 border-b-2 border-transparent text-xs font-medium'"
-          >
-            Admin Console
-          </a>
-        }
-      </nav>
+      <!-- Center nav removed: Projects / Workspace Settings now live inside the
+           workspace dashboard (app-workspace-nav); Admin Console moved to the user menu. -->
+      <div class="flex-1"></div>
 
       <!-- Right User Actions & Quotas -->
       <div class="flex items-center gap-6">
@@ -190,23 +167,73 @@
           <div class="h-4 w-px bg-zinc-800 hidden md:block" aria-hidden="true"></div>
         }
 
-        <!-- User Profile & Logout -->
-        <div class="flex items-center gap-3">
-          <div class="flex flex-col text-right">
-            <span class="text-xs font-semibold text-white">{{ currentUser()?.username }}</span>
-            <span class="text-[9px] text-zinc-500 font-mono">{{ currentUser()?.email }}</span>
-          </div>
+        <!-- Theme switcher (dark / light / retro) -->
+        <div class="flex items-center gap-0.5 p-0.5 rounded-md border border-zinc-800 bg-zinc-900" role="group" aria-label="Theme">
+          @for (opt of theme.options; track opt.id) {
+            <button
+              type="button"
+              (click)="theme.setTheme(opt.id)"
+              [attr.aria-pressed]="theme.theme() === opt.id"
+              [title]="opt.label + ' theme'"
+              class="w-6 h-6 rounded flex items-center justify-center text-xs leading-none transition-colors cursor-pointer"
+              [class]="theme.theme() === opt.id ? 'bg-zinc-700 text-zinc-50 shadow-sm' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800'"
+            >
+              <span aria-hidden="true">{{ opt.icon }}</span>
+            </button>
+          }
+        </div>
 
-          <button 
-            (click)="logout()" 
-            class="text-zinc-500 hover:text-white p-1 rounded hover:bg-zinc-900 transition-colors cursor-pointer"
-            aria-label="Sign out"
-            title="Sign out"
+        <div class="h-4 w-px bg-zinc-800 hidden md:block" aria-hidden="true"></div>
+
+        <!-- User menu (profile → Admin Console + Sign out) -->
+        <div class="relative">
+          <button
+            (click)="showUserMenu.set(!showUserMenu())"
+            class="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-zinc-900 transition-colors cursor-pointer"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="showUserMenu()"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+            <div class="flex flex-col text-right">
+              <span class="text-xs font-semibold text-zinc-50 leading-tight">{{ currentUser()?.username }}</span>
+              <span class="text-[9px] text-zinc-500 font-mono leading-tight">{{ currentUser()?.email }}</span>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-550 shrink-0">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
             </svg>
           </button>
+
+          @if (showUserMenu()) {
+            <!-- Backdrop to close on outside click -->
+            <div class="fixed inset-0 z-40" (click)="showUserMenu.set(false)"></div>
+
+            <div class="absolute right-0 mt-1 w-48 rounded-md border border-zinc-850 bg-zinc-900 shadow-lg ring-1 ring-zinc-950 ring-opacity-5 z-50 py-1 text-xs focus:outline-none" role="menu">
+              @if (isSuperAdmin()) {
+                <a
+                  routerLink="/admin/users"
+                  (click)="showUserMenu.set(false)"
+                  class="w-full text-left px-3 py-2 text-zinc-300 hover:text-zinc-50 hover:bg-zinc-800 transition-colors flex items-center gap-2 cursor-pointer"
+                  [class.text-zinc-50]="isAdminRouteActive()"
+                  role="menuitem"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" class="w-3.5 h-3.5 shrink-0">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Admin Console
+                </a>
+                <div class="border-t border-zinc-850 my-1"></div>
+              }
+              <button
+                (click)="showUserMenu.set(false); logout()"
+                class="w-full text-left px-3 py-2 text-zinc-300 hover:text-zinc-50 hover:bg-zinc-800 transition-colors flex items-center gap-2 cursor-pointer"
+                role="menuitem"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" class="w-3.5 h-3.5 shrink-0">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                </svg>
+                Sign out
+              </button>
+            </div>
+          }
         </div>
       </div>
 
@@ -222,15 +249,15 @@
 
     <!-- Workspace Creation Modal Overlay -->
     @if (showCreateWorkspaceModal()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xs animate-fade-in">
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/85 backdrop-blur-xs animate-fade-in">
         <div 
-          class="w-full max-w-md bg-[#0a0a0a] border border-zinc-800 rounded-lg shadow-2xl p-6 space-y-6"
+          class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl p-6 space-y-6"
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-title"
         >
           <div class="space-y-1">
-            <h3 id="modal-title" class="text-sm font-bold text-white uppercase tracking-wider">Create New Workspace</h3>
+            <h3 id="modal-title" class="text-sm font-bold text-zinc-50 uppercase tracking-wider">Create New Workspace</h3>
             <p class="text-zinc-500 text-xs">A workspace lets you isolate and share your projects and resources.</p>
           </div>
           
@@ -242,7 +269,7 @@
               placeholder="e.g. Personal Projects, Dev Team"
               [ngModel]="newWorkspaceName()"
               (ngModelChange)="newWorkspaceName.set($event)"
-              class="block w-full px-3 py-2 text-sm bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-550 transition-colors font-mono"
+              class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors font-mono"
               (keyup.enter)="onCreateWorkspace()"
               autofocus
             />
@@ -251,14 +278,14 @@
           <div class="flex justify-end gap-3 pt-2">
             <button 
               (click)="showCreateWorkspaceModal.set(false)"
-              class="px-4 py-2 rounded text-zinc-400 hover:text-white text-xs font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer"
+              class="px-4 py-2 rounded text-zinc-400 hover:text-zinc-50 text-xs font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               (click)="onCreateWorkspace()"
               [disabled]="!newWorkspaceName().trim()"
-              class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
+              class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
             >
               Create
             </button>
@@ -300,7 +327,7 @@
           </div>
           <button 
             (click)="toast.dismiss(t.id)" 
-            class="text-zinc-400 hover:text-white font-bold text-sm cursor-pointer select-none px-1"
+            class="text-zinc-400 hover:text-zinc-50 font-bold text-sm cursor-pointer select-none px-1"
           >
             ×
           </button>
@@ -310,16 +337,16 @@
 
     <!-- Global Confirmation Modal Overlay -->
     @if (confirm.activeModal(); as modal) {
-      <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 animate-fade-in font-sans" (click)="confirm.cancel()">
+      <div class="fixed inset-0 bg-zinc-950/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 animate-fade-in font-sans" (click)="confirm.cancel()">
         <div
-          class="bg-[#0a0a0a] border border-zinc-800 rounded-lg max-w-sm w-full p-6 space-y-4 shadow-2xl"
+          class="bg-zinc-900 border border-zinc-800 rounded-lg max-w-sm w-full p-6 space-y-4 shadow-2xl"
           role="dialog"
           aria-modal="true"
           aria-labelledby="confirm-modal-title"
           (click)="$event.stopPropagation()"
         >
           <div class="space-y-1">
-            <h3 id="confirm-modal-title" class="text-sm font-bold text-white uppercase tracking-wider font-mono">
+            <h3 id="confirm-modal-title" class="text-sm font-bold text-zinc-50 uppercase tracking-wider font-mono">
               {{ modal.options.title }}
             </h3>
             <p class="text-xs text-zinc-400 leading-relaxed font-sans">
@@ -329,13 +356,13 @@
             @if (modal.options.matchText) {
               <div class="space-y-1.5 pt-2">
                 <label class="text-[9px] font-bold text-zinc-550 uppercase tracking-wider font-mono">
-                  Type <span class="text-white font-bold select-all">"{{ modal.options.matchText }}"</span> below to confirm:
+                  Type <span class="text-zinc-50 font-bold select-all">"{{ modal.options.matchText }}"</span> below to confirm:
                 </label>
                 <input 
                   type="text" 
                   [ngModel]="confirm.typedText()"
                   (ngModelChange)="confirm.typedText.set($event)"
-                  class="block w-full px-2.5 py-1.5 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-550 transition-colors font-mono"
+                  class="block w-full px-2.5 py-1.5 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors font-mono"
                   placeholder="Enter the confirmation"
                 />
               </div>
@@ -345,14 +372,14 @@
           <div class="flex justify-end gap-3 pt-2">
             <button 
               (click)="confirm.cancel()"
-              class="px-4 py-2 rounded text-zinc-400 hover:text-white text-xs font-semibold border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer"
+              class="px-4 py-2 rounded text-zinc-400 hover:text-zinc-50 text-xs font-semibold border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer"
             >
               {{ modal.options.cancelText }}
             </button>
             <button 
               (click)="confirm.confirm()"
               [disabled]="modal.options.matchText && confirm.typedText() !== modal.options.matchText"
-              [class]="modal.options.isDanger ? 'px-4 py-2 rounded bg-red-650 hover:bg-red-700 text-white text-xs font-semibold shadow cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed' : 'px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed'"
+              [class]="modal.options.isDanger ? 'px-4 py-2 rounded bg-red-650 hover:bg-red-700 text-zinc-50 text-xs font-semibold shadow cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed' : 'px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed'"
             >
               {{ modal.options.confirmText }}
             </button>

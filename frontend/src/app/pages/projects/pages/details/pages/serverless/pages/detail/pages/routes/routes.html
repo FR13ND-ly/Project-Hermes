@@ -2,7 +2,7 @@
   <div class="lg:col-span-1 space-y-2">
     <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
       <h4 class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Rute ({{ (routes() || []).length }})</h4>
-      <button (click)="onAddRoute()" class="px-2 py-1 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-semibold cursor-pointer">+ Add</button>
+      <button (click)="onAddRoute()" class="px-2 py-1 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-[10px] font-semibold cursor-pointer">+ Add</button>
     </div>
     @if ((routes() || []).length === 0) {
       <p class="text-[11px] text-zinc-600 italic py-3 font-sans">No routes. Click "+ Add".</p>
@@ -23,21 +23,21 @@
 
   <div class="lg:col-span-2">
     @if (selectedRoute()) {
-      <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-4 space-y-3">
+      <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3">
         <div class="grid gap-2 sm:grid-cols-[120px_1fr]">
-          <select [ngModel]="routeMethod()" (ngModelChange)="routeMethod.set($event)" class="px-3 py-2 bg-black border border-zinc-850 rounded text-white text-xs focus:outline-none focus:border-zinc-500 cursor-pointer">
+          <select [ngModel]="routeMethod()" (ngModelChange)="routeMethod.set($event)" class="px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-zinc-50 text-xs focus:outline-none focus:border-zinc-500 cursor-pointer">
             @for (m of httpMethods; track m) { <option [value]="m">{{ m }}</option> }
           </select>
-          <input type="text" placeholder="/route-path (framework syntax: /users/:id Express, /users/<id> Flask)" [ngModel]="routePath()" (ngModelChange)="routePath.set($event)" class="px-3 py-2 bg-black border border-zinc-850 rounded text-white text-xs focus:outline-none focus:border-zinc-500" />
+          <input type="text" placeholder="/route-path (framework syntax: /users/:id Express, /users/<id> Flask)" [ngModel]="routePath()" (ngModelChange)="routePath.set($event)" class="px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-zinc-50 text-xs focus:outline-none focus:border-zinc-500" />
         </div>
         <div id="route-editor-container" class="w-full h-[420px] border border-zinc-850 rounded overflow-hidden"></div>
         <div class="flex justify-end gap-2">
-          <button (click)="closeRouteEditor()" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-900 text-xs font-semibold cursor-pointer">Close</button>
-          <button (click)="onSaveRoute()" [disabled]="savingRoute()" class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold cursor-pointer disabled:opacity-50">{{ savingRoute() ? 'Saving...' : 'Save route' }}</button>
+          <button (click)="closeRouteEditor()" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 hover:bg-zinc-900 text-xs font-semibold cursor-pointer">Close</button>
+          <button (click)="onSaveRoute()" [disabled]="savingRoute()" class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold cursor-pointer disabled:opacity-50">{{ savingRoute() ? 'Saving...' : 'Save route' }}</button>
         </div>
       </div>
     } @else {
-      <div class="bg-[#0a0a0a] border border-dashed border-zinc-800 rounded-lg p-10 text-center text-[11px] text-zinc-600 font-sans">Select a route on the left to edit its code, or add a new one.</div>
+      <div class="bg-zinc-900 border border-dashed border-zinc-800 rounded-lg p-10 text-center text-[11px] text-zinc-600 font-sans">Select a route on the left to edit its code, or add a new one.</div>
     }
   </div>
 </div>

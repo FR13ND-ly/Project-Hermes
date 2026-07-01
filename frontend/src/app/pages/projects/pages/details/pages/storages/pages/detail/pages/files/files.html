@@ -1,14 +1,14 @@
 <div class="space-y-4 animate-fade-in">
   
   <!-- Explorer Toolbar -->
-  <div class="bg-[#0a0a0a] border border-zinc-900 rounded p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-inner">
+  <div class="bg-zinc-900 border border-zinc-900 rounded p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-inner">
     
     <!-- Breadcrumbs -->
     <div class="flex items-center gap-2 overflow-x-auto py-1 shrink-0 max-w-full">
       @if (parent.currentPath() !== '/') {
         <button 
           (click)="parent.onNavigateBack()"
-          class="p-1 rounded bg-black hover:bg-zinc-900 border border-zinc-800 text-zinc-440 hover:text-white cursor-pointer transition-colors"
+          class="p-1 rounded bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-zinc-440 hover:text-zinc-50 cursor-pointer transition-colors"
           title="Go back"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
@@ -20,7 +20,7 @@
       <div class="flex items-center text-xs font-semibold text-zinc-400 font-mono">
         <span 
           (click)="parent.onNavigateBreadcrumb(-1)"
-          class="hover:text-white cursor-pointer select-none"
+          class="hover:text-zinc-50 cursor-pointer select-none"
           [class.text-zinc-300]="parent.currentPath() === '/'"
         >
           root
@@ -30,7 +30,7 @@
           <span class="mx-1.5 text-zinc-650">/</span>
           <span 
             (click)="parent.onNavigateBreadcrumb($index)"
-            class="hover:text-white cursor-pointer select-none max-w-[120px] truncate"
+            class="hover:text-zinc-50 cursor-pointer select-none max-w-[120px] truncate"
             [class.text-zinc-300]="$last"
             [title]="part"
           >
@@ -53,15 +53,15 @@
           placeholder="Search files..."
           [ngModel]="parent.searchQuery()"
           (ngModelChange)="parent.searchQuery.set($event)"
-          class="block w-full pl-8 pr-3 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-550 transition-colors font-mono"
+          class="block w-full pl-8 pr-3 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors font-mono"
         />
       </div>
 
-      <div class="flex items-center bg-black border border-zinc-850 p-0.5 rounded shrink-0">
+      <div class="flex items-center bg-zinc-950 border border-zinc-850 p-0.5 rounded shrink-0">
         <button 
           (click)="parent.viewMode.set('grid')"
           class="p-1 rounded cursor-pointer"
-          [class]="parent.viewMode() === 'grid' ? 'bg-zinc-900 text-white' : 'text-zinc-650 hover:text-zinc-400'"
+          [class]="parent.viewMode() === 'grid' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'"
           title="Grid View"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
@@ -71,7 +71,7 @@
         <button 
           (click)="parent.viewMode.set('list')"
           class="p-1 rounded cursor-pointer"
-          [class]="parent.viewMode() === 'list' ? 'bg-zinc-900 text-white' : 'text-zinc-650 hover:text-zinc-400'"
+          [class]="parent.viewMode() === 'list' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'"
           title="List View"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
@@ -93,12 +93,12 @@
             [ngModel]="parent.newFolderName()"
             (ngModelChange)="parent.newFolderName.set($event)"
             (keyup.enter)="parent.onCreateFolder()"
-            class="px-2.5 py-1 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-550 transition-colors font-mono w-40"
+            class="px-2.5 py-1 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors font-mono w-40"
           />
           <button 
             (click)="parent.onCreateFolder()"
             [disabled]="!parent.newFolderName().trim()"
-            class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white text-[10px] font-bold cursor-pointer disabled:opacity-50"
+            class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-50 text-[10px] font-bold cursor-pointer disabled:opacity-50"
           >
             Create
           </button>
@@ -112,7 +112,7 @@
       } @else {
         <button 
           (click)="parent.showFolderForm.set(true)"
-          class="px-2.5 py-1 rounded border border-zinc-900 hover:border-zinc-850 bg-black hover:bg-zinc-950 text-zinc-400 hover:text-white text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
+          class="px-2.5 py-1 rounded border border-zinc-900 hover:border-zinc-850 bg-zinc-950 hover:bg-zinc-950 text-zinc-400 hover:text-zinc-50 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-550">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 10.5v6m3-3H9m4.06-7.19l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
@@ -131,7 +131,7 @@
       />
       <label 
         for="file-upload-picker"
-        class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
+        class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -146,7 +146,7 @@
     <div class="bg-zinc-950 border border-zinc-900 rounded p-3 space-y-2 animate-pulse font-mono">
       <div class="flex items-center justify-between text-[10px] font-bold text-zinc-400">
         <span class="flex items-center gap-1.5">
-          <svg class="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <svg class="animate-spin h-3.5 w-3.5 text-zinc-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
@@ -155,7 +155,7 @@
         <span>{{ parent.uploadProgress() }}%</span>
       </div>
       <div class="w-full h-1 bg-zinc-900 rounded-full overflow-hidden">
-        <div class="h-full bg-white transition-all duration-150" [style.width.%]="parent.uploadProgress()"></div>
+        <div class="h-full bg-zinc-50 transition-all duration-150" [style.width.%]="parent.uploadProgress()"></div>
       </div>
     </div>
   }
@@ -171,7 +171,7 @@
     </div>
   } @else {
     @if (parent.currentItems().length === 0) {
-      <div class="bg-black/30 border border-zinc-900 rounded p-12 text-center space-y-2">
+      <div class="bg-zinc-950/30 border border-zinc-900 rounded p-12 text-center space-y-2">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-zinc-655 mx-auto">
           <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
         </svg>
@@ -184,12 +184,12 @@
     @if (parent.viewMode() === 'grid' && parent.currentItems().length > 0) {
       <div class="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 animate-fade-in font-mono">
         @for (item of parent.currentItems(); track item.filePath) {
-          <div class="bg-[#0a0a0a] border border-zinc-900 hover:border-zinc-800 rounded overflow-hidden flex flex-col justify-between group shadow transition-all">
+          <div class="bg-zinc-900 border border-zinc-900 hover:border-zinc-800 rounded overflow-hidden flex flex-col justify-between group shadow transition-all">
             
-            <div class="h-28 bg-black flex items-center justify-center relative border-b border-zinc-955 p-2.5 overflow-hidden">
+            <div class="h-28 bg-zinc-950 flex items-center justify-center relative border-b border-zinc-955 p-2.5 overflow-hidden">
               <!-- Overlays for pending_upload / processing -->
               @if (item.status === 'processing' || item.status === 'pending_upload') {
-                <div class="absolute inset-0 bg-black/85 z-10 flex flex-col items-center justify-center p-2 text-center animate-pulse">
+                <div class="absolute inset-0 bg-zinc-950/85 z-10 flex flex-col items-center justify-center p-2 text-center animate-pulse">
                   <svg class="animate-spin h-5 w-5 text-indigo-500 mb-1.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -205,7 +205,7 @@
                   <!-- Image folder preview cover -->
                   <div (click)="parent.onNavigate(item.filePath)" class="cursor-pointer relative w-full h-full flex items-center justify-center">
                     <img [src]="item.virtualUrl" class="max-h-full max-w-full object-contain rounded-sm select-none" alt="{{ item.name }}" />
-                    <div class="absolute bottom-1 right-1 bg-black/80 border border-zinc-800 rounded px-1.5 py-0.5 text-[8px] font-bold text-zinc-300 uppercase flex items-center gap-1 font-sans">
+                    <div class="absolute bottom-1 right-1 bg-zinc-950/80 border border-zinc-800 rounded px-1.5 py-0.5 text-[8px] font-bold text-zinc-300 uppercase flex items-center gap-1 font-sans">
                       <span class="inline-block w-1.5 h-1.5 rounded-full bg-purple-400"></span>
                       Variants
                     </div>
@@ -256,7 +256,7 @@
               }
             </div>
 
-            <div class="border-t border-zinc-955 p-2 bg-black/40 flex items-center justify-between gap-1">
+            <div class="border-t border-zinc-955 p-2 bg-zinc-950/40 flex items-center justify-between gap-1">
               @if (item.status === 'processing' || item.status === 'pending_upload') {
                 <div class="flex items-center gap-1.5 w-full justify-between">
                   <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider pl-1.5 animate-pulse">
@@ -275,7 +275,7 @@
                 <div class="flex items-center gap-1.5 w-full justify-between">
                   <button
                     (click)="parent.onNavigate(item.filePath)"
-                    class="px-2.5 py-1 rounded bg-zinc-900 text-zinc-400 hover:text-white text-[9px] font-bold w-full uppercase text-center cursor-pointer border border-zinc-800"
+                    class="px-2.5 py-1 rounded bg-zinc-900 text-zinc-400 hover:text-zinc-50 text-[9px] font-bold w-full uppercase text-center cursor-pointer border border-zinc-800"
                   >
                     Open
                   </button>
@@ -297,7 +297,7 @@
                     @if (item.virtualUrl) {
                       <button 
                         (click)="parent.copyPublicUrl(item)" 
-                        class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white cursor-pointer transition-colors"
+                        class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-zinc-50 cursor-pointer transition-colors"
                         title="Copy public URL"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
@@ -308,7 +308,7 @@
                       <a 
                         [href]="item.virtualUrl" 
                         target="_blank" 
-                        class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white cursor-pointer transition-colors flex items-center"
+                        class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-zinc-50 cursor-pointer transition-colors flex items-center"
                         title="Open in new tab"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
@@ -339,10 +339,10 @@
 
     <!-- LIST VIEW -->
     @if (parent.viewMode() === 'list' && parent.currentItems().length > 0) {
-      <div class="bg-[#0a0a0a] border border-zinc-900 rounded overflow-hidden shadow font-mono">
+      <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow font-mono">
         <table class="w-full text-left border-collapse text-xs">
           <thead>
-            <tr class="border-b border-zinc-900 bg-black/60 text-zinc-500 uppercase tracking-wider text-[9px] font-bold">
+            <tr class="border-b border-zinc-900 bg-zinc-950/60 text-zinc-500 uppercase tracking-wider text-[9px] font-bold">
               <th class="p-3">Name</th>
               <th class="p-3">Type</th>
               <th class="p-3">Size</th>
@@ -356,7 +356,7 @@
                   @if (item.isFolder) {
                     <span 
                       (click)="parent.onNavigate(item.filePath)" 
-                      class="flex items-center gap-2 cursor-pointer hover:underline text-zinc-400 hover:text-white"
+                      class="flex items-center gap-2 cursor-pointer hover:underline text-zinc-400 hover:text-zinc-50"
                     >
                       @if (item.hasVariants) {
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-purple-400">
@@ -411,14 +411,14 @@
                         }
                       </div>
                     } @else if (item.isFolder) {
-                      <button (click)="parent.onNavigate(item.filePath)" class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-zinc-350 hover:text-white cursor-pointer">Open</button>
+                      <button (click)="parent.onNavigate(item.filePath)" class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-zinc-350 hover:text-zinc-50 cursor-pointer">Open</button>
                       @if (item.id) {
                         <button (click)="parent.onDeleteFile(item)" class="px-2 py-0.5 rounded hover:bg-red-950/20 text-zinc-555 hover:text-red-400 text-[10px] font-bold uppercase cursor-pointer">Delete</button>
                       }
                     } @else {
                       @if (item.virtualUrl) {
-                        <button (click)="parent.copyPublicUrl(item)" class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-450 hover:text-white text-[10px] font-bold uppercase cursor-pointer">URL</button>
-                        <a [href]="item.virtualUrl" target="_blank" class="px-2 py-0.5 rounded bg-black border border-zinc-850 text-zinc-555 hover:text-white text-[10px] font-bold uppercase">View</a>
+                        <button (click)="parent.copyPublicUrl(item)" class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-450 hover:text-zinc-50 text-[10px] font-bold uppercase cursor-pointer">URL</button>
+                        <a [href]="item.virtualUrl" target="_blank" class="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-850 text-zinc-555 hover:text-zinc-50 text-[10px] font-bold uppercase">View</a>
                       }
                       @if (item.id) {
                         <button (click)="parent.onDeleteFile(item)" class="px-2 py-0.5 rounded hover:bg-red-950/20 text-zinc-555 hover:text-red-400 text-[10px] font-bold uppercase cursor-pointer">Delete</button>

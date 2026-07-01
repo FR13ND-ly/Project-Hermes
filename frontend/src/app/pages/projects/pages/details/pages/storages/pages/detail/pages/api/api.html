@@ -1,7 +1,7 @@
 <div class="space-y-6 animate-fade-in font-mono text-zinc-350">
 
   <!-- Info Banner -->
-  <div class="bg-[#0a0a0a] border border-zinc-900 rounded p-5 space-y-3 shadow-sm">
+  <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-3 shadow-sm">
     <div class="flex items-center gap-2 border-b border-zinc-900 pb-2.5">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-purple-400">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
@@ -16,7 +16,7 @@
   </div>
 
   <!-- Bucket credentials (key pair) -->
-  <div class="bg-[#0a0a0a] border border-zinc-900 rounded p-5 space-y-2 shadow-sm">
+  <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-2 shadow-sm">
     <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Bucket Credentials</h4>
     <p class="text-[11px] text-zinc-500 leading-relaxed font-sans">
       Access is done with the <span class="font-mono text-zinc-300">app_id</span> /
@@ -32,60 +32,60 @@
       <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Usage Examples</h4>
 
       <!-- .env snippet -->
-      <div class="bg-[#0a0a0a] border border-zinc-900 rounded overflow-hidden shadow-sm">
-        <div class="flex items-center justify-between bg-black/60 border-b border-zinc-900 px-4 py-2">
+      <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow-sm">
+        <div class="flex items-center justify-between bg-zinc-950/60 border-b border-zinc-900 px-4 py-2">
           <span class="text-[9px] font-bold text-zinc-555 uppercase tracking-wider">.env</span>
           <button
             (click)="parent.copyToClipboard(parent.getEnvSnippet())"
-            class="text-[9px] text-zinc-600 hover:text-white cursor-pointer font-semibold uppercase tracking-wider"
+            class="text-[9px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
           >Copy</button>
         </div>
         <pre class="p-4 text-[11px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ parent.getEnvSnippet() }}</pre>
       </div>
 
       <!-- cURL Upload -->
-      <div class="bg-[#0a0a0a] border border-zinc-900 rounded overflow-hidden shadow-sm">
-        <div class="flex items-center justify-between bg-black/60 border-b border-zinc-900 px-4 py-2">
+      <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow-sm">
+        <div class="flex items-center justify-between bg-zinc-950/60 border-b border-zinc-900 px-4 py-2">
           <span class="text-[9px] font-bold text-zinc-555 uppercase tracking-wider">cURL — Upload File</span>
           <button
             (click)="parent.copyToClipboard(parent.getUploadSnippet())"
-            class="text-[9px] text-zinc-600 hover:text-white cursor-pointer font-semibold uppercase tracking-wider"
+            class="text-[9px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
           >Copy</button>
         </div>
         <pre class="p-4 text-[11px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ parent.getUploadSnippet() }}</pre>
       </div>
 
       <!-- Node.js snippet -->
-      <div class="bg-[#0a0a0a] border border-zinc-900 rounded overflow-hidden shadow-sm">
-        <div class="flex items-center justify-between bg-black/60 border-b border-zinc-900 px-4 py-2">
+      <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow-sm">
+        <div class="flex items-center justify-between bg-zinc-950/60 border-b border-zinc-900 px-4 py-2">
           <span class="text-[9px] font-bold text-zinc-555 uppercase tracking-wider">Node.js — Upload File</span>
           <button
             (click)="parent.copyToClipboard(parent.getNodeSnippet())"
-            class="text-[9px] text-zinc-600 hover:text-white cursor-pointer font-semibold uppercase tracking-wider"
+            class="text-[9px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
           >Copy</button>
         </div>
         <pre class="p-4 text-[11px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ parent.getNodeSnippet() }}</pre>
       </div>
 
       <!-- List Files -->
-      <div class="bg-[#0a0a0a] border border-zinc-900 rounded overflow-hidden shadow-sm">
-        <div class="flex items-center justify-between bg-black/60 border-b border-zinc-900 px-4 py-2">
+      <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow-sm">
+        <div class="flex items-center justify-between bg-zinc-950/60 border-b border-zinc-900 px-4 py-2">
           <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">cURL — List Files</span>
           <button
             (click)="parent.copyToClipboard(parent.getListSnippet())"
-            class="text-[9px] text-zinc-600 hover:text-white cursor-pointer font-semibold uppercase tracking-wider"
+            class="text-[9px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
           >Copy</button>
         </div>
         <pre class="p-4 text-[11px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ parent.getListSnippet() }}</pre>
       </div>
 
       <!-- Download Private File -->
-      <div class="bg-[#0a0a0a] border border-zinc-900 rounded overflow-hidden shadow-sm">
-        <div class="flex items-center justify-between bg-black/60 border-b border-zinc-900 px-4 py-2">
+      <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow-sm">
+        <div class="flex items-center justify-between bg-zinc-950/60 border-b border-zinc-900 px-4 py-2">
           <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">cURL — Download Private File</span>
           <button
             (click)="parent.copyToClipboard(parent.getDownloadSnippet())"
-            class="text-[9px] text-zinc-600 hover:text-white cursor-pointer font-semibold uppercase tracking-wider"
+            class="text-[9px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
           >Copy</button>
         </div>
         <pre class="p-4 text-[11px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ parent.getDownloadSnippet() }}</pre>

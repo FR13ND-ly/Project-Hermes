@@ -1,14 +1,14 @@
-<div class="flex min-h-screen flex-col items-center justify-center bg-black px-4 py-12 sm:px-6 lg:px-8 animate-fade-in">
+<div class="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4 py-12 sm:px-6 lg:px-8 animate-fade-in">
   
   <div class="w-full max-w-sm space-y-8 z-10">
     
     <!-- Logo & Title -->
     <div class="flex flex-col items-center justify-center text-center">
-      <div class="flex items-center justify-center w-12 h-12 rounded border border-zinc-800 bg-[#0a0a0a] shadow-lg overflow-hidden p-2">
+      <div class="flex items-center justify-center w-12 h-12 rounded border border-zinc-800 bg-zinc-900 shadow-lg overflow-hidden p-2">
         <img src="/logo.png" class="w-full h-full object-contain" alt="Hermes Logo" />
       </div>
       
-      <h1 class="mt-4 text-xl font-bold tracking-tight text-white uppercase font-mono">
+      <h1 class="mt-4 text-xl font-bold tracking-tight text-zinc-50 uppercase font-mono">
         Hermes OS
       </h1>
       <p class="mt-1.5 text-xs text-zinc-500">
@@ -18,7 +18,7 @@
 
     <!-- Login & Activation Form Card -->
     @if (mode() === 'login') {
-      <div class="bg-[#0a0a0a] p-6 rounded-lg border border-zinc-800 shadow-xl space-y-6 animate-fade-in">
+      <div class="bg-zinc-900 p-6 rounded-lg border border-zinc-800 shadow-xl space-y-6 animate-fade-in">
         
         <form class="space-y-4" (ngSubmit)="onSubmit()">
           <!-- Error Message -->
@@ -40,7 +40,7 @@
               type="text" 
               required 
               aria-required="true"
-              class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" 
+              class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" 
               placeholder="admin@hermes.platform"
               [ngModel]="loginIdentity()"
               (ngModelChange)="loginIdentity.set($event)"
@@ -57,7 +57,7 @@
               type="password" 
               required 
               aria-required="true"
-              class="block w-full px-3 py-2 text-sm bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" 
+              class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" 
               placeholder="••••••••••••"
               [ngModel]="password()"
               (ngModelChange)="password.set($event)"
@@ -69,13 +69,13 @@
           <button 
             type="submit" 
             [disabled]="loading()"
-            class="relative flex w-full items-center justify-center rounded bg-white hover:bg-zinc-200 py-2.5 text-xs font-semibold text-black shadow transition-all cursor-pointer disabled:opacity-50 font-sans"
+            class="relative flex w-full items-center justify-center rounded bg-zinc-50 hover:bg-zinc-200 py-2.5 text-xs font-semibold text-zinc-950 shadow transition-all cursor-pointer disabled:opacity-50 font-sans"
           >
             @if (!loading()) {
               <span>Sign In</span>
             } @else {
               <div class="flex items-center gap-2">
-                <svg class="animate-spin h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <svg class="animate-spin h-4 w-4 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
@@ -87,7 +87,7 @@
         
       </div>
     } @else {
-      <div class="bg-[#0a0a0a] p-6 rounded-lg border border-zinc-800 shadow-xl space-y-6 animate-fade-in font-mono text-xs">
+      <div class="bg-zinc-900 p-6 rounded-lg border border-zinc-800 shadow-xl space-y-6 animate-fade-in font-mono text-xs">
         
         @if (activationSuccess()) {
           <div class="space-y-3 py-2 text-center">
@@ -103,7 +103,7 @@
           </div>
         } @else {
           <form class="space-y-4" (ngSubmit)="onActivateSubmit()">
-            <h2 class="text-[10px] font-bold text-white uppercase tracking-wider text-center border-b border-zinc-900 pb-2">Activate New Account</h2>
+            <h2 class="text-[10px] font-bold text-zinc-50 uppercase tracking-wider text-center border-b border-zinc-900 pb-2">Activate New Account</h2>
 
             <!-- Error Message -->
             @if (activationError()) {
@@ -123,7 +123,7 @@
                 name="act-email" 
                 type="email" 
                 required 
-                class="block w-full px-3 py-2 bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors" 
+                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors" 
                 placeholder="e.g. name@company.com"
                 [ngModel]="activateEmail()"
                 (ngModelChange)="activateEmail.set($event)"
@@ -139,7 +139,7 @@
                 name="temp-pwd" 
                 type="password" 
                 required 
-                class="block w-full px-3 py-2 bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors" 
+                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors" 
                 placeholder="Provided by the admin"
                 [ngModel]="temporaryPassword()"
                 (ngModelChange)="temporaryPassword.set($event)"
@@ -155,7 +155,7 @@
                 name="new-pwd" 
                 type="password" 
                 required 
-                class="block w-full px-3 py-2 bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors" 
+                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors" 
                 placeholder="Min. 6 characters"
                 [ngModel]="newPassword()"
                 (ngModelChange)="newPassword.set($event)"
@@ -171,7 +171,7 @@
                 name="confirm-pwd" 
                 type="password" 
                 required 
-                class="block w-full px-3 py-2 bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors" 
+                class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors" 
                 placeholder="Re-enter the password"
                 [ngModel]="confirmNewPassword()"
                 (ngModelChange)="confirmNewPassword.set($event)"
@@ -183,13 +183,13 @@
             <button 
               type="submit" 
               [disabled]="activationLoading() || !activateEmail() || !temporaryPassword() || !newPassword() || !confirmNewPassword()"
-              class="relative flex w-full items-center justify-center rounded bg-white hover:bg-zinc-200 py-2.5 text-xs font-semibold text-black shadow transition-all cursor-pointer disabled:opacity-50 font-sans"
+              class="relative flex w-full items-center justify-center rounded bg-zinc-50 hover:bg-zinc-200 py-2.5 text-xs font-semibold text-zinc-950 shadow transition-all cursor-pointer disabled:opacity-50 font-sans"
             >
               @if (!activationLoading()) {
                 <span>Activate Account</span>
               } @else {
                 <div class="flex items-center gap-2">
-                  <svg class="animate-spin h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg class="animate-spin h-4 w-4 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                   </svg>
@@ -202,7 +202,7 @@
             <button 
               type="button" 
               (click)="onGoBackToLogin()" 
-              class="text-zinc-550 hover:text-white transition-colors cursor-pointer text-[10px] block text-center w-full mt-2 font-mono uppercase tracking-wider font-bold"
+              class="text-zinc-550 hover:text-zinc-50 transition-colors cursor-pointer text-[10px] block text-center w-full mt-2 font-mono uppercase tracking-wider font-bold"
             >
               Back to Sign In
             </button>

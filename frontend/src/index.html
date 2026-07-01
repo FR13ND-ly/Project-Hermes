@@ -9,8 +9,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    // Apply the saved theme before first paint so there's no flash of the wrong palette.
+    (function () {
+      try {
+        var t = localStorage.getItem('hermes-theme');
+        document.documentElement.setAttribute('data-theme', t === 'light' || t === 'retro' ? t : 'dark');
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
 </head>
-<body class="bg-[#09090b] text-[#fafafa] antialiased">
+<body class="bg-zinc-950 text-zinc-50 antialiased">
   <app-root></app-root>
 </body>
 </html>

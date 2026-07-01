@@ -4,22 +4,22 @@
   <div class="flex items-center gap-2 border-b border-zinc-900 pb-3 font-mono text-xs select-none">
     <a
       routerLink="/admin/users"
-      routerLinkActive="bg-white text-black font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-white"
+      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-50"
     >
       Users
     </a>
     <a
       routerLink="/admin/workspaces"
-      routerLinkActive="bg-white text-black font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-white"
+      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-50"
     >
       Workspaces
     </a>
     <a
       routerLink="/admin/logs"
-      routerLinkActive="bg-white text-black font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-white"
+      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-50"
     >
       Logs
     </a>
@@ -32,7 +32,7 @@
   </div>
 
   <!-- Change My Password (self-service for the logged-in admin / root) -->
-  <div class="bg-[#0a0a0a]/90 p-6 rounded-lg border border-zinc-900 space-y-5 shadow-lg font-mono">
+  <div class="bg-zinc-900/90 p-6 rounded-lg border border-zinc-900 space-y-5 shadow-lg font-mono">
     <div class="border-b border-zinc-900 pb-2.5">
       <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Your Account · Change Password</h4>
       <p class="text-[11px] text-zinc-550 mt-0.5">Update the password for <span class="text-zinc-300">{{ auth.currentUser()?.username }}</span> (requires your current password).</p>
@@ -47,28 +47,28 @@
         <label for="cur-pwd" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Current Password</label>
         <input id="cur-pwd" type="password" autocomplete="current-password" placeholder="••••••••"
           [ngModel]="currentPassword()" (ngModelChange)="currentPassword.set($event)" [disabled]="changingPassword()"
-          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
       </div>
       <div class="space-y-1.5">
         <label for="new-pwd" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">New Password</label>
         <input id="new-pwd" type="password" autocomplete="new-password" placeholder="min. 8 characters"
           [ngModel]="newPassword()" (ngModelChange)="newPassword.set($event)" [disabled]="changingPassword()"
-          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
       </div>
       <div class="space-y-1.5">
         <label for="conf-pwd" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Confirm New Password</label>
         <input id="conf-pwd" type="password" autocomplete="new-password" placeholder="repeat new password"
           [ngModel]="confirmPassword()" (ngModelChange)="confirmPassword.set($event)" [disabled]="changingPassword()"
           (keyup.enter)="onChangePassword()"
-          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
       </div>
     </div>
 
     <div class="flex justify-end">
       <button (click)="onChangePassword()" [disabled]="changingPassword()"
-        class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2">
+        class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2">
         @if (changingPassword()) {
-          <svg class="animate-spin h-3.5 w-3.5 text-black" fill="none" viewBox="0 0 24 24">
+          <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
           </svg>
@@ -85,7 +85,7 @@
     
     <!-- Provisioning Form (Left/6 cols) -->
     <div class="lg:col-span-7">
-      <div class="bg-[#0a0a0a]/90 p-6 rounded-lg border border-zinc-900 space-y-5 shadow-lg">
+      <div class="bg-zinc-900/90 p-6 rounded-lg border border-zinc-900 space-y-5 shadow-lg">
         
         <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
           <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Register New User</h4>
@@ -110,7 +110,7 @@
                 [ngModel]="newUserEmail()"
                 (ngModelChange)="newUserEmail.set($event)"
                 [disabled]="provisioningUser()"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
             </div>
 
@@ -124,7 +124,7 @@
                 [ngModel]="newUserName()"
                 (ngModelChange)="newUserName.set($event)"
                 [disabled]="provisioningUser()"
-                class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
             </div>
           </div>
@@ -137,7 +137,7 @@
               [ngModel]="newUserIsAdmin()"
               (ngModelChange)="newUserIsAdmin.set($event)"
               [disabled]="provisioningUser()"
-              class="w-3.5 h-3.5 bg-black border border-zinc-850 rounded text-white focus:outline-none focus:ring-0 cursor-pointer accent-white"
+              class="w-3.5 h-3.5 bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:ring-0 cursor-pointer accent-zinc-50"
             />
             <label for="new-user-admin" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer">Super Administrator Rights</label>
           </div>
@@ -148,10 +148,10 @@
           <button 
             (click)="onProvisionUser()"
             [disabled]="provisioningUser() || !newUserEmail().trim() || !newUserName().trim()"
-            class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
+            class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
           >
             @if (provisioningUser()) {
-              <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>
@@ -167,7 +167,7 @@
 
     <!-- Info & Temporary Password Reveal (Right/5 cols) -->
     <div class="lg:col-span-5 space-y-4">
-      <div class="p-5 rounded-lg border border-zinc-850 bg-[#070707] space-y-3">
+      <div class="p-5 rounded-lg border border-zinc-850 bg-zinc-950 space-y-3">
         <h4 class="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">Account Activation Flow</h4>
         <p class="text-[11px] text-zinc-500 font-sans leading-relaxed">
           The system creates the account with a pending activation status and generates a temporary password.
@@ -181,7 +181,7 @@
       <!-- Result Card (Password Reveal) -->
       @if (provisionedPassword()) {
         <div class="bg-zinc-950 border border-zinc-800/80 p-5 rounded-lg space-y-3 shadow-xl">
-          <div class="flex items-center gap-2 text-white font-bold uppercase tracking-wider text-[10px]">
+          <div class="flex items-center gap-2 text-zinc-50 font-bold uppercase tracking-wider text-[10px]">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-emerald-450">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -192,8 +192,8 @@
             Send the user this temporary password:
           </p>
 
-          <div class="flex items-center justify-between bg-black border border-zinc-900 p-2.5 rounded font-mono">
-            <span class="text-white font-bold tracking-wide select-all text-xs">{{ provisionedPassword() }}</span>
+          <div class="flex items-center justify-between bg-zinc-950 border border-zinc-900 p-2.5 rounded font-mono">
+            <span class="text-zinc-50 font-bold tracking-wide select-all text-xs">{{ provisionedPassword() }}</span>
             <button 
               (click)="copyToClipboard(provisionedPassword()!)" 
               class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-850 text-zinc-300 text-[10px] cursor-pointer transition-colors border border-zinc-800 font-sans"
@@ -208,14 +208,14 @@
   </div>
 
   <!-- Bottom Section: Users List -->
-  <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg overflow-hidden shadow-lg font-mono">
+  <div class="bg-zinc-900 border border-zinc-900 rounded-lg overflow-hidden shadow-lg font-mono">
     
     <div class="p-4 bg-zinc-950/40 border-b border-zinc-900 flex items-center justify-between">
       <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Registered Users ({{ users().length }})</h4>
       <button
         (click)="loadUsers()"
         [disabled]="loadingUsers()"
-        class="p-1 rounded hover:bg-zinc-900 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+        class="p-1 rounded hover:bg-zinc-900 text-zinc-400 hover:text-zinc-50 transition-colors cursor-pointer"
         title="Refresh list"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4" [class.animate-spin]="loadingUsers()">
@@ -283,7 +283,7 @@
                     <button 
                       (click)="onResetPassword(user)"
                       title="Reset Password"
-                      class="p-1.5 rounded border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white cursor-pointer transition-all mr-1.5"
+                      class="p-1.5 rounded border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-50 cursor-pointer transition-all mr-1.5"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H3.75v-2.25c-.247-.247-.5-.5-.5-.75V15.75l4.873-4.873c.403-.403.526-.999.43-1.563A6 6 0 1 1 15.75 5.25Z" />
@@ -295,7 +295,7 @@
                       (click)="onToggleSuspend(user)"
                       [title]="user.status.toLowerCase() === 'suspended' ? 'Activate Account' : 'Suspend Account'"
                       class="p-1.5 rounded border transition-all mr-1.5 cursor-pointer"
-                      [class]="user.status.toLowerCase() === 'suspended' ? 'border-emerald-900/40 hover:bg-emerald-950/20 text-emerald-450' : 'border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white'"
+                      [class]="user.status.toLowerCase() === 'suspended' ? 'border-emerald-900/40 hover:bg-emerald-950/20 text-emerald-450' : 'border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-50'"
                     >
                       @if (user.status.toLowerCase() === 'suspended') {
                         <!-- Unlock Icon -->

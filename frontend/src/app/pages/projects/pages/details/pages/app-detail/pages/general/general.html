@@ -1,7 +1,7 @@
 <div class="space-y-6 animate-fade-in max-w-2xl font-mono" *ngIf="parent.app()">
 
   <!-- General config: ports + build/start commands -->
-  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">General Configuration</h3>
       <p class="text-[10px] text-zinc-555 mt-0.5 font-mono">Settings will trigger an asynchronous service redeployment</p>
@@ -17,7 +17,7 @@
           placeholder="8080" 
           [ngModel]="parent.internalPort()"
           (ngModelChange)="parent.internalPort.set($event)"
-          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
+          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
           required
         />
         <span class="text-[9px] text-zinc-600 block">The port your application listens on. Auto-detected from <code>EXPOSE</code> (Dockerfile) at build time, until you set it manually here.</span>
@@ -32,7 +32,7 @@
           placeholder="Auto-generated if empty" 
           [ngModel]="parent.externalPort()"
           (ngModelChange)="parent.externalPort.set($event)"
-          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
+          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
         />
         <span class="text-[9px] text-zinc-600 block">Leave empty to allocate a random port.</span>
       </div>
@@ -48,7 +48,7 @@
           placeholder="ex. npm run build" 
           [ngModel]="parent.buildCommand()"
           (ngModelChange)="parent.buildCommand.set($event)"
-          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
         />
         <span class="text-[9px] text-zinc-600 block">Run during build. E.g.: npm run build</span>
       </div>
@@ -61,7 +61,7 @@
           placeholder="ex. npm start" 
           [ngModel]="parent.startCommand()"
           (ngModelChange)="parent.startCommand.set($event)"
-          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
         />
         <span class="text-[9px] text-zinc-600 block">Run at startup. E.g.: npx ng serve --host 0.0.0.0 --port 4000</span>
       </div>
@@ -72,7 +72,7 @@
       <button
         (click)="parent.onSaveSettings()"
         [disabled]="parent.savingSettings()"
-        class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
+        class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
       >
         {{ parent.savingSettings() ? 'Saving...' : 'Save Settings' }}
       </button>
@@ -80,7 +80,7 @@
   </div>
 
   <!-- Domains & Routing -->
-  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
     <div class="border-b border-zinc-900 pb-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
         <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Domains & Routing</h3>
@@ -88,7 +88,7 @@
       </div>
       <button
         (click)="parent.onOpenAddDomainModal()"
-        class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+        class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -113,7 +113,7 @@
       </div>
       <button
         (click)="parent.onDeleteApp()"
-        class="px-4 py-2 rounded bg-[#0a0202] hover:bg-red-950/20 text-red-500 hover:text-red-400 font-bold border border-red-900/40 hover:border-red-900/60 transition-all text-xs cursor-pointer shadow-sm"
+        class="px-4 py-2 rounded bg-zinc-950 hover:bg-red-950/20 text-red-500 hover:text-red-400 font-bold border border-red-900/40 hover:border-red-900/60 transition-all text-xs cursor-pointer shadow-sm"
       >
         Delete Application
       </button>

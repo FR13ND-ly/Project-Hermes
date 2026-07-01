@@ -2,7 +2,7 @@
 
   <!-- Telemetry Graphs -->
   @if (parent.activeInstanceId()) {
-    <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm animate-fade-in">
+    <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm animate-fade-in">
       
       <!-- Controls & Header -->
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3">
@@ -17,7 +17,7 @@
             <select 
               [ngModel]="parent.activeInstanceId()"
               (ngModelChange)="parent.onInstanceChange($event)"
-              class="block bg-black border border-zinc-800 text-zinc-300 text-xs font-semibold py-1.5 pl-3 pr-8 rounded focus:outline-none appearance-none cursor-pointer hover:border-zinc-500 w-44 font-mono truncate"
+              class="block bg-zinc-950 border border-zinc-800 text-zinc-300 text-xs font-semibold py-1.5 pl-3 pr-8 rounded focus:outline-none appearance-none cursor-pointer hover:border-zinc-500 w-44 font-mono truncate"
             >
               @for (inst of parent.app()?.instances; track inst.id) {
                 <option [value]="inst.id">{{ inst.containerName }}</option>
@@ -35,12 +35,12 @@
             @if (parent.metricsSimulated()) {
               <span class="px-1.5 py-0.5 rounded bg-amber-950/30 border border-amber-900/40 text-[8px] font-bold uppercase tracking-wider text-amber-400" title="Prometheus unavailable — no real data to display">Data unavailable</span>
             }
-            <div class="flex items-center rounded bg-black border border-zinc-800 p-0.5 font-mono text-[9px]">
+            <div class="flex items-center rounded bg-zinc-950 border border-zinc-800 p-0.5 font-mono text-[9px]">
               @for (r of ['1h', '24h', '7d']; track r) {
                 <button
                   (click)="parent.onRangeChange(r)"
                   class="px-2 py-0.5 rounded text-zinc-500 hover:text-zinc-300 cursor-pointer font-semibold transition-colors uppercase"
-                  [ngClass]="{'bg-zinc-900 text-white!': parent.selectedRange() === r}"
+                  [ngClass]="{'bg-zinc-900 text-zinc-50!': parent.selectedRange() === r}"
                 >
                   {{ r }}
                 </button>
@@ -53,8 +53,8 @@
       <!-- SVG Charts container -->
       <div class="relative min-h-[200px]">
         @if (parent.metricsLoading()) {
-          <div class="absolute inset-0 bg-black/45 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center gap-1.5">
-            <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+          <div class="absolute inset-0 bg-zinc-950/45 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center gap-1.5">
+            <svg class="animate-spin h-5 w-5 text-zinc-50" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
             </svg>
@@ -64,10 +64,10 @@
 
         <div class="grid gap-4 md:grid-cols-2">
           <!-- CPU -->
-          <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+          <div class="p-4 rounded border border-zinc-900 bg-zinc-950 space-y-3 shadow-inner">
             <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
               <span>CPU Usage (Millicores)</span>
-              <span class="text-white font-mono font-bold">{{ parent.cpuCurrent() | number:'1.0-1' }}m / @if (parent.cpuLimit() === 0) { Unlimited } @else { {{ parent.cpuLimit() }}m }</span>
+              <span class="text-zinc-50 font-mono font-bold">{{ parent.cpuCurrent() | number:'1.0-1' }}m / @if (parent.cpuLimit() === 0) { Unlimited } @else { {{ parent.cpuLimit() }}m }</span>
             </div>
             <div class="space-y-1">
               <div class="w-full h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
@@ -75,7 +75,7 @@
               </div>
               <div class="text-[9px] text-zinc-650 font-mono text-right">@if (parent.cpuLimit() === 0) { Unlimited } @else { {{ parent.cpuUsedPct() }}% of allocated quota }</div>
             </div>
-            <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[120px] relative">
+            <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[120px] relative">
               @if (parent.cpuValues().length > 1) {
                 <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
                   <defs>
@@ -94,10 +94,10 @@
           </div>
 
           <!-- RAM -->
-          <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+          <div class="p-4 rounded border border-zinc-900 bg-zinc-950 space-y-3 shadow-inner">
             <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
               <span>RAM Memory Usage</span>
-              <span class="text-white font-mono font-bold">{{ parent.memCurrent() | number:'1.0-1' }} / @if (parent.memLimit() === 0) { Unlimited } @else { {{ parent.memLimit() }} MB }</span>
+              <span class="text-zinc-50 font-mono font-bold">{{ parent.memCurrent() | number:'1.0-1' }} / @if (parent.memLimit() === 0) { Unlimited } @else { {{ parent.memLimit() }} MB }</span>
             </div>
             <div class="space-y-1">
               <div class="w-full h-1 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
@@ -105,7 +105,7 @@
               </div>
               <div class="text-[9px] text-zinc-655 font-mono text-right">@if (parent.memLimit() === 0) { Unlimited } @else { {{ parent.memUsedPct() }}% of allocated quota }</div>
             </div>
-            <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[120px] relative">
+            <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[120px] relative">
               @if (parent.memValues().length > 1) {
                 <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
                   <defs>
@@ -124,14 +124,14 @@
           </div>
 
           <!-- Inbound Network (network_rx) -->
-          <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+          <div class="p-4 rounded border border-zinc-900 bg-zinc-950 space-y-3 shadow-inner">
             <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
               <span>Network Traffic - Inbound (Download)</span>
               @if (parent.netRxValues().length > 0) {
-                <span class="text-white font-mono font-bold">{{ parent.netRxValues()[parent.netRxValues().length - 1] | number:'1.0-1' }} KB/s</span>
+                <span class="text-zinc-50 font-mono font-bold">{{ parent.netRxValues()[parent.netRxValues().length - 1] | number:'1.0-1' }} KB/s</span>
               }
             </div>
-            <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[120px] relative">
+            <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[120px] relative">
               @if (parent.netRxValues().length > 1) {
                 <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
                   <defs>
@@ -150,14 +150,14 @@
           </div>
 
           <!-- Outbound Network (network_tx) -->
-          <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+          <div class="p-4 rounded border border-zinc-900 bg-zinc-950 space-y-3 shadow-inner">
             <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
               <span>Network Traffic - Outbound (Upload)</span>
               @if (parent.netTxValues().length > 0) {
-                <span class="text-white font-mono font-bold">{{ parent.netTxValues()[parent.netTxValues().length - 1] | number:'1.0-1' }} KB/s</span>
+                <span class="text-zinc-50 font-mono font-bold">{{ parent.netTxValues()[parent.netTxValues().length - 1] | number:'1.0-1' }} KB/s</span>
               }
             </div>
-            <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[120px] relative">
+            <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[120px] relative">
               @if (parent.netTxValues().length > 1) {
                 <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
                   <defs>
@@ -176,14 +176,14 @@
           </div>
 
           <!-- Disk Read (fs_read) -->
-          <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+          <div class="p-4 rounded border border-zinc-900 bg-zinc-950 space-y-3 shadow-inner">
             <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
               <span>Disk Read</span>
               @if (parent.fsReadValues().length > 0) {
-                <span class="text-white font-mono font-bold">{{ parent.fsReadValues()[parent.fsReadValues().length - 1] | number:'1.0-1' }} KB/s</span>
+                <span class="text-zinc-50 font-mono font-bold">{{ parent.fsReadValues()[parent.fsReadValues().length - 1] | number:'1.0-1' }} KB/s</span>
               }
             </div>
-            <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[120px] relative">
+            <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[120px] relative">
               @if (parent.fsReadValues().length > 1) {
                 <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
                   <defs>
@@ -202,14 +202,14 @@
           </div>
 
           <!-- Disk Write (fs_write) -->
-          <div class="p-4 rounded border border-zinc-900 bg-black space-y-3 shadow-inner">
+          <div class="p-4 rounded border border-zinc-900 bg-zinc-950 space-y-3 shadow-inner">
             <div class="flex items-center justify-between text-xs text-zinc-400 font-medium">
               <span>Disk Write</span>
               @if (parent.fsWriteValues().length > 0) {
-                <span class="text-white font-mono font-bold">{{ parent.fsWriteValues()[parent.fsWriteValues().length - 1] | number:'1.0-1' }} KB/s</span>
+                <span class="text-zinc-50 font-mono font-bold">{{ parent.fsWriteValues()[parent.fsWriteValues().length - 1] | number:'1.0-1' }} KB/s</span>
               }
             </div>
-            <div class="w-full bg-[#030303] border border-zinc-950 rounded overflow-hidden h-[120px] relative">
+            <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[120px] relative">
               @if (parent.fsWriteValues().length > 1) {
                 <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
                   <defs>
@@ -230,7 +230,7 @@
       </div>
     </div>
   } @else {
-    <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-12 text-center text-zinc-550 text-xs font-mono">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-12 text-center text-zinc-550 text-xs font-mono">
       No active instance for this application. Start the application to view telemetry data.
     </div>
   }

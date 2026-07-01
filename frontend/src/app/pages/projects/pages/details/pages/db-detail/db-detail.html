@@ -5,7 +5,7 @@
     <div class="flex items-center gap-2">
       <a 
         [routerLink]="['/projects', parent.projectId(), 'databases']"
-        class="flex items-center gap-1 text-[10px] uppercase font-bold text-zinc-550 hover:text-white transition-colors"
+        class="flex items-center gap-1 text-[10px] uppercase font-bold text-zinc-550 hover:text-zinc-50 transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3 h-3">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -17,7 +17,7 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div class="space-y-1">
         <div class="flex items-center gap-3">
-          <h2 class="text-xl font-black text-white tracking-tight">{{ db()?.name }}</h2>
+          <h2 class="text-xl font-black text-zinc-50 tracking-tight">{{ db()?.name }}</h2>
           <span 
             class="px-2 py-0.5 rounded text-[10px] font-bold border font-mono uppercase"
             [ngClass]="{
@@ -39,7 +39,7 @@
           routerLinkActive
           #rlaOverview="routerLinkActive"
           [routerLinkActiveOptions]="{exact: true}"
-          [class]="rlaOverview.isActive ? 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-white text-black border-white' : 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-transparent text-zinc-450 hover:text-white border-zinc-850'"
+          [class]="rlaOverview.isActive ? 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-zinc-50 text-zinc-950 border-zinc-50' : 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-transparent text-zinc-450 hover:text-zinc-50 border-zinc-850'"
         >
           Overview
         </a>
@@ -48,7 +48,7 @@
           routerLink="console"
           routerLinkActive
           #rlaConsole="routerLinkActive"
-          [class]="rlaConsole.isActive ? 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-white text-black border-white' : 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-transparent text-zinc-450 hover:text-white border-zinc-850'"
+          [class]="rlaConsole.isActive ? 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-zinc-50 text-zinc-950 border-zinc-50' : 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-transparent text-zinc-450 hover:text-zinc-50 border-zinc-850'"
         >
           Query Console
         </a>
@@ -57,7 +57,7 @@
           routerLink="telemetry"
           routerLinkActive
           #rlaTelemetry="routerLinkActive"
-          [class]="rlaTelemetry.isActive ? 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-white text-black border-white' : 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-transparent text-zinc-450 hover:text-white border-zinc-850'"
+          [class]="rlaTelemetry.isActive ? 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-zinc-50 text-zinc-950 border-zinc-50' : 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-transparent text-zinc-450 hover:text-zinc-50 border-zinc-850'"
         >
           Telemetry
         </a>
@@ -66,7 +66,7 @@
           routerLink="logs"
           routerLinkActive
           #rlaLogs="routerLinkActive"
-          [class]="rlaLogs.isActive ? 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-white text-black border-white' : 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-transparent text-zinc-450 hover:text-white border-zinc-850'"
+          [class]="rlaLogs.isActive ? 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-zinc-50 text-zinc-950 border-zinc-50' : 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-transparent text-zinc-450 hover:text-zinc-50 border-zinc-850'"
         >
           Container Logs (Stdout)
         </a>
@@ -75,7 +75,7 @@
           routerLink="backups"
           routerLinkActive
           #rlaBackups="routerLinkActive"
-          [class]="rlaBackups.isActive ? 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-white text-black border-white' : 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-transparent text-zinc-450 hover:text-white border-zinc-850'"
+          [class]="rlaBackups.isActive ? 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-zinc-50 text-zinc-950 border-zinc-50' : 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-transparent text-zinc-450 hover:text-zinc-50 border-zinc-850'"
         >
           Backups
         </a>
@@ -84,7 +84,7 @@
           routerLink="settings"
           routerLinkActive
           #rlaSettings="routerLinkActive"
-          [class]="rlaSettings.isActive ? 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-white text-black border-white' : 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-transparent text-zinc-450 hover:text-white border-zinc-850'"
+          [class]="rlaSettings.isActive ? 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-zinc-50 text-zinc-950 border-zinc-50' : 'px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-all border bg-transparent text-zinc-450 hover:text-zinc-50 border-zinc-850'"
         >
           Settings
         </a>

@@ -1,7 +1,7 @@
 <div class="space-y-4 animate-fade-in font-mono">
   <!-- Build lifecycle stepper -->
   @if (parent.displayBuild(); as build) {
-    <div class="bg-[#0a0a0a] p-4 rounded-lg border mb-4 font-mono"
+    <div class="bg-zinc-900 p-4 rounded-lg border mb-4 font-mono"
          [class]="parent.isBuildFailed(build) ? 'border-red-900/40' : 'border-zinc-800'">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Build Lifecycle</h3>
@@ -37,9 +37,9 @@
               <div
                 class="w-6 h-6 rounded-full flex items-center justify-center border text-[9px] font-bold transition-all duration-300"
                 [ngClass]="{
-                  'bg-emerald-500 border-emerald-500 text-black': step.status === 'done',
-                  'bg-amber-500 border-amber-500 text-black animate-pulse': step.status === 'active',
-                  'bg-red-600 border-red-600 text-white': step.status === 'failed',
+                  'bg-emerald-500 border-emerald-500 text-zinc-950': step.status === 'done',
+                  'bg-amber-500 border-amber-500 text-zinc-950 animate-pulse': step.status === 'active',
+                  'bg-red-600 border-red-600 text-zinc-50': step.status === 'failed',
                   'bg-amber-950/40 border-amber-700/60 text-amber-400': step.status === 'warning',
                   'bg-zinc-900 border-zinc-800 text-zinc-600': step.status === 'pending',
                   'bg-zinc-950 border-zinc-900 text-zinc-700': step.status === 'skipped'
@@ -57,7 +57,7 @@
                     </svg>
                   }
                   @case ('warning') { ! }
-                  @case ('active') { <span class="w-2 h-2 rounded-full bg-black"></span> }
+                  @case ('active') { <span class="w-2 h-2 rounded-full bg-zinc-950"></span> }
                   @case ('skipped') { – }
                   @default { <span class="w-1.5 h-1.5 rounded-full bg-zinc-600"></span> }
                 }
@@ -84,8 +84,8 @@
               <div
                 class="w-6 h-6 rounded-full flex items-center justify-center border text-[9px] font-bold transition-all duration-300"
                 [ngClass]="{
-                  'bg-emerald-500 border-emerald-500 text-black': !parent.isBuildFailed(build) && parent.stepState(build, i) === 'done',
-                  'bg-amber-500 border-amber-500 text-black animate-pulse': !parent.isBuildFailed(build) && parent.stepState(build, i) === 'active',
+                  'bg-emerald-500 border-emerald-500 text-zinc-950': !parent.isBuildFailed(build) && parent.stepState(build, i) === 'done',
+                  'bg-amber-500 border-amber-500 text-zinc-950 animate-pulse': !parent.isBuildFailed(build) && parent.stepState(build, i) === 'active',
                   'bg-zinc-900 border-zinc-800 text-zinc-600': parent.isBuildFailed(build) || parent.stepState(build, i) === 'pending'
                 }"
               >
@@ -127,10 +127,10 @@
           <button
             (click)="parent.onRetryBuild(build)"
             [disabled]="parent.retryingBuild()"
-            class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-[10px] font-bold shadow transition-all cursor-pointer disabled:opacity-50 shrink-0 flex items-center gap-1.5"
+            class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-[10px] font-bold shadow transition-all cursor-pointer disabled:opacity-50 shrink-0 flex items-center gap-1.5"
           >
             @if (parent.retryingBuild()) {
-              <svg class="animate-spin h-3 w-3 text-black" fill="none" viewBox="0 0 24 24">
+              <svg class="animate-spin h-3 w-3 text-zinc-950" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>
@@ -149,12 +149,12 @@
   <div class="grid gap-4 lg:grid-cols-3 font-mono">
     <!-- Sidebar Selector (Build History) -->
     <div class="lg:col-span-1 space-y-4">
-      <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm flex flex-col">
+      <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm flex flex-col">
         <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
           <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Build History</h3>
           <button 
             (click)="parent.loadBuilds()" 
-            class="text-zinc-505 hover:text-zinc-300 p-1.5 rounded border border-zinc-900 bg-black hover:border-zinc-500 transition-all cursor-pointer"
+            class="text-zinc-505 hover:text-zinc-300 p-1.5 rounded border border-zinc-900 bg-zinc-950 hover:border-zinc-500 transition-all cursor-pointer"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -164,7 +164,7 @@
 
         @if (parent.buildsLoading()) {
           <div class="flex justify-center py-8">
-            <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+            <svg class="animate-spin h-5 w-5 text-zinc-50" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
             </svg>
@@ -180,14 +180,14 @@
             @for (build of parent.builds(); track build.id) {
               <button
                 (click)="parent.onViewBuildLogs(build)"
-                class="w-full text-left p-3 rounded border bg-black text-xs transition-all hover:border-zinc-505 hover:bg-zinc-950 flex flex-col gap-2 cursor-pointer"
-                [class.border-white]="parent.selectedBuildId() === build.id"
+                class="w-full text-left p-3 rounded border bg-zinc-950 text-xs transition-all hover:border-zinc-505 hover:bg-zinc-950 flex flex-col gap-2 cursor-pointer"
+                [class.border-zinc-50]="parent.selectedBuildId() === build.id"
                 [class.border-emerald-700]="build.isLive && parent.selectedBuildId() !== build.id"
                 [class.border-zinc-900]="!build.isLive && parent.selectedBuildId() !== build.id"
               >
                 <div class="w-full space-y-1">
                   <div class="flex items-center justify-between gap-2">
-                    <span class="font-bold text-zinc-200 truncate max-w-[110px] block" [class.text-white]="parent.selectedBuildId() === build.id">
+                    <span class="font-bold text-zinc-200 truncate max-w-[110px] block" [class.text-zinc-50]="parent.selectedBuildId() === build.id">
                       {{ build.commitMessage || 'Manual Launch' }}
                     </span>
                     <div class="flex items-center gap-1 shrink-0">
@@ -241,7 +241,7 @@
 
     <!-- Terminal Output View -->
     <div class="lg:col-span-2 space-y-4">
-      <div class="flex items-center justify-between bg-[#0a0a0a]/50 p-3 rounded-lg border border-zinc-900">
+      <div class="flex items-center justify-between bg-zinc-900/50 p-3 rounded-lg border border-zinc-900">
         <div>
           <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">
             Build Logs @if (parent.selectedBuildId()) { (ID: {{ parent.selectedBuildId()?.substring(0, 8) }}) }
@@ -269,14 +269,14 @@
             placeholder="Filter logs..." 
             [ngModel]="parent.logSearchQuery()"
             (ngModelChange)="parent.logSearchQuery.set($event)"
-            class="bg-black border border-zinc-850 text-zinc-300 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 w-32 sm:w-44 font-mono"
+            class="bg-zinc-950 border border-zinc-850 text-zinc-300 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 w-32 sm:w-44 font-mono"
           />
           
           <!-- Download button -->
           <button 
             (click)="parent.onDownloadLogs()"
             [disabled]="!parent.selectedBuildId()"
-            class="p-1.5 rounded border border-zinc-855 bg-black hover:border-zinc-500 text-zinc-500 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+            class="p-1.5 rounded border border-zinc-855 bg-zinc-950 hover:border-zinc-500 text-zinc-500 hover:text-zinc-50 transition-colors cursor-pointer disabled:opacity-50"
             title="Download complete logs"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
@@ -289,7 +289,7 @@
               (click)="parent.onRollbackBuild(parent.selectedBuild()!)"
               [disabled]="parent.rollingBackId() === parent.selectedBuild()!.id"
               title="Redeploy this build's image"
-              class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border border-zinc-700 bg-black hover:border-zinc-400 text-zinc-300 hover:text-white transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border border-zinc-700 bg-zinc-950 hover:border-zinc-400 text-zinc-300 hover:text-zinc-50 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
             >
               @if (parent.rollingBackId() === parent.selectedBuild()!.id) {
                 <svg class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
@@ -308,7 +308,7 @@
           <button 
             (click)="parent.toggleAutoScroll()"
             class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border cursor-pointer transition-all"
-            [class]="parent.autoScroll() ? 'bg-white text-black border-white' : 'bg-black text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-white'"
+            [class]="parent.autoScroll() ? 'bg-zinc-50 text-zinc-950 border-zinc-50' : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-zinc-50'"
           >
             Autoscroll: {{ parent.autoScroll() ? 'ON' : 'OFF' }}
           </button>
@@ -317,12 +317,12 @@
 
       <div 
         id="terminal-log-box"
-        class="terminal-view h-[380px] p-4 overflow-y-auto font-mono text-xs text-zinc-300 space-y-1.5 scroll-smooth select-text bg-black border border-zinc-900 rounded"
+        class="terminal-view h-[380px] p-4 overflow-y-auto font-mono text-xs text-zinc-300 space-y-1.5 scroll-smooth select-text bg-zinc-950 border border-zinc-900 rounded"
       >
         @if (parent.selectedBuildId()) {
           @if (parent.loadingBuildLogs()) {
             <div class="flex flex-col items-center justify-center h-full space-y-2 text-zinc-555">
-              <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+              <svg class="animate-spin h-5 w-5 text-zinc-50" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>

@@ -6,11 +6,12 @@ import { WorkspaceService, Workspace, WorkspaceUsage } from '../../core/services
 import { ProjectService, Project } from '../../core/services/project.service';
 import { AuthService } from '../../core/services/auth';
 import { WebSocketService } from '../../core/services/websocket.service';
+import { WorkspaceNav } from '../../shared/components/workspace-nav/workspace-nav';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [DecimalPipe, DatePipe, FormsModule, RouterLink],
+  imports: [DecimalPipe, DatePipe, FormsModule, RouterLink, WorkspaceNav],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })

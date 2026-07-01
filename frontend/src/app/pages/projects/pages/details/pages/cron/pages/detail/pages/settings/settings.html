@@ -1,7 +1,7 @@
 @if (parent.selectedCronJob(); as job) {
 <div class="space-y-6 animate-fade-in font-mono">
   
-  <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg p-5 space-y-5 shadow-sm">
+  <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 space-y-5 shadow-sm">
     <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-3">Edit cron job properties</h3>
     
     <div class="space-y-4 max-w-xl text-xs font-sans">
@@ -13,7 +13,7 @@
           type="text" 
           [ngModel]="parent.editName()"
           (ngModelChange)="parent.editName.set($event)"
-          class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+          class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
         />
       </div>
 
@@ -25,7 +25,7 @@
             id="edit-cron-app"
             [ngModel]="parent.editAppId()"
             (ngModelChange)="parent.editAppId.set($event)"
-            class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+            class="block w-full px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
           >
             @for (app of parent.parent.apps(); track app.id) {
               <option [value]="app.id">{{ app.name }}</option>
@@ -41,7 +41,7 @@
           id="edit-cron-status"
           [ngModel]="parent.editStatus()"
           (ngModelChange)="parent.editStatus.set($event)"
-          class="block w-full px-3 py-2 bg-zinc-955 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+          class="block w-full px-3 py-2 bg-zinc-955 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
         >
           <option value="active">Active (Automatic periodic run)</option>
           <option value="paused">Paused (Temporarily stopped)</option>
@@ -56,7 +56,7 @@
           type="text" 
           [ngModel]="parent.editSchedule()"
           (ngModelChange)="parent.editSchedule.set($event)"
-          class="block w-full px-3 py-2 bg-zinc-955 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+          class="block w-full px-3 py-2 bg-zinc-955 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
         />
         <p class="text-[9px] text-zinc-550 leading-normal font-sans font-medium">
           Format: standard 5-field (e.g.: <code class="text-zinc-400 font-bold select-all">*/15 * * * *</code>) or 6-field (seconds included).
@@ -71,7 +71,7 @@
           rows="3"
           [ngModel]="parent.editCommand()"
           (ngModelChange)="parent.editCommand.set($event)"
-          class="block w-full px-3 py-2 bg-zinc-955 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono resize-none font-semibold"
+          class="block w-full px-3 py-2 bg-zinc-955 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono resize-none font-semibold"
         ></textarea>
       </div>
     </div>
@@ -80,17 +80,17 @@
       <button 
         (click)="parent.selectCronJob(job)"
         [disabled]="parent.savingSettings()"
-        class="px-3 py-1.5 rounded border border-zinc-850 hover:bg-zinc-900 text-zinc-400 hover:text-white cursor-pointer transition-colors"
+        class="px-3 py-1.5 rounded border border-zinc-850 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-50 cursor-pointer transition-colors"
       >
         Cancel
       </button>
       <button 
         (click)="parent.onSaveSettings()"
         [disabled]="parent.savingSettings() || !parent.editName().trim() || !parent.editSchedule().trim() || !parent.editCommand().trim()"
-        class="px-4 py-1.5 rounded bg-white hover:bg-zinc-200 text-black font-bold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+        class="px-4 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 font-bold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
       >
         @if (parent.savingSettings()) {
-          <svg class="animate-spin h-3 w-3 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <svg class="animate-spin h-3 w-3 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
           </svg>
@@ -103,7 +103,7 @@
   </div>
 
   <!-- Danger Area -->
-  <div class="bg-[#0a0a0a] border border-red-955/20 rounded-lg p-5 space-y-4 shadow-sm">
+  <div class="bg-zinc-900 border border-red-955/20 rounded-lg p-5 space-y-4 shadow-sm">
     <h3 class="text-xs font-bold text-red-500 uppercase tracking-wider border-b border-zinc-900 pb-3">Danger Zone</h3>
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-sans">
       <div class="space-y-1">

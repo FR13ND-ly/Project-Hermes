@@ -15,11 +15,11 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
   template: `
     @if (open()) {
       <div
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/70 backdrop-blur-sm p-4 animate-fade-in"
         (click)="close()"
       >
         <div
-          class="w-full max-w-lg bg-[#0a0a0a] border border-zinc-800 rounded-xl shadow-2xl overflow-hidden font-mono"
+          class="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden font-mono"
           (click)="$event.stopPropagation()"
         >
           <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-900">
@@ -29,7 +29,7 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
             </div>
             <button
               (click)="close()"
-              class="p-1.5 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+              class="p-1.5 rounded hover:bg-zinc-900 text-zinc-500 hover:text-zinc-50 transition-colors cursor-pointer"
               title="Close"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
@@ -44,7 +44,7 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
               placeholder="Search by name..."
               [ngModel]="search()"
               (ngModelChange)="search.set($event)"
-              class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors"
+              class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
             />
           </div>
 
@@ -62,7 +62,7 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
                 @for (env of filtered(); track env.id) {
                   <div class="flex items-center justify-between gap-3 py-2.5">
                     <div class="flex items-center gap-2 min-w-0">
-                      <span class="font-mono text-xs text-white truncate">{{ env.key }}</span>
+                      <span class="font-mono text-xs text-zinc-50 truncate">{{ env.key }}</span>
                       @if (env.source !== 'manual') {
                         <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 shrink-0">{{ env.source }}</span>
                       }
@@ -88,7 +88,7 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
           <div class="flex items-center justify-end px-5 py-3 border-t border-zinc-900">
             <button
               (click)="close()"
-              class="px-3.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer"
+              class="px-3.5 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer"
             >
               Done
             </button>

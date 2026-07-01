@@ -20,18 +20,18 @@ import { WebSocketService } from '../../../core/services/websocket.service';
         @if (!expanded()) {
           <button
             (click)="expanded.set(true)"
-            class="flex items-center gap-2 pl-2.5 pr-3 py-2 rounded-full bg-[#0a0a0a] border border-zinc-800 shadow-2xl hover:border-zinc-600 transition-colors cursor-pointer"
+            class="flex items-center gap-2 pl-2.5 pr-3 py-2 rounded-full bg-zinc-900 border border-zinc-800 shadow-2xl hover:border-zinc-600 transition-colors cursor-pointer"
             [title]="items().length + ' active processes'"
           >
             <svg class="animate-spin h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
             </svg>
-            <span class="text-xs font-bold text-white tabular-nums">{{ items().length }}</span>
+            <span class="text-xs font-bold text-zinc-50 tabular-nums">{{ items().length }}</span>
             <span class="text-[10px] text-zinc-500 uppercase tracking-wider font-mono">build</span>
           </button>
         } @else {
-          <div class="w-72 bg-[#0a0a0a] border border-zinc-800 rounded-lg shadow-2xl overflow-hidden">
+          <div class="w-72 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden">
             <div class="flex items-center justify-between px-3.5 py-2.5 border-b border-zinc-900">
               <div class="flex items-center gap-2">
                 <svg class="animate-spin h-3.5 w-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24">
@@ -40,7 +40,7 @@ import { WebSocketService } from '../../../core/services/websocket.service';
                 </svg>
                 <span class="text-[11px] font-bold text-zinc-200 uppercase tracking-wider font-mono">Active processes</span>
               </div>
-              <button (click)="expanded.set(false)" class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-white cursor-pointer" title="Collapse">
+              <button (click)="expanded.set(false)" class="p-1 rounded hover:bg-zinc-900 text-zinc-500 hover:text-zinc-50 cursor-pointer" title="Collapse">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15" /></svg>
               </button>
             </div>

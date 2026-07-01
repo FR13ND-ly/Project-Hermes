@@ -2,12 +2,12 @@
 <!-- Header Actions -->
 <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
   <div>
-    <h2 class="text-sm font-bold text-white uppercase tracking-wider font-mono">Cron Jobs (Project Scheduled Tasks)</h2>
+    <h2 class="text-sm font-bold text-zinc-50 uppercase tracking-wider font-mono">Cron Jobs (Project Scheduled Tasks)</h2>
     <p class="text-[11px] text-zinc-500 mt-1">Configure periodic executions for commands in your project's application containers.</p>
   </div>
   <button 
     [routerLink]="['/projects', parent.parent.projectId(), 'cron', 'create']"
-    class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold shadow cursor-pointer transition-colors flex items-center gap-1.5"
+    class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-bold shadow cursor-pointer transition-colors flex items-center gap-1.5"
   >
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -38,7 +38,7 @@
   </div>
 } @else {
   <!-- Jobs Grid/List -->
-  <div class="border border-zinc-900 rounded-lg overflow-hidden bg-black/40">
+  <div class="border border-zinc-900 rounded-lg overflow-hidden bg-zinc-950/40">
     <div class="overflow-x-auto">
       <table class="w-full text-left border-collapse text-xs font-mono">
         <thead>
@@ -63,7 +63,7 @@
                   ></span>
                   <a
                     [routerLink]="[job.id, 'details']"
-                    class="font-semibold text-zinc-300 hover:text-white hover:underline text-left text-xs cursor-pointer focus:outline-none"
+                    class="font-semibold text-zinc-300 hover:text-zinc-50 hover:underline text-left text-xs cursor-pointer focus:outline-none"
                   >
                     {{ job.name }}
                   </a>
@@ -75,7 +75,7 @@
               <td class="p-3 text-zinc-350">
                 <div class="flex items-center gap-1.5">
                   <span class="px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-850 text-[8px] font-bold uppercase tracking-wider text-zinc-500">{{ parent.targetTypeLabel(job.targetType || job.target_type) }}</span>
-                  <span class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-semibold text-white">{{ job.targetName || parent.getAppName(job.appId || job.app_id || job.targetId || job.target_id || undefined) }}</span>
+                  <span class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-semibold text-zinc-50">{{ job.targetName || parent.getAppName(job.appId || job.app_id || job.targetId || job.target_id || undefined) }}</span>
                 </div>
               </td>
               <td class="p-3 text-zinc-400">
@@ -89,7 +89,7 @@
                   <a
                     [routerLink]="[job.id, 'details']"
                     title="View Details and Logs"
-                    class="p-1.5 rounded border border-zinc-850 hover:bg-zinc-900 text-zinc-400 hover:text-white cursor-pointer transition-all flex items-center gap-1 text-[10px]"
+                    class="p-1.5 rounded border border-zinc-850 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-50 cursor-pointer transition-all flex items-center gap-1 text-[10px]"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />

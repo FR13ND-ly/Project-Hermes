@@ -1,7 +1,7 @@
 <div class="space-y-6 animate-fade-in">
 
   <!-- Cloudflare / Ingress Card (project-level) -->
-  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Integrare Cloudflare & Ingress</h3>
       <p class="text-xs text-zinc-550">DNS configuration used when attaching domains for this project's resources.</p>
@@ -18,7 +18,7 @@
           [ngModel]="cfIngressIp()"
           (ngModelChange)="cfIngressIp.set($event)"
           [disabled]="savingCloudflare()"
-          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
         />
       </div>
 
@@ -32,7 +32,7 @@
           [ngModel]="cfBaseDomain()"
           (ngModelChange)="cfBaseDomain.set($event)"
           [disabled]="savingCloudflare()"
-          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
         />
       </div>
     </div>
@@ -45,7 +45,7 @@
         [ngModel]="cfCredentialId()"
         (ngModelChange)="cfCredentialId.set($event)"
         [disabled]="savingCloudflare()"
-        class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer"
+        class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer"
       >
         <option value="">No Cloudflare</option>
         @for (cf of cloudflareCredentials(); track cf.id) {
@@ -59,12 +59,12 @@
       <button
         (click)="onSaveCloudflareSettings()"
         [disabled]="savingCloudflare()"
-        class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
+        class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
       >
         @if (!savingCloudflare()) {
           <span>Save Cloudflare</span>
         } @else {
-          <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
@@ -75,14 +75,14 @@
   </div>
 
   <!-- Webhooks Integrations Card -->
-  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Webhook Integrations (Slack & Discord)</h3>
       <p class="text-xs text-zinc-550">Send automatic real-time alerts when incidents occur on Slack or Discord.</p>
     </div>
 
     <!-- Webhook Creation Form -->
-    <div class="p-4 rounded border border-zinc-850 bg-black/40 space-y-4">
+    <div class="p-4 rounded border border-zinc-850 bg-zinc-950/40 space-y-4">
       <h4 class="text-xs font-bold text-zinc-350">Configure New Webhook Channel</h4>
       <div class="grid gap-4 md:grid-cols-3">
         <!-- Name -->
@@ -93,7 +93,7 @@
             placeholder="e.g. Production Alerts Channel"
             [ngModel]="newWebhookName()"
             (ngModelChange)="newWebhookName.set($event)"
-            class="w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 font-mono"
+            class="w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 font-mono"
           />
         </div>
 
@@ -103,7 +103,7 @@
           <select 
             [ngModel]="newWebhookType()"
             (ngModelChange)="newWebhookType.set($event)"
-            class="w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-zinc-300 focus:outline-none focus:border-zinc-500 font-mono"
+            class="w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-300 focus:outline-none focus:border-zinc-500 font-mono"
           >
             <option value="slack">Slack Webhook</option>
             <option value="discord">Discord Webhook</option>
@@ -119,7 +119,7 @@
             placeholder="https://hooks.slack.com/services/... or Discord URL"
             [ngModel]="newWebhookUrl()"
             (ngModelChange)="newWebhookUrl.set($event)"
-            class="w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 font-mono"
+            class="w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 font-mono"
           />
         </div>
       </div>
@@ -128,7 +128,7 @@
         <button 
           (click)="onCreateWebhook()"
           [disabled]="!newWebhookName().trim() || !newWebhookUrl().trim()"
-          class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow disabled:opacity-50 cursor-pointer font-sans"
+          class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow disabled:opacity-50 cursor-pointer font-sans"
         >
           Add Integration
         </button>
@@ -161,7 +161,7 @@
         </thead>
         <tbody class="divide-y divide-zinc-950 text-zinc-350">
           <tr *ngFor="let wh of webhooks()" class="hover:bg-zinc-950/40 transition-colors">
-            <td class="py-2.5 px-2 font-semibold text-white">{{ wh.name }}</td>
+            <td class="py-2.5 px-2 font-semibold text-zinc-50">{{ wh.name }}</td>
             <td class="py-2.5 px-2 font-mono uppercase text-zinc-450">{{ wh.webhookType }}</td>
             <td class="py-2.5 px-2 font-mono text-zinc-650 text-[10px] max-w-[250px] truncate select-all">{{ wh.url }}</td>
             <td class="py-2.5 px-2">
@@ -184,14 +184,14 @@
   </div>
 
   <!-- SSH Keys Card -->
-  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Project SSH Keys (Deploy Keys)</h3>
       <p class="text-xs text-zinc-550">Configure SSH keys so Hermes can connect to private Git repositories or dependencies from GitLab, Bitbucket and other servers.</p>
     </div>
 
     <!-- SSH Key Creation Form -->
-    <div class="p-4 rounded border border-zinc-850 bg-black/40 space-y-4">
+    <div class="p-4 rounded border border-zinc-850 bg-zinc-950/40 space-y-4">
       <h4 class="text-xs font-bold text-zinc-350">Add / Generate New SSH Key</h4>
       <div class="grid gap-4 md:grid-cols-2">
         <!-- Name -->
@@ -202,7 +202,7 @@
             placeholder="e.g. Production GitLab Key"
             [ngModel]="newSshKeyName()"
             (ngModelChange)="newSshKeyName.set($event)"
-            class="w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 font-mono"
+            class="w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 font-mono"
           />
         </div>
 
@@ -214,7 +214,7 @@
             placeholder="e.g. gitlab.com or git.company.com"
             [ngModel]="newSshKeyHost()"
             (ngModelChange)="newSshKeyHost.set($event)"
-            class="w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 font-mono"
+            class="w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 font-mono"
           />
         </div>
       </div>
@@ -226,7 +226,7 @@
           type="checkbox" 
           [ngModel]="autoGenerateSsh()"
           (ngModelChange)="autoGenerateSsh.set($event)"
-          class="accent-white cursor-pointer h-3.5 w-3.5"
+          class="accent-zinc-50 cursor-pointer h-3.5 w-3.5"
         />
         <label for="auto-gen-ssh-chk" class="cursor-pointer font-sans select-none">Automatically generate a new secure key pair (Recommended)</label>
       </div>
@@ -239,7 +239,7 @@
           [ngModel]="newSshKeyPrivateKey()"
           (ngModelChange)="newSshKeyPrivateKey.set($event)"
           rows="5"
-          class="w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 font-mono"
+          class="w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 font-mono"
         ></textarea>
       </div>
 
@@ -247,10 +247,10 @@
         <button 
           (click)="onCreateSshKey()"
           [disabled]="!newSshKeyName().trim() || !newSshKeyHost().trim() || (!autoGenerateSsh() && !newSshKeyPrivateKey().trim()) || generatingSshKey()"
-          class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow disabled:opacity-50 cursor-pointer font-sans flex items-center gap-1.5"
+          class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow disabled:opacity-50 cursor-pointer font-sans flex items-center gap-1.5"
         >
           @if (generatingSshKey()) {
-            <svg class="animate-spin h-3 w-3 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg class="animate-spin h-3 w-3 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
             </svg>
@@ -287,18 +287,18 @@
         </thead>
         <tbody class="divide-y divide-zinc-950 text-zinc-350">
           <tr *ngFor="let key of sshKeys()" class="hover:bg-zinc-950/40 transition-colors">
-            <td class="py-2.5 px-2 font-semibold text-white align-top max-w-[120px] truncate">{{ key.name }}</td>
+            <td class="py-2.5 px-2 font-semibold text-zinc-50 align-top max-w-[120px] truncate">{{ key.name }}</td>
             <td class="py-2.5 px-2 font-mono text-zinc-400 align-top max-w-[120px] truncate">{{ key.host }}</td>
             <td class="py-2.5 px-2 align-top">
               <div class="flex items-start gap-2 max-w-lg">
                 <textarea 
                   readonly 
                   rows="2"
-                  class="w-full bg-black text-[10px] p-1.5 border border-zinc-900 rounded font-mono text-zinc-500 resize-none outline-none focus:border-zinc-800 select-all"
+                  class="w-full bg-zinc-950 text-[10px] p-1.5 border border-zinc-900 rounded font-mono text-zinc-500 resize-none outline-none focus:border-zinc-800 select-all"
                 >{{ key.publicKey }}</textarea>
                 <button 
                   (click)="copyToClipboard(key.publicKey)"
-                  class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 text-zinc-400 hover:text-white transition-colors cursor-pointer text-[10px]"
+                  class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 text-zinc-400 hover:text-zinc-50 transition-colors cursor-pointer text-[10px]"
                 >
                   Copy
                 </button>
@@ -320,7 +320,7 @@
   </div>
 
   <!-- Danger Zone: Delete Project (always visible) -->
-  <div class="bg-[#0a0a0a] p-5 rounded-lg border border-red-900/30 space-y-4 shadow-sm font-mono mt-6">
+  <div class="bg-zinc-900 p-5 rounded-lg border border-red-900/30 space-y-4 shadow-sm font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-xs font-bold text-red-500 uppercase tracking-wider">Delete Project</h3>
       <p class="text-xs text-zinc-550">Completely removes the project and all associated resources from the system. This action is irreversible.</p>
@@ -334,7 +334,7 @@
 
       <div class="space-y-1.5">
         <label for="confirm-project-delete-input" class="text-xs text-zinc-400 block">
-          Enter the project name <strong class="text-white font-mono select-all">{{ parent.project()?.name }}</strong> to confirm deletion:
+          Enter the project name <strong class="text-zinc-50 font-mono select-all">{{ parent.project()?.name }}</strong> to confirm deletion:
         </label>
         <input 
           id="confirm-project-delete-input"
@@ -343,7 +343,7 @@
           [ngModel]="confirmProjectName()"
           (ngModelChange)="confirmProjectName.set($event)"
           [disabled]="deletingProject()"
-          class="block w-full px-3 py-2 text-sm bg-black border border-red-900/30 rounded text-white focus:outline-none focus:border-red-500 font-mono"
+          class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-red-900/30 rounded text-zinc-50 focus:outline-none focus:border-red-500 font-mono"
         />
       </div>
 
@@ -351,13 +351,13 @@
         <button 
           (click)="onDeleteProject()"
           [disabled]="confirmProjectName() !== parent.project()?.name || deletingProject()"
-          class="px-4 py-2 rounded bg-red-600 hover:bg-red-500 text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+          class="px-4 py-2 rounded bg-red-600 hover:bg-red-500 text-zinc-50 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
           aria-label="Delete project permanently"
         >
           @if (!deletingProject()) {
             <span>Delete Project Permanently</span>
           } @else {
-            <svg class="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg class="animate-spin h-3.5 w-3.5 text-zinc-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>

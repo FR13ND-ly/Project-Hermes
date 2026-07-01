@@ -1,5 +1,5 @@
 <div class="space-y-4 animate-fade-in font-sans">
-  <div class="bg-[#0a0a0a] border border-zinc-800 p-5 rounded-lg space-y-5 shadow-sm font-mono">
+  <div class="bg-zinc-900 border border-zinc-800 p-5 rounded-lg space-y-5 shadow-sm font-mono">
     
     <!-- Tab Header & Toggle -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-900 pb-3">
@@ -9,18 +9,18 @@
       </div>
       
       <!-- Toggle Switch Mode -->
-      <div class="flex items-center rounded bg-black border border-zinc-850 p-0.5 font-mono text-[9px] self-start sm:self-auto">
+      <div class="flex items-center rounded bg-zinc-950 border border-zinc-850 p-0.5 font-mono text-[9px] self-start sm:self-auto">
         <button 
           (click)="parent.rolesEditMode.set('visual')"
           class="px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300 cursor-pointer font-bold transition-all"
-          [class]="parent.rolesEditMode() === 'visual' ? 'bg-zinc-900 text-white!' : ''"
+          [class]="parent.rolesEditMode() === 'visual' ? 'bg-zinc-900 text-zinc-50!' : ''"
         >
           Visual Editor
         </button>
         <button
           (click)="parent.rolesEditMode.set('json')"
           class="px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300 cursor-pointer font-bold transition-all"
-          [class]="parent.rolesEditMode() === 'json' ? 'bg-zinc-900 text-white!' : ''"
+          [class]="parent.rolesEditMode() === 'json' ? 'bg-zinc-900 text-zinc-50!' : ''"
         >
           Raw JSON
         </button>
@@ -32,19 +32,19 @@
       <div class="space-y-5">
         
         <!-- Add new Role inline form -->
-        <div class="flex gap-2 bg-black border border-zinc-900 p-3 rounded-md max-w-sm">
+        <div class="flex gap-2 bg-zinc-950 border border-zinc-900 p-3 rounded-md max-w-sm">
           <input 
             type="text" 
             placeholder="New role name (e.g. editor)..."
             [ngModel]="parent.newVisualRoleName()"
             (ngModelChange)="parent.newVisualRoleName.set($event)"
             (keyup.enter)="parent.onAddVisualRole()"
-            class="block w-full px-2.5 py-1.5 text-xs bg-zinc-950 border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-700 font-mono"
+            class="block w-full px-2.5 py-1.5 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-700 font-mono"
           />
           <button 
             (click)="parent.onAddVisualRole()"
             [disabled]="!parent.newVisualRoleName().trim()"
-            class="px-3.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold cursor-pointer disabled:opacity-40 shrink-0 transition-all font-sans"
+            class="px-3.5 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold cursor-pointer disabled:opacity-40 shrink-0 transition-all font-sans"
           >
             Add
           </button>
@@ -53,7 +53,7 @@
         <!-- Roles Cards Grid -->
         <div class="grid gap-4 sm:grid-cols-2">
           @for (roleName of parent.getRolesKeys(); track roleName) {
-            <div class="bg-black/40 border border-zinc-850 rounded-lg p-4 flex flex-col justify-between gap-3 shadow-inner">
+            <div class="bg-zinc-950/40 border border-zinc-850 rounded-lg p-4 flex flex-col justify-between gap-3 shadow-inner">
               <div class="space-y-2.5">
                 <!-- Role Name Header & delete button -->
                 <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
@@ -96,12 +96,12 @@
                   [ngModel]="parent.newVisualPermissionName()[roleName] || ''"
                   (ngModelChange)="parent.updateVisualPermissionName(roleName, $event)"
                   (keyup.enter)="parent.onAddVisualPermission(roleName)"
-                  class="block w-full px-2 py-1 text-[10px] bg-zinc-950 border border-zinc-900 rounded text-white focus:outline-none focus:border-zinc-800 font-mono"
+                  class="block w-full px-2 py-1 text-[10px] bg-zinc-950 border border-zinc-900 rounded text-zinc-50 focus:outline-none focus:border-zinc-800 font-mono"
                 />
                 <button 
                   (click)="parent.onAddVisualPermission(roleName)"
                   [disabled]="!(parent.newVisualPermissionName()[roleName] || '').trim()"
-                  class="px-2 py-1 rounded bg-zinc-850 hover:bg-zinc-700 text-zinc-300 hover:text-white text-[10px] font-semibold cursor-pointer disabled:opacity-40 transition-colors font-sans"
+                  class="px-2 py-1 rounded bg-zinc-850 hover:bg-zinc-700 text-zinc-300 hover:text-zinc-50 text-[10px] font-semibold cursor-pointer disabled:opacity-40 transition-colors font-sans"
                 >
                   +
                 </button>
@@ -125,7 +125,7 @@
   "admin": ["posts:create", "posts:delete"],
   "user": ["posts:read"]
 }'
-            class="block w-full p-4 bg-black border border-zinc-850 rounded text-zinc-350 focus:outline-none focus:border-zinc-550 font-mono text-xs leading-relaxed"
+            class="block w-full p-4 bg-zinc-950 border border-zinc-850 rounded text-zinc-350 focus:outline-none focus:border-zinc-550 font-mono text-xs leading-relaxed"
           ></textarea>
           
           <!-- Parse Error Banner -->
@@ -146,10 +146,10 @@
       <button 
         (click)="parent.onSaveConfig()"
         [disabled]="!!parent.parseError() || parent.savingConfig()"
-        class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-mono"
+        class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-mono"
       >
         @if (parent.savingConfig()) {
-          <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>

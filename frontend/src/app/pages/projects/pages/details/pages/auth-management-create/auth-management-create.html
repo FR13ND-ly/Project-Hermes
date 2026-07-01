@@ -4,12 +4,12 @@
       <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Create Authentication Service</h3>
       <p class="text-[10px] text-zinc-550 mt-0.5">Provision a new BaaS Authentication instance for your workspace.</p>
     </div>
-    <button (click)="onCancel()" class="text-xs text-zinc-400 hover:text-white cursor-pointer font-sans flex items-center gap-1">
+    <button (click)="onCancel()" class="text-xs text-zinc-400 hover:text-zinc-50 cursor-pointer font-sans flex items-center gap-1">
       ← Back to list
     </button>
   </div>
 
-  <div class="bg-[#0a0a0a] p-5 rounded border border-zinc-900 space-y-4 shadow-sm">
+  <div class="bg-zinc-900 p-5 rounded border border-zinc-900 space-y-4 shadow-sm">
     <div class="grid gap-4 md:grid-cols-2 font-mono">
       <!-- Service Name -->
       <div class="space-y-1.5">
@@ -21,7 +21,7 @@
           [ngModel]="newServiceName()"
           (ngModelChange)="newServiceName.set($event)"
           [disabled]="creatingService()"
-          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-550 transition-colors"
+          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors"
         />
       </div>
     </div>
@@ -38,7 +38,7 @@
             [checked]="publishAppId()"
             (change)="publishAppId.set(!publishAppId())"
             [disabled]="creatingService()"
-            class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
+            class="h-3.5 w-3.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer"
           />
           <span class="text-[11px] font-semibold text-zinc-300">Publish App ID to project .env</span>
         </label>
@@ -52,7 +52,7 @@
               [ngModel]="appIdEnvKeyName()"
               (ngModelChange)="appIdEnvKeyName.set($event)"
               [disabled]="creatingService()"
-              class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors uppercase font-bold"
+              class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors uppercase font-bold"
             />
           </div>
         }
@@ -66,7 +66,7 @@
             [checked]="publishSecret()"
             (change)="publishSecret.set(!publishSecret())"
             [disabled]="creatingService()"
-            class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
+            class="h-3.5 w-3.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer"
           />
           <span class="text-[11px] font-semibold text-zinc-300">Publish JWT Secret to project .env</span>
         </label>
@@ -80,7 +80,7 @@
               [ngModel]="secretEnvKeyName()"
               (ngModelChange)="secretEnvKeyName.set($event)"
               [disabled]="creatingService()"
-              class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors uppercase font-bold"
+              class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors uppercase font-bold"
             />
           </div>
         }
@@ -94,7 +94,7 @@
             [checked]="publishApiKey()"
             (change)="publishApiKey.set(!publishApiKey())"
             [disabled]="creatingService()"
-            class="h-3.5 w-3.5 bg-black border border-zinc-800 rounded accent-white cursor-pointer"
+            class="h-3.5 w-3.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer"
           />
           <span class="text-[11px] font-semibold text-zinc-300">Publish Default API Key to project .env</span>
         </label>
@@ -108,7 +108,7 @@
               [ngModel]="apiKeyEnvKeyName()"
               (ngModelChange)="apiKeyEnvKeyName.set($event)"
               [disabled]="creatingService()"
-              class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-black border border-zinc-800 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors uppercase font-bold"
+              class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors uppercase font-bold"
             />
           </div>
         }
@@ -121,7 +121,7 @@
         type="button"
         (click)="onCancel()"
         [disabled]="creatingService()"
-        class="px-4 py-2 rounded border border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:text-white text-xs font-semibold cursor-pointer transition-colors"
+        class="px-4 py-2 rounded border border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:text-zinc-50 text-xs font-semibold cursor-pointer transition-colors"
       >
         Cancel
       </button>
@@ -129,10 +129,10 @@
         type="button"
         (click)="onCreateService()"
         [disabled]="creatingService() || !newServiceName().trim()"
-        class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold disabled:opacity-50 cursor-pointer transition-colors flex items-center gap-1.5"
+        class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-bold disabled:opacity-50 cursor-pointer transition-colors flex items-center gap-1.5"
       >
         @if (creatingService()) {
-          <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>

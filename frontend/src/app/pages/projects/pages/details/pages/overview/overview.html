@@ -1,7 +1,7 @@
 <div class="space-y-6 animate-fade-in font-mono">
 
   <!-- Welcome / Project Metadata Summary Header -->
-  <div class="bg-[#0a0a0a] border border-zinc-800 rounded-lg p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm">
+  <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm">
     <div class="space-y-1">
       <h2 class="text-sm font-bold text-zinc-300 uppercase tracking-wider">Project Dashboard</h2>
       <p class="text-xs text-zinc-550 max-w-2xl leading-relaxed">
@@ -17,10 +17,10 @@
   <!-- Status / Stats Counter Grid -->
   <div class="grid gap-4 grid-cols-2 md:grid-cols-4">
     <!-- Stat 1: Apps Count -->
-    <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
+    <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
       <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Applications</span>
       <div class="flex items-baseline justify-between mt-1">
-        <span class="text-xl font-extrabold text-white">{{ parent.apps().length }}</span>
+        <span class="text-xl font-extrabold text-zinc-50">{{ parent.apps().length }}</span>
         @if (totalBuildingApps > 0) {
           <span class="px-1.5 py-0.2 rounded bg-amber-950/20 border border-amber-900/30 text-amber-400 text-[8px] font-bold uppercase tracking-wider animate-pulse">
             {{ totalBuildingApps }} building
@@ -30,25 +30,25 @@
     </div>
 
     <!-- Stat 2: Running Pods -->
-    <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
+    <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
       <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Active Instances (K8s Pods)</span>
       <div class="flex items-baseline justify-between mt-1">
-        <span class="text-xl font-extrabold text-white">{{ totalRunningPods }}</span>
+        <span class="text-xl font-extrabold text-zinc-50">{{ totalRunningPods }}</span>
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500" [class.animate-pulse]="totalRunningPods > 0"></span>
       </div>
     </div>
 
     <!-- Stat 3: Databases -->
-    <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
+    <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-880 flex flex-col justify-between h-20 shadow-sm">
       <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Databases</span>
       <div class="flex items-baseline justify-between mt-1">
-        <span class="text-xl font-extrabold text-white">{{ databases().length }}</span>
+        <span class="text-xl font-extrabold text-zinc-50">{{ databases().length }}</span>
         <span class="text-[9px] text-zinc-500 font-bold">SQL & NoSQL</span>
       </div>
     </div>
 
     <!-- Stat 4: Workspace Limits -->
-    <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-800 flex flex-col justify-between h-20 shadow-sm">
+    <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-800 flex flex-col justify-between h-20 shadow-sm">
       <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Workspace RAM Limit</span>
       <div class="flex items-baseline justify-between mt-1">
         <span class="text-sm font-extrabold text-zinc-300">Autoscaled</span>
@@ -64,21 +64,21 @@
     <div class="lg:col-span-2 space-y-4">
       <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
         <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Active Services (Applications)</h3>
-        <a [routerLink]="['/projects', parent.projectId(), 'apps']" class="text-[10px] text-zinc-400 hover:text-white underline">
+        <a [routerLink]="['/projects', parent.projectId(), 'apps']" class="text-[10px] text-zinc-400 hover:text-zinc-50 underline">
           View all →
         </a>
       </div>
 
       <div class="space-y-4">
         @for (app of parent.apps(); track app.id) {
-          <div class="bg-[#0a0a0a] p-4 rounded-lg border border-zinc-850 hover:border-zinc-700 transition-all flex flex-col md:flex-row gap-4 shadow-sm group">
+          <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-850 hover:border-zinc-700 transition-all flex flex-col md:flex-row gap-4 shadow-sm group">
             
             <!-- Vercel-style Screenshot Preview or Sleek Gradient Placeholder -->
-            <div class="relative w-full h-32 md:w-48 rounded border border-zinc-900 overflow-hidden bg-black flex items-center justify-center shrink-0">
+            <div class="relative w-full h-32 md:w-48 rounded border border-zinc-900 overflow-hidden bg-zinc-950 flex items-center justify-center shrink-0">
               @if (getAppScreenshot(app); as screenshot) {
                 <img [src]="screenshot" alt="App Preview" class="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300" />
               } @else {
-                <div class="w-full h-full bg-gradient-to-br from-zinc-900 via-black to-zinc-950 flex flex-col items-center justify-center gap-1.5 select-none">
+                <div class="w-full h-full bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-950 flex flex-col items-center justify-center gap-1.5 select-none">
                   <svg class="w-6 h-6 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 9.75L16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
                   </svg>
@@ -92,7 +92,7 @@
               <div class="space-y-2">
                 <div class="flex items-center justify-between gap-2.5 flex-wrap">
                   <div class="flex items-center gap-2">
-                    <h4 (click)="onViewApp(app, 'telemetry')" class="text-xs font-bold text-white hover:underline cursor-pointer select-all truncate">
+                    <h4 (click)="onViewApp(app, 'telemetry')" class="text-xs font-bold text-zinc-50 hover:underline cursor-pointer select-all truncate">
                       {{ app.name }}
                     </h4>
                     <span class="px-1.5 py-0.2 rounded text-[8px] border font-mono uppercase font-bold"
@@ -162,10 +162,10 @@
 
               <!-- Action buttons -->
               <div class="flex items-center gap-2 mt-4 md:mt-2">
-                <button (click)="onViewApp(app, 'logs')" class="px-2.5 py-1 rounded bg-black hover:bg-zinc-950 text-zinc-400 hover:text-white text-[9px] font-bold border border-zinc-850 uppercase tracking-wide cursor-pointer">
+                <button (click)="onViewApp(app, 'logs')" class="px-2.5 py-1 rounded bg-zinc-950 hover:bg-zinc-950 text-zinc-400 hover:text-zinc-50 text-[9px] font-bold border border-zinc-850 uppercase tracking-wide cursor-pointer">
                   Logs
                 </button>
-                <button (click)="onViewApp(app, 'telemetry')" class="px-2.5 py-1 rounded bg-white hover:bg-zinc-200 text-black text-[9px] font-bold border border-white uppercase tracking-wide cursor-pointer">
+                <button (click)="onViewApp(app, 'telemetry')" class="px-2.5 py-1 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-[9px] font-bold border border-zinc-50 uppercase tracking-wide cursor-pointer">
                   Manage →
                 </button>
               </div>
@@ -173,9 +173,9 @@
 
           </div>
         } @empty {
-          <div class="bg-black/30 border border-zinc-900 p-8 rounded-lg text-center space-y-3">
+          <div class="bg-zinc-950/30 border border-zinc-900 p-8 rounded-lg text-center space-y-3">
             <p class="text-xs text-zinc-550">No applications configured in this project.</p>
-            <button [routerLink]="['/projects', parent.projectId(), 'apps', 'create']" class="px-3 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 text-white text-[10px] font-bold tracking-wider uppercase cursor-pointer">
+            <button [routerLink]="['/projects', parent.projectId(), 'apps', 'create']" class="px-3 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 text-zinc-50 text-[10px] font-bold tracking-wider uppercase cursor-pointer">
               Add Application
             </button>
           </div>
@@ -191,7 +191,7 @@
       <div class="space-y-4">
         <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
           <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Databases</h3>
-          <a [routerLink]="['/projects', parent.projectId(), 'databases']" class="text-[10px] text-zinc-400 hover:text-white underline">
+          <a [routerLink]="['/projects', parent.projectId(), 'databases']" class="text-[10px] text-zinc-400 hover:text-zinc-50 underline">
             View all →
           </a>
         </div>
@@ -206,7 +206,7 @@
             </div>
           } @else {
             @for (db of databases(); track db.id) {
-              <div class="bg-[#0a0a0a] p-3 rounded-lg border border-zinc-850 flex items-center justify-between gap-3 shadow-inner">
+              <div class="bg-zinc-900 p-3 rounded-lg border border-zinc-850 flex items-center justify-between gap-3 shadow-inner">
                 <div class="space-y-1 min-w-0">
                   <div class="flex items-center gap-2 flex-wrap">
                     <span class="text-xs font-bold text-zinc-200 truncate">{{ db.name }}</span>
@@ -230,7 +230,7 @@
                 </span>
               </div>
             } @empty {
-              <div class="bg-black/30 border border-zinc-900 p-6 rounded-lg text-center text-xs text-zinc-650">
+              <div class="bg-zinc-950/30 border border-zinc-900 p-6 rounded-lg text-center text-xs text-zinc-650">
                 No active databases.
               </div>
             }
@@ -239,23 +239,23 @@
       </div>
 
       <!-- Quick Navigation Shortcuts -->
-      <div class="bg-[#0a0a0a]/40 p-4 rounded-lg border border-zinc-900 space-y-3">
+      <div class="bg-zinc-900/40 p-4 rounded-lg border border-zinc-900 space-y-3">
         <h4 class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-900 pb-1.5">Quick Links</h4>
         <ul class="space-y-2 text-[11px] text-zinc-500 font-semibold">
           <li>
-            <a [routerLink]="['/projects', parent.projectId(), 'environments']" class="hover:text-white transition-colors flex items-center justify-between">
+            <a [routerLink]="['/projects', parent.projectId(), 'environments']" class="hover:text-zinc-50 transition-colors flex items-center justify-between">
               <span>Project Variables</span>
               <span>→</span>
             </a>
           </li>
           <li>
-            <a [routerLink]="['/projects', parent.projectId(), 'networking']" class="hover:text-white transition-colors flex items-center justify-between">
+            <a [routerLink]="['/projects', parent.projectId(), 'networking']" class="hover:text-zinc-50 transition-colors flex items-center justify-between">
               <span>Domain Routing & TCP/UDP</span>
               <span>→</span>
             </a>
           </li>
           <li>
-            <a [routerLink]="['/projects', parent.projectId(), 'settings']" class="hover:text-white transition-colors flex items-center justify-between">
+            <a [routerLink]="['/projects', parent.projectId(), 'settings']" class="hover:text-zinc-50 transition-colors flex items-center justify-between">
               <span>General Project Settings</span>
               <span>→</span>
             </a>

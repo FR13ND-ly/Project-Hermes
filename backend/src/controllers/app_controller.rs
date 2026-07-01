@@ -193,38 +193,95 @@ pub async fn try_register_github_webhook(
                 config["secret"] = serde_json::Value::String(secret);
             }
         }
-        let webhook_payload = serde_json::json!({
-            "name": "web",
-            "active": true,
-            "events": ["push", "pull_request"],
-            "config": config
-        });
 
-        let url = format!("https://api.github.com/repos/{}/{}/hooks", owner, repo);
-        let res = client.post(&url)
-            .header("Authorization", format!("Bearer {}", token))
+        let hooks_url = format!("https://api.github.com/repos/{}/{}/hooks", owner, repo);
+        let auth_header = format!("Bearer {}", token);
+
+        // Registration must be idempotent: this runs on every create/redeploy and the
+        // same repo can back several apps. A plain POST returns 422 "Hook already
+        // exists on this repository" the second time around — which previously got
+        // recorded as `failed`, so the timeline screamed red even though auto-deploy
+        // was live. So: look for a hook already pointing at our URL first, update it if
+        // found, and only POST a fresh one when none exists.
+        let existing_hook_id: Option<i64> = match client.get(&hooks_url)
+            .header("Authorization", &auth_header)
             .header("User-Agent", "hermes-orchestrator")
             .header("Accept", "application/vnd.github+json")
-            .json(&webhook_payload)
             .send()
-            .await;
+            .await
+        {
+            Ok(resp) if resp.status().is_success() => resp
+                .json::<serde_json::Value>()
+                .await
+                .ok()
+                .and_then(|hooks| {
+                    hooks.as_array().and_then(|arr| {
+                        arr.iter()
+                            .find(|h| {
+                                h.get("config")
+                                    .and_then(|c| c.get("url"))
+                                    .and_then(|u| u.as_str())
+                                    == Some(webhook_url.as_str())
+                            })
+                            .and_then(|h| h.get("id").and_then(|i| i.as_i64()))
+                    })
+                }),
+            _ => None,
+        };
 
-        let webhook_result = match res {
-            Ok(resp) => {
-                if resp.status().is_success() {
-                    tracing::info!(%owner, %repo, "Registered GitHub webhook at {}", webhook_url);
-                    Ok(())
-                } else if let Ok(err_txt) = resp.text().await {
-                    tracing::warn!(%owner, %repo, "Failed to register GitHub webhook: {}", err_txt);
-                    Err(err_txt)
-                } else {
-                    tracing::warn!(%owner, %repo, "Failed to register GitHub webhook: Unknown error");
-                    Err("Unknown error".to_string())
+        let webhook_result: Result<(), String> = if let Some(hook_id) = existing_hook_id {
+            // Already wired up — re-assert active + events + secret, then report success
+            // regardless of the PATCH result (the hook exists and will keep delivering).
+            let patch_payload = serde_json::json!({
+                "active": true,
+                "events": ["push", "pull_request"],
+                "config": config
+            });
+            let _ = client.patch(&format!("{}/{}", hooks_url, hook_id))
+                .header("Authorization", &auth_header)
+                .header("User-Agent", "hermes-orchestrator")
+                .header("Accept", "application/vnd.github+json")
+                .json(&patch_payload)
+                .send()
+                .await;
+            tracing::info!(%owner, %repo, "GitHub webhook already registered (hook {}) at {}", hook_id, webhook_url);
+            Ok(())
+        } else {
+            let webhook_payload = serde_json::json!({
+                "name": "web",
+                "active": true,
+                "events": ["push", "pull_request"],
+                "config": config
+            });
+            match client.post(&hooks_url)
+                .header("Authorization", &auth_header)
+                .header("User-Agent", "hermes-orchestrator")
+                .header("Accept", "application/vnd.github+json")
+                .json(&webhook_payload)
+                .send()
+                .await
+            {
+                Ok(resp) => {
+                    if resp.status().is_success() {
+                        tracing::info!(%owner, %repo, "Registered GitHub webhook at {}", webhook_url);
+                        Ok(())
+                    } else {
+                        let err_txt = resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                        // A concurrent deploy (or a hook we couldn't read above) can still
+                        // race us to 422 "Hook already exists" — that's success, not failure.
+                        if err_txt.contains("Hook already exists") {
+                            tracing::info!(%owner, %repo, "GitHub webhook already exists at {}", webhook_url);
+                            Ok(())
+                        } else {
+                            tracing::warn!(%owner, %repo, "Failed to register GitHub webhook: {}", err_txt);
+                            Err(err_txt)
+                        }
+                    }
                 }
-            }
-            Err(e) => {
-                tracing::warn!(%owner, %repo, "Network error registering GitHub webhook: {}", e);
-                Err(e.to_string())
+                Err(e) => {
+                    tracing::warn!(%owner, %repo, "Network error registering GitHub webhook: {}", e);
+                    Err(e.to_string())
+                }
             }
         };
 
@@ -2240,9 +2297,12 @@ pub async fn get_instance_network_observability(
         },
     };
 
-    // 2. Active Endpoints
+    // 2. Legacy Endpoints object (kept only as a fallback). Clusters that populate
+    // just EndpointSlices — the modern default — leave this empty even when Ready pods
+    // are serving, which made the Service card falsely show "0 endpoints / 503". The
+    // authoritative list is built from the Ready pods below instead.
     let endpoints_api: kube::Api<k8s_openapi::api::core::v1::Endpoints> = kube::Api::namespaced(k8s_client.clone(), &namespace);
-    let mut active_endpoints = Vec::new();
+    let mut legacy_endpoints = Vec::new();
     if let Ok(ep) = endpoints_api.get(&container_name).await {
         if let Some(subsets) = ep.subsets {
             for sub in subsets {
@@ -2250,7 +2310,7 @@ pub async fn get_instance_network_observability(
                 if let Some(addresses) = sub.addresses {
                     for addr in addresses {
                         for port in &ports {
-                            active_endpoints.push(format!("{}:{}", addr.ip, port));
+                            legacy_endpoints.push(format!("{}:{}", addr.ip, port));
                         }
                     }
                 }
@@ -2258,18 +2318,15 @@ pub async fn get_instance_network_observability(
         }
     }
 
-    let service = ServiceObservability {
-        name: container_name.clone(),
-        port: instance.internal_port,
-        endpoints: active_endpoints,
-    };
-
     // 3. Pods List
     let pods_api: kube::Api<k8s_openapi::api::core::v1::Pod> = kube::Api::namespaced(k8s_client.clone(), &namespace);
     let lp = kube::api::ListParams::default().labels(&format!("app={}", container_name));
     let mut pods_list = Vec::new();
     let mut ready_pod_count = 0usize;
     let mut total_restarts = 0i32;
+    // Healthy service backends derived from the Ready pods we enumerate below, so the
+    // Service card agrees with the pods table and with what the Service really routes to.
+    let mut ready_endpoints: Vec<String> = Vec::new();
     if let Ok(pod_res) = pods_api.list(&lp).await {
         for pod in pod_res.items {
             let name = pod.metadata.name.clone().unwrap_or_default();
@@ -2298,6 +2355,9 @@ pub async fn get_instance_network_observability(
             let ready = format!("{}/{}", ready_containers, total_containers);
             if status != "Terminating" && total_containers > 0 && ready_containers == total_containers {
                 ready_pod_count += 1;
+                if let Some(pod_ip) = pod.status.as_ref().and_then(|s| s.pod_ip.clone()) {
+                    ready_endpoints.push(format!("{}:{}", pod_ip, instance.internal_port));
+                }
             }
             total_restarts += restarts;
 
@@ -2363,6 +2423,19 @@ pub async fn get_instance_network_observability(
             });
         }
     }
+
+    // Prefer pod-derived Ready endpoints; fall back to the legacy Endpoints object only
+    // when no Ready pod IP was available (so pre-existing behaviour is preserved).
+    let service_endpoints = if !ready_endpoints.is_empty() {
+        ready_endpoints
+    } else {
+        legacy_endpoints
+    };
+    let service = ServiceObservability {
+        name: container_name.clone(),
+        port: instance.internal_port,
+        endpoints: service_endpoints,
+    };
 
     // 4. Traffic Stats from Prometheus (Strictly real data only)
     let mut request_rate = None;

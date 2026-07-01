@@ -2,7 +2,7 @@
   <div class="lg:col-span-1 space-y-2">
     <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
       <h4 class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Istoric Build-uri</h4>
-      <button (click)="loadBuilds()" class="text-zinc-500 hover:text-white cursor-pointer text-xs">↻</button>
+      <button (click)="loadBuilds()" class="text-zinc-500 hover:text-zinc-50 cursor-pointer text-xs">↻</button>
     </div>
     <div class="space-y-1 max-h-[520px] overflow-y-auto">
       @for (b of builds(); track b.id) {
@@ -17,6 +17,6 @@
     </div>
   </div>
   <div class="lg:col-span-2">
-    <div class="bg-black border border-zinc-900 rounded-lg p-3 h-[520px] overflow-y-auto font-mono text-[11px] text-zinc-300 whitespace-pre-wrap">{{ buildLogs().join('\n') }}</div>
+    <div class="bg-zinc-950 border border-zinc-900 rounded-lg p-3 h-[520px] overflow-y-auto font-mono text-[11px] text-zinc-300 whitespace-pre-wrap">{{ buildLogs().join('\n') }}</div>
   </div>
 </div>

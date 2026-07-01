@@ -8,21 +8,21 @@
 
     @if (parent.loading()) {
       <div class="flex justify-center py-10">
-        <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <svg class="animate-spin h-5 w-5 text-zinc-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
       </div>
     } @else {
       @if (parent.apiKeys().length === 0) {
-        <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg p-10 text-center text-zinc-550 text-xs font-mono">
+        <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-10 text-center text-zinc-550 text-xs font-mono">
           No API keys generated for this application.
         </div>
       } @else {
-        <div class="bg-[#0a0a0a] border border-zinc-900 rounded-lg overflow-hidden shadow-sm font-mono text-[11px]">
+        <div class="bg-zinc-900 border border-zinc-900 rounded-lg overflow-hidden shadow-sm font-mono text-[11px]">
           <table class="w-full text-left border-collapse">
             <thead>
-              <tr class="border-b border-zinc-950 bg-black/60 text-zinc-550 uppercase tracking-wider text-[9px] font-bold">
+              <tr class="border-b border-zinc-950 bg-zinc-950/60 text-zinc-550 uppercase tracking-wider text-[9px] font-bold">
                 <th class="p-3">Name</th>
                 <th class="p-3">Prefix</th>
                 <th class="p-3">Created</th>
@@ -32,7 +32,7 @@
             </thead>
             <tbody>
               @for (key of parent.apiKeys(); track key.id) {
-                <tr class="border-b border-zinc-950/60 hover:bg-black/30 transition-colors">
+                <tr class="border-b border-zinc-950/60 hover:bg-zinc-950/30 transition-colors">
                   <td class="p-3 font-semibold text-zinc-300">{{ key.name }}</td>
                   <td class="p-3 text-zinc-450 select-all font-mono">{{ key.keyPrefix }}..</td>
                   <td class="p-3 text-zinc-550">{{ key.createdAt | date:'shortDate' }}</td>
@@ -60,7 +60,7 @@
       <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Generate New Key</h4>
     </div>
 
-    <div class="bg-[#0a0a0a] border border-zinc-800 p-4 rounded-lg space-y-4 shadow-sm">
+    <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-lg space-y-4 shadow-sm">
       <!-- Name Input -->
       <div class="space-y-1.5">
         <label for="key-name" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-mono">API Key Name</label>
@@ -71,7 +71,7 @@
           [ngModel]="parent.newKeyName()"
           (ngModelChange)="parent.newKeyName.set($event)"
           [disabled]="parent.creatingKey()"
-          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-white focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
         />
       </div>
 
@@ -84,17 +84,17 @@
           [ngModel]="parent.newKeyExpiresAt()"
           (ngModelChange)="parent.newKeyExpiresAt.set($event)"
           [disabled]="parent.creatingKey()"
-          class="block w-full px-3 py-2 text-xs bg-black border border-zinc-850 rounded text-zinc-350 focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-350 focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
         />
       </div>
 
       <button 
         (click)="parent.onCreateApiKey()"
         [disabled]="!parent.newKeyName().trim() || parent.creatingKey()"
-        class="w-full py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5 font-sans"
+        class="w-full py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5 font-sans"
       >
         @if (parent.creatingKey()) {
-          <svg class="animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
@@ -109,10 +109,10 @@
 
 <!-- MODAL 3: GENERATED API KEY DISPLAY -->
 @if (parent.showGeneratedKeyModal() && parent.generatedKeySecret()) {
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xs animate-fade-in font-mono">
-    <div class="w-full max-w-lg bg-[#0a0a0a] border border-zinc-800 rounded-lg shadow-2xl p-6 space-y-6">
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/90 backdrop-blur-xs animate-fade-in font-mono">
+    <div class="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl p-6 space-y-6">
       <div class="space-y-1">
-        <h3 class="text-xs font-bold text-white uppercase tracking-wider">API Key Generated</h3>
+        <h3 class="text-xs font-bold text-zinc-50 uppercase tracking-wider">API Key Generated</h3>
         <p class="text-zinc-500 text-xs font-sans">The server-to-server access key was created successfully.</p>
       </div>
 
@@ -133,12 +133,12 @@
       <!-- Secret token display -->
       <div class="space-y-2">
         <span class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider block">API Access Token</span>
-        <div class="p-4 bg-black border border-zinc-900 rounded font-mono text-xs text-white select-all break-all pr-12 relative shadow-inner">
+        <div class="p-4 bg-zinc-950 border border-zinc-900 rounded font-mono text-xs text-zinc-50 select-all break-all pr-12 relative shadow-inner">
           {{ parent.generatedKeySecret() }}
           
           <button 
             (click)="parent.copyApiKeySecret()"
-            class="absolute right-3 top-3 p-1 rounded bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white cursor-pointer transition-colors"
+            class="absolute right-3 top-3 p-1 rounded bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-zinc-50 cursor-pointer transition-colors"
             title="Copy key to clipboard"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
@@ -151,7 +151,7 @@
       <div class="flex justify-end pt-2">
         <button 
           (click)="parent.showGeneratedKeyModal.set(false); parent.generatedKeySecret.set(null)"
-          class="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow cursor-pointer transition-colors font-sans"
+          class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow cursor-pointer transition-colors font-sans"
         >
           I've saved the key, close window
         </button>

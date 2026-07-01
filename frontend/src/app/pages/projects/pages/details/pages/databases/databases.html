@@ -8,7 +8,7 @@
     </div>
     <button
       [routerLink]="['/projects', parent.projectId(), 'databases', 'create']"
-      class="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+      class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
     >
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -32,7 +32,7 @@
   <!-- Loading List State -->
   @if (loading()) {
     <div class="flex flex-col items-center justify-center py-16 gap-2">
-      <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <svg class="animate-spin h-5 w-5 text-zinc-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
@@ -44,8 +44,8 @@
   @if (!loading()) {
     <!-- Empty List State -->
     @if (databases().length === 0) {
-      <div class="bg-[#0a0a0a] p-10 rounded-lg border border-zinc-800 flex flex-col items-center justify-center text-center max-w-sm mx-auto shadow-sm">
-        <div class="w-10 h-10 rounded border border-zinc-900 bg-black flex items-center justify-center text-zinc-550 mb-3 shadow">
+      <div class="bg-zinc-900 p-10 rounded-lg border border-zinc-800 flex flex-col items-center justify-center text-center max-w-sm mx-auto shadow-sm">
+        <div class="w-10 h-10 rounded border border-zinc-900 bg-zinc-950 flex items-center justify-center text-zinc-550 mb-3 shadow">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
           </svg>
@@ -54,7 +54,7 @@
         <p class="text-xs text-zinc-500 mb-4">Add a Postgres, Redis or MongoDB instance to this project.</p>
         <button
           [routerLink]="['/projects', parent.projectId(), 'databases', 'create']"
-          class="px-3.5 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-semibold shadow transition-all cursor-pointer"
+          class="px-3.5 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer"
         >
           Provision Database
         </button>
@@ -65,7 +65,7 @@
     @if (databases().length > 0) {
       <div class="grid gap-4 md:grid-cols-2">
         @for (db of databases(); track db.id) {
-          <div class="bg-[#0a0a0a] p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
+          <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
             
             <div class="space-y-4">
               <!-- Card Header -->
@@ -73,7 +73,7 @@
                 <div class="space-y-0.5">
                   <a 
                     [routerLink]="['/projects', parent.projectId(), 'databases', db.id]"
-                    class="text-sm font-bold text-white hover:text-zinc-300 hover:underline cursor-pointer transition-colors"
+                    class="text-sm font-bold text-zinc-50 hover:text-zinc-300 hover:underline cursor-pointer transition-colors"
                   >
                     {{ db.name }}
                   </a>
@@ -96,11 +96,11 @@
               </div>
 
               <!-- Database Details specs -->
-              <div class="grid grid-cols-2 gap-2 p-2.5 rounded bg-black border border-zinc-900 text-[10px] text-zinc-400 font-mono">
-                <div>Tip: <span class="text-white font-bold uppercase">{{ db.type }}</span></div>
-                <div>Port: <span class="text-white font-bold">{{ db.internalPort }}</span></div>
-                <div>CPU: <span class="text-white font-bold">@if (db.cpuLimit === 0) { Unlimited } @else { {{ db.cpuLimit }}m }</span></div>
-                <div>RAM: <span class="text-white font-bold">@if (db.memoryLimitMb === 0) { Unlimited } @else { {{ db.memoryLimitMb }} MB }</span></div>
+              <div class="grid grid-cols-2 gap-2 p-2.5 rounded bg-zinc-950 border border-zinc-900 text-[10px] text-zinc-400 font-mono">
+                <div>Tip: <span class="text-zinc-50 font-bold uppercase">{{ db.type }}</span></div>
+                <div>Port: <span class="text-zinc-50 font-bold">{{ db.internalPort }}</span></div>
+                <div>CPU: <span class="text-zinc-50 font-bold">@if (db.cpuLimit === 0) { Unlimited } @else { {{ db.cpuLimit }}m }</span></div>
+                <div>RAM: <span class="text-zinc-50 font-bold">@if (db.memoryLimitMb === 0) { Unlimited } @else { {{ db.memoryLimitMb }} MB }</span></div>
                 <div class="col-span-2 truncate">Pod: <span class="text-zinc-300">{{ db.containerName }}</span></div>
                 
                 <!-- External exposure info -->
@@ -124,12 +124,12 @@
                       <span>Connection URL (DATABASE_URL)</span>
                       <button
                         (click)="copyToClipboard(revealedCreds()[db.id].connectionUrl)"
-                        class="text-white hover:underline font-semibold cursor-pointer"
+                        class="text-zinc-50 hover:underline font-semibold cursor-pointer"
                       >
                         Copy
                       </button>
                     </div>
-                    <div class="px-2 py-1.5 rounded bg-black border border-zinc-900 font-mono text-[10px] text-zinc-300 select-all truncate">
+                    <div class="px-2 py-1.5 rounded bg-zinc-950 border border-zinc-900 font-mono text-[10px] text-zinc-300 select-all truncate">
                       {{ revealedCreds()[db.id].connectionUrl }}
                     </div>
                   </div>
@@ -140,7 +140,7 @@
                       <!-- Username -->
                       <div class="space-y-1">
                         <span class="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold block">Username</span>
-                        <div class="px-2 py-1 rounded bg-black border border-zinc-900 font-mono text-[10px] text-zinc-300 select-all truncate">
+                        <div class="px-2 py-1 rounded bg-zinc-950 border border-zinc-900 font-mono text-[10px] text-zinc-300 select-all truncate">
                           {{ revealedCreds()[db.id].databaseUser }}
                         </div>
                       </div>
@@ -150,12 +150,12 @@
                           <span>Password</span>
                           <button 
                             (click)="copyToClipboard(revealedCreds()[db.id].databasePassword || '')"
-                            class="text-white hover:underline font-semibold cursor-pointer"
+                            class="text-zinc-50 hover:underline font-semibold cursor-pointer"
                           >
                             Copy
                           </button>
                         </div>
-                        <div class="px-2 py-1 rounded bg-black border border-zinc-900 font-mono text-[10px] text-zinc-300 select-all truncate">
+                        <div class="px-2 py-1 rounded bg-zinc-950 border border-zinc-900 font-mono text-[10px] text-zinc-300 select-all truncate">
                           {{ revealedCreds()[db.id].databasePassword }}
                         </div>
                       </div>
@@ -171,7 +171,7 @@
               <div class="flex items-center gap-2">
                 <button 
                   (click)="onRevealCredentials(db.id)"
-                  class="px-2 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer border border-zinc-800 transition-colors flex items-center gap-1.5"
+                  class="px-2 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-50 text-xs font-semibold cursor-pointer border border-zinc-800 transition-colors flex items-center gap-1.5"
                   [attr.aria-expanded]="!!revealedCreds()[db.id]"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-500">
@@ -183,7 +183,7 @@
 
                 <a 
                   [routerLink]="['/projects', parent.projectId(), 'databases', db.id]"
-                  class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold cursor-pointer border border-zinc-800 transition-colors flex items-center gap-1.5"
+                  class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-50 text-xs font-semibold cursor-pointer border border-zinc-800 transition-colors flex items-center gap-1.5"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-500">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.43l-1.003.828c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.43l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.991l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
