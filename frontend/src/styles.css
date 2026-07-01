@@ -150,9 +150,9 @@ html, body {
      grid. Fixed attachment so it sits behind scrolling content like a backdrop. All
      theme-aware — indigo glow on dark/light, amber on retro (via --accent). */
   background-image:
-    radial-gradient(ellipse 90% 55% at 50% -8%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 70%),
-    linear-gradient(to right, color-mix(in oklab, var(--surface-dot) 55%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklab, var(--surface-dot) 55%, transparent) 1px, transparent 1px);
+    radial-gradient(ellipse 90% 55% at 50% -8%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 72%),
+    linear-gradient(to right, color-mix(in oklab, var(--surface-dot) 75%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--surface-dot) 75%, transparent) 1px, transparent 1px);
   background-size: 100% 100%, 46px 46px, 46px 46px;
   background-attachment: fixed;
   color: var(--surface-text);
