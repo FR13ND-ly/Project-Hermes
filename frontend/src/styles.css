@@ -150,10 +150,9 @@ html, body {
      grid. Fixed attachment so it sits behind scrolling content like a backdrop. All
      theme-aware — indigo glow on dark/light, amber on retro (via --accent). */
   background-image:
-    radial-gradient(ellipse 90% 55% at 50% -8%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 72%),
-    linear-gradient(to right, color-mix(in oklab, var(--surface-dot) 75%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklab, var(--surface-dot) 75%, transparent) 1px, transparent 1px);
-  background-size: 100% 100%, 46px 46px, 46px 46px;
+    radial-gradient(1000px 650px at 50% -24%, color-mix(in oklab, var(--accent) 9%, transparent), transparent 60%),
+    radial-gradient(circle, color-mix(in oklab, var(--surface-dot) 32%, transparent) 1px, transparent 1px);
+  background-size: 100% 100%, 24px 24px;
   background-attachment: fixed;
   color: var(--surface-text);
   /* Modern-SaaS base: sans body, comfortable reading rhythm. Mono is reserved for
