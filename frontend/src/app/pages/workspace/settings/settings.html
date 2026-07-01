@@ -5,8 +5,8 @@
 
   <!-- Section Header -->
   <div class="border-b border-zinc-900 pb-4">
-    <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Workspace Settings</h3>
-    <p class="text-xs text-zinc-550">Manage resource quotas and infrastructure configuration (Cloudflare / Ingress IP) for the current workspace.</p>
+    <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider font-mono">Workspace Settings</h3>
+    <p class="text-[13px] text-zinc-550">Manage resource quotas and infrastructure configuration (Cloudflare / Ingress IP) for the current workspace.</p>
   </div>
 
   <!-- Loading State -->
@@ -16,13 +16,13 @@
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
-      <span class="text-zinc-550 text-[9px] uppercase font-mono tracking-widest">Loading details...</span>
+      <span class="text-zinc-550 text-[11px] uppercase font-mono tracking-widest">Loading details...</span>
     </div>
   }
 
   <!-- Error Alert -->
   @if (error()) {
-    <div class="p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-xs flex items-center gap-2" role="alert">
+    <div class="p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-[13px] flex items-center gap-2" role="alert">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
       </svg>
@@ -32,7 +32,7 @@
 
   <!-- Success Alert -->
   @if (successMsg()) {
-    <div class="p-3 rounded border border-emerald-500/20 bg-emerald-950/20 text-emerald-400 text-xs flex items-center gap-2" role="alert">
+    <div class="p-3 rounded border border-emerald-500/20 bg-emerald-950/20 text-emerald-400 text-[13px] flex items-center gap-2" role="alert">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
@@ -43,7 +43,7 @@
   @if (workspace()) {
     
     <!-- Sub-Tabs Navigation -->
-    <div class="flex items-center border-b border-zinc-900 pb-3 mb-5 gap-4 text-xs font-mono">
+    <div class="flex items-center border-b border-zinc-900 pb-3 mb-5 gap-4 text-[13px] font-mono">
       <button 
         (click)="activeSubTab.set('general')" 
         [class]="activeSubTab() === 'general' ? 'border-b-2 border-zinc-50 text-zinc-50 pb-1.5 font-bold transition-all' : 'text-zinc-500 hover:text-zinc-300 pb-1.5 transition-all'"
@@ -67,7 +67,7 @@
         @if (usage()) {
           <div class="grid gap-4 md:grid-cols-3">
             <!-- Memory Usage Gauge Card -->
-            <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
+            <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 flex flex-col justify-between shadow-sm">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2.5">
                   <div class="w-8 h-8 rounded bg-zinc-950 border border-zinc-900 flex items-center justify-center text-zinc-400">
@@ -76,12 +76,12 @@
                     </svg>
                   </div>
                   <div>
-                    <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">RAM Allocation</h3>
-                    <p class="text-[9px] text-zinc-500 font-mono">Kubernetes RAM Limits</p>
+                    <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider font-mono">RAM Allocation</h3>
+                    <p class="text-[11px] text-zinc-500 font-mono">Kubernetes RAM Limits</p>
                   </div>
                 </div>
                 <span class="text-lg font-bold text-zinc-50 font-mono">
-                  {{ usage()?.usedMemoryMb }} <span class="text-xs text-zinc-500 font-sans">/ @if (usage()?.maxMemoryMb === 0) { Unlimited } @else { {{ usage()?.maxMemoryMb }} MB }</span>
+                  {{ usage()?.usedMemoryMb }} <span class="text-[13px] text-zinc-500 font-sans">/ @if (usage()?.maxMemoryMb === 0) { Unlimited } @else { {{ usage()?.maxMemoryMb }} MB }</span>
                 </span>
               </div>
 
@@ -98,7 +98,7 @@
                     [style.width.%]="usage()?.maxMemoryMb === 0 ? 0 : ((usage()!.usedMemoryMb / usage()!.maxMemoryMb) * 100)"
                   ></div>
                 </div>
-                <div class="flex items-center justify-between text-[10px] text-zinc-550 font-mono">
+                <div class="flex items-center justify-between text-xs text-zinc-550 font-mono">
                   <span>Used: @if (usage()?.maxMemoryMb === 0) { - } @else { {{ ((usage()!.usedMemoryMb / usage()!.maxMemoryMb) * 100) | number:'1.0-1' }}% }</span>
                   <span>Remaining: @if (usage()?.maxMemoryMb === 0) { Unlimited } @else { {{ usage()!.maxMemoryMb - usage()!.usedMemoryMb }} MB }</span>
                 </div>
@@ -106,7 +106,7 @@
             </div>
 
             <!-- Storage Usage Gauge Card -->
-            <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
+            <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 flex flex-col justify-between shadow-sm">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2.5">
                   <div class="w-8 h-8 rounded bg-zinc-950 border border-zinc-900 flex items-center justify-center text-zinc-400">
@@ -115,12 +115,12 @@
                     </svg>
                   </div>
                   <div>
-                    <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Persistent Storage (PVC)</h3>
-                    <p class="text-[9px] text-zinc-500 font-mono">Storage Volume Limits</p>
+                    <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider font-mono">Persistent Storage (PVC)</h3>
+                    <p class="text-[11px] text-zinc-500 font-mono">Storage Volume Limits</p>
                   </div>
                 </div>
                 <span class="text-lg font-bold text-zinc-50 font-mono">
-                  {{ usage()?.usedStorageGb }} <span class="text-xs text-zinc-500 font-sans">/ @if (usage()?.maxStorageGb === 0) { Unlimited } @else { {{ usage()?.maxStorageGb }} GB }</span>
+                  {{ usage()?.usedStorageGb }} <span class="text-[13px] text-zinc-500 font-sans">/ @if (usage()?.maxStorageGb === 0) { Unlimited } @else { {{ usage()?.maxStorageGb }} GB }</span>
                 </span>
               </div>
 
@@ -137,7 +137,7 @@
                     [style.width.%]="usage()?.maxStorageGb === 0 ? 0 : ((usage()!.usedStorageGb / usage()!.maxStorageGb) * 100)"
                   ></div>
                 </div>
-                <div class="flex items-center justify-between text-[10px] text-zinc-550 font-mono">
+                <div class="flex items-center justify-between text-xs text-zinc-550 font-mono">
                   <span>Used: @if (usage()?.maxStorageGb === 0) { - } @else { {{ ((usage()!.usedStorageGb / usage()!.maxStorageGb) * 100) | number:'1.0-1' }}% }</span>
                   <span>Remaining: @if (usage()?.maxStorageGb === 0) { Unlimited } @else { {{ usage()!.maxStorageGb - usage()!.usedStorageGb }} GB }</span>
                 </div>
@@ -145,7 +145,7 @@
             </div>
 
             <!-- CPU Usage Gauge Card -->
-            <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 flex flex-col justify-between shadow-sm">
+            <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 flex flex-col justify-between shadow-sm">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2.5">
                   <div class="w-8 h-8 rounded bg-zinc-950 border border-zinc-900 flex items-center justify-center text-zinc-400">
@@ -154,12 +154,12 @@
                     </svg>
                   </div>
                   <div>
-                    <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">CPU Allocation</h3>
-                    <p class="text-[9px] text-zinc-500 font-mono">Kubernetes CPU Limits</p>
+                    <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider font-mono">CPU Allocation</h3>
+                    <p class="text-[11px] text-zinc-500 font-mono">Kubernetes CPU Limits</p>
                   </div>
                 </div>
                 <span class="text-lg font-bold text-zinc-50 font-mono">
-                  {{ usage()?.usedCpuMillicores }} <span class="text-xs text-zinc-500 font-sans">/ @if (usage()?.maxCpuMillicores === 0) { Unlimited } @else { {{ usage()?.maxCpuMillicores }} m }</span>
+                  {{ usage()?.usedCpuMillicores }} <span class="text-[13px] text-zinc-500 font-sans">/ @if (usage()?.maxCpuMillicores === 0) { Unlimited } @else { {{ usage()?.maxCpuMillicores }} m }</span>
                 </span>
               </div>
 
@@ -176,7 +176,7 @@
                     [style.width.%]="usage()?.maxCpuMillicores === 0 ? 0 : ((usage()!.usedCpuMillicores / usage()!.maxCpuMillicores) * 100)"
                   ></div>
                 </div>
-                <div class="flex items-center justify-between text-[10px] text-zinc-550 font-mono">
+                <div class="flex items-center justify-between text-xs text-zinc-550 font-mono">
                   <span>Used: @if (usage()?.maxCpuMillicores === 0) { - } @else { {{ ((usage()!.usedCpuMillicores / usage()!.maxCpuMillicores) * 100) | number:'1.0-1' }}% }</span>
                   <span>Remaining: @if (usage()?.maxCpuMillicores === 0) { Unlimited } @else { {{ usage()!.maxCpuMillicores - usage()!.usedCpuMillicores }} m }</span>
                 </div>
@@ -186,17 +186,17 @@
         }
 
         <!-- Configuration Form Details Card -->
-        <div class="bg-zinc-900 p-6 rounded-lg border border-zinc-800 space-y-6 shadow-sm">
+        <div class="bg-zinc-900 p-6 rounded-xl border border-zinc-800 space-y-6 shadow-sm">
           
           <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
-            <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">General Settings & Limits</h4>
-            <span class="text-[9px] text-zinc-600 font-mono select-all cursor-pointer font-bold">ID: {{ workspace()?.id }}</span>
+            <h4 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider font-mono">General Settings & Limits</h4>
+            <span class="text-[11px] text-zinc-600 font-mono select-all cursor-pointer font-bold">ID: {{ workspace()?.id }}</span>
           </div>
 
           <div class="grid gap-4 sm:grid-cols-3">
             <!-- Name -->
             <div class="space-y-1.5">
-              <label for="ws-name-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Workspace Name</label>
+              <label for="ws-name-input" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Workspace Name</label>
               <input
                 id="ws-name-input"
                 type="text"
@@ -204,59 +204,59 @@
                 [ngModel]="wsName()"
                 (ngModelChange)="wsName.set($event)"
                 [disabled]="saving()"
-                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
             </div>
 
             <!-- Max Memory limit -->
             <div class="space-y-1.5">
-              <label for="ws-mem-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Max RAM Limit (MB)</label>
+              <label for="ws-mem-input" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Max RAM Limit (MB)</label>
               <input 
                 id="ws-mem-input"
                 type="number" 
                 [ngModel]="maxMemory()"
                 (ngModelChange)="maxMemory.set($event)"
                 [disabled]="saving()"
-                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
             </div>
 
             <!-- Max Storage limit -->
             <div class="space-y-1.5">
-              <label for="ws-store-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Max PVC Storage Limit (GB)</label>
+              <label for="ws-store-input" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Max PVC Storage Limit (GB)</label>
               <input
                 id="ws-store-input"
                 type="number"
                 [ngModel]="maxStorage()"
                 (ngModelChange)="maxStorage.set($event)"
                 [disabled]="saving()"
-                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
             </div>
 
             <!-- Max CPU limit -->
             <div class="space-y-1.5">
-              <label for="ws-cpu-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Max CPU Limit (millicores, 0 = unlimited)</label>
+              <label for="ws-cpu-input" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Max CPU Limit (millicores, 0 = unlimited)</label>
               <input
                 id="ws-cpu-input"
                 type="number"
                 [ngModel]="maxCpu()"
                 (ngModelChange)="maxCpu.set($event)"
                 [disabled]="saving()"
-                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
-              <p class="text-[9px] text-zinc-600 font-mono">1000m = 1 vCPU. Applied as a ResourceQuota on the namespace (requests + limits).</p>
+              <p class="text-[11px] text-zinc-600 font-mono">1000m = 1 vCPU. Applied as a ResourceQuota on the namespace (requests + limits).</p>
             </div>
           </div>
 
-          <p class="text-[10px] text-zinc-600 pt-1">Cloudflare / Ingress settings have moved to project level — see the "Settings" tab in each project.</p>
+          <p class="text-xs text-zinc-600 pt-1">Cloudflare / Ingress settings have moved to project level — see the "Settings" tab in each project.</p>
 
           <!-- Submit Button -->
           <div class="pt-4 border-t border-zinc-900 flex justify-end">
             <button 
               (click)="onSaveSettings()"
               [disabled]="saving() || !wsName().trim()"
-              class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
+              class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
             >
               @if (!saving()) {
                 <span>Save Settings</span>
@@ -273,25 +273,25 @@
         </div>
 
         <!-- Git Credentials card -->
-        <div class="bg-zinc-900 border border-zinc-850 rounded-lg p-5 space-y-4 shadow-sm font-mono mt-6">
+        <div class="bg-zinc-900 border border-zinc-850 rounded-xl p-5 space-y-4 shadow-sm font-mono mt-6">
           <div class="border-b border-zinc-900 pb-2.5">
-            <h4 class="text-xs font-bold text-zinc-355 uppercase tracking-wider">Git Credentials</h4>
-            <p class="text-[10px] text-zinc-550 mt-0.5 font-sans">Access tokens (GitHub / GitLab) used when importing and cloning repositories. Select a credential when creating an application.</p>
+            <h4 class="text-[13px] font-bold text-zinc-355 uppercase tracking-wider">Git Credentials</h4>
+            <p class="text-xs text-zinc-550 mt-0.5 font-sans">Access tokens (GitHub / GitLab) used when importing and cloning repositories. Select a credential when creating an application.</p>
           </div>
 
           <!-- Existing credentials -->
           @if (gitCredentials().length === 0) {
-            <p class="text-[10px] text-zinc-600 py-1">No credentials added yet.</p>
+            <p class="text-xs text-zinc-600 py-1">No credentials added yet.</p>
           } @else {
             <div class="divide-y divide-zinc-900">
               @for (c of gitCredentials(); track c.id) {
                 <div class="flex items-center justify-between gap-3 py-2">
                   <div class="flex items-center gap-2 min-w-0">
-                    <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 shrink-0">{{ c.provider }}</span>
-                    <span class="text-xs text-zinc-50 truncate">{{ c.label }}</span>
-                    <span class="text-[10px] text-zinc-600 truncate">{{ c.host }}{{ c.username ? ' · @' + c.username : '' }}</span>
+                    <span class="text-[11px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 shrink-0">{{ c.provider }}</span>
+                    <span class="text-[13px] text-zinc-50 truncate">{{ c.label }}</span>
+                    <span class="text-xs text-zinc-600 truncate">{{ c.host }}{{ c.username ? ' · @' + c.username : '' }}</span>
                   </div>
-                  <button (click)="onDeleteCredential(c)" class="px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-red-950/20 cursor-pointer shrink-0">Delete</button>
+                  <button (click)="onDeleteCredential(c)" class="px-2.5 py-1 rounded text-xs font-semibold border border-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-red-950/20 cursor-pointer shrink-0">Delete</button>
                 </div>
               }
             </div>
@@ -300,65 +300,65 @@
           <!-- Add credential -->
           <div class="grid gap-3 sm:grid-cols-2 border-t border-zinc-900 pt-3">
             <div class="space-y-1.5">
-              <label for="cred-provider" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Provider</label>
+              <label for="cred-provider" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Provider</label>
               <select id="cred-provider" [ngModel]="newCredProvider()" (ngModelChange)="newCredProvider.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer">
+                class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer">
                 <option value="github">GitHub</option>
                 <option value="gitlab">GitLab</option>
               </select>
             </div>
             <div class="space-y-1.5">
-              <label for="cred-host" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Host (optional)</label>
+              <label for="cred-host" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Host (optional)</label>
               <input id="cred-host" type="text" placeholder="github.com / gitlab.com"
                 [ngModel]="newCredHost()" (ngModelChange)="newCredHost.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+                class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
             <div class="space-y-1.5">
-              <label for="cred-label" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Label</label>
+              <label for="cred-label" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Label</label>
               <input id="cred-label" type="text" placeholder="e.g. GitHub personal"
                 [ngModel]="newCredLabel()" (ngModelChange)="newCredLabel.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+                class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
             <div class="space-y-1.5">
-              <label for="cred-token" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Token (PAT)</label>
+              <label for="cred-token" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Token (PAT)</label>
               <input id="cred-token" type="password" placeholder="ghp_… / glpat-…"
                 [ngModel]="newCredToken()" (ngModelChange)="newCredToken.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+                class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
           </div>
           <div class="flex items-center justify-between pt-1">
             <label class="flex items-center gap-2 cursor-pointer select-none">
               <input type="checkbox" [ngModel]="newCredSkipTls()" (ngModelChange)="newCredSkipTls.set($event)"
                 class="w-3.5 h-3.5 accent-zinc-50 cursor-pointer" />
-              <span class="text-[10px] text-zinc-500 font-sans">Accept self-signed SSL certificates <span class="text-zinc-650">(self-hosted)</span></span>
+              <span class="text-xs text-zinc-500 font-sans">Accept self-signed SSL certificates <span class="text-zinc-650">(self-hosted)</span></span>
             </label>
             <button (click)="onAddCredential()" [disabled]="addingCred()"
-              class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
+              class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
               {{ addingCred() ? 'Verifying...' : 'Add Credential' }}
             </button>
           </div>
         </div>
 
         <!-- Cloudflare Tokens card -->
-        <div class="bg-zinc-900 border border-zinc-850 rounded-lg p-5 space-y-4 shadow-sm font-mono mt-6">
+        <div class="bg-zinc-900 border border-zinc-850 rounded-xl p-5 space-y-4 shadow-sm font-mono mt-6">
           <div class="border-b border-zinc-900 pb-2.5">
-            <h4 class="text-xs font-bold text-zinc-355 uppercase tracking-wider">Cloudflare Tokens</h4>
-            <p class="text-[10px] text-zinc-550 mt-0.5 font-sans">Tokens for custom domain DNS. One token = one domain (includes Zone ID + domain). Select a token when creating a project, or change it from project settings.</p>
+            <h4 class="text-[13px] font-bold text-zinc-355 uppercase tracking-wider">Cloudflare Tokens</h4>
+            <p class="text-xs text-zinc-550 mt-0.5 font-sans">Tokens for custom domain DNS. One token = one domain (includes Zone ID + domain). Select a token when creating a project, or change it from project settings.</p>
           </div>
 
           <!-- Existing credentials -->
           @if (cloudflareCredentials().length === 0) {
-            <p class="text-[10px] text-zinc-600 py-1">No Cloudflare tokens added yet.</p>
+            <p class="text-xs text-zinc-600 py-1">No Cloudflare tokens added yet.</p>
           } @else {
             <div class="divide-y divide-zinc-900">
               @for (c of cloudflareCredentials(); track c.id) {
                 <div class="flex items-center justify-between gap-3 py-2">
                   <div class="flex items-center gap-2 min-w-0">
-                    <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-950/30 border border-amber-900/40 text-amber-400 shrink-0">CF</span>
-                    <span class="text-xs text-zinc-50 truncate">{{ c.label }}</span>
-                    <span class="text-[10px] text-zinc-600 truncate">{{ c.baseDomain || c.zoneId }}</span>
+                    <span class="text-[11px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-950/30 border border-amber-900/40 text-amber-400 shrink-0">CF</span>
+                    <span class="text-[13px] text-zinc-50 truncate">{{ c.label }}</span>
+                    <span class="text-xs text-zinc-600 truncate">{{ c.baseDomain || c.zoneId }}</span>
                   </div>
-                  <button (click)="onDeleteCloudflareCredential(c)" class="px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-red-950/20 cursor-pointer shrink-0">Delete</button>
+                  <button (click)="onDeleteCloudflareCredential(c)" class="px-2.5 py-1 rounded text-xs font-semibold border border-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-red-950/20 cursor-pointer shrink-0">Delete</button>
                 </div>
               }
             </div>
@@ -367,33 +367,33 @@
           <!-- Add credential -->
           <div class="grid gap-3 sm:grid-cols-2 border-t border-zinc-900 pt-3">
             <div class="space-y-1.5">
-              <label for="cf-label" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Label</label>
+              <label for="cf-label" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Label</label>
               <input id="cf-label" type="text" placeholder="e.g. parapet-software.work"
                 [ngModel]="newCfLabel()" (ngModelChange)="newCfLabel.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+                class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
             <div class="space-y-1.5">
-              <label for="cf-domain" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Base domain (optional)</label>
+              <label for="cf-domain" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Base domain (optional)</label>
               <input id="cf-domain" type="text" placeholder="e.g. parapet-software.work"
                 [ngModel]="newCfBaseDomain()" (ngModelChange)="newCfBaseDomain.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+                class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
             <div class="space-y-1.5">
-              <label for="cf-token" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">API Token</label>
+              <label for="cf-token" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">API Token</label>
               <input id="cf-token" type="password" placeholder="cfut_…"
                 [ngModel]="newCfToken()" (ngModelChange)="newCfToken.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+                class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
             <div class="space-y-1.5">
-              <label for="cf-zone" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Zone ID</label>
+              <label for="cf-zone" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Zone ID</label>
               <input id="cf-zone" type="text" placeholder="e.g. ac4011807d97…"
                 [ngModel]="newCfZoneId()" (ngModelChange)="newCfZoneId.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
+                class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono" />
             </div>
           </div>
           <div class="flex items-center justify-end pt-1">
             <button (click)="onAddCloudflareCredential()" [disabled]="addingCf()"
-              class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
+              class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
               {{ addingCf() ? 'Adding...' : 'Add Token' }}
             </button>
           </div>
@@ -406,13 +406,13 @@
       <div class="space-y-6 animate-fade-in">
         
         <!-- Add Member Form Card -->
-        <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+        <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm">
           <div>
-            <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Add New Member</h4>
-            <p class="text-[10px] text-zinc-500 mt-1">Enter the email of an existing account to add them to this workspace.</p>
+            <h4 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider font-mono">Add New Member</h4>
+            <p class="text-xs text-zinc-500 mt-1">Enter the email of an existing account to add them to this workspace.</p>
           </div>
           
-          <div class="flex flex-col sm:flex-row gap-3 text-xs">
+          <div class="flex flex-col sm:flex-row gap-3 text-[13px]">
             <div class="flex-1">
               <input 
                 type="email" 
@@ -438,7 +438,7 @@
             <button 
               (click)="onInviteMember()"
               [disabled]="invitingMember() || !newMemberEmail().trim()"
-              class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 font-sans"
+              class="px-4 py-2 rounded btn-accent font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 font-sans"
             >
               @if (invitingMember()) {
                 <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -457,9 +457,9 @@
         </div>
 
         <!-- Members List Card -->
-        <div class="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden shadow-sm">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
           <div class="p-4 bg-zinc-950/40 border-b border-zinc-900">
-            <h4 class="text-xs font-bold text-zinc-350 uppercase tracking-wider font-mono">Active Members</h4>
+            <h4 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider font-mono">Active Members</h4>
           </div>
 
           @if (loadingMembers()) {
@@ -468,13 +468,13 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>
-              <span class="text-[10px] text-zinc-500 font-mono">Loading member list...</span>
+              <span class="text-xs text-zinc-500 font-mono">Loading member list...</span>
             </div>
           } @else {
             <div class="overflow-x-auto">
-              <table class="w-full text-left border-collapse text-xs font-mono">
+              <table class="w-full text-left border-collapse text-[13px] font-mono">
                 <thead>
-                  <tr class="bg-zinc-950/80 border-b border-zinc-900 text-[10px] text-zinc-550 uppercase tracking-wider">
+                  <tr class="bg-zinc-950/80 border-b border-zinc-900 text-xs text-zinc-550 uppercase tracking-wider">
                     <th class="p-3 font-bold">User (Username)</th>
                     <th class="p-3 font-bold">E-mail</th>
                     <th class="p-3 font-bold">Workspace Role</th>
@@ -487,16 +487,16 @@
                       <td class="p-3">
                         <div class="flex items-center gap-2">
                           <span class="w-1.5 h-1.5 rounded-full" [class]="member.roleName === 'owner' ? 'bg-purple-500 shadow-sm shadow-purple-500/50' : 'bg-zinc-500'"></span>
-                          <span class="font-bold text-zinc-300 text-xs">{{ member.username }}</span>
+                          <span class="font-bold text-zinc-300 text-[13px]">{{ member.username }}</span>
                           @if (member.email === auth.currentUser()?.email) {
-                            <span class="text-[9px] px-1 py-0.2 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 font-sans">You</span>
+                            <span class="text-[11px] px-1 py-0.2 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 font-sans">You</span>
                           }
                         </div>
                       </td>
                       <td class="p-3 text-zinc-400 select-all">{{ member.email }}</td>
                       <td class="p-3">
                         @if (member.roleName === 'owner' || member.email === auth.currentUser()?.email) {
-                          <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider"
+                          <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider"
                             [class]="member.roleName === 'owner' ? 'bg-purple-950/40 border border-purple-500/20 text-purple-400' : 'bg-emerald-950/40 border border-emerald-500/20 text-emerald-400'">
                             {{ member.roleName }}
                           </span>
@@ -504,7 +504,7 @@
                           <select 
                             [ngModel]="member.roleName"
                             (ngModelChange)="onUpdateRole(member, $event)"
-                            class="px-2 py-0.5 bg-zinc-950 border border-zinc-850 rounded text-zinc-300 focus:outline-none focus:border-zinc-500 font-mono text-[11px] cursor-pointer"
+                            class="px-2 py-0.5 bg-zinc-950 border border-zinc-850 rounded text-zinc-300 focus:outline-none focus:border-zinc-500 font-mono text-[13px] cursor-pointer"
                           >
                             <option value="admin">Admin</option>
                             <option value="developer">Developer</option>

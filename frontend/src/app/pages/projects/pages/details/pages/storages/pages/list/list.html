@@ -6,14 +6,14 @@
     <!-- Section Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-900 pb-4 gap-4">
       <div>
-        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Object Storage & Buckets</h3>
-        <p class="text-xs text-zinc-555">Manage static files, media and storage rules for your workspace.</p>
+        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Object Storage & Buckets</h3>
+        <p class="text-[13px] text-zinc-555">Manage static files, media and storage rules for your workspace.</p>
       </div>
       
       <div class="flex items-center gap-3">
         <button 
           [routerLink]="['/projects', parent.parent.projectId(), 'storages', 'create']"
-          class="px-3.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-350 hover:text-zinc-50 text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5"
+          class="px-3.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-350 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer transition-all flex items-center gap-1.5"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-550">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -30,7 +30,7 @@
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <span class="text-zinc-550 text-[10px] uppercase tracking-widest">Loading storage configurations...</span>
+        <span class="text-zinc-550 text-xs uppercase tracking-widest">Loading storage configurations...</span>
       </div>
     } @else {
       @if (parent.buckets().length === 0) {
@@ -40,20 +40,20 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.008 1.24l.885 1.77a2.25 2.25 0 002.007 1.24h1.98a2.25 2.25 0 002.007-1.24l.885-1.77a2.25 2.25 0 012.007-1.24h3.86m-18 0h18a2.25 2.25 0 002.25-2.25V5.25A2.25 2.25 0 0019.5 3H4.5A2.25 2.25 0 002.25 5.25v6a2.25 2.25 0 002.25 2.25z" />
             </svg>
           </div>
-          <h4 class="text-xs font-bold text-zinc-200 mb-1.5 uppercase tracking-wider">No Storage Buckets</h4>
-          <p class="text-xs text-zinc-500 mb-6">Create a bucket to store images, code or other static resources.</p>
+          <h4 class="text-[13px] font-bold text-zinc-200 mb-1.5 uppercase tracking-wider">No Storage Buckets</h4>
+          <p class="text-[13px] text-zinc-500 mb-6">Create a bucket to store images, code or other static resources.</p>
           <button 
             [routerLink]="['/projects', parent.parent.projectId(), 'storages', 'create']"
-            class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer"
+            class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer"
           >
             Create First Bucket
           </button>
         </div>
       } @else {
         <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow">
-          <table class="w-full text-left border-collapse text-xs">
+          <table class="w-full text-left border-collapse text-[13px]">
             <thead>
-              <tr class="border-b border-zinc-900 bg-zinc-950/60 text-zinc-500 uppercase tracking-wider text-[9px] font-bold">
+              <tr class="border-b border-zinc-900 bg-zinc-950/60 text-zinc-500 uppercase tracking-wider text-[11px] font-bold">
                 <th class="p-3.5">Bucket Name</th>
                 <th class="p-3.5">Access Type</th>
                 <th class="p-3.5">Limit</th>
@@ -71,12 +71,12 @@
                       class="font-bold text-zinc-50 hover:underline cursor-pointer flex flex-col"
                     >
                       {{ bucket.name }}
-                      <span class="text-[9px] text-zinc-550 font-normal">slug: {{ bucket.slug }}</span>
+                      <span class="text-[11px] text-zinc-550 font-normal">slug: {{ bucket.slug }}</span>
                     </span>
                   </td>
                   
                   <td class="p-3.5">
-                    <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border border-purple-950 bg-purple-950/20 text-purple-400 uppercase">Private</span>
+                    <span class="px-1.5 py-0.5 rounded text-[11px] font-bold border border-purple-950 bg-purple-950/20 text-purple-400 uppercase">Private</span>
                   </td>
                   
                   <td class="p-3.5 text-zinc-300 font-mono">
@@ -100,13 +100,13 @@
                     <div class="flex items-center justify-end gap-2">
                       <button 
                         (click)="navigateToBucket(bucket.id)"
-                        class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-zinc-50 hover:border-zinc-700 text-[10px] font-semibold transition-all cursor-pointer"
+                        class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-zinc-50 hover:border-zinc-700 text-xs font-semibold transition-all cursor-pointer"
                       >
                         Details
                       </button>
                       <button 
                         (click)="parent.onDeleteBucket(bucket)"
-                        class="px-2.5 py-1 rounded border border-zinc-900 text-zinc-600 hover:text-red-400 hover:border-red-900/50 hover:bg-red-950/10 text-[10px] font-semibold transition-all cursor-pointer"
+                        class="px-2.5 py-1 rounded border border-zinc-900 text-zinc-600 hover:text-red-400 hover:border-red-900/50 hover:bg-red-950/10 text-xs font-semibold transition-all cursor-pointer"
                       >
                         Delete
                       </button>
@@ -123,17 +123,17 @@
     <!-- PVC (Persistent Volumes) -->
     <div class="bg-zinc-900 rounded border border-zinc-900 shadow-sm">
       <div class="border-b border-zinc-900 px-5 py-3.5">
-        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Volume Persistente (PVC)</h3>
-        <p class="text-[10px] text-zinc-555 mt-0.5">Automatically created at build from application <code>VOLUME</code> directives. Browse their contents here.</p>
+        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Volume Persistente (PVC)</h3>
+        <p class="text-xs text-zinc-555 mt-0.5">Automatically created at build from application <code>VOLUME</code> directives. Browse their contents here.</p>
       </div>
       @if (parent.loadingPvcs()) {
-        <div class="px-5 py-6 text-center text-[11px] text-zinc-600">Loading volumes...</div>
+        <div class="px-5 py-6 text-center text-[13px] text-zinc-600">Loading volumes...</div>
       } @else if (parent.pvcs().length === 0) {
-        <div class="px-5 py-6 text-center text-[11px] text-zinc-600">No persistent volumes. They appear here when an application declares <code>VOLUME</code> in its Dockerfile.</div>
+        <div class="px-5 py-6 text-center text-[13px] text-zinc-600">No persistent volumes. They appear here when an application declares <code>VOLUME</code> in its Dockerfile.</div>
       } @else {
-        <table class="w-full text-left text-xs">
+        <table class="w-full text-left text-[13px]">
           <thead>
-            <tr class="border-b border-zinc-900 text-zinc-600 uppercase tracking-wider text-[9px]">
+            <tr class="border-b border-zinc-900 text-zinc-600 uppercase tracking-wider text-[11px]">
               <th class="p-3.5">Application</th>
               <th class="p-3.5">Container Path</th>
               <th class="p-3.5">Source</th>
@@ -147,13 +147,13 @@
                 <td class="p-3.5 font-mono text-zinc-400">{{ pvc.containerPath }}</td>
                 <td class="p-3.5">
                   @if (pvc.isAuto) {
-                    <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border border-sky-950 bg-sky-950/20 text-sky-400 uppercase">Auto (build)</span>
+                    <span class="px-1.5 py-0.5 rounded text-[11px] font-bold border border-sky-950 bg-sky-950/20 text-sky-400 uppercase">Auto (build)</span>
                   } @else {
-                    <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border border-zinc-800 bg-zinc-900 text-zinc-400 uppercase">Manual</span>
+                    <span class="px-1.5 py-0.5 rounded text-[11px] font-bold border border-zinc-800 bg-zinc-900 text-zinc-400 uppercase">Manual</span>
                   }
                 </td>
                 <td class="p-3.5 text-right">
-                  <button (click)="parent.selectPvc(pvc)" class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-zinc-50 hover:border-zinc-700 text-[10px] font-semibold transition-all cursor-pointer">Open</button>
+                  <button (click)="parent.selectPvc(pvc)" class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-zinc-50 hover:border-zinc-700 text-xs font-semibold transition-all cursor-pointer">Open</button>
                 </td>
               </tr>
             }
@@ -173,10 +173,10 @@
       </button>
       <div>
         <div class="flex items-center gap-2">
-          <h3 class="text-xs font-bold text-zinc-50 uppercase tracking-wider">{{ pvc.appName }}</h3>
+          <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider">{{ pvc.appName }}</h3>
           <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border border-sky-900 bg-sky-950/20 text-sky-400 uppercase">PVC</span>
         </div>
-        <p class="text-[10px] text-zinc-555 font-mono mt-0.5">mounted at: {{ pvc.containerPath }} {{ pvc.isAuto ? '· auto (build)' : '' }}</p>
+        <p class="text-xs text-zinc-555 font-mono mt-0.5">mounted at: {{ pvc.containerPath }} {{ pvc.isAuto ? '· auto (build)' : '' }}</p>
       </div>
     </div>
 
@@ -192,21 +192,21 @@
               </svg>
             </button>
           }
-          <button (click)="parent.onNavigateBreadcrumb(-1)" class="text-[11px] font-mono text-zinc-400 hover:text-zinc-50 cursor-pointer">root</button>
+          <button (click)="parent.onNavigateBreadcrumb(-1)" class="text-[13px] font-mono text-zinc-400 hover:text-zinc-50 cursor-pointer">root</button>
           @for (part of parent.pathParts(); track $index) {
             <span class="text-zinc-700">/</span>
-            <button (click)="parent.onNavigateBreadcrumb($index)" class="text-[11px] font-mono text-zinc-400 hover:text-zinc-50 cursor-pointer">{{ part }}</button>
+            <button (click)="parent.onNavigateBreadcrumb($index)" class="text-[13px] font-mono text-zinc-400 hover:text-zinc-50 cursor-pointer">{{ part }}</button>
           }
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
-          <input type="text" placeholder="Search files..." [ngModel]="parent.searchQuery()" (ngModelChange)="parent.searchQuery.set($event)" class="px-3 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 font-mono w-40" />
+          <input type="text" placeholder="Search files..." [ngModel]="parent.searchQuery()" (ngModelChange)="parent.searchQuery.set($event)" class="px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 font-mono w-40" />
           <div class="flex rounded border border-zinc-800 overflow-hidden">
-            <button (click)="parent.viewMode.set('grid')" class="px-2.5 py-1.5 text-xs cursor-pointer" [class]="parent.viewMode() === 'grid' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'" title="Grid">▦</button>
-            <button (click)="parent.viewMode.set('list')" class="px-2.5 py-1.5 text-xs cursor-pointer" [class]="parent.viewMode() === 'list' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'" title="List">≣</button>
+            <button (click)="parent.viewMode.set('grid')" class="px-2.5 py-1.5 text-[13px] cursor-pointer" [class]="parent.viewMode() === 'grid' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'" title="Grid">▦</button>
+            <button (click)="parent.viewMode.set('list')" class="px-2.5 py-1.5 text-[13px] cursor-pointer" [class]="parent.viewMode() === 'list' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'" title="List">≣</button>
           </div>
-          <button (click)="parent.showFolderForm.set(!parent.showFolderForm())" class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-xs font-semibold cursor-pointer">+ Dosar</button>
-          <label class="px-2.5 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold cursor-pointer">
+          <button (click)="parent.showFolderForm.set(!parent.showFolderForm())" class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer">+ Dosar</button>
+          <label class="px-2.5 py-1.5 rounded btn-accent text-[13px] font-semibold cursor-pointer">
             {{ parent.uploading() ? 'Uploading ' + parent.uploadProgress() + '%' : 'Upload' }}
             <input type="file" class="hidden" (change)="parent.onPvcFileSelected($event)" [disabled]="parent.uploading()" />
           </label>
@@ -216,9 +216,9 @@
       <!-- New folder inline form -->
       @if (parent.showFolderForm()) {
         <div class="bg-zinc-900 border border-zinc-900 rounded p-3 flex items-center gap-2 animate-fade-in">
-          <input type="text" placeholder="New folder name" [ngModel]="parent.newFolderName()" (ngModelChange)="parent.newFolderName.set($event)" (keyup.enter)="parent.createPvcFolder()" class="flex-1 px-3 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 font-mono" />
-          <button (click)="parent.createPvcFolder()" [disabled]="!parent.newFolderName().trim()" class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold disabled:opacity-50 cursor-pointer">Create</button>
-          <button (click)="parent.showFolderForm.set(false); parent.newFolderName.set('')" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-xs cursor-pointer">Cancel</button>
+          <input type="text" placeholder="New folder name" [ngModel]="parent.newFolderName()" (ngModelChange)="parent.newFolderName.set($event)" (keyup.enter)="parent.createPvcFolder()" class="flex-1 px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 font-mono" />
+          <button (click)="parent.createPvcFolder()" [disabled]="!parent.newFolderName().trim()" class="px-3 py-1.5 rounded btn-accent text-[13px] font-semibold disabled:opacity-50 cursor-pointer">Create</button>
+          <button (click)="parent.showFolderForm.set(false); parent.newFolderName.set('')" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-[13px] cursor-pointer">Cancel</button>
         </div>
       }
 
@@ -228,9 +228,9 @@
 
       <!-- Listings -->
       @if (parent.loadingFiles()) {
-        <div class="px-5 py-8 text-center text-[11px] text-zinc-600">Loading...</div>
+        <div class="px-5 py-8 text-center text-[13px] text-zinc-600">Loading...</div>
       } @else if (parent.currentItems().length === 0) {
-        <div class="px-5 py-8 text-center text-[11px] text-zinc-600">Empty directory.</div>
+        <div class="px-5 py-8 text-center text-[13px] text-zinc-600">Empty directory.</div>
       } @else if (parent.viewMode() === 'grid') {
         <div class="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 font-mono">
           @for (item of parent.currentItems(); track item.filePath) {
@@ -238,21 +238,21 @@
               @if (item.isFolder) {
                 <button (click)="parent.onNavigate(item.filePath)" class="flex items-center gap-2 text-left cursor-pointer text-zinc-300 hover:text-zinc-50">
                   <span class="text-2xl text-amber-500">📁</span>
-                  <span class="text-xs truncate">{{ item.name }}</span>
+                  <span class="text-[13px] truncate">{{ item.name }}</span>
                 </button>
               } @else {
                 <div class="flex items-center gap-2 text-zinc-300">
                   <span class="text-2xl text-zinc-500">📄</span>
-                  <span class="text-xs truncate">{{ item.name }}</span>
+                  <span class="text-[13px] truncate">{{ item.name }}</span>
                 </div>
               }
               <div class="flex items-center justify-between mt-auto pt-1">
-                <span class="text-[9px] text-zinc-600">{{ item.isFolder ? '' : parent.formatBytes(item.sizeBytes || 0) }}</span>
+                <span class="text-[11px] text-zinc-600">{{ item.isFolder ? '' : parent.formatBytes(item.sizeBytes || 0) }}</span>
                 <div class="flex items-center gap-2">
                   @if (!item.isFolder) {
-                    <button (click)="parent.downloadPvcItem(item)" class="text-[11px] text-zinc-400 hover:text-zinc-50 cursor-pointer" title="Download">↓</button>
+                    <button (click)="parent.downloadPvcItem(item)" class="text-[13px] text-zinc-400 hover:text-zinc-50 cursor-pointer" title="Download">↓</button>
                   }
-                  <button (click)="parent.deletePvcItem(item)" class="text-[11px] text-zinc-500 hover:text-red-400 cursor-pointer" title="Delete">✕</button>
+                  <button (click)="parent.deletePvcItem(item)" class="text-[13px] text-zinc-500 hover:text-red-400 cursor-pointer" title="Delete">✕</button>
                 </div>
               </div>
             </div>
@@ -260,7 +260,7 @@
         </div>
       } @else {
         <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden">
-          <table class="w-full text-left text-xs">
+          <table class="w-full text-left text-[13px]">
             <tbody class="divide-y divide-zinc-900">
               @for (item of parent.currentItems(); track item.filePath) {
                 <tr class="hover:bg-zinc-950/40 transition-colors">
@@ -271,12 +271,12 @@
                       <div class="flex items-center gap-2"><span class="text-zinc-500">📄</span><span class="font-mono text-zinc-300">{{ item.name }}</span></div>
                     }
                   </td>
-                  <td class="p-3 text-zinc-600 font-mono text-[10px]">{{ item.isFolder ? '' : parent.formatBytes(item.sizeBytes || 0) }}</td>
+                  <td class="p-3 text-zinc-600 font-mono text-xs">{{ item.isFolder ? '' : parent.formatBytes(item.sizeBytes || 0) }}</td>
                   <td class="p-3 text-right space-x-3">
                     @if (!item.isFolder) {
-                      <button (click)="parent.downloadPvcItem(item)" class="text-[10px] text-zinc-400 hover:text-zinc-50 cursor-pointer">Download</button>
+                      <button (click)="parent.downloadPvcItem(item)" class="text-xs text-zinc-400 hover:text-zinc-50 cursor-pointer">Download</button>
                     }
-                    <button (click)="parent.deletePvcItem(item)" class="text-[10px] text-zinc-500 hover:text-red-400 cursor-pointer">Delete</button>
+                    <button (click)="parent.deletePvcItem(item)" class="text-xs text-zinc-500 hover:text-red-400 cursor-pointer">Delete</button>
                   </td>
                 </tr>
               }

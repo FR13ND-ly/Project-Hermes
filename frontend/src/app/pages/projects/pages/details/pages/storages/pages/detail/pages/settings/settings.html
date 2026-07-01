@@ -4,25 +4,25 @@
     
     <!-- Column A: General Config -->
     <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-      <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">General Config</h4>
+      <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">General Config</h4>
 
       <!-- Bucket Display Name -->
       <div class="space-y-1.5">
-        <label for="edit-name" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Bucket Name</label>
+        <label for="edit-name" class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Bucket Name</label>
         <input 
           id="edit-name"
           type="text" 
           [ngModel]="parent.editName()"
           (ngModelChange)="parent.editName.set($event)"
-          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
         />
       </div>
 
       <!-- Bucket size slider -->
       <div class="space-y-1.5 pt-1.5">
         <div class="flex items-center justify-between">
-          <label class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Maximum Bucket Limit</label>
-          <span class="text-zinc-50 text-xs font-bold font-mono">{{ parent.editMaxSizeGb() }} GB</span>
+          <label class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Maximum Bucket Limit</label>
+          <span class="text-zinc-50 text-[13px] font-bold font-mono">{{ parent.editMaxSizeGb() }} GB</span>
         </div>
         <input
           type="range"
@@ -31,13 +31,13 @@
           step="1"
           [ngModel]="parent.editMaxSizeGb()"
           (ngModelChange)="parent.editMaxSizeGb.set($event)"
-          class="w-full h-1 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-zinc-50 mt-3"
+          class="w-full h-1 bg-zinc-900 rounded-xl appearance-none cursor-pointer accent-zinc-50 mt-3"
         />
       </div>
 
       <!-- Per-file size limit -->
       <div class="space-y-1.5 pt-1.5">
-        <label class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block">Max size / file (MB)</label>
+        <label class="text-xs font-semibold text-zinc-500 uppercase tracking-wider block">Max size / file (MB)</label>
         <div class="flex items-center gap-2">
           <input
             type="number"
@@ -46,9 +46,9 @@
             placeholder="0 = unlimited"
             [ngModel]="parent.editMaxFileSizeMb()"
             (ngModelChange)="parent.editMaxFileSizeMb.set($event)"
-            class="block w-32 px-2.5 py-1.5 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+            class="block w-32 px-2.5 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
           />
-          <span class="text-[10px] text-zinc-600">0 = unlimited</span>
+          <span class="text-xs text-zinc-600">0 = unlimited</span>
         </div>
       </div>
 
@@ -60,8 +60,8 @@
           (change)="parent.editAllowCustomProcessing.set(!parent.editAllowCustomProcessing())"
           class="h-3.5 w-3.5 mt-0.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer"
         />
-        <span class="text-[11px] font-semibold text-zinc-300">Allow custom upload options
-          <span class="block text-[10px] font-normal text-zinc-600">The uploading application (via API/token) can override per-file processing rules.</span>
+        <span class="text-[13px] font-semibold text-zinc-300">Allow custom upload options
+          <span class="block text-xs font-normal text-zinc-600">The uploading application (via API/token) can override per-file processing rules.</span>
         </span>
       </label>
 
@@ -72,44 +72,44 @@
       
       <!-- Type restrictions -->
       <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-        <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">File Type Limits</h4>
+        <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">File Type Limits</h4>
         
         <div class="grid grid-cols-2 gap-3 pt-1">
           <div class="flex items-center gap-2">
             <input type="checkbox" id="allow-img" [ngModel]="parent.allowImages()" (ngModelChange)="parent.allowImages.set($event)" class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 cursor-pointer" />
-            <label for="allow-img" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Images</label>
+            <label for="allow-img" class="text-[13px] text-zinc-400 cursor-pointer select-none font-sans">Images</label>
           </div>
           <div class="flex items-center gap-2">
             <input type="checkbox" id="allow-code" [ngModel]="parent.allowTextCssJs()" (ngModelChange)="parent.allowTextCssJs.set($event)" class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 cursor-pointer" />
-            <label for="allow-code" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Text / CSS / JS</label>
+            <label for="allow-code" class="text-[13px] text-zinc-400 cursor-pointer select-none font-sans">Text / CSS / JS</label>
           </div>
           <div class="flex items-center gap-2">
             <input type="checkbox" id="allow-pdf" [ngModel]="parent.allowPdfs()" (ngModelChange)="parent.allowPdfs.set($event)" class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 cursor-pointer" />
-            <label for="allow-pdf" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">PDF Documents</label>
+            <label for="allow-pdf" class="text-[13px] text-zinc-400 cursor-pointer select-none font-sans">PDF Documents</label>
           </div>
           <div class="flex items-center gap-2">
             <input type="checkbox" id="allow-arc" [ngModel]="parent.allowArchives()" (ngModelChange)="parent.allowArchives.set($event)" class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 cursor-pointer" />
-            <label for="allow-arc" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Arhive (Zip/Tar)</label>
+            <label for="allow-arc" class="text-[13px] text-zinc-400 cursor-pointer select-none font-sans">Arhive (Zip/Tar)</label>
           </div>
           <div class="flex items-center gap-2 col-span-2">
             <input type="checkbox" id="allow-oth" [ngModel]="parent.allowOthers()" (ngModelChange)="parent.allowOthers.set($event)" class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-850 accent-zinc-50 cursor-pointer" />
-            <label for="allow-oth" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Other generic binary types</label>
+            <label for="allow-oth" class="text-[13px] text-zinc-400 cursor-pointer select-none font-sans">Other generic binary types</label>
           </div>
         </div>
       </div>
 
       <!-- Image processing rules -->
       <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-        <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Automatic Image Optimization</h4>
+        <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Automatic Image Optimization</h4>
         
         <div class="grid gap-4 grid-cols-2">
           <div class="space-y-1">
-            <label for="opt-format" class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider">Target format</label>
+            <label for="opt-format" class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Target format</label>
             <select 
               id="opt-format" 
               [ngModel]="parent.convertImageTo()"
               (ngModelChange)="parent.convertImageTo.set($event)"
-              class="block w-full px-2.5 py-1.5 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              class="block w-full px-2.5 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
             >
               <option value="original">Keep Original</option>
               <option value="webp">Optimize to WebP</option>
@@ -120,8 +120,8 @@
           
           <div class="space-y-1">
             <div class="flex items-center justify-between">
-              <label class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider">Compression quality</label>
-              <span class="text-zinc-50 text-xs font-bold font-mono">{{ parent.imageQuality() }}%</span>
+              <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Compression quality</label>
+              <span class="text-zinc-50 text-[13px] font-bold font-mono">{{ parent.imageQuality() }}%</span>
             </div>
             <input 
               type="range" 
@@ -130,7 +130,7 @@
               step="5"
               [ngModel]="parent.imageQuality()"
               (ngModelChange)="parent.imageQuality.set($event)"
-              class="w-full h-1 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-zinc-50 mt-2"
+              class="w-full h-1 bg-zinc-900 rounded-xl appearance-none cursor-pointer accent-zinc-50 mt-2"
             />
           </div>
         </div>
@@ -138,12 +138,12 @@
         <!-- Custom output variants (name + max width + format) -->
         <div class="space-y-2 border-t border-zinc-900/60 pt-3">
           <div class="flex items-center justify-between">
-            <label class="text-[9px] font-semibold text-zinc-555 uppercase tracking-wider block">Custom variants (name · width · format)</label>
-            <button type="button" (click)="parent.addVariant()" class="px-2 py-0.5 rounded text-[10px] font-semibold text-zinc-300 border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer">+ Add variant</button>
+            <label class="text-[11px] font-semibold text-zinc-555 uppercase tracking-wider block">Custom variants (name · width · format)</label>
+            <button type="button" (click)="parent.addVariant()" class="px-2 py-0.5 rounded text-xs font-semibold text-zinc-300 border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer">+ Add variant</button>
           </div>
 
           @if (parent.customVariants().length === 0) {
-            <p class="text-[10px] text-zinc-600 italic py-1">No variants defined — only the original is saved. Add variants to generate resized copies.</p>
+            <p class="text-xs text-zinc-600 italic py-1">No variants defined — only the original is saved. Add variants to generate resized copies.</p>
           }
 
           @for (v of parent.customVariants(); track $index) {
@@ -153,7 +153,7 @@
                 placeholder="name (e.g. thumb)"
                 [ngModel]="v.name"
                 (ngModelChange)="parent.updateVariant($index, { name: $event })"
-                class="flex-1 min-w-0 px-2 py-1.5 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="flex-1 min-w-0 px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
               <div class="flex items-center gap-1 shrink-0">
                 <input
@@ -163,14 +163,14 @@
                   placeholder="px"
                   [ngModel]="v.maxWidth"
                   (ngModelChange)="parent.updateVariant($index, { maxWidth: $event })"
-                  class="w-20 px-2 py-1.5 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  class="w-20 px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
                 />
-                <span class="text-[10px] text-zinc-600">px</span>
+                <span class="text-xs text-zinc-600">px</span>
               </div>
               <select
                 [ngModel]="v.format"
                 (ngModelChange)="parent.updateVariant($index, { format: $event })"
-                class="w-28 shrink-0 px-2 py-1.5 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="w-28 shrink-0 px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               >
                 <option value="original">original</option>
                 <option value="webp">webp</option>
@@ -185,22 +185,22 @@
         <!-- Force square aspect ratio -->
         <div class="flex items-center gap-2 pt-2">
           <input type="checkbox" id="force-sq" [ngModel]="parent.forceSquare()" (ngModelChange)="parent.forceSquare.set($event)" class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 cursor-pointer" />
-          <label for="force-sq" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Force square aspect ratio (Crop/Resize 1:1)</label>
+          <label for="force-sq" class="text-[13px] text-zinc-400 cursor-pointer select-none font-sans">Force square aspect ratio (Crop/Resize 1:1)</label>
         </div>
       </div>
 
       <!-- Text compression -->
       <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-        <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Text pre-compression (CSS/JS/HTML)</h4>
+        <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Text pre-compression (CSS/JS/HTML)</h4>
         
         <div class="flex items-center gap-6 pt-1">
           <div class="flex items-center gap-2">
             <input type="checkbox" id="comp-gzip" [ngModel]="parent.compressGzip()" (ngModelChange)="parent.compressGzip.set($event)" class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 cursor-pointer" />
-            <label for="comp-gzip" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Gzip (.gz)</label>
+            <label for="comp-gzip" class="text-[13px] text-zinc-400 cursor-pointer select-none font-sans">Gzip (.gz)</label>
           </div>
           <div class="flex items-center gap-2">
             <input type="checkbox" id="comp-br" [ngModel]="parent.compressBrotli()" (ngModelChange)="parent.compressBrotli.set($event)" class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 cursor-pointer" />
-            <label for="comp-br" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Brotli (.br)</label>
+            <label for="comp-br" class="text-[13px] text-zinc-400 cursor-pointer select-none font-sans">Brotli (.br)</label>
           </div>
         </div>
       </div>
@@ -210,13 +210,13 @@
 
   <!-- Rotated secret_key (shown once) -->
   @if (parent.rotatedSecret()) {
-    <div class="bg-amber-950/20 border border-amber-900/40 rounded-lg p-3 space-y-2">
-      <span class="text-[9px] font-bold text-amber-400 uppercase tracking-wider">New SECRET_KEY (shown once)</span>
+    <div class="bg-amber-950/20 border border-amber-900/40 rounded-xl p-3 space-y-2">
+      <span class="text-[11px] font-bold text-amber-400 uppercase tracking-wider">New SECRET_KEY (shown once)</span>
       <div class="flex items-center gap-2">
-        <code class="flex-1 px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ parent.rotatedSecret() }}</code>
-        <button (click)="parent.copyToClipboard(parent.rotatedSecret()!)" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-[10px] font-semibold cursor-pointer shrink-0">Copy</button>
+        <code class="flex-1 px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ parent.rotatedSecret() }}</code>
+        <button (click)="parent.copyToClipboard(parent.rotatedSecret()!)" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-xs font-semibold cursor-pointer shrink-0">Copy</button>
       </div>
-      <p class="text-[9px] text-amber-500/80 font-sans">The app_id remains unchanged. Applications using the old key need a manual reload.</p>
+      <p class="text-[11px] text-amber-500/80 font-sans">The app_id remains unchanged. Applications using the old key need a manual reload.</p>
     </div>
   }
 
@@ -225,14 +225,14 @@
     <div class="flex items-center gap-2">
       <button
         (click)="parent.onDeleteBucket(bucket)"
-        class="px-3 py-1.5 rounded border border-zinc-900 hover:border-red-900 text-zinc-550 hover:text-red-400 hover:bg-red-950/10 text-xs font-semibold transition-colors cursor-pointer"
+        class="px-3 py-1.5 rounded border border-zinc-900 hover:border-red-900 text-zinc-550 hover:text-red-400 hover:bg-red-950/10 text-[13px] font-semibold transition-colors cursor-pointer"
       >
         Delete this Bucket permanently
       </button>
       <button
         (click)="parent.onRotateBucketCredentials(bucket)"
         [disabled]="parent.rotatingCreds()"
-        class="px-3 py-1.5 rounded border border-amber-900/50 bg-amber-950/30 hover:bg-amber-900/40 text-amber-300 hover:text-amber-200 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        class="px-3 py-1.5 rounded border border-amber-900/50 bg-amber-950/30 hover:bg-amber-900/40 text-amber-300 hover:text-amber-200 text-[13px] font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         title="Generate a new secret_key (app_id stays the same)"
       >
         {{ parent.rotatingCreds() ? 'Rotating...' : 'Rotate Credentials' }}
@@ -242,14 +242,14 @@
     <div class="flex items-center gap-3">
       <button 
         (click)="parent.selectBucket(bucket)"
-        class="px-3.5 py-1.5 rounded text-zinc-450 hover:text-zinc-50 text-xs font-semibold border border-zinc-900 hover:bg-zinc-900 transition-colors cursor-pointer"
+        class="px-3.5 py-1.5 rounded text-zinc-450 hover:text-zinc-50 text-[13px] font-semibold border border-zinc-900 hover:bg-zinc-900 transition-colors cursor-pointer"
       >
         Reset
       </button>
       <button 
         (click)="parent.onSaveSettings()"
         [disabled]="parent.savingSettings()"
-        class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+        class="px-4 py-2 rounded btn-accent text-[13px] font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
       >
         @if (!parent.savingSettings()) {
           <span>Save Settings</span>

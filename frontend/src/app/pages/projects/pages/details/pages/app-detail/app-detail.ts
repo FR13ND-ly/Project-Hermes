@@ -552,13 +552,15 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   }
 
   // --- Telemetry & Branch deployment ---
-  loadMetrics(): void {
+  // `silent` skips the loading overlay — used by the periodic auto-refresh so the
+  // chart advances with fresh Prometheus data without flashing the spinner each tick.
+  loadMetrics(silent = false): void {
     const appId = this.appId();
     const instanceId = this.activeInstanceId();
     if (!appId || !instanceId) return;
 
-    this.metricsLoading.set(true);
-    
+    if (!silent) this.metricsLoading.set(true);
+
     // CPU
     this.projectService.getMetrics(appId, instanceId, 'cpu', this.selectedRange()).subscribe({
       next: (res) => {
@@ -625,8 +627,9 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   }
 
   onRangeChange(range: string): void {
+    // Just set the range — the telemetry view's effect reloads and re-sizes the
+    // auto-refresh. (Calling loadMetrics here too would double-fire every request.)
     this.selectedRange.set(range);
-    this.loadMetrics();
   }
 
   onInstanceChange(id: string): void {

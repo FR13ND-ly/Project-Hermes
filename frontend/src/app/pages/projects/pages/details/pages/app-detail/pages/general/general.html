@@ -1,69 +1,69 @@
 <div class="space-y-6 animate-fade-in max-w-2xl font-mono" *ngIf="parent.app()">
 
   <!-- General config: ports + build/start commands -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm">
     <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">General Configuration</h3>
-      <p class="text-[10px] text-zinc-555 mt-0.5 font-mono">Settings will trigger an asynchronous service redeployment</p>
+      <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">General Configuration</h3>
+      <p class="text-xs text-zinc-555 mt-0.5 font-mono">Settings will trigger an asynchronous service redeployment</p>
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2">
       <!-- Port Intern -->
       <div class="space-y-1.5">
-        <label for="port-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Internal Container Port</label>
+        <label for="port-lim" class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Internal Container Port</label>
         <input 
           id="port-lim"
           type="number" 
           placeholder="8080" 
           [ngModel]="parent.internalPort()"
           (ngModelChange)="parent.internalPort.set($event)"
-          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
           required
         />
-        <span class="text-[9px] text-zinc-600 block">The port your application listens on. Auto-detected from <code>EXPOSE</code> (Dockerfile) at build time, until you set it manually here.</span>
+        <span class="text-[11px] text-zinc-600 block">The port your application listens on. Auto-detected from <code>EXPOSE</code> (Dockerfile) at build time, until you set it manually here.</span>
       </div>
 
       <!-- Port Extern -->
       <div class="space-y-1.5">
-        <label for="ext-port-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">External Port (Optional)</label>
+        <label for="ext-port-lim" class="text-xs font-bold text-zinc-400 uppercase tracking-wider">External Port (Optional)</label>
         <input
           id="ext-port-lim"
           type="number"
           placeholder="Auto-generated if empty" 
           [ngModel]="parent.externalPort()"
           (ngModelChange)="parent.externalPort.set($event)"
-          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
         />
-        <span class="text-[9px] text-zinc-600 block">Leave empty to allocate a random port.</span>
+        <span class="text-[11px] text-zinc-600 block">Leave empty to allocate a random port.</span>
       </div>
     </div>
 
     <!-- Build/Start Commands -->
     <div class="grid gap-4 sm:grid-cols-2 pt-2 border-t border-zinc-900/40">
       <div class="space-y-1.5">
-        <label for="build-cmd-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Build Command</label>
+        <label for="build-cmd-lim" class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Build Command</label>
         <input 
           id="build-cmd-lim"
           type="text" 
           placeholder="ex. npm run build" 
           [ngModel]="parent.buildCommand()"
           (ngModelChange)="parent.buildCommand.set($event)"
-          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
         />
-        <span class="text-[9px] text-zinc-600 block">Run during build. E.g.: npm run build</span>
+        <span class="text-[11px] text-zinc-600 block">Run during build. E.g.: npm run build</span>
       </div>
 
       <div class="space-y-1.5">
-        <label for="start-cmd-lim" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Start Command</label>
+        <label for="start-cmd-lim" class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Start Command</label>
         <input 
           id="start-cmd-lim"
           type="text" 
           placeholder="ex. npm start" 
           [ngModel]="parent.startCommand()"
           (ngModelChange)="parent.startCommand.set($event)"
-          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
         />
-        <span class="text-[9px] text-zinc-600 block">Run at startup. E.g.: npx ng serve --host 0.0.0.0 --port 4000</span>
+        <span class="text-[11px] text-zinc-600 block">Run at startup. E.g.: npx ng serve --host 0.0.0.0 --port 4000</span>
       </div>
     </div>
 
@@ -72,7 +72,7 @@
       <button
         (click)="parent.onSaveSettings()"
         [disabled]="parent.savingSettings()"
-        class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
+        class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
       >
         {{ parent.savingSettings() ? 'Saving...' : 'Save Settings' }}
       </button>
@@ -80,15 +80,15 @@
   </div>
 
   <!-- Domains & Routing -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm">
     <div class="border-b border-zinc-900 pb-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
-        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Domains & Routing</h3>
-        <p class="text-[10px] text-zinc-555 mt-0.5 font-mono">Associate a custom domain with this application (Reverse Proxy)</p>
+        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Domains & Routing</h3>
+        <p class="text-xs text-zinc-555 mt-0.5 font-mono">Associate a custom domain with this application (Reverse Proxy)</p>
       </div>
       <button
         (click)="parent.onOpenAddDomainModal()"
-        class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+        class="px-3 py-1.5 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -99,21 +99,21 @@
   </div>
 
   <!-- Danger Zone (Delete App) -->
-  <div class="bg-red-950/5 p-5 rounded-lg border border-red-900/20 space-y-4 shadow-sm">
+  <div class="bg-red-950/5 p-5 rounded-xl border border-red-900/20 space-y-4 shadow-sm">
     <div class="border-b border-red-900/10 pb-2.5">
-      <h3 class="text-xs font-bold text-red-400 uppercase tracking-wider">Danger Zone</h3>
-      <p class="text-[10px] text-red-500/60 mt-0.5">Irreversible application management actions</p>
+      <h3 class="text-[13px] font-bold text-red-400 uppercase tracking-wider">Danger Zone</h3>
+      <p class="text-xs text-red-500/60 mt-0.5">Irreversible application management actions</p>
     </div>
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div class="space-y-1">
-        <span class="text-xs font-bold text-zinc-300">Delete Application Completely</span>
-        <p class="text-[10px] text-zinc-555 leading-relaxed max-w-md">
+        <span class="text-[13px] font-bold text-zinc-300">Delete Application Completely</span>
+        <p class="text-xs text-zinc-555 leading-relaxed max-w-md">
           This action will permanently delete the service, all active instances (containers), ingress routes and database configurations. Kubernetes resources will be released immediately.
         </p>
       </div>
       <button
         (click)="parent.onDeleteApp()"
-        class="px-4 py-2 rounded bg-zinc-950 hover:bg-red-950/20 text-red-500 hover:text-red-400 font-bold border border-red-900/40 hover:border-red-900/60 transition-all text-xs cursor-pointer shadow-sm"
+        class="px-4 py-2 rounded bg-zinc-950 hover:bg-red-950/20 text-red-500 hover:text-red-400 font-bold border border-red-900/40 hover:border-red-900/60 transition-all text-[13px] cursor-pointer shadow-sm"
       >
         Delete Application
       </button>

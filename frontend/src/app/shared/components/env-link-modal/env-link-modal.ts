@@ -24,8 +24,8 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
         >
           <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-900">
             <div>
-              <h3 class="text-xs font-bold text-zinc-200 uppercase tracking-wider">{{ title() }}</h3>
-              <p class="text-[9px] text-zinc-550 mt-0.5">Live reference — changes in the pool propagate automatically.</p>
+              <h3 class="text-[13px] font-bold text-zinc-200 uppercase tracking-wider">{{ title() }}</h3>
+              <p class="text-[11px] text-zinc-550 mt-0.5">Live reference — changes in the pool propagate automatically.</p>
             </div>
             <button
               (click)="close()"
@@ -44,13 +44,13 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
               placeholder="Search by name..."
               [ngModel]="search()"
               (ngModelChange)="search.set($event)"
-              class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+              class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
             />
           </div>
 
           <div class="max-h-80 overflow-y-auto px-5 py-2">
             @if (filtered().length === 0) {
-              <p class="text-[10px] text-zinc-600 py-6 text-center">
+              <p class="text-xs text-zinc-600 py-6 text-center">
                 @if (vars().length === 0) {
                   {{ empty() }}
                 } @else {
@@ -62,20 +62,20 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
                 @for (env of filtered(); track env.id) {
                   <div class="flex items-center justify-between gap-3 py-2.5">
                     <div class="flex items-center gap-2 min-w-0">
-                      <span class="font-mono text-xs text-zinc-50 truncate">{{ env.key }}</span>
+                      <span class="font-mono text-[13px] text-zinc-50 truncate">{{ env.key }}</span>
                       @if (env.source !== 'manual') {
-                        <span class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 shrink-0">{{ env.source }}</span>
+                        <span class="text-[11px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 shrink-0">{{ env.source }}</span>
                       }
                       @if (env.isSecret) {
-                        <span class="text-[8px] uppercase text-zinc-600 shrink-0">secret</span>
+                        <span class="text-[11px] uppercase text-zinc-600 shrink-0">secret</span>
                       }
                     </div>
                     <button
                       (click)="toggle.emit(env)"
                       [disabled]="busyId() === env.id"
                       [class]="env.linked
-                        ? 'px-2.5 py-1 rounded text-[10px] font-semibold border border-emerald-900/50 bg-emerald-950/30 text-emerald-400 hover:bg-emerald-950/50 cursor-pointer disabled:opacity-50 shrink-0'
-                        : 'px-2.5 py-1 rounded text-[10px] font-semibold border border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 cursor-pointer disabled:opacity-50 shrink-0'"
+                        ? 'px-2.5 py-1 rounded text-xs font-semibold border border-emerald-900/50 bg-emerald-950/30 text-emerald-400 hover:bg-emerald-950/50 cursor-pointer disabled:opacity-50 shrink-0'
+                        : 'px-2.5 py-1 rounded text-xs font-semibold border border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 cursor-pointer disabled:opacity-50 shrink-0'"
                     >
                       {{ env.linked ? 'Linked ✓' : 'Link' }}
                     </button>
@@ -88,7 +88,7 @@ import { ProjectEnvResponse } from '../../../core/services/project.service';
           <div class="flex items-center justify-end px-5 py-3 border-t border-zinc-900">
             <button
               (click)="close()"
-              class="px-3.5 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer"
+              class="px-3.5 py-1.5 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer"
             >
               Done
             </button>

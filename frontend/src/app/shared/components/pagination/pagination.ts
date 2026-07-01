@@ -9,7 +9,7 @@ import { Component, input, output, computed } from '@angular/core';
   standalone: true,
   template: `
     @if (totalPages() > 1) {
-      <div class="flex items-center justify-between gap-3 pt-3 text-[11px] font-mono text-zinc-500 select-none">
+      <div class="flex items-center justify-between gap-3 pt-3 text-[13px] font-mono text-zinc-500 select-none">
         <span>{{ rangeStart() }}–{{ rangeEnd() }} of {{ total() }}</span>
         <div class="flex items-center gap-1.5">
           <button

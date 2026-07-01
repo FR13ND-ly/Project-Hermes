@@ -4,13 +4,13 @@
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-4 gap-4">
     <div>
       <h2 class="text-sm font-bold text-zinc-50 uppercase tracking-wider font-mono">Project Incidents & Alerts</h2>
-      <p class="text-[11px] text-zinc-500 mt-1">
+      <p class="text-[13px] text-zinc-500 mt-1">
         Instance health monitoring and incident history detected by the health check system.
       </p>
     </div>
     
     <!-- Filters tabs -->
-    <div class="flex items-center bg-zinc-950 border border-zinc-900 rounded p-0.5 text-[10px] font-mono">
+    <div class="flex items-center bg-zinc-950 border border-zinc-900 rounded p-0.5 text-xs font-mono">
       <button 
         (click)="filter.set('all')" 
         [class]="filter() === 'all' ? 'bg-zinc-900 border border-zinc-800 text-zinc-50 font-bold' : 'text-zinc-500 hover:text-zinc-300'"
@@ -41,18 +41,18 @@
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
       </svg>
-      <span class="text-xs text-zinc-500 font-mono">Loading incidents...</span>
+      <span class="text-[13px] text-zinc-500 font-mono">Loading incidents...</span>
     </div>
   } @else if (filteredIncidents().length === 0) {
-    <div class="flex flex-col items-center justify-center border border-dashed border-zinc-800 rounded-lg p-12 text-center space-y-4">
+    <div class="flex flex-col items-center justify-center border border-dashed border-zinc-800 rounded-xl p-12 text-center space-y-4">
       <div class="p-3 bg-zinc-950 border border-zinc-900 rounded-full text-zinc-600">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
         </svg>
       </div>
       <div class="space-y-1">
-        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">No Incidents</h3>
-        <p class="text-[11px] text-zinc-500 max-w-sm">
+        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider font-mono">No Incidents</h3>
+        <p class="text-[13px] text-zinc-500 max-w-sm">
           @if (filter() === 'active') {
             No active incidents at this time. Systems are running stably.
           } @else if (filter() === 'resolved') {
@@ -68,7 +68,7 @@
     <div class="space-y-4">
       @for (incident of filteredIncidents(); track incident.id) {
         <div 
-          class="border rounded-lg bg-zinc-950/40 overflow-hidden transition-all duration-300"
+          class="border rounded-xl bg-zinc-950/40 overflow-hidden transition-all duration-300"
           [class.border-red-900/60]="!incident.resolvedAt"
           [class.border-zinc-900]="incident.resolvedAt"
           [class.shadow-lg]="!incident.resolvedAt"
@@ -76,7 +76,7 @@
         >
           <!-- Alert Header -->
           <div 
-            class="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 border-b text-xs font-mono"
+            class="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 border-b text-[13px] font-mono"
             [class.bg-red-950/20]="!incident.resolvedAt"
             [class.border-red-900/40]="!incident.resolvedAt"
             [class.bg-zinc-950/60]="incident.resolvedAt"
@@ -89,17 +89,17 @@
                   <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                   <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                 </span>
-                <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-red-950/60 text-red-400 border border-red-900/50 uppercase tracking-wider">
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-red-950/60 text-red-400 border border-red-900/50 uppercase tracking-wider">
                   ACTIVE
                 </span>
               } @else {
                 <span class="inline-block w-2 h-2 rounded-full bg-zinc-500"></span>
-                <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-zinc-900 text-zinc-400 border border-zinc-800 uppercase tracking-wider">
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-zinc-900 text-zinc-400 border border-zinc-800 uppercase tracking-wider">
                   RESOLVED
                 </span>
               }
 
-              <span [class]="getIncidentBadgeClass(incident.incidentType)" class="px-2 py-0.5 rounded text-[10px] font-semibold">
+              <span [class]="getIncidentBadgeClass(incident.incidentType)" class="px-2 py-0.5 rounded text-xs font-semibold">
                 {{ incident.incidentType }}
               </span>
 
@@ -113,7 +113,7 @@
 
             <!-- Timestamps & Actions -->
             <div class="flex items-center justify-between md:justify-end gap-4">
-              <div class="text-[10px] text-zinc-500 space-y-0.5 text-left md:text-right">
+              <div class="text-xs text-zinc-500 space-y-0.5 text-left md:text-right">
                 <div>Started: {{ incident.createdAt | date:'dd MMM yyyy, HH:mm:ss' }}</div>
                 @if (incident.resolvedAt) {
                   <div class="text-zinc-400">
@@ -127,7 +127,7 @@
                 <button 
                   (click)="onResolveIncident(incident)"
                   [disabled]="resolvingId() === incident.id"
-                  class="px-2.5 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-[10px] font-bold shadow cursor-pointer transition-colors flex items-center gap-1 disabled:opacity-50"
+                  class="px-2.5 py-1.5 rounded btn-accent text-xs font-bold shadow cursor-pointer transition-colors flex items-center gap-1 disabled:opacity-50"
                 >
                   @if (resolvingId() === incident.id) {
                     <svg class="animate-spin h-3 w-3 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -146,7 +146,7 @@
           </div>
 
           <!-- Alert Details -->
-          <div class="p-4 bg-zinc-950/20 text-xs">
+          <div class="p-4 bg-zinc-950/20 text-[13px]">
             <div class="flex gap-2.5">
               <div class="text-zinc-550 pt-0.5">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-4 h-4">
@@ -154,8 +154,8 @@
                 </svg>
               </div>
               <div class="space-y-1">
-                <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono">Alert Message</div>
-                <div class="text-zinc-300 font-mono text-[11px] bg-zinc-950/45 px-3 py-2 rounded border border-zinc-900 select-all leading-relaxed whitespace-pre-wrap">
+                <div class="text-xs font-bold text-zinc-500 uppercase tracking-wider font-mono">Alert Message</div>
+                <div class="text-zinc-300 font-mono text-[13px] bg-zinc-950/45 px-3 py-2 rounded border border-zinc-900 select-all leading-relaxed whitespace-pre-wrap">
                   {{ incident.message }}
                 </div>
               </div>

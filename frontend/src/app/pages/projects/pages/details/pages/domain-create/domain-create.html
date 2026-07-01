@@ -1,31 +1,31 @@
 <div class="space-y-6 animate-fade-in font-sans max-w-2xl">
   <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
     <div>
-      <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">New Domain Configuration</h3>
-      <p class="text-[10px] text-zinc-550 mt-0.5">Attach custom domains or configure DNS entries for applications, databases, or functions.</p>
+      <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider font-mono">New Domain Configuration</h3>
+      <p class="text-xs text-zinc-550 mt-0.5">Attach custom domains or configure DNS entries for applications, databases, or functions.</p>
     </div>
-    <button (click)="onCancel()" class="text-xs text-zinc-400 hover:text-zinc-50 cursor-pointer font-sans flex items-center gap-1">
+    <button (click)="onCancel()" class="text-[13px] text-zinc-400 hover:text-zinc-50 cursor-pointer font-sans flex items-center gap-1">
       ← Back to list
     </button>
   </div>
 
-  <div class="p-5 rounded-lg border border-zinc-800 bg-zinc-900 space-y-4">
+  <div class="p-5 rounded-xl border border-zinc-800 bg-zinc-900 space-y-4">
     <div class="grid gap-4 sm:grid-cols-2 font-mono">
       <div class="space-y-1.5">
-        <label for="fqdn-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Domain Name (FQDN)</label>
+        <label for="fqdn-input" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Domain Name (FQDN)</label>
         <input
           id="fqdn-input"
           type="text"
           placeholder="e.g. app.domain.com or domain.com"
           [ngModel]="fqdn()"
           (ngModelChange)="fqdn.set($event)"
-          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
         />
       </div>
 
       <div class="space-y-1.5">
-        <label class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Connect to</label>
-        <div class="flex items-center gap-0.5 bg-zinc-950 border border-zinc-850 rounded p-0.5 text-[10px] font-bold uppercase tracking-wider">
+        <label class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Connect to</label>
+        <div class="flex items-center gap-0.5 bg-zinc-950 border border-zinc-850 rounded p-0.5 text-xs font-bold uppercase tracking-wider">
           @for (t of [{v:'app',l:'Application'},{v:'serverless',l:'Function'},{v:'database',l:'Database'},{v:'custom',l:'Custom'}]; track t.v) {
             <button type="button" (click)="onChangeTargetType($any(t.v))"
               class="flex-1 px-2 py-1.5 rounded transition-all cursor-pointer"
@@ -38,9 +38,9 @@
     <!-- Resource picker for app/serverless/database; advanced nginx for custom -->
     @if (newTargetType() !== 'custom') {
       <div class="space-y-1.5 animate-fade-in font-mono">
-        <label class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Resource</label>
+        <label class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Resource</label>
         @if (targetOptions().length === 0) {
-          <p class="text-[10px] text-amber-500/80 font-sans py-1.5">
+          <p class="text-xs text-amber-500/80 font-sans py-1.5">
             @switch (newTargetType()) {
               @case ('database') { No externally exposed databases. Enable "External (TCP)" on a database before assigning it a domain. }
               @case ('serverless') { No serverless functions in the project. }
@@ -49,13 +49,13 @@
           </p>
         } @else {
           <select [ngModel]="selectedTargetId()" (ngModelChange)="selectedTargetId.set($event)"
-            class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer">
+            class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer">
             @for (opt of targetOptions(); track opt.id) {
               <option [value]="opt.id">{{ opt.name }}</option>
             }
           </select>
         }
-        <p class="text-[10px] text-zinc-500 leading-relaxed font-sans">
+        <p class="text-xs text-zinc-500 leading-relaxed font-sans">
           @switch (newTargetType()) {
             @case ('database') { Creates only a DNS record → ingress IP. Connect at <span class="font-mono text-zinc-300">{{ fqdn() || 'domain' }}:&lt;port&gt;</span> (TCP). }
             @case ('serverless') { Hermes automatically routes the domain to the selected function. }
@@ -65,12 +65,12 @@
       </div>
     } @else {
       <div class="space-y-1.5 animate-fade-in font-mono">
-        <label for="routing-type-select" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Nginx Routing Type</label>
+        <label for="routing-type-select" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Nginx Routing Type</label>
         <select
           id="routing-type-select"
           [ngModel]="routingType()"
           (ngModelChange)="routingType.set($event)"
-          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-350 focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer"
+          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-350 focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer"
         >
           <option value="reverse_proxy">Reverse Proxy (To container)</option>
           <option value="static_host">Static Host (Files from volume)</option>
@@ -80,43 +80,43 @@
 
       @if (routingType() === 'reverse_proxy') {
         <div class="space-y-1.5 animate-fade-in font-mono">
-          <label for="proxy-target" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Target Container Address (nginx_target_host)</label>
+          <label for="proxy-target" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Target Container Address (nginx_target_host)</label>
           <input
             id="proxy-target"
             type="text"
             placeholder="ex. hermes-app-service-name"
             [ngModel]="nginxTargetHost()"
             (ngModelChange)="nginxTargetHost.set($event)"
-            class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+            class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
           />
-          <p class="text-[10px] text-zinc-500 leading-relaxed font-sans">Nginx will proxy_pass to this address.</p>
+          <p class="text-xs text-zinc-500 leading-relaxed font-sans">Nginx will proxy_pass to this address.</p>
         </div>
       }
 
       @if (routingType() === 'static_host') {
         <div class="space-y-1.5 animate-fade-in font-mono">
-          <label for="root-path" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Root Directory (nginx_root_path)</label>
+          <label for="root-path" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Root Directory (nginx_root_path)</label>
           <input
             id="root-path"
             type="text"
             placeholder="e.g. /var/www/html or volume path"
             [ngModel]="nginxRootPath()"
             (ngModelChange)="nginxRootPath.set($event)"
-            class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+            class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
           />
         </div>
       }
 
       @if (routingType() === 'custom') {
         <div class="space-y-1.5 animate-fade-in font-mono">
-          <label for="custom-config" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Nginx Custom Server Block Configuration</label>
+          <label for="custom-config" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Nginx Custom Server Block Configuration</label>
           <textarea
             id="custom-config"
             rows="5"
             placeholder="location / { ... }"
             [ngModel]="nginxConfigContent()"
             (ngModelChange)="nginxConfigContent.set($event)"
-            class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+            class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
           ></textarea>
         </div>
       }
@@ -124,13 +124,13 @@
 
     <div class="grid gap-4 sm:grid-cols-2 pt-2 border-t border-zinc-900 font-mono">
       <div class="space-y-1.5">
-        <label for="max-body-size" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Nginx Body Size Limit (MB)</label>
+        <label for="max-body-size" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Nginx Body Size Limit (MB)</label>
         <input 
           id="max-body-size"
           type="number" 
           [ngModel]="clientMaxBodySize()"
           (ngModelChange)="clientMaxBodySize.set($event)"
-          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
+          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
         />
       </div>
 
@@ -142,7 +142,7 @@
           (ngModelChange)="isSsl.set($event)"
           class="w-4 h-4 bg-zinc-950 border-zinc-850 rounded focus:ring-0 text-zinc-50 cursor-pointer accent-zinc-50"
         />
-        <label for="ssl-checkbox" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer">Create TLS/SSL Certificate Automatically</label>
+        <label for="ssl-checkbox" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer">Create TLS/SSL Certificate Automatically</label>
       </div>
     </div>
 
@@ -150,7 +150,7 @@
       <button 
         (click)="onCancel()"
         [disabled]="submitting()"
-        class="px-3 py-1.5 rounded border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-50 text-xs font-semibold cursor-pointer transition-colors"
+        class="px-3 py-1.5 rounded border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer transition-colors"
       >
         Cancel
       </button>
@@ -158,7 +158,7 @@
       <button
         (click)="onAddDomain()"
         [disabled]="submitting() || !fqdn().trim()"
-        class="px-4 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+        class="px-4 py-1.5 rounded btn-accent text-[13px] font-semibold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
       >
         @if (submitting()) {
           <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

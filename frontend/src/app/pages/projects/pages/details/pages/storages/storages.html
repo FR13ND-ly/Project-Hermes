@@ -6,14 +6,14 @@
     <!-- Section Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-900 pb-4 gap-4">
       <div>
-        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Object Storage & Buckets</h3>
-        <p class="text-xs text-zinc-555">Manage static files, media and storage rules for your workspace.</p>
+        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Object Storage & Buckets</h3>
+        <p class="text-[13px] text-zinc-555">Manage static files, media and storage rules for your workspace.</p>
       </div>
       
       <div class="flex items-center gap-3">
         <button 
           [routerLink]="['/projects', parent.projectId(), 'storages', 'create']"
-          class="px-3.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-350 hover:text-zinc-50 text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5"
+          class="px-3.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-350 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer transition-all flex items-center gap-1.5"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-550">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -30,7 +30,7 @@
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <span class="text-zinc-550 text-[10px] uppercase tracking-widest">Loading storage configurations...</span>
+        <span class="text-zinc-550 text-xs uppercase tracking-widest">Loading storage configurations...</span>
       </div>
     } @else {
       @if (buckets().length === 0) {
@@ -40,20 +40,20 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.008 1.24l.885 1.77a2.25 2.25 0 002.007 1.24h1.98a2.25 2.25 0 002.007-1.24l.885-1.77a2.25 2.25 0 012.007-1.24h3.86m-18 0h18a2.25 2.25 0 002.25-2.25V5.25A2.25 2.25 0 0019.5 3H4.5A2.25 2.25 0 002.25 5.25v6a2.25 2.25 0 002.25 2.25z" />
             </svg>
           </div>
-          <h4 class="text-xs font-bold text-zinc-200 mb-1.5 uppercase tracking-wider">No Storage Buckets</h4>
-          <p class="text-xs text-zinc-500 mb-6">Create a bucket to store images, code or other static resources.</p>
+          <h4 class="text-[13px] font-bold text-zinc-200 mb-1.5 uppercase tracking-wider">No Storage Buckets</h4>
+          <p class="text-[13px] text-zinc-500 mb-6">Create a bucket to store images, code or other static resources.</p>
           <button 
             [routerLink]="['/projects', parent.projectId(), 'storages', 'create']"
-            class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer"
+            class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer"
           >
             Create First Bucket
           </button>
         </div>
       } @else {
         <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow">
-          <table class="w-full text-left border-collapse text-xs">
+          <table class="w-full text-left border-collapse text-[13px]">
             <thead>
-              <tr class="border-b border-zinc-900 bg-zinc-950/60 text-zinc-500 uppercase tracking-wider text-[9px] font-bold">
+              <tr class="border-b border-zinc-900 bg-zinc-950/60 text-zinc-500 uppercase tracking-wider text-[11px] font-bold">
                 <th class="p-3.5">Bucket Name</th>
                 <th class="p-3.5">Access Type</th>
                 <th class="p-3.5">Limit</th>
@@ -71,12 +71,12 @@
                       class="font-bold text-zinc-50 hover:underline cursor-pointer flex flex-col"
                     >
                       {{ bucket.name }}
-                      <span class="text-[9px] text-zinc-550 font-normal">slug: {{ bucket.slug }}</span>
+                      <span class="text-[11px] text-zinc-550 font-normal">slug: {{ bucket.slug }}</span>
                     </span>
                   </td>
                   
                   <td class="p-3.5">
-                    <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border border-purple-950 bg-purple-950/20 text-purple-400 uppercase">Private</span>
+                    <span class="px-1.5 py-0.5 rounded text-[11px] font-bold border border-purple-950 bg-purple-950/20 text-purple-400 uppercase">Private</span>
                   </td>
                   
                   <td class="p-3.5 text-zinc-300 font-mono">
@@ -100,13 +100,13 @@
                     <div class="flex items-center justify-end gap-2">
                       <button 
                         (click)="selectBucket(bucket)"
-                        class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-zinc-50 hover:border-zinc-700 text-[10px] font-semibold transition-all cursor-pointer"
+                        class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-zinc-50 hover:border-zinc-700 text-xs font-semibold transition-all cursor-pointer"
                       >
                         Details
                       </button>
                       <button 
                         (click)="onDeleteBucket(bucket)"
-                        class="px-2.5 py-1 rounded border border-zinc-900 text-zinc-600 hover:text-red-400 hover:border-red-900/50 hover:bg-red-950/10 text-[10px] font-semibold transition-all cursor-pointer"
+                        class="px-2.5 py-1 rounded border border-zinc-900 text-zinc-600 hover:text-red-400 hover:border-red-900/50 hover:bg-red-950/10 text-xs font-semibold transition-all cursor-pointer"
                       >
                         Delete
                       </button>
@@ -123,17 +123,17 @@
     <!-- PVC (Persistent Volumes) -->
     <div class="bg-zinc-900 rounded border border-zinc-900 shadow-sm">
       <div class="border-b border-zinc-900 px-5 py-3.5">
-        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Volume Persistente (PVC)</h3>
-        <p class="text-[10px] text-zinc-555 mt-0.5">Automatically created at build from application <code>VOLUME</code> directives. Browse their contents here.</p>
+        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Volume Persistente (PVC)</h3>
+        <p class="text-xs text-zinc-555 mt-0.5">Automatically created at build from application <code>VOLUME</code> directives. Browse their contents here.</p>
       </div>
       @if (loadingPvcs()) {
-        <div class="px-5 py-6 text-center text-[11px] text-zinc-600">Loading volumes...</div>
+        <div class="px-5 py-6 text-center text-[13px] text-zinc-600">Loading volumes...</div>
       } @else if (pvcs().length === 0) {
-        <div class="px-5 py-6 text-center text-[11px] text-zinc-600">No persistent volumes. They appear here when an application declares <code>VOLUME</code> in its Dockerfile.</div>
+        <div class="px-5 py-6 text-center text-[13px] text-zinc-600">No persistent volumes. They appear here when an application declares <code>VOLUME</code> in its Dockerfile.</div>
       } @else {
-        <table class="w-full text-left text-xs">
+        <table class="w-full text-left text-[13px]">
           <thead>
-            <tr class="border-b border-zinc-900 text-zinc-600 uppercase tracking-wider text-[9px]">
+            <tr class="border-b border-zinc-900 text-zinc-600 uppercase tracking-wider text-[11px]">
               <th class="p-3.5">Application</th>
               <th class="p-3.5">Container Path</th>
               <th class="p-3.5">Source</th>
@@ -147,13 +147,13 @@
                 <td class="p-3.5 font-mono text-zinc-400">{{ pvc.containerPath }}</td>
                 <td class="p-3.5">
                   @if (pvc.isAuto) {
-                    <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border border-sky-950 bg-sky-950/20 text-sky-400 uppercase">Auto (build)</span>
+                    <span class="px-1.5 py-0.5 rounded text-[11px] font-bold border border-sky-950 bg-sky-950/20 text-sky-400 uppercase">Auto (build)</span>
                   } @else {
-                    <span class="px-1.5 py-0.5 rounded text-[8px] font-bold border border-zinc-800 bg-zinc-900 text-zinc-400 uppercase">Manual</span>
+                    <span class="px-1.5 py-0.5 rounded text-[11px] font-bold border border-zinc-800 bg-zinc-900 text-zinc-400 uppercase">Manual</span>
                   }
                 </td>
                 <td class="p-3.5 text-right">
-                  <button (click)="selectPvc(pvc)" class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-zinc-50 hover:border-zinc-700 text-[10px] font-semibold transition-all cursor-pointer">Open</button>
+                  <button (click)="selectPvc(pvc)" class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-zinc-50 hover:border-zinc-700 text-xs font-semibold transition-all cursor-pointer">Open</button>
                 </td>
               </tr>
             }
@@ -173,10 +173,10 @@
       </button>
       <div>
         <div class="flex items-center gap-2">
-          <h3 class="text-xs font-bold text-zinc-50 uppercase tracking-wider">{{ pvc.appName }}</h3>
+          <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider">{{ pvc.appName }}</h3>
           <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border border-sky-900 bg-sky-950/20 text-sky-400 uppercase">PVC</span>
         </div>
-        <p class="text-[10px] text-zinc-555 font-mono mt-0.5">mounted at: {{ pvc.containerPath }} {{ pvc.isAuto ? '· auto (build)' : '' }}</p>
+        <p class="text-xs text-zinc-555 font-mono mt-0.5">mounted at: {{ pvc.containerPath }} {{ pvc.isAuto ? '· auto (build)' : '' }}</p>
       </div>
     </div>
 
@@ -192,21 +192,21 @@
               </svg>
             </button>
           }
-          <button (click)="onNavigateBreadcrumb(-1)" class="text-[11px] font-mono text-zinc-400 hover:text-zinc-50 cursor-pointer">root</button>
+          <button (click)="onNavigateBreadcrumb(-1)" class="text-[13px] font-mono text-zinc-400 hover:text-zinc-50 cursor-pointer">root</button>
           @for (part of pathParts(); track $index) {
             <span class="text-zinc-700">/</span>
-            <button (click)="onNavigateBreadcrumb($index)" class="text-[11px] font-mono text-zinc-400 hover:text-zinc-50 cursor-pointer">{{ part }}</button>
+            <button (click)="onNavigateBreadcrumb($index)" class="text-[13px] font-mono text-zinc-400 hover:text-zinc-50 cursor-pointer">{{ part }}</button>
           }
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
-          <input type="text" placeholder="Search files..." [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" class="px-3 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 font-mono w-40" />
+          <input type="text" placeholder="Search files..." [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" class="px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 font-mono w-40" />
           <div class="flex rounded border border-zinc-800 overflow-hidden">
-            <button (click)="viewMode.set('grid')" class="px-2.5 py-1.5 text-xs cursor-pointer" [class]="viewMode() === 'grid' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'" title="Grid">▦</button>
-            <button (click)="viewMode.set('list')" class="px-2.5 py-1.5 text-xs cursor-pointer" [class]="viewMode() === 'list' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'" title="List">≣</button>
+            <button (click)="viewMode.set('grid')" class="px-2.5 py-1.5 text-[13px] cursor-pointer" [class]="viewMode() === 'grid' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'" title="Grid">▦</button>
+            <button (click)="viewMode.set('list')" class="px-2.5 py-1.5 text-[13px] cursor-pointer" [class]="viewMode() === 'list' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'" title="List">≣</button>
           </div>
-          <button (click)="showFolderForm.set(!showFolderForm())" class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-xs font-semibold cursor-pointer">+ Dosar</button>
-          <label class="px-2.5 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold cursor-pointer">
+          <button (click)="showFolderForm.set(!showFolderForm())" class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer">+ Dosar</button>
+          <label class="px-2.5 py-1.5 rounded btn-accent text-[13px] font-semibold cursor-pointer">
             {{ uploading() ? 'Uploading ' + uploadProgress() + '%' : 'Upload' }}
             <input type="file" class="hidden" (change)="onPvcFileSelected($event)" [disabled]="uploading()" />
           </label>
@@ -216,9 +216,9 @@
       <!-- New folder inline form -->
       @if (showFolderForm()) {
         <div class="bg-zinc-900 border border-zinc-900 rounded p-3 flex items-center gap-2 animate-fade-in">
-          <input type="text" placeholder="New folder name" [ngModel]="newFolderName()" (ngModelChange)="newFolderName.set($event)" (keyup.enter)="createPvcFolder()" class="flex-1 px-3 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 font-mono" />
-          <button (click)="createPvcFolder()" [disabled]="!newFolderName().trim()" class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold disabled:opacity-50 cursor-pointer">Create</button>
-          <button (click)="showFolderForm.set(false); newFolderName.set('')" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-xs cursor-pointer">Cancel</button>
+          <input type="text" placeholder="New folder name" [ngModel]="newFolderName()" (ngModelChange)="newFolderName.set($event)" (keyup.enter)="createPvcFolder()" class="flex-1 px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 font-mono" />
+          <button (click)="createPvcFolder()" [disabled]="!newFolderName().trim()" class="px-3 py-1.5 rounded btn-accent text-[13px] font-semibold disabled:opacity-50 cursor-pointer">Create</button>
+          <button (click)="showFolderForm.set(false); newFolderName.set('')" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-[13px] cursor-pointer">Cancel</button>
         </div>
       }
 
@@ -228,9 +228,9 @@
 
       <!-- Listings -->
       @if (loadingFiles()) {
-        <div class="px-5 py-8 text-center text-[11px] text-zinc-600">Loading...</div>
+        <div class="px-5 py-8 text-center text-[13px] text-zinc-600">Loading...</div>
       } @else if (currentItems().length === 0) {
-        <div class="px-5 py-8 text-center text-[11px] text-zinc-600">Empty directory.</div>
+        <div class="px-5 py-8 text-center text-[13px] text-zinc-600">Empty directory.</div>
       } @else if (viewMode() === 'grid') {
         <div class="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 font-mono">
           @for (item of currentItems(); track item.filePath) {
@@ -238,21 +238,21 @@
               @if (item.isFolder) {
                 <button (click)="onNavigate(item.filePath)" class="flex items-center gap-2 text-left cursor-pointer text-zinc-300 hover:text-zinc-50">
                   <span class="text-2xl text-amber-500">📁</span>
-                  <span class="text-xs truncate">{{ item.name }}</span>
+                  <span class="text-[13px] truncate">{{ item.name }}</span>
                 </button>
               } @else {
                 <div class="flex items-center gap-2 text-zinc-300">
                   <span class="text-2xl text-zinc-500">📄</span>
-                  <span class="text-xs truncate">{{ item.name }}</span>
+                  <span class="text-[13px] truncate">{{ item.name }}</span>
                 </div>
               }
               <div class="flex items-center justify-between mt-auto pt-1">
-                <span class="text-[9px] text-zinc-600">{{ item.isFolder ? '' : formatBytes(item.sizeBytes || 0) }}</span>
+                <span class="text-[11px] text-zinc-600">{{ item.isFolder ? '' : formatBytes(item.sizeBytes || 0) }}</span>
                 <div class="flex items-center gap-2">
                   @if (!item.isFolder) {
-                    <button (click)="downloadPvcItem(item)" class="text-[11px] text-zinc-400 hover:text-zinc-50 cursor-pointer" title="Download">↓</button>
+                    <button (click)="downloadPvcItem(item)" class="text-[13px] text-zinc-400 hover:text-zinc-50 cursor-pointer" title="Download">↓</button>
                   }
-                  <button (click)="deletePvcItem(item)" class="text-[11px] text-zinc-500 hover:text-red-400 cursor-pointer" title="Delete">✕</button>
+                  <button (click)="deletePvcItem(item)" class="text-[13px] text-zinc-500 hover:text-red-400 cursor-pointer" title="Delete">✕</button>
                 </div>
               </div>
             </div>
@@ -260,7 +260,7 @@
         </div>
       } @else {
         <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden">
-          <table class="w-full text-left text-xs">
+          <table class="w-full text-left text-[13px]">
             <tbody class="divide-y divide-zinc-900">
               @for (item of currentItems(); track item.filePath) {
                 <tr class="hover:bg-zinc-950/40 transition-colors">
@@ -271,12 +271,12 @@
                       <div class="flex items-center gap-2"><span class="text-zinc-500">📄</span><span class="font-mono text-zinc-300">{{ item.name }}</span></div>
                     }
                   </td>
-                  <td class="p-3 text-zinc-600 font-mono text-[10px]">{{ item.isFolder ? '' : formatBytes(item.sizeBytes || 0) }}</td>
+                  <td class="p-3 text-zinc-600 font-mono text-xs">{{ item.isFolder ? '' : formatBytes(item.sizeBytes || 0) }}</td>
                   <td class="p-3 text-right space-x-3">
                     @if (!item.isFolder) {
-                      <button (click)="downloadPvcItem(item)" class="text-[10px] text-zinc-400 hover:text-zinc-50 cursor-pointer">Download</button>
+                      <button (click)="downloadPvcItem(item)" class="text-xs text-zinc-400 hover:text-zinc-50 cursor-pointer">Download</button>
                     }
-                    <button (click)="deletePvcItem(item)" class="text-[10px] text-zinc-500 hover:text-red-400 cursor-pointer">Delete</button>
+                    <button (click)="deletePvcItem(item)" class="text-xs text-zinc-500 hover:text-red-400 cursor-pointer">Delete</button>
                   </td>
                 </tr>
               }
@@ -305,10 +305,10 @@
         </button>
         <div>
           <div class="flex items-center gap-2">
-            <h3 class="text-xs font-bold text-zinc-50 uppercase tracking-wider">{{ bucket.name }}</h3>
+            <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider">{{ bucket.name }}</h3>
             <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border border-purple-900 bg-purple-950/20 text-purple-400 uppercase">Private</span>
           </div>
-          <p class="text-[10px] text-zinc-555 font-mono mt-0.5">slug: {{ bucket.slug }} | limit: {{ formatBytes(bucket.maxBucketSizeBytes) }}@if (bucket.maxFileSizeBytes > 0) { <span> | max/file: {{ formatBytes(bucket.maxFileSizeBytes) }}</span> }@if (bucket.allowCustomProcessing) { <span class="text-emerald-500"> · custom options</span> }</p>
+          <p class="text-xs text-zinc-555 font-mono mt-0.5">slug: {{ bucket.slug }} | limit: {{ formatBytes(bucket.maxBucketSizeBytes) }}@if (bucket.maxFileSizeBytes > 0) { <span> | max/file: {{ formatBytes(bucket.maxFileSizeBytes) }}</span> }@if (bucket.allowCustomProcessing) { <span class="text-emerald-500"> · custom options</span> }</p>
         </div>
       </div>
     </div>
@@ -317,28 +317,28 @@
     <div class="flex border-b border-zinc-950 pb-px gap-1">
       <button 
         (click)="activeTab.set('files')"
-        class="px-4 py-2 text-xs font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
+        class="px-4 py-2 text-[13px] font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
         [class]="activeTab() === 'files' ? 'border-zinc-50 text-zinc-50 bg-zinc-950/20' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Stored Files
       </button>
       <button 
         (click)="activeTab.set('logs')"
-        class="px-4 py-2 text-xs font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
+        class="px-4 py-2 text-[13px] font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
         [class]="activeTab() === 'logs' ? 'border-zinc-50 text-zinc-50 bg-zinc-950/20' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Log-uri Activitate
       </button>
       <button 
         (click)="activeTab.set('settings')"
-        class="px-4 py-2 text-xs font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
+        class="px-4 py-2 text-[13px] font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
         [class]="activeTab() === 'settings' ? 'border-zinc-50 text-zinc-50 bg-zinc-950/20' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Bucket Settings
       </button>
       <button 
         (click)="activeTab.set('api')"
-        class="px-4 py-2 text-xs font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
+        class="px-4 py-2 text-[13px] font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
         [class]="activeTab() === 'api' ? 'border-zinc-50 text-zinc-50 bg-zinc-950/20' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Integrare API
@@ -366,7 +366,7 @@
               </button>
             }
 
-            <div class="flex items-center text-xs font-semibold text-zinc-400 font-mono">
+            <div class="flex items-center text-[13px] font-semibold text-zinc-400 font-mono">
               <span 
                 (click)="onNavigateBreadcrumb(-1)"
                 class="hover:text-zinc-50 cursor-pointer select-none"
@@ -402,7 +402,7 @@
                 placeholder="Search files..."
                 [ngModel]="searchQuery()"
                 (ngModelChange)="searchQuery.set($event)"
-                class="block w-full pl-8 pr-3 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors font-mono"
+                class="block w-full pl-8 pr-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors font-mono"
               />
             </div>
 
@@ -442,18 +442,18 @@
                   [ngModel]="newFolderName()"
                   (ngModelChange)="newFolderName.set($event)"
                   (keyup.enter)="onCreateFolder()"
-                  class="px-2.5 py-1 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors font-mono w-40"
+                  class="px-2.5 py-1 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors font-mono w-40"
                 />
                 <button 
                   (click)="onCreateFolder()"
                   [disabled]="!newFolderName().trim()"
-                  class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-50 text-[10px] font-bold cursor-pointer disabled:opacity-50"
+                  class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-50 text-xs font-bold cursor-pointer disabled:opacity-50"
                 >
                   Create
                 </button>
                 <button 
                   (click)="showFolderForm.set(false); newFolderName.set('')"
-                  class="px-2.5 py-1.5 rounded border border-zinc-900 text-zinc-555 hover:text-zinc-300 text-[10px] cursor-pointer"
+                  class="px-2.5 py-1.5 rounded border border-zinc-900 text-zinc-555 hover:text-zinc-300 text-xs cursor-pointer"
                 >
                   X
                 </button>
@@ -461,7 +461,7 @@
             } @else {
               <button 
                 (click)="showFolderForm.set(true)"
-                class="px-2.5 py-1 rounded border border-zinc-900 hover:border-zinc-850 bg-zinc-950 hover:bg-zinc-950 text-zinc-400 hover:text-zinc-50 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
+                class="px-2.5 py-1 rounded border border-zinc-900 hover:border-zinc-850 bg-zinc-950 hover:bg-zinc-950 text-zinc-400 hover:text-zinc-50 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-550">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 10.5v6m3-3H9m4.06-7.19l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
@@ -480,7 +480,7 @@
             />
             <label 
               for="file-upload-picker"
-              class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
+              class="px-3 py-1.5 rounded btn-accent text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -493,7 +493,7 @@
         <!-- Upload Progress -->
         @if (uploading()) {
           <div class="bg-zinc-950 border border-zinc-900 rounded p-3 space-y-2 animate-pulse font-mono">
-            <div class="flex items-center justify-between text-[10px] font-bold text-zinc-400">
+            <div class="flex items-center justify-between text-xs font-bold text-zinc-400">
               <span class="flex items-center gap-1.5">
                 <svg class="animate-spin h-3.5 w-3.5 text-zinc-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -516,7 +516,7 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span class="text-zinc-650 text-[8px] uppercase tracking-wider font-semibold">Reading files from bucket...</span>
+            <span class="text-zinc-650 text-[11px] uppercase tracking-wider font-semibold">Reading files from bucket...</span>
           </div>
         } @else {
           @if (currentItems().length === 0) {
@@ -524,8 +524,8 @@
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-zinc-655 mx-auto">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
               </svg>
-              <p class="text-xs text-zinc-500 font-mono">This virtual folder is empty.</p>
-              <p class="text-[10px] text-zinc-600 font-mono">Upload a file using the button in the top right, or create virtual subfolders.</p>
+              <p class="text-[13px] text-zinc-500 font-mono">This virtual folder is empty.</p>
+              <p class="text-xs text-zinc-600 font-mono">Upload a file using the button in the top right, or create virtual subfolders.</p>
             </div>
           }
 
@@ -543,7 +543,7 @@
                           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <span class="text-[8px] font-bold text-zinc-300 tracking-wider">
+                        <span class="text-[11px] font-bold text-zinc-300 tracking-wider">
                           {{ item.status === 'processing' ? stageLabel(item.processingStage) : 'UPLOADING...' }}
                         </span>
                       </div>
@@ -554,7 +554,7 @@
                         <!-- Image folder preview cover -->
                         <div (click)="onNavigate(item.filePath)" class="cursor-pointer relative w-full h-full flex items-center justify-center">
                           <img [src]="item.virtualUrl" class="max-h-full max-w-full object-contain rounded-sm select-none" alt="{{ item.name }}" />
-                          <div class="absolute bottom-1 right-1 bg-zinc-950/80 border border-zinc-800 rounded px-1.5 py-0.5 text-[8px] font-bold text-zinc-300 uppercase flex items-center gap-1 font-sans">
+                          <div class="absolute bottom-1 right-1 bg-zinc-950/80 border border-zinc-800 rounded px-1.5 py-0.5 text-[11px] font-bold text-zinc-300 uppercase flex items-center gap-1 font-sans">
                             <span class="inline-block w-1.5 h-1.5 rounded-full bg-purple-400"></span>
                             Variants
                           </div>
@@ -574,7 +574,7 @@
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                           </svg>
-                          <span class="text-[8px] uppercase tracking-wider font-semibold">{{ item.mimeType?.split('/')?.pop() || 'file' }}</span>
+                          <span class="text-[11px] uppercase tracking-wider font-semibold">{{ item.mimeType?.split('/')?.pop() || 'file' }}</span>
                         </div>
                       }
                     }
@@ -583,7 +583,7 @@
                   <div class="p-3 space-y-1.5">
                     <div 
                       [title]="item.name"
-                      class="text-xs font-bold text-zinc-350 truncate select-all"
+                      class="text-[13px] font-bold text-zinc-350 truncate select-all"
                       [class.cursor-pointer]="item.isFolder"
                       [class.hover:underline]="item.isFolder"
                       (click)="item.isFolder ? onNavigate(item.filePath) : null"
@@ -592,14 +592,14 @@
                     </div>
                     
                     @if (!item.isFolder) {
-                      <div class="flex items-center justify-between text-[9px] text-zinc-550">
+                      <div class="flex items-center justify-between text-[11px] text-zinc-550">
                         <span>{{ formatBytes(item.sizeBytes) }}</span>
                         @if (item.isOptimized) {
                           <span class="text-emerald-500 font-bold" title="Optimized">OPTIMIZED</span>
                         }
                       </div>
                     } @else {
-                      <div class="text-[9px] text-zinc-650">
+                      <div class="text-[11px] text-zinc-650">
                         {{ item.hasVariants ? 'Image (Variants)' : 'Virtual folder' }}
                       </div>
                     }
@@ -608,13 +608,13 @@
                   <div class="border-t border-zinc-955 p-2 bg-zinc-950/40 flex items-center justify-between gap-1">
                     @if (item.status === 'processing' || item.status === 'pending_upload') {
                       <div class="flex items-center gap-1.5 w-full justify-between">
-                        <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider pl-1.5 animate-pulse">
+                        <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider pl-1.5 animate-pulse">
                           {{ item.status === 'processing' ? stageLabel(item.processingStage) : 'Uploading...' }}
                         </span>
                         @if (item.id) {
                           <button 
                             (click)="onCancelUpload(item)" 
-                            class="px-2 py-0.5 rounded bg-red-955/20 text-red-400 hover:bg-red-900/40 hover:text-red-200 text-[9px] font-bold uppercase text-center cursor-pointer border border-red-900/60"
+                            class="px-2 py-0.5 rounded bg-red-955/20 text-red-400 hover:bg-red-900/40 hover:text-red-200 text-[11px] font-bold uppercase text-center cursor-pointer border border-red-900/60"
                           >
                             Cancel
                           </button>
@@ -624,7 +624,7 @@
                       <div class="flex items-center gap-1.5 w-full justify-between">
                         <button
                           (click)="onNavigate(item.filePath)"
-                          class="px-2.5 py-1 rounded bg-zinc-900 text-zinc-400 hover:text-zinc-50 text-[9px] font-bold w-full uppercase text-center cursor-pointer border border-zinc-800"
+                          class="px-2.5 py-1 rounded bg-zinc-900 text-zinc-400 hover:text-zinc-50 text-[11px] font-bold w-full uppercase text-center cursor-pointer border border-zinc-800"
                         >
                           Open
                         </button>
@@ -689,9 +689,9 @@
           <!-- LIST VIEW -->
           @if (viewMode() === 'list' && currentItems().length > 0) {
             <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow font-mono">
-              <table class="w-full text-left border-collapse text-xs">
+              <table class="w-full text-left border-collapse text-[13px]">
                 <thead>
-                  <tr class="border-b border-zinc-900 bg-zinc-950/60 text-zinc-500 uppercase tracking-wider text-[9px] font-bold">
+                  <tr class="border-b border-zinc-900 bg-zinc-950/60 text-zinc-500 uppercase tracking-wider text-[11px] font-bold">
                     <th class="p-3">Name</th>
                     <th class="p-3">Type</th>
                     <th class="p-3">Size</th>
@@ -718,7 +718,7 @@
                             }
                             {{ item.name }}
                             @if (item.hasVariants) {
-                              <span class="text-[8px] text-purple-400 font-bold uppercase tracking-wider ml-1 bg-purple-950/20 px-1 py-0.2 rounded border border-purple-900/50">[Variants]</span>
+                              <span class="text-[11px] text-purple-400 font-bold uppercase tracking-wider ml-1 bg-purple-950/20 px-1 py-0.2 rounded border border-purple-900/50">[Variants]</span>
                             }
                           </span>
                         } @else {
@@ -729,7 +729,7 @@
                             {{ item.name }}
                             
                             @if (item.status === 'processing' || item.status === 'pending_upload') {
-                              <span class="inline-flex items-center gap-1 text-[8px] font-bold tracking-wider px-1.5 py-0.5 rounded border ml-2 animate-pulse"
+                              <span class="inline-flex items-center gap-1 text-[11px] font-bold tracking-wider px-1.5 py-0.5 rounded border ml-2 animate-pulse"
                                     [class]="item.status === 'processing' ? 'bg-indigo-950/40 text-indigo-400 border-indigo-900/60' : 'bg-amber-950/40 text-amber-400 border-amber-900/60'">
                                 <svg class="animate-spin h-2.5 w-2.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -747,30 +747,30 @@
                         <div class="flex items-center justify-end gap-2">
                           @if (item.status === 'processing' || item.status === 'pending_upload') {
                             <div class="flex items-center justify-end gap-2">
-                              <span class="text-[9px] font-bold text-zinc-650 uppercase tracking-widest mr-1.5 animate-pulse">
+                              <span class="text-[11px] font-bold text-zinc-650 uppercase tracking-widest mr-1.5 animate-pulse">
                                 {{ item.status === 'processing' ? stageLabel(item.processingStage) : 'Uploading...' }}
                               </span>
                               @if (item.id) {
                                 <button 
                                   (click)="onCancelUpload(item)" 
-                                  class="px-2 py-0.5 rounded bg-red-955/20 text-red-400 hover:bg-red-900/40 hover:text-red-200 text-[10px] font-bold uppercase cursor-pointer border border-red-900/50"
+                                  class="px-2 py-0.5 rounded bg-red-955/20 text-red-400 hover:bg-red-900/40 hover:text-red-200 text-xs font-bold uppercase cursor-pointer border border-red-900/50"
                                 >
                                   Cancel
                                 </button>
                               }
                             </div>
                           } @else if (item.isFolder) {
-                            <button (click)="onNavigate(item.filePath)" class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-zinc-350 hover:text-zinc-50 cursor-pointer">Open</button>
+                            <button (click)="onNavigate(item.filePath)" class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-xs font-bold text-zinc-350 hover:text-zinc-50 cursor-pointer">Open</button>
                             @if (item.id) {
-                              <button (click)="onDeleteFile(item)" class="px-2 py-0.5 rounded hover:bg-red-950/20 text-zinc-555 hover:text-red-400 text-[10px] font-bold uppercase cursor-pointer">Delete</button>
+                              <button (click)="onDeleteFile(item)" class="px-2 py-0.5 rounded hover:bg-red-950/20 text-zinc-555 hover:text-red-400 text-xs font-bold uppercase cursor-pointer">Delete</button>
                             }
                           } @else {
                             @if (item.virtualUrl) {
-                              <button (click)="copyPublicUrl(item)" class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-450 hover:text-zinc-50 text-[10px] font-bold uppercase cursor-pointer">URL</button>
-                              <a [href]="item.virtualUrl" target="_blank" class="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-850 text-zinc-555 hover:text-zinc-50 text-[10px] font-bold uppercase">View</a>
+                              <button (click)="copyPublicUrl(item)" class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-450 hover:text-zinc-50 text-xs font-bold uppercase cursor-pointer">URL</button>
+                              <a [href]="item.virtualUrl" target="_blank" class="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-850 text-zinc-555 hover:text-zinc-50 text-xs font-bold uppercase">View</a>
                             }
                             @if (item.id) {
-                              <button (click)="onDeleteFile(item)" class="px-2 py-0.5 rounded hover:bg-red-950/20 text-zinc-555 hover:text-red-400 text-[10px] font-bold uppercase cursor-pointer">Delete</button>
+                              <button (click)="onDeleteFile(item)" class="px-2 py-0.5 rounded hover:bg-red-950/20 text-zinc-555 hover:text-red-400 text-xs font-bold uppercase cursor-pointer">Delete</button>
                             }
                           }
                         </div>
@@ -799,13 +799,13 @@
       <div class="space-y-4 animate-fade-in">
         <div class="border border-zinc-900 bg-zinc-950 rounded p-5 shadow-inner">
           <div class="flex items-center justify-between border-b border-zinc-900 pb-3 mb-4">
-            <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Bucket Audit Log</h4>
-            <span class="text-[9px] text-zinc-650 bg-zinc-950 px-2 py-0.5 rounded uppercase font-semibold">Live Events</span>
+            <h4 class="text-[13px] font-bold text-zinc-400 uppercase tracking-wider">Bucket Audit Log</h4>
+            <span class="text-[11px] text-zinc-650 bg-zinc-950 px-2 py-0.5 rounded uppercase font-semibold">Live Events</span>
           </div>
 
           <div class="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
             @for (log of activityLogs(); track $index) {
-              <div class="flex items-start text-xs leading-relaxed font-mono">
+              <div class="flex items-start text-[13px] leading-relaxed font-mono">
                 <span class="text-zinc-600 mr-3 shrink-0 select-none">[{{ log.time | date:'yyyy-MM-dd HH:mm:ss' }}]</span>
                 
                 @if (log.type === 'success') {
@@ -819,7 +819,7 @@
                 <span class="text-zinc-350 font-sans">{{ log.message }}</span>
               </div>
             } @empty {
-              <div class="text-center py-10 text-xs text-zinc-650 font-mono">No activity recorded yet on this bucket.</div>
+              <div class="text-center py-10 text-[13px] text-zinc-650 font-mono">No activity recorded yet on this bucket.</div>
             }
           </div>
         </div>
@@ -833,25 +833,25 @@
           
           <!-- Column A: General Config -->
           <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-            <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">General Config</h4>
+            <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">General Config</h4>
 
             <!-- Bucket Display Name -->
             <div class="space-y-1.5">
-              <label for="edit-name" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Bucket Name</label>
+              <label for="edit-name" class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Bucket Name</label>
               <input 
                 id="edit-name"
                 type="text" 
                 [ngModel]="editName()"
                 (ngModelChange)="editName.set($event)"
-                class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
             </div>
 
             <!-- Bucket size slider -->
             <div class="space-y-1.5 pt-1.5">
               <div class="flex items-center justify-between">
-                <label class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Maximum Bucket Limit</label>
-                <span class="text-zinc-50 text-xs font-bold font-mono">{{ editMaxSizeGb() }} GB</span>
+                <label class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Maximum Bucket Limit</label>
+                <span class="text-zinc-50 text-[13px] font-bold font-mono">{{ editMaxSizeGb() }} GB</span>
               </div>
               <input
                 type="range"
@@ -860,13 +860,13 @@
                 step="1"
                 [ngModel]="editMaxSizeGb()"
                 (ngModelChange)="editMaxSizeGb.set($event)"
-                class="w-full h-1 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-zinc-50 mt-3"
+                class="w-full h-1 bg-zinc-900 rounded-xl appearance-none cursor-pointer accent-zinc-50 mt-3"
               />
             </div>
 
             <!-- Per-file size limit -->
             <div class="space-y-1.5 pt-1.5">
-              <label class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block">Max size / file (MB)</label>
+              <label class="text-xs font-semibold text-zinc-500 uppercase tracking-wider block">Max size / file (MB)</label>
               <div class="flex items-center gap-2">
                 <input
                   type="number"
@@ -875,9 +875,9 @@
                   placeholder="0 = unlimited"
                   [ngModel]="editMaxFileSizeMb()"
                   (ngModelChange)="editMaxFileSizeMb.set($event)"
-                  class="block w-32 px-2.5 py-1.5 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  class="block w-32 px-2.5 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
                 />
-                <span class="text-[10px] text-zinc-600">0 = unlimited</span>
+                <span class="text-xs text-zinc-600">0 = unlimited</span>
               </div>
             </div>
 
@@ -889,8 +889,8 @@
                 (change)="editAllowCustomProcessing.set(!editAllowCustomProcessing())"
                 class="h-3.5 w-3.5 mt-0.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer"
               />
-              <span class="text-[11px] font-semibold text-zinc-300">Allow custom upload options
-                <span class="block text-[10px] font-normal text-zinc-600">The uploading application (via API/token) can override per-file processing rules.</span>
+              <span class="text-[13px] font-semibold text-zinc-300">Allow custom upload options
+                <span class="block text-xs font-normal text-zinc-600">The uploading application (via API/token) can override per-file processing rules.</span>
               </span>
             </label>
 
@@ -901,44 +901,44 @@
             
             <!-- Type restrictions -->
             <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-              <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">File Type Limits</h4>
+              <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">File Type Limits</h4>
               
               <div class="grid grid-cols-2 gap-3 pt-1">
                 <div class="flex items-center gap-2">
                   <input type="checkbox" id="allow-img" [ngModel]="allowImages()" (ngModelChange)="allowImages.set($event)" class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 cursor-pointer" />
-                  <label for="allow-img" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Images</label>
+                  <label for="allow-img" class="text-[13px] text-zinc-400 cursor-pointer select-none font-sans">Images</label>
                 </div>
                 <div class="flex items-center gap-2">
                   <input type="checkbox" id="allow-code" [ngModel]="allowTextCssJs()" (ngModelChange)="allowTextCssJs.set($event)" class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 cursor-pointer" />
-                  <label for="allow-code" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Text / CSS / JS</label>
+                  <label for="allow-code" class="text-[13px] text-zinc-400 cursor-pointer select-none font-sans">Text / CSS / JS</label>
                 </div>
                 <div class="flex items-center gap-2">
                   <input type="checkbox" id="allow-pdf" [ngModel]="allowPdfs()" (ngModelChange)="allowPdfs.set($event)" class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 cursor-pointer" />
-                  <label for="allow-pdf" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">PDF Documents</label>
+                  <label for="allow-pdf" class="text-[13px] text-zinc-400 cursor-pointer select-none font-sans">PDF Documents</label>
                 </div>
                 <div class="flex items-center gap-2">
                   <input type="checkbox" id="allow-arc" [ngModel]="allowArchives()" (ngModelChange)="allowArchives.set($event)" class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 cursor-pointer" />
-                  <label for="allow-arc" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Arhive (Zip/Tar)</label>
+                  <label for="allow-arc" class="text-[13px] text-zinc-400 cursor-pointer select-none font-sans">Arhive (Zip/Tar)</label>
                 </div>
                 <div class="flex items-center gap-2 col-span-2">
                   <input type="checkbox" id="allow-oth" [ngModel]="allowOthers()" (ngModelChange)="allowOthers.set($event)" class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-850 accent-zinc-50 cursor-pointer" />
-                  <label for="allow-oth" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Other generic binary types</label>
+                  <label for="allow-oth" class="text-[13px] text-zinc-400 cursor-pointer select-none font-sans">Other generic binary types</label>
                 </div>
               </div>
             </div>
 
             <!-- Image processing rules -->
             <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-              <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Automatic Image Optimization</h4>
+              <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Automatic Image Optimization</h4>
               
               <div class="grid gap-4 grid-cols-2">
                 <div class="space-y-1">
-                  <label for="opt-format" class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider">Target format</label>
+                  <label for="opt-format" class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Target format</label>
                   <select 
                     id="opt-format" 
                     [ngModel]="convertImageTo()"
                     (ngModelChange)="convertImageTo.set($event)"
-                    class="block w-full px-2.5 py-1.5 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                    class="block w-full px-2.5 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
                   >
                     <option value="original">Keep Original</option>
                     <option value="webp">Optimize to WebP</option>
@@ -949,8 +949,8 @@
                 
                 <div class="space-y-1">
                   <div class="flex items-center justify-between">
-                    <label class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider">Compression quality</label>
-                    <span class="text-zinc-50 text-xs font-bold font-mono">{{ imageQuality() }}%</span>
+                    <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Compression quality</label>
+                    <span class="text-zinc-50 text-[13px] font-bold font-mono">{{ imageQuality() }}%</span>
                   </div>
                   <input 
                     type="range" 
@@ -959,7 +959,7 @@
                     step="5"
                     [ngModel]="imageQuality()"
                     (ngModelChange)="imageQuality.set($event)"
-                    class="w-full h-1 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-zinc-50 mt-2"
+                    class="w-full h-1 bg-zinc-900 rounded-xl appearance-none cursor-pointer accent-zinc-50 mt-2"
                   />
                 </div>
               </div>
@@ -967,12 +967,12 @@
               <!-- Custom output variants (name + max width + format) -->
               <div class="space-y-2 border-t border-zinc-900/60 pt-3">
                 <div class="flex items-center justify-between">
-                  <label class="text-[9px] font-semibold text-zinc-555 uppercase tracking-wider block">Custom variants (name · width · format)</label>
-                  <button type="button" (click)="addVariant()" class="px-2 py-0.5 rounded text-[10px] font-semibold text-zinc-300 border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer">+ Add variant</button>
+                  <label class="text-[11px] font-semibold text-zinc-555 uppercase tracking-wider block">Custom variants (name · width · format)</label>
+                  <button type="button" (click)="addVariant()" class="px-2 py-0.5 rounded text-xs font-semibold text-zinc-300 border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer">+ Add variant</button>
                 </div>
 
                 @if (customVariants().length === 0) {
-                  <p class="text-[10px] text-zinc-600 italic py-1">No variants defined — only the original is saved. Add variants to generate resized copies.</p>
+                  <p class="text-xs text-zinc-600 italic py-1">No variants defined — only the original is saved. Add variants to generate resized copies.</p>
                 }
 
                 @for (v of customVariants(); track $index) {
@@ -982,7 +982,7 @@
                       placeholder="name (e.g. thumb)"
                       [ngModel]="v.name"
                       (ngModelChange)="updateVariant($index, { name: $event })"
-                      class="flex-1 min-w-0 px-2 py-1.5 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                      class="flex-1 min-w-0 px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
                     />
                     <div class="flex items-center gap-1 shrink-0">
                       <input
@@ -992,14 +992,14 @@
                         placeholder="px"
                         [ngModel]="v.maxWidth"
                         (ngModelChange)="updateVariant($index, { maxWidth: $event })"
-                        class="w-20 px-2 py-1.5 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                        class="w-20 px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
                       />
-                      <span class="text-[10px] text-zinc-600">px</span>
+                      <span class="text-xs text-zinc-600">px</span>
                     </div>
                     <select
                       [ngModel]="v.format"
                       (ngModelChange)="updateVariant($index, { format: $event })"
-                      class="w-28 shrink-0 px-2 py-1.5 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                      class="w-28 shrink-0 px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
                     >
                       <option value="original">original</option>
                       <option value="webp">webp</option>
@@ -1014,22 +1014,22 @@
               <!-- Force square aspect ratio -->
               <div class="flex items-center gap-2 pt-2">
                 <input type="checkbox" id="force-sq" [ngModel]="forceSquare()" (ngModelChange)="forceSquare.set($event)" class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 cursor-pointer" />
-                <label for="force-sq" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Force square aspect ratio (Crop/Resize 1:1)</label>
+                <label for="force-sq" class="text-[13px] text-zinc-400 cursor-pointer select-none font-sans">Force square aspect ratio (Crop/Resize 1:1)</label>
               </div>
             </div>
 
             <!-- Text compression -->
             <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-4 shadow-sm">
-              <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Text pre-compression (CSS/JS/HTML)</h4>
+              <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Text pre-compression (CSS/JS/HTML)</h4>
               
               <div class="flex items-center gap-6 pt-1">
                 <div class="flex items-center gap-2">
                   <input type="checkbox" id="comp-gzip" [ngModel]="compressGzip()" (ngModelChange)="compressGzip.set($event)" class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 cursor-pointer" />
-                  <label for="comp-gzip" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Gzip (.gz)</label>
+                  <label for="comp-gzip" class="text-[13px] text-zinc-400 cursor-pointer select-none font-sans">Gzip (.gz)</label>
                 </div>
                 <div class="flex items-center gap-2">
                   <input type="checkbox" id="comp-br" [ngModel]="compressBrotli()" (ngModelChange)="compressBrotli.set($event)" class="w-3.5 h-3.5 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 cursor-pointer" />
-                  <label for="comp-br" class="text-xs text-zinc-400 cursor-pointer select-none font-sans">Brotli (.br)</label>
+                  <label for="comp-br" class="text-[13px] text-zinc-400 cursor-pointer select-none font-sans">Brotli (.br)</label>
                 </div>
               </div>
             </div>
@@ -1039,13 +1039,13 @@
 
         <!-- Rotated secret_key (shown once) -->
         @if (rotatedSecret()) {
-          <div class="bg-amber-950/20 border border-amber-900/40 rounded-lg p-3 space-y-2">
-            <span class="text-[9px] font-bold text-amber-400 uppercase tracking-wider">New SECRET_KEY (shown once)</span>
+          <div class="bg-amber-950/20 border border-amber-900/40 rounded-xl p-3 space-y-2">
+            <span class="text-[11px] font-bold text-amber-400 uppercase tracking-wider">New SECRET_KEY (shown once)</span>
             <div class="flex items-center gap-2">
-              <code class="flex-1 px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ rotatedSecret() }}</code>
-              <button (click)="copyToClipboard(rotatedSecret()!)" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-[10px] font-semibold cursor-pointer shrink-0">Copy</button>
+              <code class="flex-1 px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ rotatedSecret() }}</code>
+              <button (click)="copyToClipboard(rotatedSecret()!)" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-xs font-semibold cursor-pointer shrink-0">Copy</button>
             </div>
-            <p class="text-[9px] text-amber-500/80 font-sans">The app_id remains unchanged. Applications using the old key need a manual reload.</p>
+            <p class="text-[11px] text-amber-500/80 font-sans">The app_id remains unchanged. Applications using the old key need a manual reload.</p>
           </div>
         }
 
@@ -1054,14 +1054,14 @@
           <div class="flex items-center gap-2">
             <button
               (click)="onDeleteBucket(bucket)"
-              class="px-3 py-1.5 rounded border border-zinc-900 hover:border-red-900 text-zinc-550 hover:text-red-400 hover:bg-red-950/10 text-xs font-semibold transition-colors cursor-pointer"
+              class="px-3 py-1.5 rounded border border-zinc-900 hover:border-red-900 text-zinc-550 hover:text-red-400 hover:bg-red-950/10 text-[13px] font-semibold transition-colors cursor-pointer"
             >
               Delete this Bucket permanently
             </button>
             <button
               (click)="onRotateBucketCredentials(bucket)"
               [disabled]="rotatingCreds()"
-              class="px-3 py-1.5 rounded border border-amber-900/50 bg-amber-950/30 hover:bg-amber-900/40 text-amber-300 hover:text-amber-200 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-3 py-1.5 rounded border border-amber-900/50 bg-amber-950/30 hover:bg-amber-900/40 text-amber-300 hover:text-amber-200 text-[13px] font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               title="Generate a new secret_key (app_id stays the same)"
             >
               {{ rotatingCreds() ? 'Rotating...' : 'Rotate Credentials' }}
@@ -1071,14 +1071,14 @@
           <div class="flex items-center gap-3">
             <button 
               (click)="selectBucket(bucket)"
-              class="px-3.5 py-1.5 rounded text-zinc-450 hover:text-zinc-50 text-xs font-semibold border border-zinc-900 hover:bg-zinc-900 transition-colors cursor-pointer"
+              class="px-3.5 py-1.5 rounded text-zinc-450 hover:text-zinc-50 text-[13px] font-semibold border border-zinc-900 hover:bg-zinc-900 transition-colors cursor-pointer"
             >
               Reset
             </button>
             <button 
               (click)="onSaveSettings()"
               [disabled]="savingSettings()"
-              class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              class="px-4 py-2 rounded btn-accent text-[13px] font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
             >
               @if (!savingSettings()) {
                 <span>Save Settings</span>
@@ -1105,9 +1105,9 @@
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-purple-400">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
             </svg>
-            <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">API Integration — Connecting External Applications</h4>
+            <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">API Integration — Connecting External Applications</h4>
           </div>
-          <p class="text-xs text-zinc-500 leading-relaxed font-sans">
+          <p class="text-[13px] text-zinc-500 leading-relaxed font-sans">
             Buckets are private. External applications access files using the bucket's
             <span class="font-mono text-zinc-300">app_id</span> / <span class="font-mono text-zinc-300">secret_key</span>
             pair, automatically published to the project environment pool.
@@ -1116,8 +1116,8 @@
 
         <!-- Bucket credentials (key pair) -->
         <div class="bg-zinc-900 border border-zinc-900 rounded p-5 space-y-2 shadow-sm">
-          <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Bucket Credentials</h4>
-          <p class="text-[11px] text-zinc-500 leading-relaxed font-sans">
+          <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2">Bucket Credentials</h4>
+          <p class="text-[13px] text-zinc-500 leading-relaxed font-sans">
             Access is done with the <span class="font-mono text-zinc-300">app_id</span> /
             <span class="font-mono text-zinc-300">secret_key</span> pair, automatically published to the project
             environment pool as <span class="font-mono text-zinc-300">BUCKET_&lt;slug&gt;_APP_ID</span> and
@@ -1128,66 +1128,66 @@
 
         <!-- Code Snippets -->
         <div class="space-y-4">
-            <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Usage Examples</h4>
+            <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Usage Examples</h4>
 
             <!-- .env snippet -->
             <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow-sm">
               <div class="flex items-center justify-between bg-zinc-950/60 border-b border-zinc-900 px-4 py-2">
-                <span class="text-[9px] font-bold text-zinc-555 uppercase tracking-wider">.env</span>
+                <span class="text-[11px] font-bold text-zinc-555 uppercase tracking-wider">.env</span>
                 <button
                   (click)="copyToClipboard(getEnvSnippet())"
-                  class="text-[9px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
+                  class="text-[11px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
                 >Copy</button>
               </div>
-              <pre class="p-4 text-[11px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ getEnvSnippet() }}</pre>
+              <pre class="p-4 text-[13px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ getEnvSnippet() }}</pre>
             </div>
 
             <!-- cURL Upload -->
             <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow-sm">
               <div class="flex items-center justify-between bg-zinc-950/60 border-b border-zinc-900 px-4 py-2">
-                <span class="text-[9px] font-bold text-zinc-555 uppercase tracking-wider">cURL — Upload File</span>
+                <span class="text-[11px] font-bold text-zinc-555 uppercase tracking-wider">cURL — Upload File</span>
                 <button
                   (click)="copyToClipboard(getUploadSnippet())"
-                  class="text-[9px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
+                  class="text-[11px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
                 >Copy</button>
               </div>
-              <pre class="p-4 text-[11px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ getUploadSnippet() }}</pre>
+              <pre class="p-4 text-[13px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ getUploadSnippet() }}</pre>
             </div>
 
             <!-- Node.js snippet -->
             <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow-sm">
               <div class="flex items-center justify-between bg-zinc-950/60 border-b border-zinc-900 px-4 py-2">
-                <span class="text-[9px] font-bold text-zinc-555 uppercase tracking-wider">Node.js — Upload File</span>
+                <span class="text-[11px] font-bold text-zinc-555 uppercase tracking-wider">Node.js — Upload File</span>
                 <button
                   (click)="copyToClipboard(getNodeSnippet())"
-                  class="text-[9px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
+                  class="text-[11px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
                 >Copy</button>
               </div>
-              <pre class="p-4 text-[11px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ getNodeSnippet() }}</pre>
+              <pre class="p-4 text-[13px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ getNodeSnippet() }}</pre>
             </div>
 
             <!-- List Files -->
             <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow-sm">
               <div class="flex items-center justify-between bg-zinc-950/60 border-b border-zinc-900 px-4 py-2">
-                <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">cURL — List Files</span>
+                <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">cURL — List Files</span>
                 <button
                   (click)="copyToClipboard(getListSnippet())"
-                  class="text-[9px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
+                  class="text-[11px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
                 >Copy</button>
               </div>
-              <pre class="p-4 text-[11px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ getListSnippet() }}</pre>
+              <pre class="p-4 text-[13px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ getListSnippet() }}</pre>
             </div>
 
             <!-- Download Private File -->
             <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow-sm">
               <div class="flex items-center justify-between bg-zinc-950/60 border-b border-zinc-900 px-4 py-2">
-                <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">cURL — Download Private File</span>
+                <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">cURL — Download Private File</span>
                 <button
                   (click)="copyToClipboard(getDownloadSnippet())"
-                  class="text-[9px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
+                  class="text-[11px] text-zinc-600 hover:text-zinc-50 cursor-pointer font-semibold uppercase tracking-wider"
                 >Copy</button>
               </div>
-              <pre class="p-4 text-[11px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ getDownloadSnippet() }}</pre>
+              <pre class="p-4 text-[13px] text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">{{ getDownloadSnippet() }}</pre>
             </div>
           </div>
       </div>

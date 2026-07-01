@@ -69,10 +69,14 @@ pub async fn get_historical_metrics(
     let now = Utc::now();
     let end_time = now.timestamp();
     
-    let (start_time, step_seconds) = match range_str {
-        "24h" => (end_time - 86400, 900),  // 96 data points
-        "7d" => (end_time - 604800, 7200), // 84 data points
-        _ => (end_time - 3600, 60),        // "1h" -> 60 data points (default)
+    // The rate window MUST scale with the step, or wide ranges sample a tiny slice of
+    // each interval and skip the rest (e.g. a 5m rate every 2h on 7d shows ~4% of the
+    // data — sparse, noisy, and misleading). Sizing the window ≈ the step makes every
+    // point an honest average over its interval, with no gaps.
+    let (start_time, step_seconds, rate_window) = match range_str {
+        "24h" => (end_time - 86400, 900, "15m"),  // 96 data points
+        "7d" => (end_time - 604800, 7200, "2h"),  // 84 data points
+        _ => (end_time - 3600, 60, "5m"),         // "1h" -> 60 data points (default)
     };
 
     // Serverless (Knative) pods run the function in a `user-container` next to a
@@ -148,6 +152,10 @@ pub async fn get_historical_metrics(
         },
         _ => return Err(AppError::Validation(format!("Unsupported metric type: {}", metric_type))),
     };
+
+    // Apply the range-sized rate window uniformly. Gauge queries (memory, db_size,
+    // connections) contain no `[5m]`, so they're unaffected; every rate() query scales.
+    let query = query.replace("[5m]", &format!("[{}]", rate_window));
 
     let mut got_real_metrics = false;
     let mut timestamps = Vec::new();

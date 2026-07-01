@@ -15,10 +15,10 @@
         </a>
         <div>
           <div class="flex items-center gap-2">
-            <h3 class="text-xs font-bold text-zinc-50 uppercase tracking-wider">{{ bucket.name }}</h3>
+            <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider">{{ bucket.name }}</h3>
             <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border border-purple-900 bg-purple-950/20 text-purple-400 uppercase">Private</span>
           </div>
-          <p class="text-[10px] text-zinc-555 font-mono mt-0.5">slug: {{ bucket.slug }} | limit: {{ parent.formatBytes(bucket.maxBucketSizeBytes) }}@if (bucket.maxFileSizeBytes > 0) { <span> | max/file: {{ parent.formatBytes(bucket.maxFileSizeBytes) }}</span> }@if (bucket.allowCustomProcessing) { <span class="text-emerald-500"> · custom options</span> }</p>
+          <p class="text-xs text-zinc-555 font-mono mt-0.5">slug: {{ bucket.slug }} | limit: {{ parent.formatBytes(bucket.maxBucketSizeBytes) }}@if (bucket.maxFileSizeBytes > 0) { <span> | max/file: {{ parent.formatBytes(bucket.maxFileSizeBytes) }}</span> }@if (bucket.allowCustomProcessing) { <span class="text-emerald-500"> · custom options</span> }</p>
         </div>
       </div>
     </div>
@@ -29,7 +29,7 @@
         routerLink="files"
         routerLinkActive
         #rlaFiles="routerLinkActive"
-        class="px-4 py-2 text-xs font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
+        class="px-4 py-2 text-[13px] font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
         [class]="rlaFiles.isActive ? 'border-zinc-50 text-zinc-50 bg-zinc-950/20' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Stored Files
@@ -38,7 +38,7 @@
         routerLink="logs"
         routerLinkActive
         #rlaLogs="routerLinkActive"
-        class="px-4 py-2 text-xs font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
+        class="px-4 py-2 text-[13px] font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
         [class]="rlaLogs.isActive ? 'border-zinc-50 text-zinc-50 bg-zinc-950/20' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Log-uri Activitate
@@ -47,7 +47,7 @@
         routerLink="settings"
         routerLinkActive
         #rlaSettings="routerLinkActive"
-        class="px-4 py-2 text-xs font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
+        class="px-4 py-2 text-[13px] font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
         [class]="rlaSettings.isActive ? 'border-zinc-50 text-zinc-50 bg-zinc-950/20' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Bucket Settings
@@ -56,7 +56,7 @@
         routerLink="api"
         routerLinkActive
         #rlaApi="routerLinkActive"
-        class="px-4 py-2 text-xs font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
+        class="px-4 py-2 text-[13px] font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
         [class]="rlaApi.isActive ? 'border-zinc-50 text-zinc-50 bg-zinc-950/20' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Integrare API

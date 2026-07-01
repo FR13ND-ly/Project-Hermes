@@ -1,8 +1,8 @@
-<div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm animate-fade-in font-mono">
+<div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm animate-fade-in font-mono">
   <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3">
     <div>
-      <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Container Terminal</h3>
-      <p class="text-[10px] text-zinc-555 mt-0.5">Interactive shell session inside the active running instance</p>
+      <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Container Terminal</h3>
+      <p class="text-xs text-zinc-555 mt-0.5">Interactive shell session inside the active running instance</p>
     </div>
 
     <div class="flex items-center gap-3">
@@ -10,7 +10,7 @@
         <select 
           [ngModel]="parent.activeInstanceId()"
           (ngModelChange)="onInstanceChange($event)"
-          class="bg-zinc-950 border border-zinc-855 text-zinc-300 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 font-mono"
+          class="bg-zinc-950 border border-zinc-855 text-zinc-300 text-[13px] px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 font-mono"
         >
           @for (inst of parent.app()!.instances; track inst.id) {
             <option [value]="inst.id">{{ inst.containerName }} ({{ inst.status }})</option>
@@ -27,7 +27,7 @@
     ></div>
 
     @if (parent.getSelectedInstance()?.status !== 'running') {
-      <div class="mt-2 p-3 rounded border border-amber-900/40 bg-amber-950/20 flex items-center gap-2 text-amber-400 font-mono text-[11px]">
+      <div class="mt-2 p-3 rounded border border-amber-900/40 bg-amber-950/20 flex items-center gap-2 text-amber-400 font-mono text-[13px]">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" class="w-4 h-4 shrink-0">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
         </svg>
@@ -35,7 +35,7 @@
       </div>
     }
   } @else {
-    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-12 text-center text-zinc-555 text-xs">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-12 text-center text-zinc-555 text-[13px]">
       No active instance for this application. Start the application to access terminal.
     </div>
   }

@@ -1,33 +1,33 @@
 <div class="space-y-6 animate-fade-in">
   
   @if (successMsg()) {
-    <div class="p-3 rounded border border-emerald-500/20 bg-emerald-950/20 text-emerald-400 text-xs flex items-center justify-between" role="alert">
+    <div class="p-3 rounded border border-emerald-500/20 bg-emerald-950/20 text-emerald-400 text-[13px] flex items-center justify-between" role="alert">
       <div class="flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <span>{{ successMsg() }}</span>
       </div>
-      <button (click)="successMsg.set(null)" class="text-emerald-400 hover:text-emerald-300 font-bold text-xs cursor-pointer">×</button>
+      <button (click)="successMsg.set(null)" class="text-emerald-400 hover:text-emerald-300 font-bold text-[13px] cursor-pointer">×</button>
     </div>
   }
 
   @if (errorMsg()) {
-    <div class="p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-xs flex items-center justify-between" role="alert">
+    <div class="p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-[13px] flex items-center justify-between" role="alert">
       <div class="flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
         </svg>
         <span>{{ errorMsg() }}</span>
       </div>
-      <button (click)="errorMsg.set(null)" class="text-red-400 hover:text-red-300 font-bold text-xs cursor-pointer">×</button>
+      <button (click)="errorMsg.set(null)" class="text-red-400 hover:text-red-300 font-bold text-[13px] cursor-pointer">×</button>
     </div>
   }
 
   <!-- MAIN LIST VIEW (selectedRoute is null) -->
   @if (selectedRoute() === null) {
     <!-- Local Development Help -->
-    <div class="p-4 rounded-lg border border-zinc-800 bg-zinc-950 space-y-3 font-sans">
+    <div class="p-4 rounded-xl border border-zinc-800 bg-zinc-950 space-y-3 font-sans">
       <div class="flex items-start gap-3">
         <div class="p-2 bg-indigo-950/45 border border-indigo-900/30 rounded text-indigo-400 shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
@@ -35,25 +35,25 @@
           </svg>
         </div>
         <div class="space-y-1">
-          <h4 class="text-xs font-bold text-zinc-200">Local Connection Guide (Minikube on Windows)</h4>
-          <p class="text-[11px] text-zinc-400 leading-relaxed">
+          <h4 class="text-[13px] font-bold text-zinc-200">Local Connection Guide (Minikube on Windows)</h4>
+          <p class="text-[13px] text-zinc-400 leading-relaxed">
             Since you are running the application in a local Kubernetes cluster, external ports are not automatically exposed directly on your host machine.
-            To access the application, open a terminal and run the command <code class="px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-900 text-zinc-50 font-mono text-[10px]">minikube tunnel</code>.
+            To access the application, open a terminal and run the command <code class="px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-900 text-zinc-50 font-mono text-xs">minikube tunnel</code>.
           </p>
         </div>
       </div>
     </div>
 
     <!-- Unified HTTP Entries list -->
-    <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-sans">
+    <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm font-sans">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3 gap-2">
         <div>
-          <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">HTTP Routes & Domains in Workspace</h3>
-          <p class="text-xs text-zinc-550 font-sans">Central routing panel for all automatic branches and custom domains.</p>
+          <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">HTTP Routes & Domains in Workspace</h3>
+          <p class="text-[13px] text-zinc-550 font-sans">Central routing panel for all automatic branches and custom domains.</p>
         </div>
         <button 
           [routerLink]="['/projects', parent.projectId(), 'networking', 'create']"
-          class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1.5"
+          class="px-3 py-1.5 rounded btn-accent text-[13px] font-semibold cursor-pointer transition-colors flex items-center gap-1.5"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -69,17 +69,17 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <span class="text-zinc-650 text-[9px] uppercase font-mono tracking-widest">Loading route list...</span>
+          <span class="text-zinc-650 text-[11px] uppercase font-mono tracking-widest">Loading route list...</span>
         </div>
       } @else if (unifiedRoutes().length === 0) {
         <div class="text-center py-10 border border-dashed border-zinc-850 rounded">
-          <p class="text-xs text-zinc-550">No HTTP routes or domains configured for this project.</p>
+          <p class="text-[13px] text-zinc-550">No HTTP routes or domains configured for this project.</p>
         </div>
       } @else {
         <div class="bg-zinc-950/60 rounded border border-zinc-900 overflow-hidden">
-          <table class="w-full text-left border-collapse text-xs">
+          <table class="w-full text-left border-collapse text-[13px]">
             <thead>
-              <tr class="border-b border-zinc-900 bg-zinc-950 text-zinc-500 uppercase tracking-wider text-[9px] font-bold">
+              <tr class="border-b border-zinc-900 bg-zinc-950 text-zinc-500 uppercase tracking-wider text-[11px] font-bold">
                 <th class="p-3">Domain / FQDN Path</th>
                 <th class="p-3">Routing Type</th>
                 <th class="p-3">Status</th>
@@ -93,7 +93,7 @@
                   <td class="p-3">
                     <span 
                       (click)="selectRoute(route)" 
-                      class="font-bold text-zinc-300 hover:text-zinc-50 cursor-pointer hover:underline text-xs flex items-center gap-1 select-all"
+                      class="font-bold text-zinc-300 hover:text-zinc-50 cursor-pointer hover:underline text-[13px] flex items-center gap-1 select-all"
                     >
                       {{ route.fqdn }}
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-zinc-650 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -103,25 +103,25 @@
                   </td>
                   <td class="p-3">
                     @if (route.type === 'automatic') {
-                      <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase border bg-indigo-950/20 text-indigo-400 border-indigo-900/40">Automatic (Ingress)</span>
+                      <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase border bg-indigo-950/20 text-indigo-400 border-indigo-900/40">Automatic (Ingress)</span>
                     } @else {
                       <span
-                        class="px-2 py-0.5 rounded text-[8px] font-bold uppercase border"
+                        class="px-2 py-0.5 rounded text-[11px] font-bold uppercase border"
                         [class]="route.branchName === 'Database' ? 'bg-amber-950/20 text-amber-400 border-amber-900/40' : (route.branchName === 'Serverless Function' ? 'bg-cyan-950/20 text-cyan-400 border-cyan-900/40' : (route.branchName === 'Custom' ? 'bg-zinc-900 text-zinc-400 border-zinc-800' : 'bg-purple-950/20 text-purple-400 border-purple-900/40'))"
                       >{{ route.branchName === 'Database' ? 'DNS Domain (TCP)' : 'Custom Domain' }}</span>
                     }
                   </td>
                   <td class="p-3">
                     @if (route.status === 'active') {
-                      <span class="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-400">
+                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
                       </span>
                     } @else if (route.status === 'pending_verification') {
-                      <span class="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-400">
+                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400">
                         <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Verifying
                       </span>
                     } @else {
-                      <span class="inline-flex items-center gap-1 text-[9px] font-semibold text-red-400">
+                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-red-400">
                         Failed
                       </span>
                     }
@@ -130,18 +130,18 @@
                     @if (route.connectedApp) {
                       <span class="text-zinc-350 font-semibold">{{ route.connectedApp }}</span>
                       @if (route.branchName === 'Serverless Function') {
-                        <span class="px-1.5 py-0.2 rounded text-[8px] bg-indigo-950/30 text-indigo-400 border border-indigo-900/40 ml-1.5 font-mono font-bold uppercase">Serverless Function</span>
+                        <span class="px-1.5 py-0.2 rounded text-[11px] bg-indigo-950/30 text-indigo-400 border border-indigo-900/40 ml-1.5 font-mono font-bold uppercase">Serverless Function</span>
                       } @else if (route.branchName) {
-                        <span class="px-1.5 py-0.2 rounded text-[8px] bg-zinc-900 text-zinc-500 border border-zinc-800 ml-1.5 font-mono">Branch: {{ route.branchName }}</span>
+                        <span class="px-1.5 py-0.2 rounded text-[11px] bg-zinc-900 text-zinc-500 border border-zinc-800 ml-1.5 font-mono">Branch: {{ route.branchName }}</span>
                       }
                     } @else {
-                      <span class="text-zinc-650 font-mono text-[10px]">{{ route.routingType === 'static_host' ? 'Static Root path' : 'Manual Config (Nginx)' }}</span>
+                      <span class="text-zinc-650 font-mono text-xs">{{ route.routingType === 'static_host' ? 'Static Root path' : 'Manual Config (Nginx)' }}</span>
                     }
                   </td>
                   <td class="p-3 text-right">
                     <button 
                       (click)="selectRoute(route)" 
-                      class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-zinc-50 hover:bg-zinc-800 text-[10px] font-bold uppercase cursor-pointer transition-colors"
+                      class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-zinc-50 hover:bg-zinc-800 text-xs font-bold uppercase cursor-pointer transition-colors"
                     >
                       Details
                     </button>
@@ -155,14 +155,14 @@
     </div>
 
     <!-- Databases & Serverless Functions exposed LoadBalancer TCP/UDP ports -->
-    <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-sans">
+    <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm font-sans">
       <div class="border-b border-zinc-900 pb-2.5">
-        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Externally Exposed TCP/UDP Ports</h3>
-        <p class="text-xs text-zinc-550">External LoadBalancer IPs allocated to cluster instances for direct connections from outside the network.</p>
+        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Externally Exposed TCP/UDP Ports</h3>
+        <p class="text-[13px] text-zinc-550">External LoadBalancer IPs allocated to cluster instances for direct connections from outside the network.</p>
       </div>
 
       @if (databases().length === 0 && activeServerlessPorts().length === 0) {
-        <p class="text-xs text-zinc-550 py-2">
+        <p class="text-[13px] text-zinc-550 py-2">
           No direct external LoadBalancer (TCP/UDP) connection configured in this project.
         </p>
       } @else {
@@ -170,16 +170,16 @@
           @for (db of databases(); track db.id) {
             <div class="p-3.5 rounded border border-zinc-900 bg-zinc-950 flex flex-col justify-between gap-3 font-mono">
               <div class="space-y-0.5">
-                <div class="text-zinc-200 text-xs font-bold">Service: {{ db.name }} ({{ db.type }})</div>
-                <div class="text-[9px] text-zinc-600">Namespace: hermes-ws-... | Container: {{ db.containerName }}</div>
+                <div class="text-zinc-200 text-[13px] font-bold">Service: {{ db.name }} ({{ db.type }})</div>
+                <div class="text-[11px] text-zinc-600">Namespace: hermes-ws-... | Container: {{ db.containerName }}</div>
               </div>
 
               <div class="flex items-center justify-between border-t border-zinc-900/60 pt-2.5">
-                <div class="text-[10px] text-zinc-500">
+                <div class="text-xs text-zinc-500">
                   Intern: {{ db.internalPort }} / TCP
                 </div>
                 <div class="flex items-center gap-1.5">
-                  <span class="text-zinc-50 font-bold text-xs">Port Public: {{ db.externalPort }}</span>
+                  <span class="text-zinc-50 font-bold text-[13px]">Port Public: {{ db.externalPort }}</span>
                   <button 
                     (click)="copyPort(db.externalPort)" 
                     class="p-0.5 rounded hover:bg-zinc-900 text-zinc-500 hover:text-zinc-50 cursor-pointer"
@@ -197,18 +197,18 @@
             <div class="p-3.5 rounded border border-indigo-900/30 bg-indigo-950/10 flex flex-col justify-between gap-3 font-mono">
               <div class="space-y-0.5">
                 <div class="flex items-center gap-2">
-                  <span class="text-zinc-200 text-xs font-bold">{{ fn.name }}</span>
-                  <span class="px-1.5 py-0.2 rounded text-[8px] bg-indigo-950/30 text-indigo-400 border border-indigo-900/40 font-bold uppercase">Serverless</span>
+                  <span class="text-zinc-200 text-[13px] font-bold">{{ fn.name }}</span>
+                  <span class="px-1.5 py-0.2 rounded text-[11px] bg-indigo-950/30 text-indigo-400 border border-indigo-900/40 font-bold uppercase">Serverless</span>
                 </div>
-                <div class="text-[9px] text-zinc-600">Knative Serverless Function | Nginx Proxy → LoadBalancer</div>
+                <div class="text-[11px] text-zinc-600">Knative Serverless Function | Nginx Proxy → LoadBalancer</div>
               </div>
 
               <div class="flex items-center justify-between border-t border-indigo-900/20 pt-2.5">
-                <div class="text-[10px] text-zinc-500">
+                <div class="text-xs text-zinc-500">
                   Rute: <span class="text-cyan-400 font-semibold">{{ (fn.routes || []).length }}</span> · {{ fn.runtime }}
                 </div>
                 <div class="flex items-center gap-1.5">
-                  <span class="text-zinc-50 font-bold text-xs">Port Public: {{ fn.externalPort }}</span>
+                  <span class="text-zinc-50 font-bold text-[13px]">Port Public: {{ fn.externalPort }}</span>
                   <button 
                     (click)="copyPort(fn.externalPort)" 
                     class="p-0.5 rounded hover:bg-zinc-900 text-zinc-500 hover:text-zinc-50 cursor-pointer"
@@ -233,7 +233,7 @@
     <div class="flex items-center gap-2">
       <button 
         (click)="deselectRoute()" 
-        class="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-50 cursor-pointer transition-colors font-sans"
+        class="flex items-center gap-1 text-[13px] text-zinc-400 hover:text-zinc-50 cursor-pointer transition-colors font-sans"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -243,18 +243,18 @@
     </div>
 
     <!-- Route title header -->
-    <div class="p-5 rounded-lg border border-zinc-800 bg-zinc-900 flex flex-col md:flex-row md:items-center md:justify-between gap-4 font-sans shadow-sm">
+    <div class="p-5 rounded-xl border border-zinc-800 bg-zinc-900 flex flex-col md:flex-row md:items-center md:justify-between gap-4 font-sans shadow-sm">
       <div class="space-y-1">
         <div class="flex items-center gap-2.5 flex-wrap">
           <h2 class="text-base font-bold text-zinc-50 tracking-tight select-all font-mono">{{ route.fqdn }}</h2>
           <span 
-            class="px-2 py-0.5 rounded text-[8px] font-bold uppercase border"
+            class="px-2 py-0.5 rounded text-[11px] font-bold uppercase border"
             [class]="route.type === 'automatic' ? 'bg-indigo-950/20 text-indigo-400 border-indigo-900/40' : 'bg-purple-950/20 text-purple-400 border-purple-900/40'"
           >
             {{ route.type === 'automatic' ? 'Automat' : 'Custom' }}
           </span>
         </div>
-        <p class="text-xs text-zinc-550">
+        <p class="text-[13px] text-zinc-550">
           Entry type: {{ route.routingType.toUpperCase().replace('_', ' ') }}
         </p>
       </div>
@@ -264,7 +264,7 @@
           href="http://{{ route.fqdn }}" 
           target="_blank" 
           rel="noopener"
-          class="px-3.5 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1"
+          class="px-3.5 py-1.5 rounded btn-accent text-[13px] font-semibold cursor-pointer transition-colors flex items-center gap-1"
         >
           Open Link
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
@@ -278,19 +278,19 @@
     <div class="flex border-b border-zinc-900 gap-6 font-sans">
       <button 
         (click)="activeTab.set('details')"
-        [class]="activeTab() === 'details' ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 text-xs font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
+        [class]="activeTab() === 'details' ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 text-[13px] font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-[13px] font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
       >
         Details & Diagnostics
       </button>
       <button 
         (click)="activeTab.set('logs')"
-        [class]="activeTab() === 'logs' ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 text-xs font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
+        [class]="activeTab() === 'logs' ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 text-[13px] font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-[13px] font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
       >
         Live Traffic Logs
       </button>
       <button 
         (click)="activeTab.set('settings')"
-        [class]="activeTab() === 'settings' ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 text-xs font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
+        [class]="activeTab() === 'settings' ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 text-[13px] font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-[13px] font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
       >
         Settings & Nginx Config
       </button>
@@ -304,10 +304,10 @@
         <div class="grid gap-6 md:grid-cols-2">
           
           <!-- Box A: Connected Info -->
-          <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
-            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">App Connection</h3>
+          <div class="bg-zinc-900 border border-zinc-900 rounded-xl p-5 space-y-4 shadow-sm">
+            <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">App Connection</h3>
             
-            <div class="space-y-3.5 text-xs">
+            <div class="space-y-3.5 text-[13px]">
               <div class="flex justify-between border-b border-zinc-900/60 pb-2">
                 <span class="text-zinc-500">Workspace App:</span>
                 <span class="text-zinc-200 font-semibold font-mono">{{ route.connectedApp || 'Unspecified' }}</span>
@@ -333,7 +333,7 @@
 
               <div class="flex justify-between pb-1">
                 <span class="text-zinc-500">HTTP Routing Status:</span>
-                <span class="font-semibold font-mono text-[10px] uppercase flex items-center gap-1.5">
+                <span class="font-semibold font-mono text-xs uppercase flex items-center gap-1.5">
                   <span class="w-2 h-2 rounded-full" [class]="route.status === 'active' ? 'bg-emerald-500' : (route.status === 'pending_verification' ? 'bg-amber-500 animate-pulse' : 'bg-red-500')"></span>
                   {{ route.status }}
                 </span>
@@ -342,10 +342,10 @@
           </div>
 
           <!-- Box B: SSL certificate information -->
-          <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
-            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Security & TLS (SSL) Certificate</h3>
+          <div class="bg-zinc-900 border border-zinc-900 rounded-xl p-5 space-y-4 shadow-sm">
+            <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Security & TLS (SSL) Certificate</h3>
             
-            <div class="space-y-3.5 text-xs">
+            <div class="space-y-3.5 text-[13px]">
               <div class="flex justify-between border-b border-zinc-900/60 pb-2">
                 <span class="text-zinc-500">SSL/TLS State:</span>
                 <span class="text-zinc-200 font-semibold">
@@ -369,13 +369,13 @@
         </div>
 
         <!-- SSL Diagnostics Checklist -->
-        <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm">
+        <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm">
           <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
-            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Verificare Diagnostic DNS & SSL</h3>
-            <button (click)="refreshDiagnostics()" class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 hover:text-zinc-50 text-[10px] font-bold uppercase cursor-pointer">Re-test</button>
+            <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Verificare Diagnostic DNS & SSL</h3>
+            <button (click)="refreshDiagnostics()" class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 hover:text-zinc-50 text-xs font-bold uppercase cursor-pointer">Re-test</button>
           </div>
 
-          <div class="grid gap-4 sm:grid-cols-3 text-xs font-mono">
+          <div class="grid gap-4 sm:grid-cols-3 text-[13px] font-mono">
             <div class="flex items-center gap-2.5 p-3 rounded border border-zinc-900 bg-zinc-950/40">
               @if (dnsVerified()) {
                 <svg class="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -388,7 +388,7 @@
               }
               <div>
                 <div class="font-bold text-zinc-200 font-sans">DNS IP Resolution</div>
-                <div class="text-[9px] text-zinc-500 mt-0.5">Domain correctly points to local Ingress</div>
+                <div class="text-[11px] text-zinc-500 mt-0.5">Domain correctly points to local Ingress</div>
               </div>
             </div>
 
@@ -404,7 +404,7 @@
               }
               <div>
                 <div class="font-bold text-zinc-200 font-sans">Emitere Certificat</div>
-                <div class="text-[9px] text-zinc-500 mt-0.5">CA cert-manager Let's Encrypt valid</div>
+                <div class="text-[11px] text-zinc-500 mt-0.5">CA cert-manager Let's Encrypt valid</div>
               </div>
             </div>
 
@@ -420,7 +420,7 @@
               }
               <div>
                 <div class="font-bold text-zinc-200 font-sans">Nginx Configuration</div>
-                <div class="text-[9px] text-zinc-500 mt-0.5">SSL Proxy & port 443 locally secured</div>
+                <div class="text-[11px] text-zinc-500 mt-0.5">SSL Proxy & port 443 locally secured</div>
               </div>
             </div>
           </div>
@@ -431,32 +431,32 @@
     <!-- TAB 2: REAL NGINX ACCESS LOGS -->
     @if (activeTab() === 'logs') {
       <div class="space-y-4 animate-fade-in font-sans">
-        <div class="bg-zinc-950 border border-zinc-900 rounded-lg p-5 shadow-inner">
+        <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5 shadow-inner">
           <div class="flex items-center justify-between border-b border-zinc-900 pb-3 mb-4">
             <div class="flex items-center gap-2">
-              <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider font-mono">Nginx Access Logs</h4>
-              <code class="text-[9px] text-zinc-600 font-mono hidden sm:inline">/var/log/nginx/{{ route.fqdn }}.access.log</code>
+              <h4 class="text-[13px] font-bold text-zinc-400 uppercase tracking-wider font-mono">Nginx Access Logs</h4>
+              <code class="text-[11px] text-zinc-600 font-mono hidden sm:inline">/var/log/nginx/{{ route.fqdn }}.access.log</code>
             </div>
             @if (logsSupported()) {
-              <button (click)="loadDomainLogs(route.id)" class="text-[9px] text-zinc-400 hover:text-zinc-50 bg-zinc-950 px-2 py-0.5 rounded border border-zinc-900 uppercase font-semibold font-mono cursor-pointer transition-colors">Refresh</button>
+              <button (click)="loadDomainLogs(route.id)" class="text-[11px] text-zinc-400 hover:text-zinc-50 bg-zinc-950 px-2 py-0.5 rounded border border-zinc-900 uppercase font-semibold font-mono cursor-pointer transition-colors">Refresh</button>
             }
           </div>
 
           @if (!logsSupported()) {
-            <div class="text-center py-10 px-4 text-xs text-zinc-550 font-sans space-y-1">
+            <div class="text-center py-10 px-4 text-[13px] text-zinc-550 font-sans space-y-1">
               <p class="text-zinc-400 font-semibold">HTTP logs are not available here for this route.</p>
               @if (route.type === 'automatic') {
-                <p class="text-[11px]">Automatic routes (Ingress) do not pass through the host nginx. See logs in the <span class="text-zinc-300 font-mono">Logs</span> tab of the application / function.</p>
+                <p class="text-[13px]">Automatic routes (Ingress) do not pass through the host nginx. See logs in the <span class="text-zinc-300 font-mono">Logs</span> tab of the application / function.</p>
               } @else {
-                <p class="text-[11px]">Database domains are TCP (no nginx), so they have no access logs.</p>
+                <p class="text-[13px]">Database domains are TCP (no nginx), so they have no access logs.</p>
               }
             </div>
           } @else {
-            <div class="space-y-1 max-h-[480px] overflow-y-auto pr-1 bg-zinc-950 p-3.5 rounded border border-zinc-955 select-text font-mono text-[10px]">
+            <div class="space-y-1 max-h-[480px] overflow-y-auto pr-1 bg-zinc-950 p-3.5 rounded border border-zinc-955 select-text font-mono text-xs">
               @for (log of liveLogs(); track $index) {
                 <div class="text-zinc-400 hover:text-zinc-200 leading-relaxed truncate">{{ log }}</div>
               } @empty {
-                <div class="text-center py-10 text-xs text-zinc-650 font-mono">No requests recorded yet. Logs appear as the domain receives traffic.</div>
+                <div class="text-center py-10 text-[13px] text-zinc-650 font-mono">No requests recorded yet. Logs appear as the domain receives traffic.</div>
               }
             </div>
           }
@@ -468,13 +468,13 @@
     @if (activeTab() === 'settings') {
       <div class="space-y-6 animate-fade-in font-sans">
         @if (route.type === 'automatic') {
-          <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 shadow-sm space-y-3 font-sans">
-            <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Automatic Route Settings</h4>
-            <p class="text-xs text-zinc-500 leading-relaxed font-sans">
+          <div class="bg-zinc-900 border border-zinc-900 rounded-xl p-5 shadow-sm space-y-3 font-sans">
+            <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Automatic Route Settings</h4>
+            <p class="text-[13px] text-zinc-500 leading-relaxed font-sans">
               This HTTP Ingress route is managed directly by Kubernetes for branch <code class="px-1 py-0.2 rounded bg-zinc-950 text-zinc-50 font-mono">{{ route.branchName }}</code>.
               Nginx proxy-pass parameters and transfer limits are tied to your application instance lifecycle.
             </p>
-            <div class="text-[10px] text-zinc-600 bg-zinc-950/40 border border-zinc-900 p-3 rounded font-mono">
+            <div class="text-xs text-zinc-600 bg-zinc-950/40 border border-zinc-900 p-3 rounded font-mono">
               # Automatic Ingress Controller configuration<br/>
               nginx.ingress.kubernetes.io/proxy-body-size: "50m"<br/>
               nginx.ingress.kubernetes.io/ssl-redirect: "true"
@@ -482,17 +482,17 @@
           </div>
         } @else {
           <!-- Editable Domain settings -->
-          <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
-            <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Edit Custom Domain Settings</h4>
+          <div class="bg-zinc-900 border border-zinc-900 rounded-xl p-5 space-y-4 shadow-sm">
+            <h4 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider border-b border-zinc-900 pb-2.5">Edit Custom Domain Settings</h4>
             
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="space-y-1.5">
-                <label for="edit-routing-type" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Nginx Routing Type</label>
+                <label for="edit-routing-type" class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Nginx Routing Type</label>
                 <select 
                   id="edit-routing-type"
                   [ngModel]="editRoutingType()"
                   (ngModelChange)="editRoutingType.set($event)"
-                  class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-300 focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer"
+                  class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-300 focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer"
                 >
                   <option value="reverse_proxy">Reverse Proxy (To container)</option>
                   <option value="static_host">Static Host (Files from volume)</option>
@@ -501,54 +501,54 @@
               </div>
 
               <div class="space-y-1.5">
-                <label for="edit-max-body" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Nginx Body Size Limit (MB)</label>
+                <label for="edit-max-body" class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Nginx Body Size Limit (MB)</label>
                 <input 
                   id="edit-max-body"
                   type="number" 
                   [ngModel]="editClientMaxBodySize()"
                   (ngModelChange)="editClientMaxBodySize.set($event)"
-                  class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
                 />
               </div>
             </div>
 
             @if (editRoutingType() === 'reverse_proxy') {
               <div class="space-y-1.5 animate-fade-in">
-                <label for="edit-target" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Target Container Address (nginx_target_host)</label>
+                <label for="edit-target" class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Target Container Address (nginx_target_host)</label>
                 <input 
                   id="edit-target"
                   type="text" 
                   placeholder="ex. http://hermes-app-service-name:8080"
                   [ngModel]="editNginxTargetHost()"
                   (ngModelChange)="editNginxTargetHost.set($event)"
-                  class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
                 />
               </div>
             }
 
             @if (editRoutingType() === 'static_host') {
               <div class="space-y-1.5 animate-fade-in">
-                <label for="edit-root" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Static Root Directory (nginx_root_path)</label>
+                <label for="edit-root" class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Static Root Directory (nginx_root_path)</label>
                 <input 
                   id="edit-root"
                   type="text" 
                   placeholder="ex. /var/www/html"
                   [ngModel]="editNginxRootPath()"
                   (ngModelChange)="editNginxRootPath.set($event)"
-                  class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
                 />
               </div>
             }
 
             @if (editRoutingType() === 'custom') {
               <div class="space-y-1.5 animate-fade-in">
-                <label for="edit-custom-config" class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Nginx Custom Configuration File</label>
+                <label for="edit-custom-config" class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Nginx Custom Configuration File</label>
                 <textarea 
                   id="edit-custom-config"
                   rows="6"
                   [ngModel]="editNginxConfigContent()"
                   (ngModelChange)="editNginxConfigContent.set($event)"
-                  class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                  class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
                 ></textarea>
               </div>
             }
@@ -561,13 +561,13 @@
                 (ngModelChange)="editIsSsl.set($event)"
                 class="w-4 h-4 bg-zinc-950 border-zinc-850 rounded focus:ring-0 text-zinc-50 cursor-pointer accent-zinc-50"
               />
-              <label for="edit-ssl-check" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer">Generate / Keep Automatic SSL Certificate</label>
+              <label for="edit-ssl-check" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider cursor-pointer">Generate / Keep Automatic SSL Certificate</label>
             </div>
 
             <div class="pt-4 border-t border-zinc-900 flex justify-between items-center gap-2">
               <button 
                 (click)="onRemoveDomain(route.id)"
-                class="px-3 py-1.5 rounded bg-red-950/20 hover:bg-red-950/45 border border-red-900/30 text-red-400 hover:text-red-300 text-xs font-semibold cursor-pointer transition-colors"
+                class="px-3 py-1.5 rounded bg-red-950/20 hover:bg-red-950/45 border border-red-900/30 text-red-400 hover:text-red-300 text-[13px] font-semibold cursor-pointer transition-colors"
               >
                 Delete Custom Domain
               </button>
@@ -575,7 +575,7 @@
               <button 
                 (click)="onSaveDomainSettings()"
                 [disabled]="updatingSettings()"
-                class="px-4 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                class="px-4 py-1.5 rounded btn-accent text-[13px] font-semibold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
               >
                 @if (updatingSettings()) {
                   <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

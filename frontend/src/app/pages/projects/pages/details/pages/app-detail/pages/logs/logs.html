@@ -1,8 +1,8 @@
-<div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm animate-fade-in font-mono">
+<div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm animate-fade-in font-mono">
   <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3">
     <div>
-      <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Live Console (stdout/stderr)</h3>
-      <p class="text-[10px] text-zinc-555 mt-0.5">Real-time container output stream</p>
+      <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Live Console (stdout/stderr)</h3>
+      <p class="text-xs text-zinc-555 mt-0.5">Real-time container output stream</p>
     </div>
 
     <div class="flex items-center gap-3">
@@ -10,7 +10,7 @@
         <select 
           [ngModel]="parent.activeInstanceId()"
           (ngModelChange)="parent.onInstanceChange($event)"
-          class="bg-zinc-950 border border-zinc-850 text-zinc-300 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 font-mono"
+          class="bg-zinc-950 border border-zinc-850 text-zinc-300 text-[13px] px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 font-mono"
         >
           @for (inst of parent.app()!.instances; track inst.id) {
             <option [value]="inst.id">{{ inst.containerName }} ({{ inst.status }})</option>
@@ -25,7 +25,7 @@
           }
           <span class="relative inline-flex rounded-full h-2 w-2" [class]="parent.sseConnected() ? 'bg-emerald-500' : 'bg-zinc-700'"></span>
         </span>
-        <span class="text-[9px] font-bold" [class]="parent.sseConnected() ? 'text-emerald-400' : 'text-zinc-555'">
+        <span class="text-[11px] font-bold" [class]="parent.sseConnected() ? 'text-emerald-400' : 'text-zinc-555'">
           {{ parent.sseConnected() ? 'LIVE' : 'INACTIVE' }}
         </span>
       </div>
@@ -35,7 +35,7 @@
         placeholder="Filter logs..." 
         [ngModel]="parent.logSearchQuery()"
         (ngModelChange)="parent.logSearchQuery.set($event)"
-        class="bg-zinc-950 border border-zinc-855 text-zinc-300 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 w-32 sm:w-44 font-mono"
+        class="bg-zinc-950 border border-zinc-855 text-zinc-300 text-[13px] px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 w-32 sm:w-44 font-mono"
       />
 
       <button 
@@ -50,7 +50,7 @@
 
       <button 
         (click)="parent.toggleAutoScroll()"
-        class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border cursor-pointer transition-all"
+        class="px-2.5 py-1.5 rounded text-xs font-bold uppercase border cursor-pointer transition-all"
         [class]="parent.autoScroll() ? 'bg-zinc-50 text-zinc-950 border-zinc-50' : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-zinc-50'"
       >
         Autoscroll: {{ parent.autoScroll() ? 'ON' : 'OFF' }}
@@ -61,17 +61,17 @@
   @if (parent.activeInstanceId()) {
     <div 
       id="terminal-log-box"
-      class="terminal-view h-[500px] p-4 overflow-y-auto font-mono text-xs text-zinc-300 space-y-1.5 scroll-smooth select-text bg-zinc-950 border border-zinc-900 rounded"
+      class="terminal-view h-[500px] p-4 overflow-y-auto font-mono text-[13px] text-zinc-300 space-y-1.5 scroll-smooth select-text bg-zinc-950 border border-zinc-900 rounded"
     >
       @for (line of parent.filteredLogs(); track $index) {
         <div class="whitespace-pre-wrap leading-relaxed">{{ line }}</div>
       }
       @if (parent.filteredLogs().length === 0) {
-        <div class="h-full flex items-center justify-center text-zinc-555 text-xs">No live logs available.</div>
+        <div class="h-full flex items-center justify-center text-zinc-555 text-[13px]">No live logs available.</div>
       }
     </div>
   } @else {
-    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-12 text-center text-zinc-555 text-xs">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-12 text-center text-zinc-555 text-[13px]">
       No active instance for this application. Start the application to view live logs.
     </div>
   }

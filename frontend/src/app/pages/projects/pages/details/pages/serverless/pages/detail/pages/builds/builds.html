@@ -1,22 +1,22 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start animate-fade-in font-mono">
   <div class="lg:col-span-1 space-y-2">
     <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
-      <h4 class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Istoric Build-uri</h4>
-      <button (click)="loadBuilds()" class="text-zinc-500 hover:text-zinc-50 cursor-pointer text-xs">↻</button>
+      <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Istoric Build-uri</h4>
+      <button (click)="loadBuilds()" class="text-zinc-500 hover:text-zinc-50 cursor-pointer text-[13px]">↻</button>
     </div>
     <div class="space-y-1 max-h-[520px] overflow-y-auto">
       @for (b of builds(); track b.id) {
         <div (click)="selectBuild(b)" [class]="selectedBuildId() === b.id ? 'border-zinc-600 bg-zinc-900/60' : 'border-zinc-900 hover:bg-zinc-950/40'" class="p-2.5 rounded border cursor-pointer">
           <div class="flex items-center justify-between">
-            <span class="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded" [class]="b.status === 'success' ? 'bg-emerald-950/40 text-emerald-400' : b.status === 'failed' ? 'bg-red-950/40 text-red-400' : 'bg-amber-950/40 text-amber-400'">{{ b.status }}</span>
-            <span class="text-[10px] text-zinc-600">{{ b.durationSec ? b.durationSec + 's' : '' }}</span>
+            <span class="text-[11px] uppercase font-bold px-1.5 py-0.5 rounded" [class]="b.status === 'success' ? 'bg-emerald-950/40 text-emerald-400' : b.status === 'failed' ? 'bg-red-950/40 text-red-400' : 'bg-amber-950/40 text-amber-400'">{{ b.status }}</span>
+            <span class="text-xs text-zinc-600">{{ b.durationSec ? b.durationSec + 's' : '' }}</span>
           </div>
-          <div class="text-[9px] text-zinc-600 mt-1">{{ b.createdAt | date:'dd.MM HH:mm' }}</div>
+          <div class="text-[11px] text-zinc-600 mt-1">{{ b.createdAt | date:'dd.MM HH:mm' }}</div>
         </div>
       }
     </div>
   </div>
   <div class="lg:col-span-2">
-    <div class="bg-zinc-950 border border-zinc-900 rounded-lg p-3 h-[520px] overflow-y-auto font-mono text-[11px] text-zinc-300 whitespace-pre-wrap">{{ buildLogs().join('\n') }}</div>
+    <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-3 h-[520px] overflow-y-auto font-mono text-[13px] text-zinc-300 whitespace-pre-wrap">{{ buildLogs().join('\n') }}</div>
   </div>
 </div>

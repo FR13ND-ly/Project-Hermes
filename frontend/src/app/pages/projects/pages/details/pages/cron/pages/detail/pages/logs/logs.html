@@ -5,26 +5,26 @@
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
       </svg>
-      <span class="text-xs text-zinc-500 font-mono">Loading execution history...</span>
+      <span class="text-[13px] text-zinc-500 font-mono">Loading execution history...</span>
     </div>
   } @else if (parent.cronLogs().length === 0) {
-    <div class="text-center py-12 border border-dashed border-zinc-900 rounded-lg space-y-2 font-sans">
+    <div class="text-center py-12 border border-dashed border-zinc-900 rounded-xl space-y-2 font-sans">
       <span class="text-zinc-700 block">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 mx-auto">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </span>
-      <p class="text-xs text-zinc-555 font-medium">No runs recorded yet.</p>
+      <p class="text-[13px] text-zinc-555 font-medium">No runs recorded yet.</p>
     </div>
   } @else {
     <div class="space-y-3.5">
       @for (log of parent.cronLogs(); track log.id) {
         <div class="border border-zinc-900 bg-zinc-950/20 rounded-md overflow-hidden">
           <!-- Log Header Bar -->
-          <div class="flex items-center justify-between p-3 bg-zinc-950/80 border-b border-zinc-900 font-mono text-[10px]">
+          <div class="flex items-center justify-between p-3 bg-zinc-950/80 border-b border-zinc-900 font-mono text-xs">
             <div class="flex items-center gap-2.5">
               <span 
-                class="px-2 py-0.5 rounded text-[8px] font-bold border"
+                class="px-2 py-0.5 rounded text-[11px] font-bold border"
                 [class]="(log.exitCode !== undefined ? log.exitCode : log.exit_code) === 0 ? 'bg-emerald-950/30 border-emerald-500/20 text-emerald-400' : 'bg-red-955/30 border-red-500/20 text-red-400'"
               >
                 EXIT CODE {{ log.exitCode !== undefined ? log.exitCode : log.exit_code }}
@@ -38,7 +38,7 @@
             </div>
           </div>
           <!-- Log Output Panel -->
-          <div class="p-3.5 bg-zinc-950/70 font-mono text-[10px] text-zinc-300 overflow-x-auto max-h-48">
+          <div class="p-3.5 bg-zinc-950/70 font-mono text-xs text-zinc-300 overflow-x-auto max-h-48">
             <pre class="leading-relaxed select-all"><code>{{ log.output || '(No output in stdout/stderr)' }}</code></pre>
           </div>
         </div>
@@ -47,7 +47,7 @@
 
     <!-- Pagination Controls -->
     @if (parent.totalPages() > 1) {
-      <div class="flex items-center justify-between border-t border-zinc-900 pt-4 font-sans text-xs">
+      <div class="flex items-center justify-between border-t border-zinc-900 pt-4 font-sans text-[13px]">
         <span class="text-zinc-505 font-mono">
           Showing logs <strong class="text-zinc-50">{{ (parent.currentPage() - 1) * parent.pageSize() + 1 }}</strong> - <strong class="text-zinc-50">{{ (parent.currentPage() * parent.pageSize() > parent.totalLogs() ? parent.totalLogs() : parent.currentPage() * parent.pageSize()) }}</strong> of <strong class="text-zinc-50">{{ parent.totalLogs() }}</strong>
         </span>

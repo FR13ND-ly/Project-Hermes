@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { DecimalPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
@@ -25,7 +25,19 @@ export class Dashboard implements OnInit, OnDestroy {
   readonly projects = signal<Project[]>([]);
   readonly workspaces = signal<Workspace[]>([]);
   readonly usage = signal<WorkspaceUsage | null>(null);
-  
+
+  // Quota gauge fills (0 when unlimited — the template shows "Unlimited" separately).
+  readonly memPercent = computed(() => {
+    const u = this.usage();
+    if (!u || u.maxMemoryMb <= 0) return 0;
+    return Math.min(100, (u.usedMemoryMb / u.maxMemoryMb) * 100);
+  });
+  readonly storagePercent = computed(() => {
+    const u = this.usage();
+    if (!u || u.maxStorageGb <= 0) return 0;
+    return Math.min(100, (u.usedStorageGb / u.maxStorageGb) * 100);
+  });
+
   readonly newWorkspaceName = signal('');
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);

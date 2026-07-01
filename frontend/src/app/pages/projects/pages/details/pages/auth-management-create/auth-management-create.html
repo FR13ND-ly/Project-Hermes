@@ -1,10 +1,10 @@
 <div class="space-y-6 animate-fade-in font-sans max-w-2xl">
   <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
     <div>
-      <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider font-mono">Create Authentication Service</h3>
-      <p class="text-[10px] text-zinc-550 mt-0.5">Provision a new BaaS Authentication instance for your workspace.</p>
+      <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider font-mono">Create Authentication Service</h3>
+      <p class="text-xs text-zinc-550 mt-0.5">Provision a new BaaS Authentication instance for your workspace.</p>
     </div>
-    <button (click)="onCancel()" class="text-xs text-zinc-400 hover:text-zinc-50 cursor-pointer font-sans flex items-center gap-1">
+    <button (click)="onCancel()" class="text-[13px] text-zinc-400 hover:text-zinc-50 cursor-pointer font-sans flex items-center gap-1">
       ← Back to list
     </button>
   </div>
@@ -13,7 +13,7 @@
     <div class="grid gap-4 md:grid-cols-2 font-mono">
       <!-- Service Name -->
       <div class="space-y-1.5">
-        <label for="service-name" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Service Name</label>
+        <label for="service-name" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Service Name</label>
         <input
           id="service-name"
           type="text"
@@ -21,14 +21,14 @@
           [ngModel]="newServiceName()"
           (ngModelChange)="newServiceName.set($event)"
           [disabled]="creatingService()"
-          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors"
+          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors"
         />
       </div>
     </div>
 
     <!-- Publish variables to project env pool -->
     <div class="pt-4 border-t border-zinc-900 space-y-4">
-      <p class="text-[10px] text-zinc-500 font-mono">Choose which environment variables should be added to the project pool when creating the service.</p>
+      <p class="text-xs text-zinc-500 font-mono">Choose which environment variables should be added to the project pool when creating the service.</p>
 
       <!-- App ID publication -->
       <div class="space-y-2 select-none">
@@ -40,11 +40,11 @@
             [disabled]="creatingService()"
             class="h-3.5 w-3.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer"
           />
-          <span class="text-[11px] font-semibold text-zinc-300">Publish App ID to project .env</span>
+          <span class="text-[13px] font-semibold text-zinc-300">Publish App ID to project .env</span>
         </label>
         @if (publishAppId()) {
           <div class="flex items-center gap-2 pl-6 animate-fade-in font-mono">
-            <label for="baas-appid-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Variable name:</label>
+            <label for="baas-appid-key" class="text-xs font-bold text-zinc-550 uppercase tracking-wider shrink-0">Variable name:</label>
             <input
               id="baas-appid-key"
               type="text"
@@ -52,7 +52,7 @@
               [ngModel]="appIdEnvKeyName()"
               (ngModelChange)="appIdEnvKeyName.set($event)"
               [disabled]="creatingService()"
-              class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors uppercase font-bold"
+              class="block w-full max-w-xs px-2.5 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors uppercase font-bold"
             />
           </div>
         }
@@ -68,11 +68,11 @@
             [disabled]="creatingService()"
             class="h-3.5 w-3.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer"
           />
-          <span class="text-[11px] font-semibold text-zinc-300">Publish JWT Secret to project .env</span>
+          <span class="text-[13px] font-semibold text-zinc-300">Publish JWT Secret to project .env</span>
         </label>
         @if (publishSecret()) {
           <div class="flex items-center gap-2 pl-6 animate-fade-in font-mono">
-            <label for="baas-secret-key" class="text-[10px] font-bold text-zinc-555 uppercase tracking-wider shrink-0">Variable name:</label>
+            <label for="baas-secret-key" class="text-xs font-bold text-zinc-555 uppercase tracking-wider shrink-0">Variable name:</label>
             <input
               id="baas-secret-key"
               type="text"
@@ -80,7 +80,7 @@
               [ngModel]="secretEnvKeyName()"
               (ngModelChange)="secretEnvKeyName.set($event)"
               [disabled]="creatingService()"
-              class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors uppercase font-bold"
+              class="block w-full max-w-xs px-2.5 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors uppercase font-bold"
             />
           </div>
         }
@@ -96,11 +96,11 @@
             [disabled]="creatingService()"
             class="h-3.5 w-3.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer"
           />
-          <span class="text-[11px] font-semibold text-zinc-300">Publish Default API Key to project .env</span>
+          <span class="text-[13px] font-semibold text-zinc-300">Publish Default API Key to project .env</span>
         </label>
         @if (publishApiKey()) {
           <div class="flex items-center gap-2 pl-6 animate-fade-in font-mono">
-            <label for="baas-apikey-key" class="text-[10px] font-bold text-zinc-555 uppercase tracking-wider shrink-0">Variable name:</label>
+            <label for="baas-apikey-key" class="text-xs font-bold text-zinc-555 uppercase tracking-wider shrink-0">Variable name:</label>
             <input
               id="baas-apikey-key"
               type="text"
@@ -108,7 +108,7 @@
               [ngModel]="apiKeyEnvKeyName()"
               (ngModelChange)="apiKeyEnvKeyName.set($event)"
               [disabled]="creatingService()"
-              class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors uppercase font-bold"
+              class="block w-full max-w-xs px-2.5 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors uppercase font-bold"
             />
           </div>
         }
@@ -121,7 +121,7 @@
         type="button"
         (click)="onCancel()"
         [disabled]="creatingService()"
-        class="px-4 py-2 rounded border border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:text-zinc-50 text-xs font-semibold cursor-pointer transition-colors"
+        class="px-4 py-2 rounded border border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer transition-colors"
       >
         Cancel
       </button>
@@ -129,7 +129,7 @@
         type="button"
         (click)="onCreateService()"
         [disabled]="creatingService() || !newServiceName().trim()"
-        class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-bold disabled:opacity-50 cursor-pointer transition-colors flex items-center gap-1.5"
+        class="px-4 py-2 rounded btn-accent text-[13px] font-bold disabled:opacity-50 cursor-pointer transition-colors flex items-center gap-1.5"
       >
         @if (creatingService()) {
           <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

@@ -1,13 +1,13 @@
 <div class="space-y-4 animate-fade-in">
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4">
+  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4">
     <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
       <div>
-        <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Container Logs</h3>
-        <p class="text-[10px] text-zinc-550">Real-time stdout from the Kubernetes pod.</p>
+        <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Container Logs</h3>
+        <p class="text-xs text-zinc-550">Real-time stdout from the Kubernetes pod.</p>
       </div>
 
       <div class="flex items-center gap-4">
-        <label class="flex items-center gap-1.5 text-xs text-zinc-450 cursor-pointer select-none">
+        <label class="flex items-center gap-1.5 text-[13px] text-zinc-450 cursor-pointer select-none">
           <input 
             type="checkbox" 
             [ngModel]="autoScroll()" 
@@ -22,7 +22,7 @@
     <!-- Logs Window container (fixed height and scrollbar) -->
     <div 
       id="db-logs-window" 
-      class="bg-zinc-950 border border-zinc-900 rounded p-4 h-[400px] overflow-y-auto font-mono text-[11px] text-zinc-350 space-y-1 select-text scroll-container"
+      class="bg-zinc-950 border border-zinc-900 rounded p-4 h-[400px] overflow-y-auto font-mono text-[13px] text-zinc-350 space-y-1 select-text scroll-container"
     >
       @for (line of logs(); track $index) {
         <div class="leading-relaxed hover:bg-zinc-950/60 px-1 rounded transition-colors whitespace-pre-wrap">{{ line }}</div>

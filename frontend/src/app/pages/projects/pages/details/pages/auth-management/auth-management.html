@@ -3,8 +3,8 @@
   <!-- Section Header + service selector/creator -->
   <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-900 pb-4 gap-4">
     <div>
-      <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Authentication (BaaS)</h3>
-      <p class="text-xs text-zinc-550">End-user authentication services — project resources, independent of applications.</p>
+      <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Authentication (BaaS)</h3>
+      <p class="text-[13px] text-zinc-550">End-user authentication services — project resources, independent of applications.</p>
     </div>
 
     <div class="flex items-center gap-2 flex-wrap">
@@ -12,7 +12,7 @@
         <select
           [ngModel]="selectedService()?.id"
           (ngModelChange)="selectServiceById($event)"
-          class="px-3 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 cursor-pointer"
+          class="px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 cursor-pointer"
         >
           @for (s of services(); track s.id) {
             <option [value]="s.id">{{ s.name }}</option>
@@ -21,13 +21,13 @@
         @if (selectedService(); as svc) {
           <button
             (click)="onDeleteService(svc)"
-            class="px-2.5 py-1.5 rounded border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-red-400 hover:border-red-900/50 text-[10px] font-semibold transition-colors cursor-pointer"
+            class="px-2.5 py-1.5 rounded border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-red-400 hover:border-red-900/50 text-xs font-semibold transition-colors cursor-pointer"
             title="Delete service"
           >Delete</button>
         }
       }      <button 
         [routerLink]="['/projects', parent.projectId(), 'auth-management', 'create']"
-        class="px-3.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-350 hover:text-zinc-50 text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5"
+        class="px-3.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-350 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer transition-all flex items-center gap-1.5"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-550">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -39,34 +39,34 @@
 
   @if (!selectedService()) {
     <!-- Zero State: no service yet -->
-    <div class="bg-zinc-950/30 border border-zinc-900 rounded-lg p-12 text-center text-zinc-550 text-xs">
+    <div class="bg-zinc-950/30 border border-zinc-900 rounded-xl p-12 text-center text-zinc-550 text-[13px]">
       No authentication service in this project. Create one above to manage users,
       roles, and API keys — without needing an application.
     </div>
   } @else {
     
     <!-- Tab Selector Navigation -->
-    <div class="flex items-center border-b border-zinc-900 pb-px font-mono text-xs">
+    <div class="flex items-center border-b border-zinc-900 pb-px font-mono text-[13px]">
       <a routerLink="users" routerLinkActive #rlaUsers="routerLinkActive"
-        class="pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer"
+        class="pb-3 px-4 text-[13px] font-semibold border-b-2 transition-all cursor-pointer"
         [class]="rlaUsers.isActive ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Registered Users
       </a>
       <a routerLink="roles" routerLinkActive #rlaRoles="routerLinkActive"
-        class="pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer"
+        class="pb-3 px-4 text-[13px] font-semibold border-b-2 transition-all cursor-pointer"
         [class]="rlaRoles.isActive ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Roles &amp; Permissions (JSON)
       </a>
       <a routerLink="api-keys" routerLinkActive #rlaApiKeys="routerLinkActive"
-        class="pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer"
+        class="pb-3 px-4 text-[13px] font-semibold border-b-2 transition-all cursor-pointer"
         [class]="rlaApiKeys.isActive ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Service API Keys (S2S)
       </a>
       <a routerLink="integration" routerLinkActive #rlaIntegration="routerLinkActive"
-        class="pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer"
+        class="pb-3 px-4 text-[13px] font-semibold border-b-2 transition-all cursor-pointer"
         [class]="rlaIntegration.isActive ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
       >
         Integration

@@ -1,18 +1,18 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start animate-fade-in">
   <div class="lg:col-span-1 space-y-2">
     <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
-      <h4 class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Rute ({{ (routes() || []).length }})</h4>
-      <button (click)="onAddRoute()" class="px-2 py-1 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-[10px] font-semibold cursor-pointer">+ Add</button>
+      <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Rute ({{ (routes() || []).length }})</h4>
+      <button (click)="onAddRoute()" class="px-2 py-1 rounded btn-accent text-xs font-semibold cursor-pointer">+ Add</button>
     </div>
     @if ((routes() || []).length === 0) {
-      <p class="text-[11px] text-zinc-600 italic py-3 font-sans">No routes. Click "+ Add".</p>
+      <p class="text-[13px] text-zinc-600 italic py-3 font-sans">No routes. Click "+ Add".</p>
     } @else {
       <div class="space-y-1">
         @for (r of routes(); track r.id) {
           <div (click)="selectRoute(r)" [class]="selectedRoute()?.id === r.id ? 'border-zinc-600 bg-zinc-900/60' : 'border-zinc-900 hover:bg-zinc-950/40'" class="flex items-center justify-between gap-2 p-2.5 rounded border cursor-pointer transition-colors">
             <div class="flex items-center gap-2 min-w-0">
-              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-950/40 text-indigo-300 border border-indigo-900/40 w-12 text-center shrink-0">{{ r.method }}</span>
-              <span class="text-xs text-zinc-200 truncate">{{ r.routePath }}</span>
+              <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-indigo-950/40 text-indigo-300 border border-indigo-900/40 w-12 text-center shrink-0">{{ r.method }}</span>
+              <span class="text-[13px] text-zinc-200 truncate">{{ r.routePath }}</span>
             </div>
             <button (click)="onDeleteRoute(r); $event.stopPropagation()" title="Delete route" class="text-zinc-600 hover:text-red-400 cursor-pointer shrink-0">✕</button>
           </div>
@@ -23,21 +23,21 @@
 
   <div class="lg:col-span-2">
     @if (selectedRoute()) {
-      <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3">
+      <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
         <div class="grid gap-2 sm:grid-cols-[120px_1fr]">
-          <select [ngModel]="routeMethod()" (ngModelChange)="routeMethod.set($event)" class="px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-zinc-50 text-xs focus:outline-none focus:border-zinc-500 cursor-pointer">
+          <select [ngModel]="routeMethod()" (ngModelChange)="routeMethod.set($event)" class="px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-zinc-50 text-[13px] focus:outline-none focus:border-zinc-500 cursor-pointer">
             @for (m of httpMethods; track m) { <option [value]="m">{{ m }}</option> }
           </select>
-          <input type="text" placeholder="/route-path (framework syntax: /users/:id Express, /users/<id> Flask)" [ngModel]="routePath()" (ngModelChange)="routePath.set($event)" class="px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-zinc-50 text-xs focus:outline-none focus:border-zinc-500" />
+          <input type="text" placeholder="/route-path (framework syntax: /users/:id Express, /users/<id> Flask)" [ngModel]="routePath()" (ngModelChange)="routePath.set($event)" class="px-3 py-2 bg-zinc-950 border border-zinc-850 rounded text-zinc-50 text-[13px] focus:outline-none focus:border-zinc-500" />
         </div>
         <div id="route-editor-container" class="w-full h-[420px] border border-zinc-850 rounded overflow-hidden"></div>
         <div class="flex justify-end gap-2">
-          <button (click)="closeRouteEditor()" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 hover:bg-zinc-900 text-xs font-semibold cursor-pointer">Close</button>
-          <button (click)="onSaveRoute()" [disabled]="savingRoute()" class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold cursor-pointer disabled:opacity-50">{{ savingRoute() ? 'Saving...' : 'Save route' }}</button>
+          <button (click)="closeRouteEditor()" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 hover:bg-zinc-900 text-[13px] font-semibold cursor-pointer">Close</button>
+          <button (click)="onSaveRoute()" [disabled]="savingRoute()" class="px-3 py-1.5 rounded btn-accent text-[13px] font-semibold cursor-pointer disabled:opacity-50">{{ savingRoute() ? 'Saving...' : 'Save route' }}</button>
         </div>
       </div>
     } @else {
-      <div class="bg-zinc-900 border border-dashed border-zinc-800 rounded-lg p-10 text-center text-[11px] text-zinc-600 font-sans">Select a route on the left to edit its code, or add a new one.</div>
+      <div class="bg-zinc-900 border border-dashed border-zinc-800 rounded-xl p-10 text-center text-[13px] text-zinc-600 font-sans">Select a route on the left to edit its code, or add a new one.</div>
     }
   </div>
 </div>

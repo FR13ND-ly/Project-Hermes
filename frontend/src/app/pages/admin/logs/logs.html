@@ -1,7 +1,7 @@
 <div class="max-w-6xl mx-auto px-6 py-8 space-y-6 animate-fade-in">
 
   <!-- Sub-navigation tabs for Admin Console -->
-  <div class="flex items-center gap-2 border-b border-zinc-900 pb-3 font-mono text-xs select-none">
+  <div class="flex items-center gap-2 border-b border-zinc-900 pb-3 font-mono text-[13px] select-none">
     <a
       routerLink="/admin/users"
       routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
@@ -29,16 +29,16 @@
   <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
     <div>
       <h1 class="text-sm font-bold text-zinc-300 uppercase tracking-wider font-mono">Platform Observability & Audit Logs</h1>
-      <p class="text-xs text-zinc-550 mt-0.5">Real-time system diagnostics and security authentication audit trails.</p>
+      <p class="text-[13px] text-zinc-550 mt-0.5">Real-time system diagnostics and security authentication audit trails.</p>
     </div>
   </div>
 
   <!-- Console Tabs and Actions -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4 shadow-sm font-mono">
+  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4 shadow-sm font-mono">
     
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3">
       <!-- Selector for sub-logs -->
-      <div class="flex items-center gap-2 font-mono text-xs select-none">
+      <div class="flex items-center gap-2 font-mono text-[13px] select-none">
         <button
           (click)="onTabChange('system')"
           class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
@@ -69,7 +69,7 @@
           placeholder="Filter logs..." 
           [ngModel]="logSearchQuery()"
           (ngModelChange)="logSearchQuery.set($event)"
-          class="bg-zinc-950 border border-zinc-850 text-zinc-300 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 w-32 sm:w-44 font-mono"
+          class="bg-zinc-950 border border-zinc-850 text-zinc-300 text-[13px] px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 w-32 sm:w-44 font-mono"
         />
 
         <button 
@@ -95,7 +95,7 @@
 
         <button 
           (click)="toggleAutoScroll()"
-          class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border cursor-pointer transition-all"
+          class="px-2.5 py-1.5 rounded text-xs font-bold uppercase border cursor-pointer transition-all"
           [class]="autoScroll() ? 'bg-zinc-50 text-zinc-950 border-zinc-50' : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-zinc-50'"
         >
           Autoscroll: {{ autoScroll() ? 'ON' : 'OFF' }}
@@ -106,7 +106,7 @@
     <!-- Console view screen -->
     <div 
       id="admin-console-box"
-      class="terminal-view h-[500px] p-4 overflow-y-auto font-mono text-xs text-zinc-300 space-y-1.5 scroll-smooth select-text bg-zinc-950 border border-zinc-900 rounded"
+      class="terminal-view h-[500px] p-4 overflow-y-auto font-mono text-[13px] text-zinc-300 space-y-1.5 scroll-smooth select-text bg-zinc-950 border border-zinc-900 rounded"
     >
       @if (loading()) {
         <div class="flex flex-col items-center justify-center h-full space-y-2 text-zinc-550">
@@ -114,14 +114,14 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
           </svg>
-          <span class="text-[10px] uppercase tracking-wider">Retrieving logs...</span>
+          <span class="text-xs uppercase tracking-wider">Retrieving logs...</span>
         </div>
       } @else {
         <!-- System logs text view -->
         @if (activeTab() === 'system') {
           <div class="whitespace-pre-wrap leading-relaxed text-zinc-200">{{ filteredSystemLogs() }}</div>
           @if (!filteredSystemLogs()) {
-            <div class="h-full flex items-center justify-center text-zinc-650 text-xs italic">No logs match the filter query.</div>
+            <div class="h-full flex items-center justify-center text-zinc-650 text-[13px] italic">No logs match the filter query.</div>
           }
         }
         
@@ -133,7 +133,7 @@
             </div>
           }
           @if (filteredAuthLogs().length === 0) {
-            <div class="h-full flex items-center justify-center text-zinc-650 text-xs italic">No audit records logged.</div>
+            <div class="h-full flex items-center justify-center text-zinc-650 text-[13px] italic">No audit records logged.</div>
           }
         }
 
@@ -146,7 +146,7 @@
             </div>
           }
           @if (filteredGcLogs().length === 0) {
-            <div class="h-full flex items-center justify-center text-zinc-650 text-xs italic">No garbage-collection runs recorded yet. The worker runs hourly.</div>
+            <div class="h-full flex items-center justify-center text-zinc-650 text-[13px] italic">No garbage-collection runs recorded yet. The worker runs hourly.</div>
           }
         }
       }

@@ -16,14 +16,14 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
         routerLink="/dashboard"
         routerLinkActive="text-zinc-50! border-zinc-50!"
         [routerLinkActiveOptions]="{ exact: true }"
-        class="text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors py-2.5 border-b-2 border-transparent -mb-px"
+        class="text-[13px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors py-2.5 border-b-2 border-transparent -mb-px"
       >
         Projects
       </a>
       <a
         routerLink="/workspace/settings"
         routerLinkActive="text-zinc-50! border-zinc-50!"
-        class="text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors py-2.5 border-b-2 border-transparent -mb-px"
+        class="text-[13px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors py-2.5 border-b-2 border-transparent -mb-px"
       >
         Workspace Settings
       </a>

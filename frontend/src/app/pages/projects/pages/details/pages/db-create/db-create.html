@@ -4,7 +4,7 @@
   <div class="flex items-center justify-between border-b border-zinc-900 pb-3.5">
     <div class="space-y-0.5">
       <h3 class="text-sm font-bold text-zinc-50 uppercase tracking-wider font-sans">Provision New Database</h3>
-      <p class="text-[10px] text-zinc-500 font-medium font-sans">Configure resource quotas and network exposure for the instance.</p>
+      <p class="text-xs text-zinc-500 font-medium font-sans">Configure resource quotas and network exposure for the instance.</p>
     </div>
     <button 
       (click)="onCancel()"
@@ -23,7 +23,7 @@
     <div class="grid gap-5 md:grid-cols-2">
       <!-- DB Name -->
       <div class="space-y-2">
-        <label for="db-name-input" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Database Name</label>
+        <label for="db-name-input" class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Database Name</label>
         <input 
           id="db-name-input"
           type="text" 
@@ -31,19 +31,19 @@
           [ngModel]="dbName()"
           (ngModelChange)="dbName.set($event)"
           [disabled]="provisioning()"
-          class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-850 rounded-lg text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded-xl text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
         />
       </div>
 
       <div class="space-y-2">
-        <label class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Technology Type</label>
+        <label class="text-xs font-bold text-zinc-400 uppercase tracking-wider block">Technology Type</label>
         <div class="grid grid-cols-3 gap-2">
           @for (type of ['postgres', 'redis', 'mongodb']; track type) {
             <button
               type="button"
               (click)="onTypeChange($any(type))"
               [disabled]="provisioning()"
-              class="py-2.5 px-1.5 rounded-lg border text-[9px] font-bold text-center uppercase transition-all cursor-pointer flex items-center justify-center font-mono"
+              class="py-2.5 px-1.5 rounded-xl border text-[11px] font-bold text-center uppercase transition-all cursor-pointer flex items-center justify-center font-mono"
               [ngClass]="dbType() === type ? 'bg-zinc-900 border-zinc-500 text-zinc-50 shadow-md shadow-black/30 scale-[1.02]' : 'bg-zinc-950 border-zinc-850 text-zinc-400 hover:text-zinc-50 hover:border-zinc-700'"
             >
               <span>{{ type }}</span>
@@ -55,13 +55,13 @@
 
     <!-- Resource limits sliders -->
     <div class="space-y-5 border-t border-zinc-900 pt-5">
-      <h4 class="text-[10px] font-bold text-zinc-450 uppercase tracking-wider">Container Resource Quotas</h4>
+      <h4 class="text-xs font-bold text-zinc-450 uppercase tracking-wider">Container Resource Quotas</h4>
 
       <!-- CPU Slider -->
       <div class="space-y-2">
-        <div class="flex items-center justify-between text-xs">
-          <span class="uppercase tracking-wider font-semibold text-[10px] text-zinc-500">CPU Limit</span>
-          <span class="text-zinc-50 font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-[10px]">@if (cpuLimit() === 0) { Unlimited } @else { {{ cpuLimit() }}m }</span>
+        <div class="flex items-center justify-between text-[13px]">
+          <span class="uppercase tracking-wider font-semibold text-xs text-zinc-500">CPU Limit</span>
+          <span class="text-zinc-50 font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-xs">@if (cpuLimit() === 0) { Unlimited } @else { {{ cpuLimit() }}m }</span>
         </div>
         <input
           type="range"
@@ -71,9 +71,9 @@
           [ngModel]="cpuLimit()"
           (ngModelChange)="cpuLimit.set($event)"
           [disabled]="provisioning()"
-          class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-zinc-50 custom-slider"
+          class="w-full h-1.5 bg-zinc-950 rounded-xl appearance-none cursor-pointer accent-zinc-50 custom-slider"
         />
-        <div class="flex justify-between text-[8px] text-zinc-600 font-mono">
+        <div class="flex justify-between text-[11px] text-zinc-600 font-mono">
           <span>Unlimited (0)</span>
           <span>2000m (2 cores)</span>
         </div>
@@ -81,9 +81,9 @@
 
       <!-- RAM Slider -->
       <div class="space-y-2">
-        <div class="flex items-center justify-between text-xs">
-          <span class="uppercase tracking-wider font-semibold text-[10px] text-zinc-500">Memory Limit (RAM)</span>
-          <span class="text-zinc-50 font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-[10px]">@if (memLimit() === 0) { Unlimited } @else { {{ memLimit() }} MB }</span>
+        <div class="flex items-center justify-between text-[13px]">
+          <span class="uppercase tracking-wider font-semibold text-xs text-zinc-500">Memory Limit (RAM)</span>
+          <span class="text-zinc-50 font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-xs">@if (memLimit() === 0) { Unlimited } @else { {{ memLimit() }} MB }</span>
         </div>
         <input
           type="range"
@@ -93,9 +93,9 @@
           [ngModel]="memLimit()"
           (ngModelChange)="memLimit.set($event)"
           [disabled]="provisioning()"
-          class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-zinc-50 custom-slider"
+          class="w-full h-1.5 bg-zinc-950 rounded-xl appearance-none cursor-pointer accent-zinc-50 custom-slider"
         />
-        <div class="flex justify-between text-[8px] text-zinc-600 font-mono">
+        <div class="flex justify-between text-[11px] text-zinc-600 font-mono">
           <span>Unlimited (0)</span>
           <span>4096 MB (4 GB)</span>
         </div>
@@ -103,9 +103,9 @@
 
       <!-- Storage Slider -->
       <div class="space-y-2">
-        <div class="flex items-center justify-between text-xs">
-          <span class="uppercase tracking-wider font-semibold text-[10px] text-zinc-550">Storage Size (PVC)</span>
-          <span class="text-zinc-50 font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-[10px]">{{ storageGb() }} GB</span>
+        <div class="flex items-center justify-between text-[13px]">
+          <span class="uppercase tracking-wider font-semibold text-xs text-zinc-550">Storage Size (PVC)</span>
+          <span class="text-zinc-50 font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-xs">{{ storageGb() }} GB</span>
         </div>
         <input
           type="range"
@@ -115,9 +115,9 @@
           [ngModel]="storageGb()"
           (ngModelChange)="storageGb.set($event)"
           [disabled]="provisioning()"
-          class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-zinc-50 custom-slider"
+          class="w-full h-1.5 bg-zinc-950 rounded-xl appearance-none cursor-pointer accent-zinc-50 custom-slider"
         />
-        <div class="flex justify-between text-[8px] text-zinc-600 font-mono">
+        <div class="flex justify-between text-[11px] text-zinc-600 font-mono">
           <span>1 GB</span>
           <span>50 GB · fixed at creation</span>
         </div>
@@ -126,7 +126,7 @@
 
     <!-- External exposures loadbalancers -->
     <div class="border-t border-zinc-900 pt-5 space-y-4">
-      <h4 class="text-[10px] font-bold text-zinc-455 uppercase tracking-wider">Network Access Configuration</h4>
+      <h4 class="text-xs font-bold text-zinc-455 uppercase tracking-wider">Network Access Configuration</h4>
 
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <!-- Expose toggle -->
@@ -139,7 +139,7 @@
             [disabled]="provisioning()"
             class="w-4 h-4 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 shrink-0"
           />
-          <span class="text-xs text-zinc-300 font-semibold font-sans">
+          <span class="text-[13px] text-zinc-300 font-semibold font-sans">
             Expose database publicly (LoadBalancer)
           </span>
         </label>
@@ -147,7 +147,7 @@
         <!-- External Port -->
         @if (isExternal()) {
           <div class="flex items-center gap-2 animate-fade-in shrink-0">
-            <label for="ext-port-input" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider">Public Port:</label>
+            <label for="ext-port-input" class="text-xs font-bold text-zinc-550 uppercase tracking-wider">Public Port:</label>
             <input 
               id="ext-port-input"
               type="number" 
@@ -155,7 +155,7 @@
               [ngModel]="externalPort()"
               (ngModelChange)="externalPort.set($event)"
               [disabled]="provisioning()"
-              class="block w-24 px-2.5 py-1 text-xs bg-zinc-950 border border-zinc-850 rounded-lg text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              class="block w-24 px-2.5 py-1 text-[13px] bg-zinc-950 border border-zinc-850 rounded-xl text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
             />
           </div>
         }
@@ -174,12 +174,12 @@
         [disabled]="provisioning()"
         class="h-3.5 w-3.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer"
       />
-      <span class="text-[11px] font-semibold text-zinc-300 font-sans">Add to project .env</span>
-      <span class="text-[10px] text-zinc-600 font-sans">— connection string will be available to apps.</span>
+      <span class="text-[13px] font-semibold text-zinc-300 font-sans">Add to project .env</span>
+      <span class="text-xs text-zinc-600 font-sans">— connection string will be available to apps.</span>
     </label>
     @if (publishToEnv()) {
       <div class="flex items-center gap-2 pl-6 animate-fade-in">
-        <label for="db-env-key" class="text-[10px] font-bold text-zinc-550 uppercase tracking-wider shrink-0">Key name:</label>
+        <label for="db-env-key" class="text-xs font-bold text-zinc-550 uppercase tracking-wider shrink-0">Key name:</label>
         <input
           id="db-env-key"
           type="text"
@@ -187,16 +187,16 @@
           [ngModel]="envKeyName()"
           (ngModelChange)="envKeyName.set($event)"
           [disabled]="provisioning()"
-          class="block w-full max-w-xs px-2.5 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono uppercase font-bold"
+          class="block w-full max-w-xs px-2.5 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono uppercase font-bold"
         />
       </div>
-      <p class="text-[9px] text-zinc-600 pl-6 leading-relaxed font-sans">The value is secret (encrypted). You can reveal it anytime from the "Environments" tab.</p>
+      <p class="text-[11px] text-zinc-600 pl-6 leading-relaxed font-sans">The value is secret (encrypted). You can reveal it anytime from the "Environments" tab.</p>
     }
   </div>
 
   <!-- Error inside modal -->
   @if (error()) {
-    <div class="p-3 rounded-lg border border-red-500/20 bg-red-950/20 text-red-400 text-xs flex items-start gap-2.5 animate-fade-in" role="alert">
+    <div class="p-3 rounded-xl border border-red-500/20 bg-red-950/20 text-red-400 text-[13px] flex items-start gap-2.5 animate-fade-in" role="alert">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0 mt-0.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
       </svg>
@@ -209,7 +209,7 @@
     <button 
       (click)="onCancel()"
       [disabled]="provisioning()"
-      class="px-4 py-2 rounded-lg text-zinc-450 hover:text-zinc-50 text-xs font-semibold border border-zinc-850 hover:bg-zinc-955 transition-colors cursor-pointer"
+      class="px-4 py-2 rounded-xl text-zinc-450 hover:text-zinc-50 text-[13px] font-semibold border border-zinc-850 hover:bg-zinc-955 transition-colors cursor-pointer"
     >
       Cancel
     </button>
@@ -217,7 +217,7 @@
     <button
       (click)="onCreateDatabase()"
       [disabled]="provisioning() || !dbName()"
-      class="px-4.5 py-2.5 rounded-lg bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+      class="px-4.5 py-2.5 rounded-xl btn-accent text-[13px] font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
     >
       @if (!provisioning()) {
         <span>Provision</span>

@@ -6,11 +6,11 @@
       <div class="flex items-center justify-between">
         <div class="space-y-1">
           <h2 class="text-lg font-bold text-zinc-50 font-sans">Import a Project</h2>
-          <p class="text-zinc-550 text-xs font-medium font-sans">Choose a repository from GitHub or start with a popular template.</p>
+          <p class="text-zinc-550 text-[13px] font-medium font-sans">Choose a repository from GitHub or start with a popular template.</p>
         </div>
         <button
           (click)="onCancel()"
-          class="px-3 py-1.5 rounded text-zinc-400 hover:text-zinc-50 text-xs font-semibold border border-zinc-800 hover:bg-zinc-900 transition-all cursor-pointer font-sans"
+          class="px-3 py-1.5 rounded text-zinc-400 hover:text-zinc-50 text-[13px] font-semibold border border-zinc-800 hover:bg-zinc-900 transition-all cursor-pointer font-sans"
         >
           Cancel
         </button>
@@ -19,13 +19,13 @@
       <div class="max-w-3xl mx-auto">
         
         <!-- GitHub Repository List (Full width) -->
-        <div class="bg-zinc-900 rounded-lg border border-zinc-800 p-5 space-y-4 shadow-xl">
+        <div class="bg-zinc-900 rounded-xl border border-zinc-800 p-5 space-y-4 shadow-xl">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Import from GitHub</span>
+            <span class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Import from GitHub</span>
             <!-- Direct Custom Git URL Link fallback -->
             <button
               (click)="onUseCustomGitUrl()"
-              class="text-[11px] text-zinc-400 hover:text-zinc-50 underline cursor-pointer transition-colors font-mono"
+              class="text-[13px] text-zinc-400 hover:text-zinc-50 underline cursor-pointer transition-colors font-mono"
             >
               Or use a custom URL →
             </button>
@@ -33,24 +33,24 @@
           
           @if (credentials().length === 0) {
             <!-- No git credentials yet -->
-            <div class="bg-zinc-950/40 border border-zinc-850 rounded-lg p-5 flex flex-col items-center text-center space-y-3">
+            <div class="bg-zinc-950/40 border border-zinc-850 rounded-xl p-5 flex flex-col items-center text-center space-y-3">
               <h3 class="text-sm font-semibold text-zinc-50 font-sans">No Git Credentials</h3>
-              <p class="text-zinc-400 text-[11px] leading-relaxed max-w-sm font-sans">
+              <p class="text-zinc-400 text-[13px] leading-relaxed max-w-sm font-sans">
                 Add an access token (GitHub or GitLab) in workspace settings to browse and import repositories. Or use a custom URL.
               </p>
-              <a [routerLink]="['/workspace/settings']" class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold cursor-pointer font-sans">
+              <a [routerLink]="['/workspace/settings']" class="px-3 py-1.5 rounded btn-accent text-[13px] font-semibold cursor-pointer font-sans">
                 Add Git Credential
               </a>
             </div>
           } @else {
             <!-- Credential selector -->
-            <div class="flex items-center gap-2 bg-zinc-950 border border-zinc-900 p-3 rounded-lg">
-              <label for="cred-select" class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider shrink-0">Credential</label>
+            <div class="flex items-center gap-2 bg-zinc-950 border border-zinc-900 p-3 rounded-xl">
+              <label for="cred-select" class="text-xs font-bold text-zinc-400 uppercase tracking-wider shrink-0">Credential</label>
               <select
                 id="cred-select"
                 [ngModel]="selectedCredentialId()"
                 (ngModelChange)="onSelectCredential($event)"
-                class="block w-full px-3 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
+                class="block w-full px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono cursor-pointer"
               >
                 @for (c of credentials(); track c.id) {
                   <option [value]="c.id">{{ c.label }} · {{ c.provider }}{{ c.username ? ' (@' + c.username + ')' : '' }}</option>
@@ -71,7 +71,7 @@
                 placeholder="Search repositories..."
                 [ngModel]="repoSearchQuery()"
                 (ngModelChange)="repoSearchQuery.set($event)"
-                class="block w-full pl-9 pr-3 py-2 text-xs bg-zinc-950 border border-zinc-855 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                class="block w-full pl-9 pr-3 py-2 text-[13px] bg-zinc-950 border border-zinc-855 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
               />
             </div>
 
@@ -83,7 +83,7 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                   </svg>
-                  <span class="text-xs text-zinc-550">Loading repositories...</span>
+                  <span class="text-[13px] text-zinc-550">Loading repositories...</span>
                 </div>
               } @else {
                 @for (repo of filteredRepos(); track repo.fullPath) {
@@ -94,23 +94,23 @@
                       </svg>
                       <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-1.5 flex-wrap">
-                          <span class="text-xs font-semibold text-zinc-50 font-mono truncate max-w-[240px]">{{ repo.fullPath }}</span>
-                          <span class="px-1.5 py-0.2 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded text-[9px] font-medium tracking-wide font-sans">{{ repo.private ? 'Private' : 'Public' }}</span>
+                          <span class="text-[13px] font-semibold text-zinc-50 font-mono truncate max-w-[240px]">{{ repo.fullPath }}</span>
+                          <span class="px-1.5 py-0.2 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded text-[11px] font-medium tracking-wide font-sans">{{ repo.private ? 'Private' : 'Public' }}</span>
                         </div>
                         @if (repo.defaultBranch) {
-                          <div class="text-[10px] text-zinc-550 mt-0.5">default branch: {{ repo.defaultBranch }}</div>
+                          <div class="text-xs text-zinc-550 mt-0.5">default branch: {{ repo.defaultBranch }}</div>
                         }
                       </div>
                     </div>
                     <button
                       (click)="onImportRepo(repo)"
-                      class="px-3 py-1 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-[11px] font-semibold transition-colors cursor-pointer ml-3 flex-shrink-0 font-sans"
+                      class="px-3 py-1 rounded btn-accent text-[13px] font-semibold transition-colors cursor-pointer ml-3 flex-shrink-0 font-sans"
                     >
                       Import
                     </button>
                   </div>
                 } @empty {
-                  <div class="text-center py-8 text-zinc-500 text-xs">
+                  <div class="text-center py-8 text-zinc-500 text-[13px]">
                     No repositories found matching your search.
                   </div>
                 }
@@ -128,7 +128,7 @@
       <!-- Back button -->
       <button 
         (click)="onBackToSelection()"
-        class="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-50 transition-colors cursor-pointer"
+        class="flex items-center gap-1.5 text-[13px] text-zinc-400 hover:text-zinc-50 transition-colors cursor-pointer"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -139,34 +139,34 @@
       <div class="space-y-1">
         <h2 class="text-lg font-bold text-zinc-50 font-sans">Configure Application Import</h2>
         @if (selectedImportRepo()) {
-          <p class="text-zinc-500 text-xs">
+          <p class="text-zinc-500 text-[13px]">
             Configuring repo <span class="font-mono text-zinc-300">{{ selectedImportRepo()?.fullPath || selectedImportRepo()?.name }}</span>.
           </p>
         } @else {
-          <p class="text-zinc-500 text-xs">Configuring from a custom Git URL.</p>
+          <p class="text-zinc-500 text-[13px]">Configuring from a custom Git URL.</p>
         }
       </div>
 
       <!-- Deployment Form details card -->
-      <div class="bg-zinc-900 p-6 rounded-lg border border-zinc-800 shadow-xl space-y-6">
+      <div class="bg-zinc-900 p-6 rounded-xl border border-zinc-800 shadow-xl space-y-6">
         
         <!-- Project Type Auto-Detecting Banner -->
         @if (detectingType()) {
-          <div class="bg-zinc-950/40 border border-zinc-850 p-4 rounded-lg flex items-center gap-3 animate-pulse">
+          <div class="bg-zinc-950/40 border border-zinc-850 p-4 rounded-xl flex items-center gap-3 animate-pulse">
             <svg class="animate-spin h-5 w-5 text-zinc-500" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
             </svg>
             <div class="space-y-0.5">
-              <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Repository Analysis</h4>
-              <p class="text-[10px] text-zinc-550 font-medium font-sans">Analyzing code structure for automatic project type detection...</p>
+              <h4 class="text-[13px] font-bold text-zinc-400 uppercase tracking-wider">Repository Analysis</h4>
+              <p class="text-xs text-zinc-550 font-medium font-sans">Analyzing code structure for automatic project type detection...</p>
             </div>
           </div>
         }
 
         <!-- Project Type Detected Banner -->
         @if (!detectingType() && detectedType()) {
-          <div class="border rounded-lg p-4 flex flex-col gap-2 transition-all duration-300"
+          <div class="border rounded-xl p-4 flex flex-col gap-2 transition-all duration-300"
                [ngClass]="{
                  'bg-cyan-950/20 border-cyan-800/30 text-cyan-300': detectedType() === 'dockerfile',
                  'bg-purple-950/20 border-purple-800/30 text-purple-300': detectedType() === 'nextjs',
@@ -215,8 +215,8 @@
               </div>
               <div class="space-y-0.5">
                 <div class="flex items-center gap-2">
-                  <span class="text-[10px] uppercase font-bold tracking-wider opacity-75 font-sans">Auto Configuration</span>
-                  <span class="px-2 py-0.2 rounded text-[9px] font-bold uppercase font-mono border"
+                  <span class="text-xs uppercase font-bold tracking-wider opacity-75 font-sans">Auto Configuration</span>
+                  <span class="px-2 py-0.2 rounded text-[11px] font-bold uppercase font-mono border"
                         [ngClass]="{
                           'bg-cyan-950/40 border-cyan-800/40 text-cyan-300': detectedType() === 'dockerfile',
                           'bg-purple-950/40 border-purple-800/40 text-purple-300': detectedType() === 'nextjs',
@@ -230,12 +230,12 @@
                     {{ detectedType() }}
                   </span>
                 </div>
-                <p class="text-xs font-semibold text-zinc-50 leading-tight font-sans">
+                <p class="text-[13px] font-semibold text-zinc-50 leading-tight font-sans">
                   {{ detectedDescription() }}
                 </p>
               </div>
             </div>
-            <p class="text-[10px] opacity-70 leading-normal pl-11 font-sans">
+            <p class="text-xs opacity-70 leading-normal pl-11 font-sans">
               The internal port, build and start commands have been pre-filled based on the repository structure.
             </p>
           </div>
@@ -243,25 +243,25 @@
         
         <!-- Wizard stepper: Repo / Settings / Env -->
         <div class="flex items-center gap-2 pb-1">
-          <button type="button" (click)="createStep.set(1)" class="flex-1 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors" [class]="createStep() === 1 ? 'bg-zinc-50 text-zinc-950' : 'bg-zinc-950 border border-zinc-850 text-zinc-500 hover:text-zinc-300'">1 · Repo</button>
-          <button type="button" (click)="createStep.set(2)" class="flex-1 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors" [class]="createStep() === 2 ? 'bg-zinc-50 text-zinc-950' : 'bg-zinc-950 border border-zinc-850 text-zinc-500 hover:text-zinc-300'">2 · Settings</button>
-          <button type="button" (click)="createStep.set(3)" class="flex-1 px-2.5 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors" [class]="createStep() === 3 ? 'bg-zinc-50 text-zinc-950' : 'bg-zinc-950 border border-zinc-850 text-zinc-500 hover:text-zinc-300'">3 · Env</button>
+          <button type="button" (click)="createStep.set(1)" class="flex-1 px-2.5 py-1.5 rounded text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors" [class]="createStep() === 1 ? 'bg-zinc-50 text-zinc-950' : 'bg-zinc-950 border border-zinc-850 text-zinc-500 hover:text-zinc-300'">1 · Repo</button>
+          <button type="button" (click)="createStep.set(2)" class="flex-1 px-2.5 py-1.5 rounded text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors" [class]="createStep() === 2 ? 'bg-zinc-50 text-zinc-950' : 'bg-zinc-950 border border-zinc-850 text-zinc-500 hover:text-zinc-300'">2 · Settings</button>
+          <button type="button" (click)="createStep.set(3)" class="flex-1 px-2.5 py-1.5 rounded text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors" [class]="createStep() === 3 ? 'bg-zinc-50 text-zinc-950' : 'bg-zinc-950 border border-zinc-850 text-zinc-500 hover:text-zinc-300'">3 · Env</button>
         </div>
 
         <!-- docker-compose auto-split banner -->
         @if (composeDetected()) {
-          <div class="flex items-center justify-between gap-3 p-3 rounded-lg border border-cyan-900/40 bg-cyan-950/15 animate-fade-in">
+          <div class="flex items-center justify-between gap-3 p-3 rounded-xl border border-cyan-900/40 bg-cyan-950/15 animate-fade-in">
             <div class="flex items-center gap-2.5 min-w-0">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5 text-cyan-400 shrink-0">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
               </svg>
               <div class="min-w-0">
-                <p class="text-xs font-bold text-cyan-200">{{ composeFilename() }} detected</p>
-                <p class="text-[10px] text-zinc-550 font-sans">Can automatically split into apps, databases and volumes.</p>
+                <p class="text-[13px] font-bold text-cyan-200">{{ composeFilename() }} detected</p>
+                <p class="text-xs text-zinc-550 font-sans">Can automatically split into apps, databases and volumes.</p>
               </div>
             </div>
             <button type="button" (click)="openComposeSplit()" [disabled]="planningCompose()"
-              class="px-3 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-zinc-950 text-xs font-bold shadow cursor-pointer transition-colors disabled:opacity-50 shrink-0 font-sans">
+              class="px-3 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-zinc-950 text-[13px] font-bold shadow cursor-pointer transition-colors disabled:opacity-50 shrink-0 font-sans">
               {{ planningCompose() ? 'Analyzing...' : 'Auto Split' }}
             </button>
           </div>
@@ -272,7 +272,7 @@
           <!-- Fields Grid -->
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="space-y-1.5">
-              <label for="new-app-name" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-sans">Application Name</label>
+              <label for="new-app-name" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider font-sans">Application Name</label>
               <input
                 id="new-app-name"
                 type="text"
@@ -286,9 +286,9 @@
             </div>
     
             <div class="space-y-1.5">
-              <label for="new-app-branch" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-sans">Git Branch</label>
+              <label for="new-app-branch" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider font-sans">Git Branch</label>
               @if (loadingBranches()) {
-                <div class="flex items-center gap-2 h-[38px] px-3 py-2 bg-zinc-950 border border-zinc-800 rounded text-zinc-555 text-xs font-sans">
+                <div class="flex items-center gap-2 h-[38px] px-3 py-2 bg-zinc-950 border border-zinc-800 rounded text-zinc-555 text-[13px] font-sans">
                   <svg class="animate-spin h-3.5 w-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
@@ -322,7 +322,7 @@
           </div>
     
           <div class="space-y-1.5 font-sans">
-            <label for="new-app-git" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Git Repository URL</label>
+            <label for="new-app-git" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Git Repository URL</label>
             <input
               id="new-app-git"
               type="text"
@@ -336,7 +336,7 @@
           </div>
 
           <div class="space-y-1.5 font-sans">
-            <label for="new-app-git-subpath" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Project Subdirectory (Optional)</label>
+            <label for="new-app-git-subpath" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Project Subdirectory (Optional)</label>
             <div class="flex gap-2">
               @if (detectedSubdirectories().length > 0 && subpathSelectionMode() === 'select') {
                 <select
@@ -367,7 +367,7 @@
                     <button
                       type="button"
                       (click)="subpathSelectionMode.set('select')"
-                      class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-550 hover:text-zinc-50 transition-colors cursor-pointer font-sans"
+                      class="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-550 hover:text-zinc-50 transition-colors cursor-pointer font-sans"
                     >
                       Back to list
                     </button>
@@ -379,13 +379,13 @@
                   type="button"
                   (click)="triggerAutoDetection()"
                   [disabled]="detectingType() || deployingApp()"
-                  class="px-3 py-2 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold shrink-0 cursor-pointer transition-colors font-sans"
+                  class="px-3 py-2 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[13px] font-semibold shrink-0 cursor-pointer transition-colors font-sans"
                 >
                   {{ detectingType() ? 'Detecting...' : 'Re-detect' }}
                 </button>
               }
             </div>
-            <span class="text-[9px] text-zinc-650 block leading-normal">Useful in monorepos. If you use a subdirectory, settings (port, commands, environment variables) will be auto-detected from that folder.</span>
+            <span class="text-[11px] text-zinc-650 block leading-normal">Useful in monorepos. If you use a subdirectory, settings (port, commands, environment variables) will be auto-detected from that folder.</span>
           </div>
         }
 
@@ -393,7 +393,7 @@
         @if (createStep() === 2) {
           <div class="grid gap-4 sm:grid-cols-2 font-sans">
             <div class="space-y-1.5">
-              <label for="new-app-port" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Internal Container Port</label>
+              <label for="new-app-port" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Internal Container Port</label>
               <input 
                 id="new-app-port"
                 type="number" 
@@ -406,7 +406,7 @@
             </div>
     
             <div class="space-y-1.5">
-              <label for="new-app-ext-port" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">External Port (Optional)</label>
+              <label for="new-app-ext-port" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">External Port (Optional)</label>
               <input
                 id="new-app-ext-port"
                 type="number"
@@ -420,10 +420,10 @@
           </div>
 
           <div class="border-t border-zinc-900 pt-4 space-y-4 font-sans">
-            <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Network & pool</h3>
+            <h3 class="text-[13px] font-semibold text-zinc-400 uppercase tracking-wider">Network & pool</h3>
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="space-y-1.5">
-                <label for="new-app-netname" class="text-[10px] font-semibold text-zinc-550 uppercase tracking-wider">Service name (network)</label>
+                <label for="new-app-netname" class="text-xs font-semibold text-zinc-550 uppercase tracking-wider">Service name (network)</label>
                 <input
                   id="new-app-netname"
                   type="text"
@@ -433,10 +433,10 @@
                   [disabled]="deployingApp()"
                   class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors"
                 />
-                <p class="text-[10px] text-zinc-650 font-sans">Address at which other apps can reach it. Empty = auto. E.g. <span class="text-zinc-400">backend</span> → http://backend:{{ internalPort() }}</p>
+                <p class="text-xs text-zinc-650 font-sans">Address at which other apps can reach it. Empty = auto. E.g. <span class="text-zinc-400">backend</span> → http://backend:{{ internalPort() }}</p>
               </div>
               <div class="space-y-1.5">
-                <label for="new-app-urlkey" class="text-[10px] font-semibold text-zinc-555 uppercase tracking-wider">URL key in pool</label>
+                <label for="new-app-urlkey" class="text-xs font-semibold text-zinc-555 uppercase tracking-wider">URL key in pool</label>
                 <input
                   id="new-app-urlkey"
                   type="text"
@@ -450,16 +450,16 @@
             </div>
             <div class="flex items-center gap-2.5">
               <input id="new-app-puburl" type="checkbox" [checked]="publishUrl()" (change)="publishUrl.set(!publishUrl())" [disabled]="deployingApp()" class="h-4 w-4 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer" />
-              <label for="new-app-puburl" class="text-xs text-zinc-300 font-sans cursor-pointer select-none">Publish the app URL to the pool (other apps can link to it)</label>
+              <label for="new-app-puburl" class="text-[13px] text-zinc-300 font-sans cursor-pointer select-none">Publish the app URL to the pool (other apps can link to it)</label>
             </div>
           </div>
 
           <div class="border-t border-zinc-900 pt-4 space-y-4 font-sans">
-            <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Optional Commands (Build/Start)</h3>
+            <h3 class="text-[13px] font-semibold text-zinc-400 uppercase tracking-wider">Optional Commands (Build/Start)</h3>
 
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="space-y-1.5">
-                <label for="new-app-build" class="text-[10px] font-semibold text-zinc-550 uppercase tracking-wider">Build Command</label>
+                <label for="new-app-build" class="text-xs font-semibold text-zinc-550 uppercase tracking-wider">Build Command</label>
                 <input 
                   id="new-app-build"
                   type="text" 
@@ -472,7 +472,7 @@
               </div>
     
               <div class="space-y-1.5">
-                <label for="new-app-start" class="text-[10px] font-semibold text-zinc-550 uppercase tracking-wider">Start Command</label>
+                <label for="new-app-start" class="text-xs font-semibold text-zinc-550 uppercase tracking-wider">Start Command</label>
                 <input 
                   id="new-app-start"
                   type="text" 
@@ -493,35 +493,35 @@
           <div class="pt-4 border-t border-zinc-900 space-y-3 font-sans">
             <div class="flex items-center justify-between gap-2 flex-wrap">
               <div>
-                <h4 class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Environment Variables</h4>
-                <p class="text-[10px] text-zinc-650">Optional · injected into the container on first deploy</p>
+                <h4 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Environment Variables</h4>
+                <p class="text-xs text-zinc-650">Optional · injected into the container on first deploy</p>
               </div>
               <div class="flex items-center gap-2">
                 <button
                   type="button"
                   (click)="openCreateEnvModal()"
                   [disabled]="deployingApp()"
-                  class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-[10px] font-semibold transition-colors cursor-pointer"
+                  class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-xs font-semibold transition-colors cursor-pointer"
                 >From Project@if (selectedProjectEnvIds().length > 0) {<span class="ml-1 text-emerald-400 font-mono">· {{ selectedProjectEnvIds().length }}</span>}</button>
                 <button
                   type="button"
                   (click)="newAppEnvJsonMode() ? newAppEnvJsonMode.set(false) : openNewAppEnvJson()"
                   [disabled]="deployingApp()"
-                  class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-[10px] font-semibold transition-colors cursor-pointer"
+                  class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-xs font-semibold transition-colors cursor-pointer"
                 >{{ newAppEnvJsonMode() ? 'Back to form' : 'Edit as JSON' }}</button>
                 @if (!newAppEnvJsonMode()) {
                   <button
                     type="button"
                     (click)="addEnvRow()"
                     [disabled]="deployingApp()"
-                    class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-[10px] font-semibold transition-colors cursor-pointer"
+                    class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-xs font-semibold transition-colors cursor-pointer"
                   >+ Add Variable</button>
                 }
               </div>
             </div>
 
             @if (selectedProjectEnvIds().length > 0) {
-              <p class="text-[10px] text-zinc-500">
+              <p class="text-xs text-zinc-500">
                 <span class="text-emerald-400 font-semibold">{{ selectedProjectEnvIds().length }}</span> variables linked from the project pool (live reference).
               </p>
             }
@@ -534,14 +534,14 @@
                   (ngModelChange)="newAppEnvJsonText.set($event)"
                   spellcheck="false"
                   placeholder='{ "API_KEY": "value" }'
-                  class="block w-full px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-200 focus:outline-none focus:border-zinc-500 transition-colors font-mono resize-y"
+                  class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-200 focus:outline-none focus:border-zinc-500 transition-colors font-mono resize-y"
                 ></textarea>
                 <div class="flex items-center justify-end">
                   <button
                     type="button"
                     (click)="applyNewAppEnvJson()"
                     [disabled]="deployingApp()"
-                    class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-[10px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
+                    class="px-3 py-1.5 rounded btn-accent text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
                   >Apply JSON</button>
                 </div>
               </div>
@@ -554,7 +554,7 @@
                     [ngModel]="row.key"
                     (ngModelChange)="updateEnvRow($index, 'key', $event)"
                     [disabled]="deployingApp()"
-                    class="flex-1 px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors uppercase font-mono font-bold"
+                    class="flex-1 px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors uppercase font-mono font-bold"
                   />
                   <input
                     type="text"
@@ -562,13 +562,13 @@
                     [ngModel]="row.value"
                     (ngModelChange)="updateEnvRow($index, 'value', $event)"
                     [disabled]="deployingApp()"
-                    class="flex-1 px-3 py-2 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+                    class="flex-1 px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
                   />
                   <button
                     type="button"
                     (click)="toggleEnvRowSecret($index)"
                     [disabled]="deployingApp()"
-                    class="px-2 py-2 rounded border text-[9px] font-bold uppercase transition-colors cursor-pointer shrink-0"
+                    class="px-2 py-2 rounded border text-[11px] font-bold uppercase transition-colors cursor-pointer shrink-0"
                     [ngClass]="row.isSecret ? 'bg-zinc-900 border-zinc-700 text-zinc-300 font-sans' : 'bg-zinc-950 border-zinc-850 text-zinc-650 font-sans'"
                     [title]="row.isSecret ? 'Secret (encrypted)' : 'Plaintext'"
                   >{{ row.isSecret ? 'Secret' : 'Plain' }}</button>
@@ -599,11 +599,11 @@
         <!-- docker-compose split preview modal -->
         @if (showComposePreview() && composePlan(); as plan) {
           <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm animate-fade-in" (click)="showComposePreview.set(false)">
-            <div class="w-full max-w-3xl bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl flex flex-col max-h-[85vh]" (click)="$event.stopPropagation()">
+            <div class="w-full max-w-3xl bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl flex flex-col max-h-[85vh]" (click)="$event.stopPropagation()">
               <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-900">
                 <div>
-                  <h3 class="text-xs font-bold text-zinc-50 uppercase tracking-wider font-mono">Split from docker-compose</h3>
-                  <p class="text-[10px] text-zinc-550 mt-0.5 font-sans">Check what you want to create and click "Edit" to adjust names, ports and variables before creating.</p>
+                  <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider font-mono">Split from docker-compose</h3>
+                  <p class="text-xs text-zinc-550 mt-0.5 font-sans">Check what you want to create and click "Edit" to adjust names, ports and variables before creating.</p>
                 </div>
                 <button (click)="showComposePreview.set(false)" class="p-1.5 rounded hover:bg-zinc-900 text-zinc-500 hover:text-zinc-50 cursor-pointer">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -613,18 +613,18 @@
               <div class="overflow-y-auto px-5 py-4 space-y-5 font-mono">
                 @if (plan.databases.length > 0) {
                   <div class="space-y-2">
-                    <p class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Databases</p>
+                    <p class="text-xs font-bold text-amber-400 uppercase tracking-wider">Databases</p>
                     @for (db of plan.databases; track db.service; let i = $index) {
                       <div class="rounded border border-zinc-850 bg-zinc-950">
                         <div class="flex items-center justify-between gap-3 p-2.5">
                           <div class="flex items-center gap-2.5 min-w-0">
                             <input type="checkbox" [checked]="db.include" (change)="toggleComposeDb(i)" class="h-3.5 w-3.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer" />
-                            <span class="text-xs text-zinc-50 font-semibold truncate">{{ db.name }}</span>
-                            <span class="px-1.5 py-0.5 rounded text-[8px] uppercase font-bold bg-amber-950/40 text-amber-400 border border-amber-900/40 font-sans">{{ db.dbType }}:{{ db.version }}</span>
+                            <span class="text-[13px] text-zinc-50 font-semibold truncate">{{ db.name }}</span>
+                            <span class="px-1.5 py-0.5 rounded text-[11px] uppercase font-bold bg-amber-950/40 text-amber-400 border border-amber-900/40 font-sans">{{ db.dbType }}:{{ db.version }}</span>
                           </div>
                           <div class="flex items-center gap-2 shrink-0">
-                            <span class="text-[9px] text-zinc-600">:{{ db.internalPort }}</span>
-                            <button type="button" (click)="toggleDbExpand(i)" class="text-[9px] px-1.5 py-0.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 hover:bg-zinc-900 cursor-pointer font-sans">
+                            <span class="text-[11px] text-zinc-600">:{{ db.internalPort }}</span>
+                            <button type="button" (click)="toggleDbExpand(i)" class="text-[11px] px-1.5 py-0.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 hover:bg-zinc-900 cursor-pointer font-sans">
                               {{ expandedDbs()[i] ? 'Close' : 'Edit' }}
                             </button>
                           </div>
@@ -633,16 +633,16 @@
                           <div class="px-2.5 pb-2.5 pt-1 border-t border-zinc-900 space-y-3 font-mono">
                             <div class="grid gap-2 sm:grid-cols-3">
                               <div class="space-y-1">
-                                <label class="text-[8px] uppercase text-zinc-500 font-sans">Name</label>
-                                <input type="text" [ngModel]="db.name" (ngModelChange)="updateDbName(i, $event)" class="block w-full px-2 py-1.5 text-[11px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
+                                <label class="text-[11px] uppercase text-zinc-500 font-sans">Name</label>
+                                <input type="text" [ngModel]="db.name" (ngModelChange)="updateDbName(i, $event)" class="block w-full px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
                               </div>
                               <div class="space-y-1">
-                                <label class="text-[8px] uppercase text-zinc-500 font-sans">Version</label>
-                                <input type="text" [ngModel]="db.version" (ngModelChange)="updateDbVersion(i, $event)" class="block w-full px-2 py-1.5 text-[11px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
+                                <label class="text-[11px] uppercase text-zinc-500 font-sans">Version</label>
+                                <input type="text" [ngModel]="db.version" (ngModelChange)="updateDbVersion(i, $event)" class="block w-full px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
                               </div>
                               <div class="space-y-1">
-                                <label class="text-[8px] uppercase text-zinc-500 font-sans">Internal port</label>
-                                <input type="number" [ngModel]="db.internalPort" (ngModelChange)="updateDbInternalPort(i, $event)" class="block w-full px-2 py-1.5 text-[11px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
+                                <label class="text-[11px] uppercase text-zinc-500 font-sans">Internal port</label>
+                                <input type="number" [ngModel]="db.internalPort" (ngModelChange)="updateDbInternalPort(i, $event)" class="block w-full px-2 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
                               </div>
                             </div>
                             
@@ -650,12 +650,12 @@
                             <div class="pt-2 border-t border-zinc-900/60 space-y-2">
                               <label class="flex items-center gap-2 cursor-pointer select-none">
                                 <input type="checkbox" [checked]="db.publishToEnv" (change)="updateDbPublishToEnv(i, !db.publishToEnv)" class="h-3.5 w-3.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer" />
-                                <span class="text-[10px] text-zinc-300 font-sans">Publish connection string to .env</span>
+                                <span class="text-xs text-zinc-300 font-sans">Publish connection string to .env</span>
                               </label>
                               @if (db.publishToEnv) {
                                 <div class="flex items-center gap-2 pl-6 animate-fade-in">
-                                  <label class="text-[9px] font-bold text-zinc-550 uppercase tracking-wider shrink-0 font-sans">Key name:</label>
-                                  <input type="text" placeholder="DATABASE_URL (implicit)" [ngModel]="db.envKey" (ngModelChange)="updateDbEnvKey(i, $event)" class="block w-full max-w-xs px-2 py-1 text-[10px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 uppercase font-bold" />
+                                  <label class="text-[11px] font-bold text-zinc-550 uppercase tracking-wider shrink-0 font-sans">Key name:</label>
+                                  <input type="text" placeholder="DATABASE_URL (implicit)" [ngModel]="db.envKey" (ngModelChange)="updateDbEnvKey(i, $event)" class="block w-full max-w-xs px-2 py-1 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 uppercase font-bold" />
                                 </div>
                               }
                             </div>
@@ -668,26 +668,26 @@
 
                 @if (plan.apps.length > 0) {
                   <div class="space-y-2">
-                    <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Applications</p>
+                    <p class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Applications</p>
                     @for (app of plan.apps; track app.service; let i = $index) {
                       <div class="rounded border border-zinc-850 bg-zinc-950" [class.opacity-50]="!app.buildable">
                         <div class="flex items-center justify-between gap-3 p-2.5">
                           <div class="flex items-center gap-2.5 min-w-0">
                             <input type="checkbox" [checked]="app.include" [disabled]="!app.buildable" (change)="toggleComposeApp(i)" class="h-3.5 w-3.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer disabled:opacity-40" />
-                            <span class="text-xs text-zinc-50 font-semibold truncate">{{ app.name }}</span>
+                            <span class="text-[13px] text-zinc-50 font-semibold truncate">{{ app.name }}</span>
                             @if (app.buildPath) {
-                              <span class="px-1.5 py-0.5 rounded text-[8px] bg-zinc-900 border border-zinc-800 text-zinc-400 font-sans">build: {{ app.buildPath }}</span>
+                              <span class="px-1.5 py-0.5 rounded text-[11px] bg-zinc-900 border border-zinc-800 text-zinc-400 font-sans">build: {{ app.buildPath }}</span>
                             } @else {
-                              <span class="px-1.5 py-0.5 rounded text-[8px] bg-zinc-900 border border-zinc-800 text-zinc-550 font-sans" [title]="'no build context — cannot be built from repo'">image</span>
+                              <span class="px-1.5 py-0.5 rounded text-[11px] bg-zinc-900 border border-zinc-800 text-zinc-550 font-sans" [title]="'no build context — cannot be built from repo'">image</span>
                             }
                             @if (app.dependsOn.length > 0) {
-                              <span class="text-[9px] text-zinc-650">→ {{ app.dependsOn.join(', ') }}</span>
+                              <span class="text-[11px] text-zinc-650">→ {{ app.dependsOn.join(', ') }}</span>
                             }
                           </div>
                           <div class="flex items-center gap-2 shrink-0">
-                            <span class="text-[9px] text-zinc-600 font-mono">{{ app.networkName && app.networkName.length ? app.networkName : 'auto' }}:{{ app.internalPort }}</span>
+                            <span class="text-[11px] text-zinc-600 font-mono">{{ app.networkName && app.networkName.length ? app.networkName : 'auto' }}:{{ app.internalPort }}</span>
                             @if (app.buildable) {
-                              <button type="button" (click)="openAppEditor(i)" class="text-[10px] px-2 py-1 rounded border border-zinc-700 text-zinc-300 hover:text-zinc-50 hover:bg-zinc-900 cursor-pointer inline-flex items-center gap-1 font-sans">
+                              <button type="button" (click)="openAppEditor(i)" class="text-xs px-2 py-1 rounded border border-zinc-700 text-zinc-300 hover:text-zinc-50 hover:bg-zinc-900 cursor-pointer inline-flex items-center gap-1 font-sans">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Z" /></svg>
                                 Edit
                               </button>
@@ -700,16 +700,16 @@
                 }
 
                 @if (plan.apps.length === 0 && plan.databases.length === 0) {
-                  <p class="text-[11px] text-zinc-600 text-center py-6">No services found in docker-compose.</p>
+                  <p class="text-[13px] text-zinc-600 text-center py-6">No services found in docker-compose.</p>
                 }
               </div>
 
               <div class="flex items-center justify-between gap-2 px-5 py-3 border-t border-zinc-900">
-                <span class="text-[10px] text-zinc-500 font-sans">{{ composeSelectedCount() }} resources selected</span>
+                <span class="text-xs text-zinc-500 font-sans">{{ composeSelectedCount() }} resources selected</span>
                 <div class="flex items-center gap-2">
-                  <button (click)="showComposePreview.set(false)" class="px-3 py-1.5 rounded text-zinc-400 hover:text-zinc-50 text-xs font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer font-sans">Cancel</button>
+                  <button (click)="showComposePreview.set(false)" class="px-3 py-1.5 rounded text-zinc-400 hover:text-zinc-50 text-[13px] font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer font-sans">Cancel</button>
                   <button (click)="onApplyComposeSplit()" [disabled]="applyingCompose() || composeSelectedCount() === 0"
-                    class="px-4 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-bold shadow disabled:opacity-50 cursor-pointer font-sans">
+                    class="px-4 py-1.5 rounded btn-accent text-[13px] font-bold shadow disabled:opacity-50 cursor-pointer font-sans">
                     {{ applyingCompose() ? 'Creating...' : 'Create All' }}
                   </button>
                 </div>
@@ -720,11 +720,11 @@
         <!-- Per-service editor dialog (opened from "Edit") -->
         @if (editingAppIndex() !== null && plan.apps[editingAppIndex()!]; as eApp) {
           <div class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm animate-fade-in" (click)="closeAppEditor()">
-            <div class="w-full max-w-3xl bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl flex flex-col max-h-[90vh]" (click)="$event.stopPropagation()">
+            <div class="w-full max-w-3xl bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl flex flex-col max-h-[90vh]" (click)="$event.stopPropagation()">
               <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-900">
                 <div>
                   <h3 class="text-sm font-bold text-zinc-50 font-sans">Edit service</h3>
-                  <p class="text-xs text-zinc-500 mt-0.5 font-mono">{{ eApp.service }}</p>
+                  <p class="text-[13px] text-zinc-500 mt-0.5 font-mono">{{ eApp.service }}</p>
                 </div>
                 <button (click)="closeAppEditor()" class="p-1.5 rounded hover:bg-zinc-900 text-zinc-500 hover:text-zinc-50 cursor-pointer">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -732,9 +732,9 @@
               </div>
 
               <div class="flex items-center gap-1 px-6 pt-3 border-b border-zinc-900">
-                <button type="button" (click)="editorTab.set('general')" class="px-3 py-2 text-xs font-semibold border-b-2 -mb-px cursor-pointer transition-colors" [class]="editorTab() === 'general' ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-300'">General</button>
-                <button type="button" (click)="editorTab.set('network')" class="px-3 py-2 text-xs font-semibold border-b-2 -mb-px cursor-pointer transition-colors" [class]="editorTab() === 'network' ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-300'">Network &amp; pool</button>
-                <button type="button" (click)="editorTab.set('env')" class="px-3 py-2 text-xs font-semibold border-b-2 -mb-px cursor-pointer transition-colors" [class]="editorTab() === 'env' ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-550 hover:text-zinc-300'">Variables ({{ eApp.env.length }})</button>
+                <button type="button" (click)="editorTab.set('general')" class="px-3 py-2 text-[13px] font-semibold border-b-2 -mb-px cursor-pointer transition-colors" [class]="editorTab() === 'general' ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-300'">General</button>
+                <button type="button" (click)="editorTab.set('network')" class="px-3 py-2 text-[13px] font-semibold border-b-2 -mb-px cursor-pointer transition-colors" [class]="editorTab() === 'network' ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-300'">Network &amp; pool</button>
+                <button type="button" (click)="editorTab.set('env')" class="px-3 py-2 text-[13px] font-semibold border-b-2 -mb-px cursor-pointer transition-colors" [class]="editorTab() === 'env' ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-550 hover:text-zinc-300'">Variables ({{ eApp.env.length }})</button>
               </div>
 
               <div class="overflow-y-auto px-6 py-5 min-h-[260px]">
@@ -742,20 +742,20 @@
                   <div class="space-y-4">
                     <div class="grid gap-3 sm:grid-cols-3">
                       <div class="space-y-1.5">
-                        <label class="text-[11px] font-medium text-zinc-400 font-sans">Name</label>
+                        <label class="text-[13px] font-medium text-zinc-400 font-sans">Name</label>
                         <input type="text" [ngModel]="eApp.name" (ngModelChange)="updateAppName(editingAppIndex()!, $event)" class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500 font-sans" />
                       </div>
                       <div class="space-y-1.5">
-                        <label class="text-[11px] font-medium text-zinc-400 font-sans">Internal port</label>
+                        <label class="text-[13px] font-medium text-zinc-400 font-sans">Internal port</label>
                         <input type="number" [ngModel]="eApp.internalPort" (ngModelChange)="updateAppInternalPort(editingAppIndex()!, $event)" class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
                       </div>
                       <div class="space-y-1.5">
-                        <label class="text-[11px] font-medium text-zinc-400 font-sans">External port <span class="text-zinc-650">(optional)</span></label>
+                        <label class="text-[13px] font-medium text-zinc-400 font-sans">External port <span class="text-zinc-650">(optional)</span></label>
                         <input type="number" [ngModel]="eApp.externalPort" (ngModelChange)="updateAppExternalPort(editingAppIndex()!, $event)" placeholder="auto" class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
                       </div>
                     </div>
                     @if (eApp.volumes.length > 0) {
-                      <p class="text-xs text-zinc-650 font-sans">Volumes: {{ eApp.volumes.length }} (auto-mounted from compose).</p>
+                      <p class="text-[13px] text-zinc-650 font-sans">Volumes: {{ eApp.volumes.length }} (auto-mounted from compose).</p>
                     }
                   </div>
                 }
@@ -764,18 +764,18 @@
                   <div class="space-y-4">
                     <div class="grid gap-3 sm:grid-cols-2 font-sans">
                       <div class="space-y-1.5">
-                        <label class="text-[11px] font-medium text-zinc-400">Service name (network)</label>
+                        <label class="text-[13px] font-medium text-zinc-400">Service name (network)</label>
                         <input type="text" [ngModel]="eApp.networkName" (ngModelChange)="updateAppNetworkName(editingAppIndex()!, $event)" placeholder="auto (recommended)" class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-500" />
-                        <p class="text-[11px] text-zinc-650">Address at which other apps can reach it. Empty = auto. E.g. <span class="font-mono text-zinc-400">http://{{ eApp.networkName && eApp.networkName.length ? eApp.networkName : 'backend' }}:{{ eApp.internalPort }}</span></p>
+                        <p class="text-[13px] text-zinc-650">Address at which other apps can reach it. Empty = auto. E.g. <span class="font-mono text-zinc-400">http://{{ eApp.networkName && eApp.networkName.length ? eApp.networkName : 'backend' }}:{{ eApp.internalPort }}</span></p>
                       </div>
                       <div class="space-y-1.5">
-                        <label class="text-[11px] font-medium text-zinc-400">URL key in pool</label>
+                        <label class="text-[13px] font-medium text-zinc-400">URL key in pool</label>
                         <input type="text" [ngModel]="eApp.urlEnvKey" (ngModelChange)="updateAppUrlEnvKey(editingAppIndex()!, $event)" [placeholder]="defaultUrlKey(eApp)" [disabled]="eApp.publishUrl === false" class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-zinc-800 rounded text-zinc-50 uppercase focus:outline-none focus:border-zinc-500 disabled:opacity-40" />
                       </div>
                     </div>
                     <label class="flex items-start gap-3 p-3 rounded border border-zinc-850 bg-zinc-950/40 cursor-pointer font-sans">
                       <input type="checkbox" [checked]="eApp.publishUrl !== false" (change)="toggleComposeAppPublishUrl(editingAppIndex()!)" class="h-4 w-4 mt-0.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer" />
-                      <span class="text-xs text-zinc-300 select-none">Publish URL to pool <span class="text-zinc-500">— other apps can link to it; automatic for depends_on.</span></span>
+                      <span class="text-[13px] text-zinc-300 select-none">Publish URL to pool <span class="text-zinc-500">— other apps can link to it; automatic for depends_on.</span></span>
                     </label>
                   </div>
                 }
@@ -783,11 +783,11 @@
                 @if (editorTab() === 'env') {
                   <div class="space-y-2">
                     <div class="flex items-center justify-between">
-                      <p class="text-[11px] text-zinc-500 font-sans">Service environment variables</p>
-                      <button type="button" (click)="addAppEnv(editingAppIndex()!)" class="text-[11px] px-2 py-1 rounded border border-zinc-700 text-zinc-300 hover:text-zinc-50 hover:bg-zinc-900 cursor-pointer font-sans">+ Add</button>
+                      <p class="text-[13px] text-zinc-500 font-sans">Service environment variables</p>
+                      <button type="button" (click)="addAppEnv(editingAppIndex()!)" class="text-[13px] px-2 py-1 rounded border border-zinc-700 text-zinc-300 hover:text-zinc-50 hover:bg-zinc-900 cursor-pointer font-sans">+ Add</button>
                     </div>
                     @if (eApp.env.length === 0) {
-                      <p class="text-xs text-zinc-700 font-sans">No variables.</p>
+                      <p class="text-[13px] text-zinc-700 font-sans">No variables.</p>
                     }
                     @for (e of eApp.env; track $index; let j = $index) {
                       <div class="flex items-center gap-2">
@@ -802,7 +802,7 @@
               </div>
 
               <div class="flex justify-end gap-2 px-6 py-4 border-t border-zinc-900">
-                <button (click)="closeAppEditor()" class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-bold cursor-pointer font-sans">Done</button>
+                <button (click)="closeAppEditor()" class="px-4 py-2 rounded btn-accent text-[13px] font-bold cursor-pointer font-sans">Done</button>
               </div>
             </div>
           </div>
@@ -814,7 +814,7 @@
         <button
           (click)="createStep() === 1 ? onBackToSelection() : prevCreateStep()"
           [disabled]="deployingApp()"
-          class="px-4 py-2 rounded text-zinc-400 hover:text-zinc-50 text-xs font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer"
+          class="px-4 py-2 rounded text-zinc-400 hover:text-zinc-50 text-[13px] font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer"
         >
           {{ createStep() === 1 ? 'Back to Repo' : '← Back' }}
         </button>
@@ -823,7 +823,7 @@
           <button
             (click)="nextCreateStep()"
             [disabled]="deployingApp() || (createStep() === 1 && (!appName() || !gitRepository()))"
-            class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
+            class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
           >
             Continue →
           </button>
@@ -831,7 +831,7 @@
           <button
             (click)="onDeployApp()"
             [disabled]="deployingApp() || !appName() || !gitRepository()"
-            class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+            class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
           >
             @if (!deployingApp()) {
               <span>Launch Application</span>

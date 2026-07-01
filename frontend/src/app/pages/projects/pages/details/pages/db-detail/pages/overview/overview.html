@@ -3,9 +3,9 @@
   <!-- Specs Grid -->
   <div class="grid gap-4 md:grid-cols-3">
     <!-- Database technology -->
-    <div class="bg-zinc-900 p-4.5 rounded-lg border border-zinc-800 shadow-sm flex items-center justify-between">
+    <div class="bg-zinc-900 p-4.5 rounded-xl border border-zinc-800 shadow-sm flex items-center justify-between">
       <div class="space-y-1">
-        <span class="text-[10px] text-zinc-555 uppercase font-mono tracking-wider">Technology & Type</span>
+        <span class="text-xs text-zinc-555 uppercase font-mono tracking-wider">Technology & Type</span>
         <div class="text-sm font-bold text-zinc-50 uppercase">{{ dbDetail.db()?.type }}</div>
       </div>
       <div class="w-10 h-10 rounded bg-zinc-950 border border-zinc-850 flex items-center justify-center text-zinc-50 font-mono font-black text-sm uppercase">
@@ -14,10 +14,10 @@
     </div>
 
     <!-- Resource CPU -->
-    <div class="bg-zinc-900 p-4.5 rounded-lg border border-zinc-800 shadow-sm flex items-center justify-between">
+    <div class="bg-zinc-900 p-4.5 rounded-xl border border-zinc-800 shadow-sm flex items-center justify-between">
       <div class="space-y-1">
-        <span class="text-[10px] text-zinc-555 uppercase font-mono tracking-wider">CPU Limit</span>
-        <div class="text-sm font-bold text-zinc-50 font-mono">{{ dbDetail.db()?.cpuLimit || 0 }}m <span class="text-xs text-zinc-500 font-sans font-normal">(cores)</span></div>
+        <span class="text-xs text-zinc-555 uppercase font-mono tracking-wider">CPU Limit</span>
+        <div class="text-sm font-bold text-zinc-50 font-mono">{{ dbDetail.db()?.cpuLimit || 0 }}m <span class="text-[13px] text-zinc-500 font-sans font-normal">(cores)</span></div>
       </div>
       <div class="text-zinc-500">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -27,9 +27,9 @@
     </div>
 
     <!-- Resource Memory -->
-    <div class="bg-zinc-900 p-4.5 rounded-lg border border-zinc-800 shadow-sm flex items-center justify-between">
+    <div class="bg-zinc-900 p-4.5 rounded-xl border border-zinc-800 shadow-sm flex items-center justify-between">
       <div class="space-y-1">
-        <span class="text-[10px] text-zinc-555 uppercase font-mono tracking-wider">Memory Limit</span>
+        <span class="text-xs text-zinc-555 uppercase font-mono tracking-wider">Memory Limit</span>
         <div class="text-sm font-bold text-zinc-50 font-mono">{{ dbDetail.db()?.memoryLimitMb || 0 }} MB</div>
       </div>
       <div class="text-zinc-500">
@@ -41,25 +41,25 @@
   </div>
 
   <!-- Cluster Routing Info -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4">
+  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4">
     <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Cluster Routes & Networking</h3>
+      <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Cluster Routes & Networking</h3>
     </div>
-    <div class="grid gap-4 md:grid-cols-2 text-xs font-mono">
+    <div class="grid gap-4 md:grid-cols-2 text-[13px] font-mono">
       <div class="space-y-1">
-        <span class="text-[9px] text-zinc-550 uppercase tracking-wider block">Pod Name (StatefulSet)</span>
+        <span class="text-[11px] text-zinc-550 uppercase tracking-wider block">Pod Name (StatefulSet)</span>
         <div class="text-zinc-300 font-bold">{{ dbDetail.db()?.containerName }}-0</div>
       </div>
       <div class="space-y-1">
-        <span class="text-[9px] text-zinc-550 uppercase tracking-wider block">Internal DNS Service (ClusterIP)</span>
+        <span class="text-[11px] text-zinc-550 uppercase tracking-wider block">Internal DNS Service (ClusterIP)</span>
         <div class="text-zinc-300">{{ dbDetail.db()?.containerName }}</div>
       </div>
       <div class="space-y-1">
-        <span class="text-[9px] text-zinc-550 uppercase tracking-wider block">Internal Port</span>
+        <span class="text-[11px] text-zinc-550 uppercase tracking-wider block">Internal Port</span>
         <div class="text-zinc-300">{{ dbDetail.db()?.internalPort }}</div>
       </div>
       <div class="space-y-1">
-        <span class="text-[9px] text-zinc-550 uppercase tracking-wider block">External LoadBalancer Exposure</span>
+        <span class="text-[11px] text-zinc-550 uppercase tracking-wider block">External LoadBalancer Exposure</span>
         <div class="text-zinc-300">
           {{ dbDetail.db()?.isExternal ? 'YES on public port ' + dbDetail.db()?.externalPort : 'NO (Accessible only from within the cluster network)' }}
         </div>
@@ -68,13 +68,13 @@
   </div>
 
   <!-- Credentials and Connection Panel -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 space-y-4">
+  <div class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 space-y-4">
     <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
-      <h3 class="text-xs font-bold text-zinc-350 uppercase tracking-wider">Credentials & Connection</h3>
+      <h3 class="text-[13px] font-bold text-zinc-350 uppercase tracking-wider">Credentials & Connection</h3>
       <div class="flex items-center gap-2">
         <button
           (click)="dbDetail.onRevealCredentials()"
-          class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-50 text-xs font-semibold cursor-pointer border border-zinc-800 transition-colors flex items-center gap-1.5"
+          class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer border border-zinc-800 transition-colors flex items-center gap-1.5"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-500">
             <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
@@ -85,7 +85,7 @@
         <button
           (click)="dbDetail.rotatePassword()"
           [disabled]="dbDetail.rotatingPassword()"
-          class="px-2.5 py-1 rounded bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 hover:text-amber-200 text-xs font-semibold cursor-pointer border border-amber-900/50 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-2.5 py-1 rounded bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 hover:text-amber-200 text-[13px] font-semibold cursor-pointer border border-amber-900/50 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
           title="Generate a new password in the DB engine and restart connected applications"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5" [class.animate-spin]="dbDetail.rotatingPassword()">
@@ -99,7 +99,7 @@
     <div *ngIf="dbDetail.credentialsRevealed()" class="space-y-4 animate-fade-in">
       <!-- Connection String -->
       <div class="space-y-1">
-        <div class="flex items-center justify-between text-[9px] text-zinc-555 uppercase font-mono tracking-wider font-semibold">
+        <div class="flex items-center justify-between text-[11px] text-zinc-555 uppercase font-mono tracking-wider font-semibold">
           <span>DATABASE_URL Connection String</span>
           <button 
             (click)="dbDetail.copyToClipboard(dbDetail.connectionUrl() || '')"
@@ -108,15 +108,15 @@
             Copy URL
           </button>
         </div>
-        <div class="p-3 rounded bg-zinc-950 border border-zinc-900 font-mono text-xs text-emerald-400 select-all truncate">
+        <div class="p-3 rounded bg-zinc-950 border border-zinc-900 font-mono text-[13px] text-emerald-400 select-all truncate">
           {{ dbDetail.connectionUrl() }}
         </div>
       </div>
 
-      <div class="grid gap-4 md:grid-cols-2 text-xs font-mono" *ngIf="dbDetail.db()?.type !== 'redis'">
+      <div class="grid gap-4 md:grid-cols-2 text-[13px] font-mono" *ngIf="dbDetail.db()?.type !== 'redis'">
         <!-- Username -->
         <div class="space-y-1">
-          <span class="text-[9px] text-zinc-555 uppercase tracking-wider font-semibold">Username</span>
+          <span class="text-[11px] text-zinc-555 uppercase tracking-wider font-semibold">Username</span>
           <div class="flex items-center justify-between p-2 rounded bg-zinc-950 border border-zinc-900">
             <span class="text-zinc-300 select-all">{{ dbDetail.databaseUser() }}</span>
             <button (click)="dbDetail.copyToClipboard(dbDetail.databaseUser() || '')" class="text-zinc-500 hover:text-zinc-50">Copy</button>
@@ -125,7 +125,7 @@
 
         <!-- Password -->
         <div class="space-y-1">
-          <span class="text-[9px] text-zinc-555 uppercase tracking-wider font-semibold">Password</span>
+          <span class="text-[11px] text-zinc-555 uppercase tracking-wider font-semibold">Password</span>
           <div class="flex items-center justify-between p-2 rounded bg-zinc-950 border border-zinc-900">
             <span class="text-zinc-300 select-all">{{ dbDetail.databasePassword() }}</span>
             <button (click)="dbDetail.copyToClipboard(dbDetail.databasePassword() || '')" class="text-zinc-500 hover:text-zinc-50">Copy</button>
@@ -138,7 +138,7 @@
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-zinc-655 mb-2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
       </svg>
-      <p class="text-xs text-zinc-555">Credentials are stored securely. Click the button above to decrypt them.</p>
+      <p class="text-[13px] text-zinc-555">Credentials are stored securely. Click the button above to decrypt them.</p>
     </div>
   </div>
 </div>

@@ -2,8 +2,8 @@
   
   <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
     <div>
-      <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Project Applications</h3>
-      <p class="text-[10px] text-zinc-500 font-mono mt-0.5">Complete list of active services and their configurations</p>
+      <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Project Applications</h3>
+      <p class="text-xs text-zinc-500 font-mono mt-0.5">Complete list of active services and their configurations</p>
     </div>
 
     <div class="flex items-center gap-3">
@@ -20,7 +20,7 @@
 
       <button 
         (click)="onAddApp()"
-        class="px-2.5 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5"
+        class="px-2.5 py-1.5 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -36,13 +36,13 @@
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
       </svg>
-      <span class="text-xs text-zinc-550 font-medium">Loading application list...</span>
+      <span class="text-[13px] text-zinc-550 font-medium">Loading application list...</span>
     </div>
   } @else {
     <div class="grid gap-4 md:grid-cols-1">
       @for (app of parent.apps(); track app.id) {
         <div 
-          class="bg-zinc-900 rounded-lg border border-zinc-800 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:border-zinc-700 transition-all shadow-sm"
+          class="bg-zinc-900 rounded-xl border border-zinc-800 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:border-zinc-700 transition-all shadow-sm"
           [class.border-zinc-550]="parent.selectedApp()?.id === app.id"
         >
           <div class="space-y-1.5 min-w-0 flex-1">
@@ -52,20 +52,20 @@
               </h4>
               
               <span 
-                class="px-2 py-0.5 rounded text-[9px] font-semibold border font-mono tracking-wider"
+                class="px-2 py-0.5 rounded text-[11px] font-semibold border font-mono tracking-wider"
                 [class]="parent.getAppStatusClass(app)"
               >
                 {{ parent.getAppStatus(app) }}
               </span>
 
               @if (parent.selectedApp()?.id === app.id) {
-                <span class="px-1.5 py-0.2 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded text-[9px] font-medium tracking-wide">
+                <span class="px-1.5 py-0.2 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded text-[11px] font-medium tracking-wide">
                   Selected
                 </span>
               }
             </div>
             
-            <div class="flex flex-col gap-1 text-[10px] text-zinc-550 font-mono mt-2">
+            <div class="flex flex-col gap-1 text-xs text-zinc-550 font-mono mt-2">
               <div class="flex items-center gap-2">
                 <span class="text-zinc-600">Git Repo:</span>
                 <span class="text-zinc-300 truncate max-w-[280px] hover:text-zinc-50 transition-colors cursor-pointer select-all">{{ app.git_repo_url }}</span>
@@ -103,36 +103,36 @@
           <div class="flex items-center gap-2.5 sm:self-center flex-wrap sm:flex-nowrap">
             <button 
               (click)="onViewDetails(app, 'telemetry')"
-              class="px-2.5 py-1.5 rounded text-[10px] font-semibold border transition-all cursor-pointer bg-zinc-950 border-zinc-850 hover:border-zinc-500 hover:text-zinc-50 text-zinc-450"
+              class="px-2.5 py-1.5 rounded text-xs font-semibold border transition-all cursor-pointer bg-zinc-950 border-zinc-850 hover:border-zinc-500 hover:text-zinc-50 text-zinc-450"
             >
               Telemetry
             </button>
             <button
               (click)="onViewDetails(app, 'logs')"
-              class="px-2.5 py-1.5 rounded text-[10px] font-semibold border transition-all cursor-pointer bg-zinc-950 border-zinc-850 hover:border-zinc-500 hover:text-zinc-50 text-zinc-450"
+              class="px-2.5 py-1.5 rounded text-xs font-semibold border transition-all cursor-pointer bg-zinc-950 border-zinc-850 hover:border-zinc-500 hover:text-zinc-50 text-zinc-450"
             >
               Logs & Console
             </button>
             <button
               (click)="onViewDetails(app, 'env')"
-              class="px-2.5 py-1.5 rounded text-[10px] font-semibold border transition-all cursor-pointer bg-zinc-950 border-zinc-855 hover:border-zinc-500 hover:text-zinc-50 text-zinc-450"
+              class="px-2.5 py-1.5 rounded text-xs font-semibold border transition-all cursor-pointer bg-zinc-950 border-zinc-855 hover:border-zinc-500 hover:text-zinc-50 text-zinc-450"
             >
               Env Variables
             </button>
             <button
               (click)="onDeleteApp(app)"
-              class="px-2.5 py-1.5 rounded text-[10px] font-semibold border transition-all cursor-pointer bg-zinc-950 hover:bg-red-950/20 border-zinc-855 hover:border-red-900/40 text-red-500 hover:text-red-400"
+              class="px-2.5 py-1.5 rounded text-xs font-semibold border transition-all cursor-pointer bg-zinc-950 hover:bg-red-950/20 border-zinc-855 hover:border-red-900/40 text-red-500 hover:text-red-400"
             >
               Delete
             </button>
           </div>
         </div>
       } @empty {
-        <div class="bg-zinc-900 rounded-lg border border-zinc-850 p-12 text-center space-y-4">
-          <p class="text-xs text-zinc-550">No applications registered in this project.</p>
+        <div class="bg-zinc-900 rounded-xl border border-zinc-850 p-12 text-center space-y-4">
+          <p class="text-[13px] text-zinc-550">No applications registered in this project.</p>
           <button
             (click)="onAddApp()"
-            class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold transition-colors cursor-pointer"
+            class="px-3 py-1.5 rounded btn-accent text-[13px] font-semibold transition-colors cursor-pointer"
           >
             Add First Application
           </button>

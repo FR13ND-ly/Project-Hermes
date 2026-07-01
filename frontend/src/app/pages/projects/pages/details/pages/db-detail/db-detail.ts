@@ -1,6 +1,6 @@
-import { Component, inject, signal, OnInit, OnDestroy, effect } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink, RouterOutlet, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { Details } from '../../details';
 import { DatabaseService, DatabaseServiceInfo } from '../../../../../../core/services/database.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
@@ -29,6 +29,27 @@ export class DbDetailComponent implements OnInit, OnDestroy {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
+  // Two-tier tab nav: groups the 6 flat routes by purpose (URLs unchanged).
+  readonly tabGroups: { id: string; label: string; default: string; tabs: { path: string; label: string }[] }[] = [
+    { id: 'overview', label: 'Overview', default: 'overview', tabs: [{ path: 'overview', label: 'Overview' }] },
+    { id: 'console', label: 'Console', default: 'console', tabs: [{ path: 'console', label: 'Query Console' }] },
+    { id: 'observability', label: 'Observability', default: 'telemetry', tabs: [
+      { path: 'telemetry', label: 'Metrics' },
+      { path: 'logs', label: 'Logs' },
+    ] },
+    { id: 'backups', label: 'Backups', default: 'backups', tabs: [{ path: 'backups', label: 'Backups' }] },
+    { id: 'settings', label: 'Settings', default: 'settings', tabs: [{ path: 'settings', label: 'Settings' }] },
+  ];
+  readonly currentTabPath = signal<string>('overview');
+  readonly activeGroup = computed(
+    () => this.tabGroups.find((g) => g.tabs.some((t) => t.path === this.currentTabPath())) ?? this.tabGroups[0],
+  );
+  private navSub?: Subscription;
+  private leafTabPath(): string {
+    const clean = this.router.url.split('?')[0].split('#')[0];
+    return clean.split('/').filter(Boolean).pop() ?? 'overview';
+  }
+
   // Credentials reveal state
   readonly connectionUrl = signal<string | null>(null);
   readonly databaseUser = signal<string | null>(null);
@@ -55,12 +76,17 @@ export class DbDetailComponent implements OnInit, OnDestroy {
     if (id) {
       this.dbId.set(id);
     }
+    this.currentTabPath.set(this.leafTabPath());
+    this.navSub = this.router.events.subscribe((e) => {
+      if (e instanceof NavigationEnd) this.currentTabPath.set(this.leafTabPath());
+    });
   }
 
   ngOnDestroy(): void {
     if (this.wsSubscription) {
       this.wsSubscription.unsubscribe();
     }
+    this.navSub?.unsubscribe();
     this.stopTicker();
   }
 

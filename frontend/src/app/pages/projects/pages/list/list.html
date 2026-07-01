@@ -4,12 +4,12 @@
   <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
     <div>
       <h1 class="text-xl font-bold tracking-tight text-zinc-50">Projects</h1>
-      <p class="text-zinc-500 text-xs">Manage and monitor your applications in isolated containers.</p>
+      <p class="text-zinc-500 text-[13px]">Manage and monitor your applications in isolated containers.</p>
     </div>
     
     <a 
       routerLink="/projects/create"
-      class="px-3.5 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5"
+      class="px-3.5 py-1.5 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5"
     >
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -25,13 +25,13 @@
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
-      <span class="text-zinc-500 text-[10px] font-mono uppercase tracking-widest">Reading projects...</span>
+      <span class="text-zinc-500 text-xs font-mono uppercase tracking-widest">Reading projects...</span>
     </div>
   }
 
   <!-- Error State -->
   @if (error()) {
-    <div class="p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-xs flex items-center gap-2" role="alert">
+    <div class="p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-[13px] flex items-center gap-2" role="alert">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
       </svg>
@@ -41,17 +41,17 @@
 
   <!-- Empty State -->
   @if (!loading() && !error() && projects().length === 0) {
-    <div class="p-12 rounded-lg border border-zinc-800 bg-zinc-900 flex flex-col items-center justify-center text-center max-w-md mx-auto">
+    <div class="p-12 rounded-xl border border-zinc-800 bg-zinc-900 flex flex-col items-center justify-center text-center max-w-md mx-auto">
       <div class="w-10 h-10 rounded border border-zinc-800 bg-zinc-950 flex items-center justify-center text-zinc-500 mb-4" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.008 1.24l.885 1.77a2.25 2.25 0 002.007 1.24h1.98a2.25 2.25 0 002.007-1.24l.885-1.77a2.25 2.25 0 012.007-1.24h3.86m-18 0h18M2.25 9l.223-1.338A2.25 2.25 0 014.718 5.75h14.564a2.25 2.25 0 012.245 1.912L21.75 9m-18 0v8.25A2.25 2.25 0 006 19.5h12a2.25 2.25 0 002.25-2.25V9M12 9v6.75m0-6.75l-3 3m3-3l3 3" />
         </svg>
       </div>
       <h3 class="text-sm font-semibold text-zinc-200 mb-1">No projects yet</h3>
-      <p class="text-xs text-zinc-500 mb-4">Your workspace has no active projects. Create a new project to get started.</p>
+      <p class="text-[13px] text-zinc-500 mb-4">Your workspace has no active projects. Create a new project to get started.</p>
       <a
         routerLink="/projects/create"
-        class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-all cursor-pointer"
+        class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow transition-all cursor-pointer"
       >
         Set Up New Project
       </a>
@@ -64,7 +64,7 @@
       @for (project of projects(); track project.id) {
         <a 
           [routerLink]="['/projects', project.id]"
-          class="bg-zinc-900 p-5 rounded-lg border border-zinc-800 hover:border-zinc-500 transition-colors flex flex-col justify-between group shadow-sm cursor-pointer"
+          class="bg-zinc-900 p-5 rounded-xl border border-zinc-800 hover:border-zinc-500 transition-colors flex flex-col justify-between group shadow-sm cursor-pointer"
           role="gridcell"
           [attr.aria-label]="'Open project ' + project.name"
         >
@@ -73,15 +73,15 @@
               <h3 class="text-sm font-bold text-zinc-50 group-hover:text-zinc-300 transition-colors truncate">
                 {{ project.name }}
               </h3>
-              <p class="text-[9px] text-zinc-650 font-mono mt-0.5">ID: {{ project.id }}</p>
+              <p class="text-[11px] text-zinc-650 font-mono mt-0.5">ID: {{ project.id }}</p>
             </div>
             
-            <p class="text-xs text-zinc-400 line-clamp-2 min-h-[32px]">
+            <p class="text-[13px] text-zinc-400 line-clamp-2 min-h-[32px]">
               Hosted in the Kubernetes cluster. Click for details.
             </p>
           </div>
   
-          <div class="border-t border-zinc-900 pt-3 mt-4 flex items-center justify-between text-[10px] text-zinc-500">
+          <div class="border-t border-zinc-900 pt-3 mt-4 flex items-center justify-between text-xs text-zinc-500">
             <div>
               Created: {{ project.created_at | date:'mediumDate' }}
             </div>

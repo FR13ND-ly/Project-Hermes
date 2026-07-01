@@ -1,7 +1,7 @@
 <div class="space-y-4 animate-fade-in">
   
   <!-- Search & Info Bar -->
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-900 border border-zinc-850 p-4 rounded-lg">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-900 border border-zinc-850 p-4 rounded-xl">
     <!-- Search input -->
     <div class="relative w-full sm:max-w-xs">
       <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
@@ -14,10 +14,10 @@
         placeholder="Search users..."
         [ngModel]="parent.searchQuery()"
         (ngModelChange)="parent.onSearchChange($event)"
-        class="block w-full pl-8 pr-3 py-1.5 text-xs bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors font-mono"
+        class="block w-full pl-8 pr-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors font-mono"
       />
     </div>
-    <div class="text-[10px] text-zinc-500 font-mono">
+    <div class="text-xs text-zinc-500 font-mono">
       Total users: <span class="text-zinc-50 font-bold">{{ parent.totalUsers() }}</span>
     </div>
   </div>
@@ -29,19 +29,19 @@
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
-      <span class="text-zinc-550 text-[9px] uppercase tracking-widest">Reading user database...</span>
+      <span class="text-zinc-550 text-[11px] uppercase tracking-widest">Reading user database...</span>
     </div>
   } @else {
     @if (parent.filteredUsers().length === 0) {
-      <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-10 text-center space-y-2">
-        <p class="text-xs text-zinc-500">No users found.</p>
-        <p class="text-[10px] text-zinc-650">Create accounts via the application's public registration API.</p>
+      <div class="bg-zinc-900 border border-zinc-900 rounded-xl p-10 text-center space-y-2">
+        <p class="text-[13px] text-zinc-500">No users found.</p>
+        <p class="text-xs text-zinc-650">Create accounts via the application's public registration API.</p>
       </div>
     } @else {
-      <div class="bg-zinc-900 border border-zinc-900 rounded-lg overflow-hidden shadow-sm">
-        <table class="w-full text-left border-collapse text-xs">
+      <div class="bg-zinc-900 border border-zinc-900 rounded-xl overflow-hidden shadow-sm">
+        <table class="w-full text-left border-collapse text-[13px]">
           <thead>
-            <tr class="border-b border-zinc-950 bg-zinc-950/60 text-zinc-550 uppercase tracking-wider text-[9px] font-bold">
+            <tr class="border-b border-zinc-950 bg-zinc-950/60 text-zinc-550 uppercase tracking-wider text-[11px] font-bold">
               <th class="p-3">Identifier</th>
               <th class="p-3">Status</th>
               <th class="p-3">Last Login</th>
@@ -59,7 +59,7 @@
                 <!-- Status -->
                 <td class="p-3">
                   <span 
-                    class="px-2 py-0.5 rounded text-[8px] font-bold border uppercase font-mono"
+                    class="px-2 py-0.5 rounded text-[11px] font-bold border uppercase font-mono"
                     [class]="user.status === 'active' ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-400' : 'bg-red-950/20 border-red-900/30 text-red-400'"
                   >
                     {{ user.status === 'active' ? 'Active' : 'Suspended' }}
@@ -73,11 +73,11 @@
                 <td class="p-3">
                   <div class="flex flex-wrap gap-1">
                     @for (role of user.roles; track role) {
-                      <span class="px-1.5 py-0.2 rounded text-[9px] bg-zinc-900 border border-zinc-800 text-zinc-400 font-mono uppercase">
+                      <span class="px-1.5 py-0.2 rounded text-[11px] bg-zinc-900 border border-zinc-800 text-zinc-400 font-mono uppercase">
                         {{ role }}
                       </span>
                     } @empty {
-                      <span class="text-[9px] text-zinc-600 font-mono">no roles</span>
+                      <span class="text-[11px] text-zinc-600 font-mono">no roles</span>
                     }
                   </div>
                 </td>
@@ -86,19 +86,19 @@
                   <div class="flex items-center justify-end gap-2">
                     <button 
                       (click)="parent.onOpenRoleModal(user)"
-                      class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-[10px] font-bold uppercase cursor-pointer"
+                      class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-xs font-bold uppercase cursor-pointer"
                     >
                       Roles
                     </button>
                     <button
                       (click)="parent.onOpenResetPassword(user)"
-                      class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-[10px] font-bold uppercase cursor-pointer"
+                      class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-xs font-bold uppercase cursor-pointer"
                     >
                       Password
                     </button>
                     <button
                       (click)="parent.onToggleUserStatus(user)"
-                      class="px-2 py-0.5 rounded text-[10px] font-bold uppercase cursor-pointer border transition-colors"
+                      class="px-2 py-0.5 rounded text-xs font-bold uppercase cursor-pointer border transition-colors"
                       [class]="user.status === 'active' ? 'border-red-900/30 hover:border-red-800 text-red-400 hover:bg-red-950/10' : 'border-emerald-900/30 hover:border-emerald-800 text-emerald-400 hover:bg-emerald-950/10'"
                     >
                       {{ user.status === 'active' ? 'Suspend' : 'Activate' }}
@@ -112,22 +112,22 @@
       </div>
 
       <!-- Pagination Controls -->
-      <div class="flex items-center justify-between bg-zinc-900 border border-zinc-900 rounded-lg p-3 text-xs font-mono">
-        <div class="text-zinc-500 text-[10px]">
+      <div class="flex items-center justify-between bg-zinc-900 border border-zinc-900 rounded-xl p-3 text-[13px] font-mono">
+        <div class="text-zinc-500 text-xs">
           Page <span class="text-zinc-50 font-bold">{{ parent.currentPage() }}</span> of <span class="text-zinc-50 font-bold">{{ parent.totalPages() }}</span>
         </div>
         <div class="flex items-center gap-2">
           <button 
             (click)="parent.onPageChange(parent.currentPage() - 1)"
             [disabled]="parent.currentPage() <= 1"
-            class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer uppercase text-[9px] font-bold transition-all"
+            class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer uppercase text-[11px] font-bold transition-all"
           >
             Previous
           </button>
           <button
             (click)="parent.onPageChange(parent.currentPage() + 1)"
             [disabled]="parent.currentPage() >= parent.totalPages()"
-            class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer uppercase text-[9px] font-bold transition-all"
+            class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer uppercase text-[11px] font-bold transition-all"
           >
             Next
           </button>
@@ -140,15 +140,15 @@
 <!-- MODAL 1: RESET PASSWORD -->
 @if (parent.showResetPasswordModal() && parent.selectedUser(); as user) {
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-xs animate-fade-in font-mono">
-    <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl p-6 space-y-6">
+    <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-6 space-y-6">
       <div class="space-y-1">
-        <h3 class="text-xs font-bold text-zinc-50 uppercase tracking-wider">Reset User Password</h3>
-        <p class="text-zinc-550 text-xs leading-relaxed font-sans">Enter a new password for user <span class="text-zinc-300 font-bold font-mono select-all">{{ user.identifier }}</span>.</p>
+        <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider">Reset User Password</h3>
+        <p class="text-zinc-550 text-[13px] leading-relaxed font-sans">Enter a new password for user <span class="text-zinc-300 font-bold font-mono select-all">{{ user.identifier }}</span>.</p>
       </div>
 
       <!-- Password input -->
       <div class="space-y-1.5">
-        <label for="reset-pwd-input" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">New Password (minimum 8 characters)</label>
+        <label for="reset-pwd-input" class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">New Password (minimum 8 characters)</label>
         <input 
           id="reset-pwd-input"
           type="password" 
@@ -165,14 +165,14 @@
         <button 
           (click)="parent.showResetPasswordModal.set(false); parent.selectedUser.set(null)"
           [disabled]="parent.resettingPassword()"
-          class="px-4 py-2 rounded text-zinc-400 hover:text-zinc-50 text-xs font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer"
+          class="px-4 py-2 rounded text-zinc-400 hover:text-zinc-50 text-[13px] font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer"
         >
           Cancel
         </button>
         <button
           (click)="parent.onResetPasswordSubmit()"
           [disabled]="!parent.newPassword().trim() || parent.resettingPassword()"
-          class="px-4 py-2 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow disabled:opacity-50 transition-all cursor-pointer"
+          class="px-4 py-2 rounded btn-accent text-[13px] font-semibold shadow disabled:opacity-50 transition-all cursor-pointer"
         >
           Reset Password
         </button>
@@ -184,18 +184,18 @@
 <!-- MODAL 2: MANAGE USER ROLES -->
 @if (parent.showRoleModal() && parent.selectedUser(); as user) {
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-xs animate-fade-in font-mono">
-    <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl p-6 space-y-5">
+    <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-6 space-y-5">
       <div class="space-y-1 border-b border-zinc-900 pb-3">
-        <h3 class="text-xs font-bold text-zinc-50 uppercase tracking-wider">Manage User Roles</h3>
-        <p class="text-zinc-550 text-xs font-sans">Active roles for <span class="text-zinc-300 font-bold font-mono">{{ user.identifier }}</span></p>
+        <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider">Manage User Roles</h3>
+        <p class="text-zinc-550 text-[13px] font-sans">Active roles for <span class="text-zinc-300 font-bold font-mono">{{ user.identifier }}</span></p>
       </div>
 
       <!-- Active Roles list with revoke buttons -->
       <div class="space-y-2">
-        <span class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider block">Currently assigned roles</span>
+        <span class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block">Currently assigned roles</span>
         <div class="flex flex-wrap gap-2 p-3 bg-zinc-950 border border-zinc-900 rounded-md min-h-[48px] items-center">
           @for (role of user.roles; track role) {
-            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] bg-zinc-900 border border-zinc-800 text-zinc-300 font-mono uppercase">
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs bg-zinc-900 border border-zinc-800 text-zinc-300 font-mono uppercase">
               <span>{{ role }}</span>
               <button 
                 (click)="parent.onRemoveRole(role)"
@@ -206,14 +206,14 @@
               </button>
             </span>
           } @empty {
-            <span class="text-[10px] text-zinc-650 font-sans italic">No roles assigned. User has only general public access.</span>
+            <span class="text-xs text-zinc-650 font-sans italic">No roles assigned. User has only general public access.</span>
           }
         </div>
       </div>
 
       <!-- Assign new role form -->
       <div class="space-y-2.5 pt-2 border-t border-zinc-900">
-        <span class="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider block">Assign New Role</span>
+        <span class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block">Assign New Role</span>
         <div class="flex gap-2">
           <input 
             type="text" 
@@ -222,12 +222,12 @@
             (ngModelChange)="parent.newRoleName.set($event)"
             (keyup.enter)="parent.onAssignRoleSubmit()"
             [disabled]="parent.assigningRole()"
-            class="block w-full px-3 py-1.5 text-xs bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors font-mono"
+            class="block w-full px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 transition-colors font-mono"
           />
           <button 
             (click)="parent.onAssignRoleSubmit()"
             [disabled]="!parent.newRoleName().trim() || parent.assigningRole()"
-            class="px-4 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow disabled:opacity-50 transition-all cursor-pointer shrink-0 font-sans"
+            class="px-4 py-1.5 rounded btn-accent text-[13px] font-semibold shadow disabled:opacity-50 transition-all cursor-pointer shrink-0 font-sans"
           >
             Assign
           </button>
@@ -237,7 +237,7 @@
       <div class="flex justify-end pt-3 border-t border-zinc-900">
         <button 
           (click)="parent.showRoleModal.set(false); parent.selectedUser.set(null)"
-          class="px-4 py-1.5 rounded text-zinc-400 hover:text-zinc-50 text-xs font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer font-sans"
+          class="px-4 py-1.5 rounded text-zinc-400 hover:text-zinc-50 text-[13px] font-medium border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer font-sans"
         >
           Close
         </button>

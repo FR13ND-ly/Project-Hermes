@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, computed, signal } from '@angular/core';
 
 export type Theme = 'dark' | 'light' | 'retro';
 
@@ -26,6 +26,9 @@ export class ThemeService {
   ];
 
   readonly theme = signal<Theme>(this.read());
+
+  /** The currently selected option (icon + label), for the switcher trigger. */
+  readonly current = computed(() => this.options.find((o) => o.id === this.theme()) ?? this.options[0]);
 
   constructor() {
     // Reassert on boot in case the pre-paint script and stored value ever diverge.

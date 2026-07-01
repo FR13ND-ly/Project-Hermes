@@ -1,5 +1,5 @@
 import { Component, inject, computed, signal, effect, HostListener } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { RouterOutlet, RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from './core/services/auth';
 import { WorkspaceService, Workspace, WorkspaceUsage } from './core/services/workspace.service';
@@ -10,7 +10,7 @@ import { BuildIndicator } from './shared/components/build-indicator/build-indica
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule, BuildIndicator],
+  imports: [RouterOutlet, RouterLink, FormsModule, BuildIndicator],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -33,6 +33,7 @@ export class App {
   readonly workspaces = signal<Workspace[]>([]);
   readonly showWorkspaceDropdown = signal(false);
   readonly showUserMenu = signal(false);
+  readonly showThemeMenu = signal(false);
   readonly showCreateWorkspaceModal = signal(false);
   readonly newWorkspaceName = signal('');
 
@@ -142,6 +143,10 @@ export class App {
     }
     if (this.showUserMenu()) {
       this.showUserMenu.set(false);
+      return;
+    }
+    if (this.showThemeMenu()) {
+      this.showThemeMenu.set(false);
     }
   }
 

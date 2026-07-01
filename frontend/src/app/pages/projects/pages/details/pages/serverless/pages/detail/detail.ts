@@ -1,6 +1,6 @@
-import { Component, inject, signal, OnInit, OnDestroy, effect } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink, RouterOutlet, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { Details } from '../../../../details';
 import { ProjectService, ServerlessInstance } from '../../../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../../../core/services/toast.service';
@@ -27,6 +27,30 @@ export class ServerlessDetailComponent implements OnInit, OnDestroy {
   readonly loading = signal(false);
   readonly deploying = signal(false);
 
+  // Two-tier tab nav: groups the 7 flat routes by purpose (URLs unchanged).
+  readonly tabGroups: { id: string; label: string; default: string; tabs: { path: string; label: string }[] }[] = [
+    { id: 'details', label: 'Overview', default: 'details', tabs: [{ path: 'details', label: 'Overview' }] },
+    { id: 'observability', label: 'Observability', default: 'metrics', tabs: [
+      { path: 'metrics', label: 'Metrics' },
+      { path: 'logs', label: 'Logs' },
+    ] },
+    { id: 'routes', label: 'Routes', default: 'routes', tabs: [{ path: 'routes', label: 'Routes' }] },
+    { id: 'builds', label: 'Builds', default: 'builds', tabs: [{ path: 'builds', label: 'Builds' }] },
+    { id: 'settings', label: 'Settings', default: 'settings', tabs: [
+      { path: 'settings', label: 'General' },
+      { path: 'env', label: 'Env Variables' },
+    ] },
+  ];
+  readonly currentTabPath = signal<string>('details');
+  readonly activeGroup = computed(
+    () => this.tabGroups.find((g) => g.tabs.some((t) => t.path === this.currentTabPath())) ?? this.tabGroups[0],
+  );
+  private navSub?: Subscription;
+  private leafTabPath(): string {
+    const clean = this.router.url.split('?')[0].split('#')[0];
+    return clean.split('/').filter(Boolean).pop() ?? 'details';
+  }
+
   private wsSubscriptions = new Subscription();
 
   constructor() {
@@ -49,9 +73,15 @@ export class ServerlessDetailComponent implements OnInit, OnDestroy {
         this.loadFunctionDetails(payload.function_id, true);
       }
     }));
+
+    this.currentTabPath.set(this.leafTabPath());
+    this.navSub = this.router.events.subscribe((e) => {
+      if (e instanceof NavigationEnd) this.currentTabPath.set(this.leafTabPath());
+    });
   }
 
   ngOnDestroy(): void {
+    this.navSub?.unsubscribe();
     this.wsSubscriptions.unsubscribe();
   }
 

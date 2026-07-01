@@ -1,17 +1,17 @@
 <div class="space-y-4 animate-fade-in font-mono">
   <!-- Build lifecycle stepper -->
   @if (parent.displayBuild(); as build) {
-    <div class="bg-zinc-900 p-4 rounded-lg border mb-4 font-mono"
+    <div class="bg-zinc-900 p-4 rounded-xl border mb-4 font-mono"
          [class]="parent.isBuildFailed(build) ? 'border-red-900/40' : 'border-zinc-800'">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Build Lifecycle</h3>
+        <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">Build Lifecycle</h3>
         <div class="flex items-center gap-3">
-          <span class="text-[9px] font-mono text-zinc-600">{{ build.branchName }} · {{ build.id.substring(0, 8) }}</span>
+          <span class="text-[11px] font-mono text-zinc-600">{{ build.branchName }} · {{ build.id.substring(0, 8) }}</span>
           @if (parent.isBuildInProgress(build)) {
             <button
               (click)="parent.onCancelBuild(build)"
               [disabled]="parent.cancellingBuild()"
-              class="px-2.5 py-1 rounded border border-red-900/40 bg-red-950/20 hover:bg-red-950/40 text-red-400 text-[10px] font-bold transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              class="px-2.5 py-1 rounded border border-red-900/40 bg-red-950/20 hover:bg-red-950/40 text-red-400 text-xs font-bold transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
             >
               @if (parent.cancellingBuild()) {
                 <svg class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
@@ -35,7 +35,7 @@
           @for (step of tl.steps; track step.key; let last = $last) {
             <div class="flex flex-col items-center gap-1.5 shrink-0 w-[58px]" [title]="step.detail || step.label">
               <div
-                class="w-6 h-6 rounded-full flex items-center justify-center border text-[9px] font-bold transition-all duration-300"
+                class="w-6 h-6 rounded-full flex items-center justify-center border text-[11px] font-bold transition-all duration-300"
                 [ngClass]="{
                   'bg-emerald-500 border-emerald-500 text-zinc-950': step.status === 'done',
                   'bg-amber-500 border-amber-500 text-zinc-950 animate-pulse': step.status === 'active',
@@ -63,7 +63,7 @@
                 }
               </div>
               <span
-                class="text-[8px] font-mono uppercase tracking-wider text-center leading-tight"
+                class="text-[11px] font-mono uppercase tracking-wider text-center leading-tight"
                 [class]="step.status === 'pending' || step.status === 'skipped' ? 'text-zinc-650' : (step.status === 'failed' ? 'text-red-400' : 'text-zinc-300')"
               >{{ step.label }}</span>
             </div>
@@ -74,7 +74,7 @@
           }
         </div>
         @if (parent.currentTimelineDetail(); as d) {
-          <div class="mt-2 px-1 text-[10px] text-zinc-400 font-sans truncate">{{ d }}</div>
+          <div class="mt-2 px-1 text-xs text-zinc-400 font-sans truncate">{{ d }}</div>
         }
       } @else {
         <!-- Fallback: phase-only stepper while the richer timeline loads -->
@@ -82,7 +82,7 @@
           @for (step of parent.buildPhaseSteps; track step.key; let i = $index; let last = $last) {
             <div class="flex flex-col items-center gap-1.5 shrink-0 w-16">
               <div
-                class="w-6 h-6 rounded-full flex items-center justify-center border text-[9px] font-bold transition-all duration-300"
+                class="w-6 h-6 rounded-full flex items-center justify-center border text-[11px] font-bold transition-all duration-300"
                 [ngClass]="{
                   'bg-emerald-500 border-emerald-500 text-zinc-950': !parent.isBuildFailed(build) && parent.stepState(build, i) === 'done',
                   'bg-amber-500 border-amber-500 text-zinc-950 animate-pulse': !parent.isBuildFailed(build) && parent.stepState(build, i) === 'active',
@@ -98,7 +98,7 @@
                 }
               </div>
               <span
-                class="text-[8px] font-mono uppercase tracking-wider text-center leading-tight"
+                class="text-[11px] font-mono uppercase tracking-wider text-center leading-tight"
                 [class]="(!parent.isBuildFailed(build) && parent.stepState(build, i) !== 'pending') ? 'text-zinc-300' : 'text-zinc-650'"
               >{{ step.label }}</span>
             </div>
@@ -117,17 +117,17 @@
           </svg>
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
-              <span class="text-[10px] font-bold text-red-400 uppercase tracking-wider">{{ parent.buildOutcomeLabel(build) }}</span>
+              <span class="text-xs font-bold text-red-400 uppercase tracking-wider">{{ parent.buildOutcomeLabel(build) }}</span>
               @if (build.failureCategory) {
-                <span class="px-1.5 py-0.2 rounded bg-red-950/40 border border-red-900/40 text-[8px] font-bold text-red-400 font-mono uppercase">{{ build.failureCategory }}</span>
+                <span class="px-1.5 py-0.2 rounded bg-red-950/40 border border-red-900/40 text-[11px] font-bold text-red-400 font-mono uppercase">{{ build.failureCategory }}</span>
               }
             </div>
-            <div class="text-[11px] text-red-300/80 mt-0.5 font-sans">{{ build.failureReason || 'Unknown cause — check the logs below for details.' }}</div>
+            <div class="text-[13px] text-red-300/80 mt-0.5 font-sans">{{ build.failureReason || 'Unknown cause — check the logs below for details.' }}</div>
           </div>
           <button
             (click)="parent.onRetryBuild(build)"
             [disabled]="parent.retryingBuild()"
-            class="px-3 py-1.5 rounded bg-zinc-50 hover:bg-zinc-200 text-zinc-950 text-[10px] font-bold shadow transition-all cursor-pointer disabled:opacity-50 shrink-0 flex items-center gap-1.5"
+            class="px-3 py-1.5 rounded btn-accent text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50 shrink-0 flex items-center gap-1.5"
           >
             @if (parent.retryingBuild()) {
               <svg class="animate-spin h-3 w-3 text-zinc-950" fill="none" viewBox="0 0 24 24">
@@ -149,9 +149,9 @@
   <div class="grid gap-4 lg:grid-cols-3 font-mono">
     <!-- Sidebar Selector (Build History) -->
     <div class="lg:col-span-1 space-y-4">
-      <div class="bg-zinc-900 p-4 rounded-lg border border-zinc-800 space-y-3 shadow-sm flex flex-col">
+      <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-3 shadow-sm flex flex-col">
         <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
-          <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Build History</h3>
+          <h3 class="text-[13px] font-bold text-zinc-400 uppercase tracking-wider">Build History</h3>
           <button 
             (click)="parent.loadBuilds()" 
             class="text-zinc-505 hover:text-zinc-300 p-1.5 rounded border border-zinc-900 bg-zinc-950 hover:border-zinc-500 transition-all cursor-pointer"
@@ -172,7 +172,7 @@
         }
 
         @if (!parent.buildsLoading() && parent.builds().length === 0) {
-          <div class="py-8 text-center text-xs text-zinc-650 font-medium">No builds recorded.</div>
+          <div class="py-8 text-center text-[13px] text-zinc-650 font-medium">No builds recorded.</div>
         }
 
         @if (!parent.buildsLoading() && parent.builds().length > 0) {
@@ -180,7 +180,7 @@
             @for (build of parent.builds(); track build.id) {
               <button
                 (click)="parent.onViewBuildLogs(build)"
-                class="w-full text-left p-3 rounded border bg-zinc-950 text-xs transition-all hover:border-zinc-505 hover:bg-zinc-950 flex flex-col gap-2 cursor-pointer"
+                class="w-full text-left p-3 rounded border bg-zinc-950 text-[13px] transition-all hover:border-zinc-505 hover:bg-zinc-950 flex flex-col gap-2 cursor-pointer"
                 [class.border-zinc-50]="parent.selectedBuildId() === build.id"
                 [class.border-emerald-700]="build.isLive && parent.selectedBuildId() !== build.id"
                 [class.border-zinc-900]="!build.isLive && parent.selectedBuildId() !== build.id"
@@ -192,13 +192,13 @@
                     </span>
                     <div class="flex items-center gap-1 shrink-0">
                       @if (build.isLive) {
-                        <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[8px] font-bold border bg-emerald-950/30 border-emerald-800/50 text-emerald-300 uppercase">
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[11px] font-bold border bg-emerald-950/30 border-emerald-800/50 text-emerald-300 uppercase">
                           <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                           Live
                         </span>
                       }
                       <span
-                        class="px-1.5 py-0.2 rounded text-[8px] font-bold border uppercase"
+                        class="px-1.5 py-0.2 rounded text-[11px] font-bold border uppercase"
                         [class]="
                           build.status === 'succeeded' ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-400' :
                           (build.status === 'failed' || build.status === 'crashed') ? 'bg-red-950/20 border-red-900/30 text-red-400' :
@@ -211,10 +211,10 @@
                     </div>
                   </div>
                   @if (build.commitSha) {
-                    <p class="text-[9px] text-zinc-650">commit: {{ build.commitSha.substring(0, 7) }}</p>
+                    <p class="text-[11px] text-zinc-650">commit: {{ build.commitSha.substring(0, 7) }}</p>
                   }
                 </div>
-                <div class="text-[9px] text-zinc-650 border-t border-zinc-900/50 pt-1.5 w-full flex items-center justify-between">
+                <div class="text-[11px] text-zinc-650 border-t border-zinc-900/50 pt-1.5 w-full flex items-center justify-between">
                   <div class="flex items-center gap-1.5">
                     <span>ID: {{ build.id.substring(0, 8) }}</span>
                     @if (build.status === 'building') {
@@ -241,12 +241,12 @@
 
     <!-- Terminal Output View -->
     <div class="lg:col-span-2 space-y-4">
-      <div class="flex items-center justify-between bg-zinc-900/50 p-3 rounded-lg border border-zinc-900">
+      <div class="flex items-center justify-between bg-zinc-900/50 p-3 rounded-xl border border-zinc-900">
         <div>
-          <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">
+          <h3 class="text-[13px] font-bold text-zinc-300 uppercase tracking-wider">
             Build Logs @if (parent.selectedBuildId()) { (ID: {{ parent.selectedBuildId()?.substring(0, 8) }}) }
             @if (parent.selectedBuild()?.isLive) {
-              <span class="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[8px] font-bold border bg-emerald-950/30 border-emerald-800/50 text-emerald-300 uppercase align-middle">
+              <span class="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[11px] font-bold border bg-emerald-950/30 border-emerald-800/50 text-emerald-300 uppercase align-middle">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 Applied now (Live)
               </span>
@@ -257,7 +257,7 @@
               <span class="text-zinc-550 font-mono ml-2">[{{ parent.formatDuration(parent.selectedBuild()!.durationSec) }}]</span>
             }
           </h3>
-          <p class="text-[10px] text-zinc-555 mt-0.5">
+          <p class="text-xs text-zinc-555 mt-0.5">
             Compilation steps from Kaniko and Cloner containers
           </p>
         </div>
@@ -269,7 +269,7 @@
             placeholder="Filter logs..." 
             [ngModel]="parent.logSearchQuery()"
             (ngModelChange)="parent.logSearchQuery.set($event)"
-            class="bg-zinc-950 border border-zinc-850 text-zinc-300 text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 w-32 sm:w-44 font-mono"
+            class="bg-zinc-950 border border-zinc-850 text-zinc-300 text-[13px] px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 w-32 sm:w-44 font-mono"
           />
           
           <!-- Download button -->
@@ -289,7 +289,7 @@
               (click)="parent.onRollbackBuild(parent.selectedBuild()!)"
               [disabled]="parent.rollingBackId() === parent.selectedBuild()!.id"
               title="Redeploy this build's image"
-              class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border border-zinc-700 bg-zinc-950 hover:border-zinc-400 text-zinc-300 hover:text-zinc-50 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              class="px-2.5 py-1.5 rounded text-xs font-bold uppercase border border-zinc-700 bg-zinc-950 hover:border-zinc-400 text-zinc-300 hover:text-zinc-50 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
             >
               @if (parent.rollingBackId() === parent.selectedBuild()!.id) {
                 <svg class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
@@ -307,7 +307,7 @@
 
           <button 
             (click)="parent.toggleAutoScroll()"
-            class="px-2.5 py-1.5 rounded text-[10px] font-bold uppercase border cursor-pointer transition-all"
+            class="px-2.5 py-1.5 rounded text-xs font-bold uppercase border cursor-pointer transition-all"
             [class]="parent.autoScroll() ? 'bg-zinc-50 text-zinc-950 border-zinc-50' : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-zinc-50'"
           >
             Autoscroll: {{ parent.autoScroll() ? 'ON' : 'OFF' }}
@@ -317,7 +317,7 @@
 
       <div 
         id="terminal-log-box"
-        class="terminal-view h-[380px] p-4 overflow-y-auto font-mono text-xs text-zinc-300 space-y-1.5 scroll-smooth select-text bg-zinc-950 border border-zinc-900 rounded"
+        class="terminal-view h-[380px] p-4 overflow-y-auto font-mono text-[13px] text-zinc-300 space-y-1.5 scroll-smooth select-text bg-zinc-950 border border-zinc-900 rounded"
       >
         @if (parent.selectedBuildId()) {
           @if (parent.loadingBuildLogs()) {
@@ -326,13 +326,13 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>
-              <span class="text-[10px]">Loading build logs...</span>
+              <span class="text-xs">Loading build logs...</span>
             </div>
           } @else {
             <div class="whitespace-pre-wrap leading-relaxed text-zinc-200">{{ parent.filteredBuildLogs() }}</div>
           }
         } @else {
-          <div class="h-full flex items-center justify-center text-zinc-555 text-xs">
+          <div class="h-full flex items-center justify-center text-zinc-555 text-[13px]">
             Select a build from the history to view build logs.
           </div>
         }

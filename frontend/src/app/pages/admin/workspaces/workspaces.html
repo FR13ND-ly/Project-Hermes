@@ -1,7 +1,7 @@
 <div class="max-w-6xl mx-auto px-6 py-8 space-y-6 animate-fade-in">
 
   <!-- Sub-navigation tabs for Admin Console -->
-  <div class="flex items-center gap-2 border-b border-zinc-900 pb-3 font-mono text-xs select-none">
+  <div class="flex items-center gap-2 border-b border-zinc-900 pb-3 font-mono text-[13px] select-none">
     <a
       routerLink="/admin/users"
       routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
@@ -29,9 +29,9 @@
   <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
     <div>
       <h1 class="text-sm font-bold text-zinc-300 uppercase tracking-wider font-mono">Workspaces Management</h1>
-      <p class="text-xs text-zinc-550 mt-0.5">Telemetry and management for all of the platform's workspaces.</p>
+      <p class="text-[13px] text-zinc-550 mt-0.5">Telemetry and management for all of the platform's workspaces.</p>
     </div>
-    <span class="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">{{ workspaces().length }} workspaces</span>
+    <span class="text-xs font-mono text-zinc-600 uppercase tracking-wider">{{ workspaces().length }} workspaces</span>
   </div>
 
   <!-- Loading -->
@@ -41,26 +41,26 @@
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
       </svg>
-      <span class="text-zinc-500 text-[9px] uppercase font-mono tracking-widest">Loading workspaces...</span>
+      <span class="text-zinc-500 text-[11px] uppercase font-mono tracking-widest">Loading workspaces...</span>
     </div>
   }
 
   @if (!loading()) {
     @if (workspaces().length === 0) {
-      <div class="bg-zinc-900 p-10 rounded-lg border border-zinc-800 text-center text-xs text-zinc-500">
+      <div class="bg-zinc-900 p-10 rounded-xl border border-zinc-800 text-center text-[13px] text-zinc-500">
         There are no workspaces on the platform.
       </div>
     }
 
     <div class="grid gap-4 md:grid-cols-2">
       @for (ws of workspaces(); track ws.id) {
-        <div class="rounded-lg border border-zinc-800 bg-zinc-900 shadow-sm overflow-hidden flex flex-col">
+        <div class="rounded-xl border border-zinc-800 bg-zinc-900 shadow-sm overflow-hidden flex flex-col">
 
           <!-- Card header -->
           <div class="flex items-start justify-between px-5 py-3.5 border-b border-zinc-900 bg-zinc-950">
             <div class="min-w-0">
-              <h3 class="text-xs font-bold text-zinc-50 font-mono truncate">{{ ws.name }}</h3>
-              <p class="text-[10px] text-zinc-600 font-mono truncate">{{ ws.slug }}</p>
+              <h3 class="text-[13px] font-bold text-zinc-50 font-mono truncate">{{ ws.name }}</h3>
+              <p class="text-xs text-zinc-600 font-mono truncate">{{ ws.slug }}</p>
             </div>
             <button
               (click)="onDelete(ws)"
@@ -85,26 +85,26 @@
           <div class="grid grid-cols-4 divide-x divide-zinc-900 border-b border-zinc-900">
             <div class="px-3 py-3 text-center">
               <div class="text-sm font-bold text-zinc-50 font-mono">{{ ws.memberCount }}</div>
-              <div class="text-[9px] text-zinc-600 uppercase tracking-wider mt-0.5">Members</div>
+              <div class="text-[11px] text-zinc-600 uppercase tracking-wider mt-0.5">Members</div>
             </div>
             <div class="px-3 py-3 text-center">
               <div class="text-sm font-bold text-zinc-50 font-mono">{{ ws.activeAppCount }}/{{ ws.appCount }}</div>
-              <div class="text-[9px] text-zinc-600 uppercase tracking-wider mt-0.5">Active apps</div>
+              <div class="text-[11px] text-zinc-600 uppercase tracking-wider mt-0.5">Active apps</div>
             </div>
             <div class="px-3 py-3 text-center">
               <div class="text-sm font-bold text-zinc-50 font-mono">{{ ws.databaseCount }}</div>
-              <div class="text-[9px] text-zinc-600 uppercase tracking-wider mt-0.5">Databases</div>
+              <div class="text-[11px] text-zinc-600 uppercase tracking-wider mt-0.5">Databases</div>
             </div>
             <div class="px-3 py-3 text-center">
               <div class="text-sm font-bold text-zinc-50 font-mono">{{ ws.creator || '—' }}</div>
-              <div class="text-[9px] text-zinc-600 uppercase tracking-wider mt-0.5">Creator</div>
+              <div class="text-[11px] text-zinc-600 uppercase tracking-wider mt-0.5">Creator</div>
             </div>
           </div>
 
           <!-- Resource bars -->
           <div class="px-5 py-4 space-y-3 flex-1">
             <div class="space-y-1">
-              <div class="flex items-center justify-between text-[10px] font-mono">
+              <div class="flex items-center justify-between text-xs font-mono">
                 <span class="text-zinc-500 uppercase tracking-wider">RAM allocated</span>
                 <span class="text-zinc-400">{{ ws.allocatedMemoryMb | number }} / {{ ws.maxMemoryMb | number }} MB</span>
               </div>
@@ -113,7 +113,7 @@
               </div>
             </div>
             <div class="space-y-1">
-              <div class="flex items-center justify-between text-[10px] font-mono">
+              <div class="flex items-center justify-between text-xs font-mono">
                 <span class="text-zinc-500 uppercase tracking-wider">Storage allocated</span>
                 <span class="text-zinc-400">{{ ws.allocatedStorageGb | number }} / {{ ws.maxStorageGb | number }} GB</span>
               </div>
@@ -125,7 +125,7 @@
 
           <!-- Footer -->
           <div class="px-5 py-2.5 border-t border-zinc-900 bg-zinc-950/40">
-            <span class="text-[9px] text-zinc-600 font-mono">Created {{ ws.createdAt | date:'mediumDate' }}</span>
+            <span class="text-[11px] text-zinc-600 font-mono">Created {{ ws.createdAt | date:'mediumDate' }}</span>
           </div>
         </div>
       }
