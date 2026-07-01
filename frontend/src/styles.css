@@ -150,9 +150,9 @@ html, body {
      grid. Fixed attachment so it sits behind scrolling content like a backdrop. All
      theme-aware — indigo glow on dark/light, amber on retro (via --accent). */
   background-image:
-    radial-gradient(1000px 650px at 50% -24%, color-mix(in oklab, var(--accent) 9%, transparent), transparent 60%),
-    radial-gradient(circle, color-mix(in oklab, var(--surface-dot) 32%, transparent) 1px, transparent 1px);
-  background-size: 100% 100%, 24px 24px;
+    radial-gradient(1000px 650px at 50% -24%, color-mix(in oklab, var(--accent) 11%, transparent), transparent 60%),
+    radial-gradient(circle, color-mix(in oklab, var(--surface-dot) 90%, transparent) 1px, transparent 1px);
+  background-size: 100% 100%, 22px 22px;
   background-attachment: fixed;
   color: var(--surface-text);
   /* Modern-SaaS base: sans body, comfortable reading rhythm. Mono is reserved for
@@ -248,6 +248,16 @@ html[data-theme="retro"] { --accent: #ffb000; --accent-hover: #e0a020; --accent-
 
   /* ---- Cards / panels ---- */
   .card { background: var(--surface-panel); border: 1px solid var(--surface-border); border-radius: 8px; }
+
+  /* Frosted glass panel — looks great floating over the background glow. Opt-in:
+     add `.glass` to a container instead of `.card` / a solid bg. */
+  .glass {
+    background: color-mix(in oklab, var(--surface-panel) 62%, transparent);
+    backdrop-filter: blur(14px) saturate(1.4);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    border: 1px solid color-mix(in oklab, var(--color-zinc-50) 9%, transparent);
+    border-radius: 8px;
+  }
 
   /* ---- Dropdown / menu ---- */
   .menu {
