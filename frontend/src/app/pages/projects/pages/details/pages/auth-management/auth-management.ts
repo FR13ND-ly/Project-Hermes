@@ -7,10 +7,11 @@ import { AuthManagementService, AppUserWithRoles, ApiKeyInfo, CreateApiKeyRespon
 import { ProjectService } from '../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
+import { DangerZone } from '../../../../../../shared/components/danger-zone/danger-zone';
 
 @Component({
   selector: 'app-auth-management-detail',
-  imports: [FormsModule, DatePipe, RouterLink, RouterOutlet, RouterLinkActive],
+  imports: [FormsModule, DatePipe, RouterLink, RouterOutlet, RouterLinkActive, DangerZone],
   templateUrl: './auth-management-detail.html',
   styleUrl: './auth-management.css',
 })
@@ -196,21 +197,20 @@ export const requireRole = (role) => (req, res, next) =>
     this.router.navigate(['/projects', this.parent.projectId(), 'auth-management']);
   }
 
-  async onDeleteService(svc: BaasService): Promise<void> {
-    const confirmed = await this.confirm.ask({
-      title: 'Delete Authentication Service',
-      message: `Are you sure you want to delete "${svc.name}"? All associated users, roles, and API keys will be permanently deleted.`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-      isDanger: true
-    });
-    if (!confirmed) return;
+  readonly deleting = signal(false);
+
+  // Confirmation (typing the service name) handled by <app-danger-zone>.
+  onDeleteService(svc: BaasService): void {
+    this.deleting.set(true);
     this.authMgmtService.deleteService(svc.id).subscribe({
       next: () => {
         this.toast.success(`Service "${svc.name}" deleted.`);
         this.backToList();
       },
-      error: (err) => this.toast.error(err.error?.message || 'Failed to delete service.')
+      error: (err) => {
+        this.deleting.set(false);
+        this.toast.error(err.error?.message || 'Failed to delete service.');
+      }
     });
   }
 

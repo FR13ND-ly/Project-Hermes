@@ -115,15 +115,8 @@ export class CronComponent implements OnInit, OnDestroy {
     return app ? app.name : appId.substring(0, 8);
   }
 
-  async onDeleteCronJob(jobId: string): Promise<void> {
-    const confirmed = await this.confirm.ask({
-      title: 'Delete Cron Job',
-      message: 'Are you sure you want to delete this cron job?',
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-      isDanger: true
-    });
-    if (!confirmed) return;
+  // Confirmation (typing the job name) handled by <app-danger-zone> in the job settings.
+  onDeleteCronJob(jobId: string): void {
 
     this.projectService.deleteCronJob(jobId).subscribe({
       next: () => {

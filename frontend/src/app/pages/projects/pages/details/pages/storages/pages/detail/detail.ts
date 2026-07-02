@@ -2,10 +2,11 @@ import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 
 import { ActivatedRoute, RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
 import { Storages } from '../../storages';
+import { DangerZone } from '../../../../../../../../shared/components/danger-zone/danger-zone';
 
 @Component({
   selector: 'app-storage-detail',
-  imports: [RouterLink, RouterOutlet, RouterLinkActive],
+  imports: [RouterLink, RouterOutlet, RouterLinkActive, DangerZone],
   templateUrl: './detail.html',
   styles: ``,
 })

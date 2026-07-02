@@ -700,16 +700,8 @@ export class Storages implements OnInit, OnDestroy {
 
 
 
-  async onDeleteBucket(bucket: StorageBucket): Promise<void> {
-    const confirmed = await this.confirm.ask({
-      title: 'Delete Storage Bucket',
-      message: `Are you sure you want to completely delete bucket "${bucket.name}"? All contained files, virtual folders, attached Nginx and DNS configurations will be permanently destroyed!`,
-      confirmText: 'Delete permanently',
-      cancelText: 'Cancel',
-      isDanger: true
-    });
-    if (!confirmed) return;
-
+  // Confirmation (typing the bucket name) handled by <app-danger-zone> in the bucket detail.
+  onDeleteBucket(bucket: StorageBucket): void {
     this.loading.set(true);
     this.storageService.deleteBucket(bucket.id).subscribe({
       next: () => {

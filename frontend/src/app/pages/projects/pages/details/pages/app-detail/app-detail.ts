@@ -1219,19 +1219,10 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  async onDeleteApp(): Promise<void> {
+  // Confirmation (typing the app name) handled by <app-danger-zone> in the General tab.
+  onDeleteApp(): void {
     const appData = this.app();
     if (!appData) return;
-
-    const confirmed = await this.confirm.ask({
-      title: 'Delete Application Completely',
-      message: `Are you sure you want to completely delete the application "${appData.name}"? This action is irreversible and will destroy all active instances, builds and routing configurations in Kubernetes.`,
-      confirmText: 'Delete Application',
-      cancelText: 'Cancel',
-      isDanger: true,
-      matchText: appData.name
-    });
-    if (!confirmed) return;
 
     this.loading.set(true);
     this.projectService.deleteApp(appData.id).subscribe({

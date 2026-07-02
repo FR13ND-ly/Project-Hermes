@@ -162,24 +162,14 @@
     </div>
   </div>
 
-  <!-- Danger Zone delete database -->
-  <div class="bg-zinc-900 p-5 rounded-lg border border-red-900/20 bg-red-950/5 space-y-4">
-    <div class="border-b border-red-950/40 pb-2.5">
-      <h3 class="text-[13px] font-bold text-red-400"> Danger Zone </h3>
-    </div>
-
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-      <div class="space-y-1.5">
-        <h4 class="text-[13px] font-bold text-zinc-350">Delete Database</h4>
-        <p class="text-[13px] text-zinc-550 max-w-md">Permanently delete the database instance and stored data. This action is irreversible.</p>
-      </div>
-
-      <button
-        (click)="onDeleteDatabase()"
-        class="px-3.5 py-2 rounded bg-red-950/20 hover:bg-red-950/40 text-red-400 border border-red-900/30 hover:border-red-900/60 text-[13px] font-bold cursor-pointer transition-colors shrink-0"
-        >
-        Delete Database Instance
-      </button>
-    </div>
-  </div>
+  <!-- Danger Zone: delete database -->
+  <app-danger-zone
+    heading="Delete this database"
+    description="Permanently deletes the database instance and all stored data."
+    resourceKind="database"
+    [resourceName]="dbDetail.db()?.name || ''"
+    confirmLabel="Delete database"
+    [busy]="deleting()"
+    (confirmed)="onDeleteDatabase()"
+  />
 </div>

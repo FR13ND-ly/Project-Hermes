@@ -42,10 +42,20 @@
     </div>
   </div>
 
-  <div class="flex items-center justify-between">
-    <button (click)="onDeleteInstance()" class="px-3 py-2 rounded border border-red-950/40 text-red-500/90 hover:bg-red-950/20 text-[13px] font-semibold cursor-pointer">Delete Instance</button>
+  <div class="flex items-center justify-end">
     <button (click)="onSaveSettings()" [disabled]="savingSettings()" class="btn btn-primary">{{ savingSettings() ? 'Saving...' : 'Save Settings' }}</button>
   </div>
+
+  <!-- Danger Zone: delete serverless instance -->
+  <app-danger-zone
+    heading="Delete this serverless instance"
+    description="Permanently deletes the function, its routes and all Kubernetes resources."
+    resourceKind="serverless instance"
+    [resourceName]="detailParent.selectedInstance()?.name || ''"
+    confirmLabel="Delete instance"
+    [busy]="deleting()"
+    (confirmed)="onDeleteInstance()"
+  />
 
   <!-- ================= REGISTER DOMAIN MODAL ================= -->
   @if (showAddDomainModal()) {

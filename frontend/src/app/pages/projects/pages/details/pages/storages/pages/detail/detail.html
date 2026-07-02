@@ -59,5 +59,16 @@
 
     <router-outlet></router-outlet>
 
+    <!-- Danger Zone: delete bucket -->
+    <app-danger-zone
+      heading="Delete this bucket"
+      description="Permanently deletes the bucket, all its files and any attached Nginx/DNS configuration."
+      resourceKind="bucket"
+      [resourceName]="bucket.name"
+      confirmLabel="Delete bucket"
+      [busy]="parent.loading()"
+      (confirmed)="parent.onDeleteBucket(bucket)"
+    />
+
   </div>
 }

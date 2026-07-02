@@ -7,10 +7,11 @@ import { ProjectService } from '../../../../../../../../../../core/services/proj
 import { DomainService, Domain } from '../../../../../../../../../../core/services/domain.service';
 import { ToastService } from '../../../../../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../../../../../core/services/confirm.service';
+import { DangerZone } from '../../../../../../../../../../shared/components/danger-zone/danger-zone';
 
 @Component({
   selector: 'app-serverless-settings',
-  imports: [FormsModule],
+  imports: [FormsModule, DangerZone],
   templateUrl: './settings.html',
   styles: ``,
 })
@@ -100,24 +101,23 @@ export class ServerlessSettingsComponent implements OnInit {
     });
   }
 
-  async onDeleteInstance(): Promise<void> {
+  readonly deleting = signal(false);
+
+  // Confirmation (typing the instance name) handled by <app-danger-zone>.
+  onDeleteInstance(): void {
     const projId = this.detailParent.parent.projectId();
     const inst = this.detailParent.selectedInstance();
     if (!projId || !inst) return;
-    const confirmed = await this.confirm.ask({
-      title: 'Delete serverless instance',
-      message: `Are you sure you want to delete instance "${inst.name}"? All associated routes and K8s resources will be removed.`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-      isDanger: true,
-    });
-    if (!confirmed) return;
+    this.deleting.set(true);
     this.projectService.deleteFunction(projId, inst.id).subscribe({
       next: () => {
         this.toast.success('Instance deleted.');
         this.router.navigate(['/projects', projId, 'serverless']);
       },
-      error: (err: any) => this.toast.error(err.error?.message || 'Failed to delete.')
+      error: (err: any) => {
+        this.deleting.set(false);
+        this.toast.error(err.error?.message || 'Failed to delete.');
+      }
     });
   }
 

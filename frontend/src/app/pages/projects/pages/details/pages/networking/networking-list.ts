@@ -172,12 +172,14 @@ export class NetworkingList implements OnInit {
   }
 
   async onRemoveDomain(id: string): Promise<void> {
+    const fqdn = this.customDomains().find(d => d.id === id)?.fqdn || '';
     const confirmed = await this.confirm.ask({
-      title: 'Delete Domain',
-      message: 'Are you sure you want to delete this custom domain? This will remove Nginx and DNS routes.',
-      confirmText: 'Delete',
+      title: 'Delete domain',
+      message: `This permanently deletes the domain "${fqdn}" and removes its Nginx and DNS routes. This cannot be undone.`,
+      confirmText: 'Delete domain',
       cancelText: 'Cancel',
-      isDanger: true
+      isDanger: true,
+      matchText: fqdn,
     });
     if (!confirmed) return;
 

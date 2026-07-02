@@ -7,10 +7,11 @@ import { ProjectService, AppInstance, ProjectWebhook, ProjectSshKey, UpdateProje
 import { CloudflareService, CloudflareCredential } from '../../../../../../core/services/cloudflare.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
+import { DangerZone } from '../../../../../../shared/components/danger-zone/danger-zone';
 
 @Component({
   selector: 'app-settings',
-  imports: [FormsModule],
+  imports: [FormsModule, DangerZone],
   templateUrl: './settings.html',
   styleUrl: './settings.css',
 })
@@ -98,19 +99,11 @@ export class Settings implements OnInit {
     });
   }
 
-  async onDeleteProject(): Promise<void> {
+  // Confirmation (typing the project name) is handled by <app-danger-zone>.
+  onDeleteProject(): void {
     const projectId = this.parent.projectId();
     const project = this.parent.project();
-    if (!projectId || !project || this.confirmProjectName() !== project.name) return;
-
-    const confirmed = await this.confirm.ask({
-      title: 'Delete Project Completely',
-      message: `Are you sure you want to completely delete project "${project.name}"? This will irreversibly delete all applications, instances, databases, storages and environment variables from Kubernetes and the database.`,
-      confirmText: 'Delete Project',
-      cancelText: 'Cancel',
-      isDanger: true
-    });
-    if (!confirmed) return;
+    if (!projectId || !project) return;
 
     this.deletingProject.set(true);
     this.error.set(null);
@@ -118,7 +111,6 @@ export class Settings implements OnInit {
     this.projectService.deleteProject(projectId).subscribe({
       next: () => {
         this.deletingProject.set(false);
-        this.confirmProjectName.set('');
         this.toast.success(`Project "${project.name}" deleted successfully.`);
         this.router.navigate(['/projects']);
       },

@@ -6,10 +6,11 @@ import { DbDetailComponent } from '../../db-detail';
 import { DatabaseService, BackupCron } from '../../../../../../../../core/services/database.service';
 import { ToastService } from '../../../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../../../core/services/confirm.service';
+import { DangerZone } from '../../../../../../../../shared/components/danger-zone/danger-zone';
 
 @Component({
   selector: 'app-db-settings',
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe, DangerZone],
   templateUrl: './settings.html',
   styles: ``,
 })
@@ -151,27 +152,22 @@ export class DbSettingsComponent {
     this.router.navigate(['/projects', this.dbDetail.parent.projectId(), 'cron']);
   }
 
-  async onDeleteDatabase(): Promise<void> {
+  readonly deleting = signal(false);
+
+  // Confirmation (typing the DB name) handled by <app-danger-zone>.
+  onDeleteDatabase(): void {
     const id = this.dbDetail.dbId();
     const dbData = this.dbDetail.db();
     if (!id || !dbData) return;
 
-    const confirmed = await this.confirm.ask({
-      title: 'Delete Database',
-      message: `Are you sure you want to delete the database "${dbData.name}"? All stored data will be permanently destroyed!`,
-      confirmText: 'Delete permanently',
-      cancelText: 'Cancel',
-      isDanger: true,
-      matchText: dbData.name
-    });
-    if (!confirmed) return;
-
+    this.deleting.set(true);
     this.dbService.deleteDatabase(id).subscribe({
       next: () => {
         this.toast.success('Database deleted.');
         this.router.navigate(['/projects', this.dbDetail.parent.projectId(), 'databases']);
       },
       error: (err: any) => {
+        this.deleting.set(false);
         this.toast.error(err.error?.message || 'Failed to delete database.');
       }
     });

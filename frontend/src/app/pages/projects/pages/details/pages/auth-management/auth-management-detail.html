@@ -26,7 +26,6 @@
             <p class="text-[13px] text-zinc-500 font-mono mt-0.5 truncate">Service ID: {{ service.id }}</p>
           </div>
         </div>
-        <button (click)="onDeleteService(service)" class="btn btn-danger btn-sm shrink-0">Delete service</button>
       </div>
 
       <!-- Tab Selector Navigation -->
@@ -47,6 +46,17 @@
     </div>
 
     <router-outlet></router-outlet>
+
+    <!-- Danger Zone: delete BaaS service -->
+    <app-danger-zone
+      heading="Delete this authentication service"
+      description="Permanently deletes the service and all of its users, roles and API keys."
+      resourceKind="authentication service"
+      [resourceName]="service.name"
+      confirmLabel="Delete service"
+      [busy]="deleting()"
+      (confirmed)="onDeleteService(service)"
+    />
 
   </div>
 }
