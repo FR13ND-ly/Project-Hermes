@@ -102,7 +102,8 @@ export class AdminUsers implements OnInit {
 
     this.auth.provisionUser(username, email, isAdmin).subscribe({
       next: (tempPwd) => {
-        this.provisionedPassword.set(tempPwd);
+        const cleanPwd = tempPwd ? tempPwd.replace(/^"|"$/g, '') : '';
+        this.provisionedPassword.set(cleanPwd);
         this.newUserIsAdmin.set(false);
         this.provisioningUser.set(false);
         this.toast.success('User registered successfully on the platform!');
@@ -203,7 +204,8 @@ export class AdminUsers implements OnInit {
     this.auth.resetUserPassword(user.id).subscribe({
       next: (tempPwd) => {
         this.resetUser.set({ username: user.username, email: user.email });
-        this.provisionedPassword.set(tempPwd);
+        const cleanPwd = tempPwd ? tempPwd.replace(/^"|"$/g, '') : '';
+        this.provisionedPassword.set(cleanPwd);
         this.showResetSuccessModal.set(true);
         this.toast.success('Password has been reset successfully!');
         this.loadUsers();
