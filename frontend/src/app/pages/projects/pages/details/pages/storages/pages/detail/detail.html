@@ -1,66 +1,60 @@
 @if (parent.selectedBucket(); as bucket) {
-  <div class="space-y-6 animate-fade-in font-mono text-zinc-350">
+  <div class="space-y-6 animate-fade-in font-sans">
 
-    <!-- Detail Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-900 pb-4 gap-4">
-      <div class="flex items-center gap-3">
-        <a 
-          [routerLink]="['../']"
-          class="p-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-455 hover:text-zinc-50 cursor-pointer transition-colors"
-          title="Back to list"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-          </svg>
-        </a>
-        <div>
-          <div class="flex items-center gap-2">
-            <h3 class="text-[13px] font-bold text-zinc-50">{{ bucket.name }}</h3>
-            <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border border-purple-900 bg-purple-950/20 text-purple-400 uppercase">Private</span>
+    <div class="space-y-4">
+      <!-- Detail Header -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <a 
+            [routerLink]="['../']"
+            class="btn btn-secondary btn-sm shrink-0 px-2"
+            title="Back to list"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+          </a>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg font-semibold tracking-tight text-zinc-50">{{ bucket.name }}</h2>
+              <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border border-purple-900 bg-purple-950/20 text-purple-400 uppercase">Private</span>
+            </div>
+            <p class="text-[13px] text-zinc-500 font-mono mt-0.5">slug: {{ bucket.slug }} | limit: {{ parent.formatBytes(bucket.maxBucketSizeBytes) }}@if (bucket.maxFileSizeBytes > 0) { <span> | max/file: {{ parent.formatBytes(bucket.maxFileSizeBytes) }}</span> }@if (bucket.allowCustomProcessing) { <span class="text-emerald-500"> · custom options</span> }</p>
           </div>
-          <p class="text-xs text-zinc-555 font-mono mt-0.5">slug: {{ bucket.slug }} | limit: {{ parent.formatBytes(bucket.maxBucketSizeBytes) }}@if (bucket.maxFileSizeBytes > 0) { <span> | max/file: {{ parent.formatBytes(bucket.maxFileSizeBytes) }}</span> }@if (bucket.allowCustomProcessing) { <span class="text-emerald-500"> · custom options</span> }</p>
         </div>
       </div>
-    </div>
 
-    <!-- Tab Menu -->
-    <div class="flex border-b border-zinc-950 pb-px gap-1">
-      <a 
-        routerLink="files"
-        routerLinkActive
-        #rlaFiles="routerLinkActive"
-        class="px-4 py-2 text-[13px] font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
-        [class]="rlaFiles.isActive ? 'border-zinc-50 text-zinc-50 bg-zinc-950/20' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
-      >
-        Stored Files
-      </a>
-      <a 
-        routerLink="logs"
-        routerLinkActive
-        #rlaLogs="routerLinkActive"
-        class="px-4 py-2 text-[13px] font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
-        [class]="rlaLogs.isActive ? 'border-zinc-50 text-zinc-50 bg-zinc-950/20' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
-      >
-        Log-uri Activitate
-      </a>
-      <a 
-        routerLink="settings"
-        routerLinkActive
-        #rlaSettings="routerLinkActive"
-        class="px-4 py-2 text-[13px] font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
-        [class]="rlaSettings.isActive ? 'border-zinc-50 text-zinc-50 bg-zinc-950/20' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
-      >
-        Bucket Settings
-      </a>
-      <a 
-        routerLink="api"
-        routerLinkActive
-        #rlaApi="routerLinkActive"
-        class="px-4 py-2 text-[13px] font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all"
-        [class]="rlaApi.isActive ? 'border-zinc-50 text-zinc-50 bg-zinc-950/20' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
-      >
-        Integrare API
-      </a>
+      <!-- Tab Menu -->
+      <div class="flex border-b border-zinc-900 pb-px gap-5 select-none">
+        <a 
+          routerLink="files"
+          routerLinkActive="is-active"
+          class="tab"
+        >
+          Stored Files
+        </a>
+        <a 
+          routerLink="logs"
+          routerLinkActive="is-active"
+          class="tab"
+        >
+          Log-uri Activitate
+        </a>
+        <a 
+          routerLink="settings"
+          routerLinkActive="is-active"
+          class="tab"
+        >
+          Bucket Settings
+        </a>
+        <a 
+          routerLink="api"
+          routerLinkActive="is-active"
+          class="tab"
+        >
+          Integrare API
+        </a>
+      </div>
     </div>
 
     <router-outlet></router-outlet>
