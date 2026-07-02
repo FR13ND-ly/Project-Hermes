@@ -19,6 +19,7 @@ export class Auth {
 
   // Toggle between 'login' and 'activate'
   readonly mode = signal<'login' | 'activate'>('login');
+  readonly showThemeMenu = signal(false);
 
   // Login signals
   readonly loginIdentity = signal('');
