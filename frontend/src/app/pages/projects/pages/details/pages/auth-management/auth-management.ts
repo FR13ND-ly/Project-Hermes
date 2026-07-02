@@ -26,6 +26,7 @@ export class AuthManagementDetail {
 
   readonly activeTab = signal<'users' | 'roles' | 'api-keys' | 'integration'>('users');
   readonly loading = signal(false);
+  readonly loadingService = signal(false);
   readonly error = signal<string | null>(null);
 
   // Standalone BaaS services for this project (no app required). The page operates on
@@ -171,7 +172,7 @@ export const requireRole = (role) => (req, res, next) =>
     const projectId = this.parent.projectId();
     if (!projectId) return;
 
-    this.loading.set(true);
+    this.loadingService.set(true);
     this.authMgmtService.listServices(projectId).subscribe({
       next: (list) => {
         const svc = (list || []).find(s => s.id === serviceId);
@@ -181,10 +182,10 @@ export const requireRole = (role) => (req, res, next) =>
           this.toast.error('Authentication service not found.');
           this.backToList();
         }
-        this.loading.set(false);
+        this.loadingService.set(false);
       },
       error: () => {
-        this.loading.set(false);
+        this.loadingService.set(false);
         this.toast.error('Failed to load authentication service.');
       }
     });
