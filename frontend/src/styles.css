@@ -142,6 +142,41 @@ html[data-theme="retro"] {
   --surface-scroll-thumb-hover: #6f5a24;
 }
 
+/* ---------- BARBIE (dark hot pink / magenta) ---------- */
+html[data-theme="barbie"] {
+  --color-zinc-50:  #ffe6f2;
+  --color-zinc-100: #ffccff;
+  --color-zinc-200: #ffb3e6;
+  --color-zinc-300: #ff80d5;
+  --color-zinc-350: #ff66cc;
+  --color-zinc-400: #ff4db8;
+  --color-zinc-450: #ff33a3;
+  --color-zinc-500: #ff1a8c;
+  --color-zinc-550: #e60073;
+  --color-zinc-555: #cc0066;
+  --color-zinc-600: #b30059;
+  --color-zinc-650: #80003c;
+  --color-zinc-700: #660030;
+  --color-zinc-800: #4d0024;
+  --color-zinc-850: #330018;
+  --color-zinc-900: #250011;
+  --color-zinc-950: #18000b;
+
+  --color-red-650: #ff3c6d;
+
+  --surface-page: #18000b;
+  --surface-dot: #4d0024;
+  --surface-panel: #250011;
+  --surface-sidebar: #1f000e;
+  --surface-border: #4d0024;
+  --surface-border-hover: #660030;
+  --surface-text: #ffb3e6;
+  --surface-input: #0e0006;
+  --surface-input-focus: #ff1a8c;
+  --surface-scroll-thumb: #660030;
+  --surface-scroll-thumb-hover: #b30059;
+}
+
 /* Custom Base Styles */
 html, body {
   scrollbar-gutter: stable;
@@ -180,6 +215,7 @@ html, body {
 }
 html[data-theme="light"] { --accent: #4f46e5; --accent-hover: #4338ca; }
 html[data-theme="retro"] { --accent: #ffb000; --accent-hover: #e0a020; --accent-fg: #140f02; }
+html[data-theme="barbie"] { --accent: #ff1a8c; --accent-hover: #ff4db8; }
 
 /* ============================================================================
  * COMPONENT SYSTEM — one definition per primitive so buttons / inputs / menus /
@@ -369,6 +405,9 @@ html[data-theme="retro"] { --accent: #ffb000; --accent-hover: #e0a020; --accent-
 /* Retro CRT flourish: a soft phosphor glow on the terminal-style headings. */
 html[data-theme="retro"] body {
   text-shadow: 0 0 1px rgba(255, 176, 0, 0.25);
+}
+html[data-theme="barbie"] body {
+  text-shadow: 0 0 1px rgba(255, 26, 140, 0.25);
 }
 
 /* Flat Panel Styles */

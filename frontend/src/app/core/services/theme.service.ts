@@ -1,6 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 
-export type Theme = 'dark' | 'light' | 'retro';
+export type Theme = 'dark' | 'light' | 'retro' | 'barbie';
 
 export interface ThemeOption {
   id: Theme;
@@ -23,6 +23,7 @@ export class ThemeService {
     { id: 'dark', label: 'Dark', icon: '🌙' },
     { id: 'light', label: 'Light', icon: '☀️' },
     { id: 'retro', label: 'Retro', icon: '📺' },
+    { id: 'barbie', label: 'Barbie', icon: '💖' },
   ];
 
   readonly theme = signal<Theme>(this.read());
@@ -59,7 +60,7 @@ export class ThemeService {
   private read(): Theme {
     try {
       const v = localStorage.getItem(STORAGE_KEY);
-      if (v === 'light' || v === 'retro' || v === 'dark') return v;
+      if (v === 'light' || v === 'retro' || v === 'dark' || v === 'barbie') return v;
     } catch {
       /* ignore */
     }
