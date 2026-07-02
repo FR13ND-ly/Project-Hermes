@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit, effect } from '@angular/core';
-import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { DbDetailComponent } from '../../db-detail';
 import { DatabaseService, DbBackup } from '../../../../../../../../core/services/database.service';
 import { ToastService } from '../../../../../../../../core/services/toast.service';
@@ -7,8 +7,7 @@ import { ConfirmService } from '../../../../../../../../core/services/confirm.se
 
 @Component({
   selector: 'app-db-backups',
-  standalone: true,
-  imports: [CommonModule, DatePipe, DecimalPipe],
+  imports: [DatePipe, DecimalPipe],
   templateUrl: './backups.html',
   styles: ``,
 })

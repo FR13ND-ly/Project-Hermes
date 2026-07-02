@@ -1,6 +1,6 @@
 import { Component, inject, signal, OnInit, OnDestroy, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Details } from '../../details';
 import { DatabaseService, DatabaseServiceInfo } from '../../../../../../core/services/database.service';
@@ -23,8 +23,7 @@ export interface UnifiedRoute {
 
 @Component({
   selector: 'app-networking',
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink],
   templateUrl: './networking.html',
   styleUrl: './networking.css',
 })

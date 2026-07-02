@@ -4,30 +4,39 @@
       <h3 class="text-sm font-semibold text-zinc-100">Query Console</h3>
       <p class="text-xs text-zinc-500">Execute commands or queries directly on your database instance.</p>
     </div>
-    <button 
-      *ngIf="queryHistory().length > 0"
-      (click)="clearConsole()"
-      class="px-2.5 py-1 rounded bg-zinc-955 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-50 text-xs font-bold border border-zinc-850 transition-colors cursor-pointer"
-    >
-      Clear History
-    </button>
+    @if (queryHistory().length > 0) {
+      <button
+        (click)="clearConsole()"
+        class="px-2.5 py-1 rounded bg-zinc-955 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-50 text-xs font-bold border border-zinc-850 transition-colors cursor-pointer"
+        >
+        Clear History
+      </button>
+    }
   </div>
 
   <!-- Quick Tips depending on DbType -->
   <div class="p-3 rounded border border-zinc-900 bg-zinc-950/60 text-xs text-zinc-400 font-mono space-y-1">
     <span class="font-bold text-zinc-300">Accepted command format:</span>
-    <div *ngIf="dbDetail.db()?.type === 'postgres'" class="text-emerald-400/90">
-      ✓ Tip: PostgreSQL SQL | Ex: <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">SELECT * FROM pg_catalog.pg_tables;</code> or <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">SELECT version();</code>
-    </div>
-    <div *ngIf="dbDetail.db()?.type === 'mysql'" class="text-emerald-400/90">
-      ✓ Tip: MySQL SQL | Ex: <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">SHOW TABLES;</code> or <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">SELECT 1;</code>
-    </div>
-    <div *ngIf="dbDetail.db()?.type === 'redis'" class="text-emerald-400/90">
-      ✓ Tip: Redis CLI | Ex: <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">PING</code>, <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">SET key val</code>, <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">GET key</code>, <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">KEYS *</code>
-    </div>
-    <div *ngIf="dbDetail.db()?.type === 'mongodb'" class="text-emerald-400/90">
-      ✓ Tip: MongoDB JS shell | Ex: <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">db.getCollectionNames()</code> or <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">db.stats()</code>
-    </div>
+    @if (dbDetail.db()?.type === 'postgres') {
+      <div class="text-emerald-400/90">
+        ✓ Tip: PostgreSQL SQL | Ex: <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">SELECT * FROM pg_catalog.pg_tables;</code> or <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">SELECT version();</code>
+      </div>
+    }
+    @if (dbDetail.db()?.type === 'mysql') {
+      <div class="text-emerald-400/90">
+        ✓ Tip: MySQL SQL | Ex: <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">SHOW TABLES;</code> or <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">SELECT 1;</code>
+      </div>
+    }
+    @if (dbDetail.db()?.type === 'redis') {
+      <div class="text-emerald-400/90">
+        ✓ Tip: Redis CLI | Ex: <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">PING</code>, <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">SET key val</code>, <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">GET key</code>, <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">KEYS *</code>
+      </div>
+    }
+    @if (dbDetail.db()?.type === 'mongodb') {
+      <div class="text-emerald-400/90">
+        ✓ Tip: MongoDB JS shell | Ex: <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">db.getCollectionNames()</code> or <code class="text-zinc-50 bg-zinc-950 px-1 py-0.5 rounded">db.stats()</code>
+      </div>
+    }
   </div>
 
   <!-- Terminal: scrollable output (grows) with the input pinned at the bottom -->
@@ -37,7 +46,7 @@
     <div
       id="query-terminal-window"
       class="flex-1 min-h-0 overflow-y-auto p-4 font-mono text-[13px] flex flex-col gap-4 scroll-container"
-    >
+      >
       <!-- Welcome terminal banner -->
       <div class="text-zinc-555 border-b border-zinc-950 pb-2">
         <p>HERMES DATABASE SHELL v1.0.0</p>
@@ -46,9 +55,11 @@
       </div>
 
       <!-- Empty history state -->
-      <div *ngIf="queryHistory().length === 0" class="text-zinc-600 italic py-10 text-center">
-        No commands run in this session. Enter a query in the input below.
-      </div>
+      @if (queryHistory().length === 0) {
+        <div class="text-zinc-600 italic py-10 text-center">
+          No commands run in this session. Enter a query in the input below.
+        </div>
+      }
 
       <!-- History items (oldest first, newest at the bottom) -->
       @for (item of queryHistory(); track item.timestamp) {
@@ -80,20 +91,24 @@
         (keyup.enter)="onRunQuery()"
         [disabled]="queryLoading() || dbDetail.db()?.status !== 'running'"
         class="flex-grow bg-transparent text-zinc-50 font-mono text-sm focus:outline-none disabled:opacity-50 placeholder:text-zinc-700"
-      />
+        />
       <button
         (click)="onRunQuery()"
         [disabled]="queryLoading() || !queryInput().trim() || dbDetail.db()?.status !== 'running'"
         class="px-4 py-1.5 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0"
-      >
-        <span *ngIf="!queryLoading()">Execute</span>
-        <span *ngIf="queryLoading()" class="flex items-center gap-1">
-          <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          Running...
-        </span>
+        >
+        @if (!queryLoading()) {
+          <span>Execute</span>
+        }
+        @if (queryLoading()) {
+          <span class="flex items-center gap-1">
+            <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Running...
+          </span>
+        }
       </button>
     </div>
   </div>

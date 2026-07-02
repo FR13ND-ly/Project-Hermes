@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Details } from '../../details';
@@ -8,8 +8,7 @@ import { ToastService } from '../../../../../../core/services/toast.service';
 
 @Component({
   selector: 'app-auth-management-create',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './auth-management-create.html',
   styleUrl: './auth-management-create.css',
 })

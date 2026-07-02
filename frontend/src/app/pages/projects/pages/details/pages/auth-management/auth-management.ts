@@ -1,6 +1,6 @@
 import { Component, inject, signal, effect, computed } from '@angular/core';
 import { RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Details } from '../../details';
 import { AuthManagementService, AppUserWithRoles, ApiKeyInfo, CreateApiKeyResponse, AuthIntegration, BaasService } from '../../../../../../core/services/auth-management.service';
@@ -10,8 +10,7 @@ import { ConfirmService } from '../../../../../../core/services/confirm.service'
 
 @Component({
   selector: 'app-auth-management',
-  standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, RouterLink, RouterOutlet, RouterLinkActive],
+  imports: [FormsModule, DatePipe, RouterLink, RouterOutlet, RouterLinkActive],
   templateUrl: './auth-management.html',
   styleUrl: './auth-management.css',
 })

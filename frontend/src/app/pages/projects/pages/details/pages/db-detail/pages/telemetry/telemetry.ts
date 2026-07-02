@@ -1,12 +1,11 @@
 import { Component, inject, signal, OnInit, effect } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { DecimalPipe, NgClass } from '@angular/common';
 import { DbDetailComponent } from '../../db-detail';
 import { DatabaseService, DbMetricsHistory } from '../../../../../../../../core/services/database.service';
 
 @Component({
   selector: 'app-db-telemetry',
-  standalone: true,
-  imports: [CommonModule, DecimalPipe],
+  imports: [DecimalPipe, NgClass],
   templateUrl: './telemetry.html',
   styles: ``,
 })

@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule, NgClass, DatePipe } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { Details } from '../../details';
 import { DatabaseService, DatabaseServiceInfo } from '../../../../../../core/services/database.service';
@@ -7,8 +7,7 @@ import { AppDetail, ProjectService } from '../../../../../../core/services/proje
 
 @Component({
   selector: 'app-overview',
-  standalone: true,
-  imports: [CommonModule, NgClass, DatePipe, RouterLink],
+  imports: [NgClass, DatePipe, RouterLink],
   templateUrl: './overview.html',
   styleUrl: './overview.css',
 })

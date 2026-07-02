@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ServerlessDetailComponent } from '../../detail';
@@ -10,8 +10,7 @@ import { ConfirmService } from '../../../../../../../../../../core/services/conf
 
 @Component({
   selector: 'app-serverless-settings',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './settings.html',
   styles: ``,
 })

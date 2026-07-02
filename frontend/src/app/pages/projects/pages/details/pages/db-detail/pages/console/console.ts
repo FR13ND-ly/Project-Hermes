@@ -1,13 +1,12 @@
 import { Component, inject, signal, AfterViewChecked } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DbDetailComponent } from '../../db-detail';
 import { DatabaseService } from '../../../../../../../../core/services/database.service';
 
 @Component({
   selector: 'app-db-console',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule, NgClass, DatePipe],
   templateUrl: './console.html',
   styles: ``,
 })

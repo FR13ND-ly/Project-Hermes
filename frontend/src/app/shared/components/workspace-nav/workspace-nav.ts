@@ -8,7 +8,6 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
  */
 @Component({
   selector: 'app-workspace-nav',
-  standalone: true,
   imports: [RouterLink, RouterLinkActive],
   template: `
     <nav class="flex items-center gap-6 border-b border-zinc-900 mb-6" aria-label="Workspace">

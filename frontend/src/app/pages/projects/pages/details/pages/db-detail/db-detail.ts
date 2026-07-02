@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink, RouterOutlet, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { Details } from '../../details';
 import { DatabaseService, DatabaseServiceInfo } from '../../../../../../core/services/database.service';
@@ -10,8 +10,7 @@ import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-db-detail',
-  standalone: true,
-  imports: [CommonModule, RouterLink, RouterOutlet, RouterLinkActive],
+  imports: [RouterLink, RouterOutlet, RouterLinkActive, NgClass],
   templateUrl: './db-detail.html',
   styleUrl: './db-detail.css',
 })

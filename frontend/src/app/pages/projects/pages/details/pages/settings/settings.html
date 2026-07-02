@@ -3,7 +3,7 @@
   <!-- Cloudflare / Ingress Card (project-level) -->
   <div class="card p-5 space-y-4 font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-sm font-semibold text-zinc-100">Integrare Cloudflare & Ingress</h3>
+      <h3 class="text-sm font-semibold text-zinc-100">Cloudflare & Ingress integration</h3>
       <p class="text-[13px] text-zinc-550">DNS configuration used when attaching domains for this project's resources.</p>
     </div>
 
@@ -19,7 +19,7 @@
           (ngModelChange)="cfIngressIp.set($event)"
           [disabled]="savingCloudflare()"
           class="block w-full px-3 py-2 text-[13px] input font-mono"
-        />
+          />
       </div>
 
       <!-- Base Domain -->
@@ -33,7 +33,7 @@
           (ngModelChange)="cfBaseDomain.set($event)"
           [disabled]="savingCloudflare()"
           class="block w-full px-3 py-2 text-[13px] input font-mono"
-        />
+          />
       </div>
     </div>
 
@@ -46,7 +46,7 @@
         (ngModelChange)="cfCredentialId.set($event)"
         [disabled]="savingCloudflare()"
         class="block w-full px-3 py-2 text-[13px] input cursor-pointer"
-      >
+        >
         <option value="">No Cloudflare</option>
         @for (cf of cloudflareCredentials(); track cf.id) {
           <option [value]="cf.id">{{ cf.label }}@if (cf.baseDomain) { · {{ cf.baseDomain }} }</option>
@@ -59,8 +59,8 @@
       <button
         (click)="onSaveCloudflareSettings()"
         [disabled]="savingCloudflare()"
-        class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
-      >
+        class="btn btn-primary"
+        >
         @if (!savingCloudflare()) {
           <span>Save Cloudflare</span>
         } @else {
@@ -88,23 +88,23 @@
         <!-- Name -->
         <div class="space-y-1.5">
           <label class="text-[11px] text-zinc-500 uppercase tracking-wider font-bold">Integration Name</label>
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="e.g. Production Alerts Channel"
             [ngModel]="newWebhookName()"
             (ngModelChange)="newWebhookName.set($event)"
             class="w-full px-3 py-2 text-[13px] input font-mono"
-          />
+            />
         </div>
 
         <!-- Type selector -->
         <div class="space-y-1.5">
           <label class="text-[11px] text-zinc-500 uppercase tracking-wider font-bold">Platform Type</label>
-          <select 
+          <select
             [ngModel]="newWebhookType()"
             (ngModelChange)="newWebhookType.set($event)"
             class="w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-300 focus:outline-none focus:border-zinc-500 font-mono"
-          >
+            >
             <option value="slack">Slack Webhook</option>
             <option value="discord">Discord Webhook</option>
             <option value="generic">Generic Payload HTTP POST</option>
@@ -114,73 +114,81 @@
         <!-- URL -->
         <div class="space-y-1.5">
           <label class="text-[11px] text-zinc-500 uppercase tracking-wider font-bold">Webhook URL</label>
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="https://hooks.slack.com/services/... or Discord URL"
             [ngModel]="newWebhookUrl()"
             (ngModelChange)="newWebhookUrl.set($event)"
             class="w-full px-3 py-2 text-[13px] input font-mono"
-          />
+            />
         </div>
       </div>
 
       <div class="flex justify-end pt-2">
-        <button 
+        <button
           (click)="onCreateWebhook()"
           [disabled]="!newWebhookName().trim() || !newWebhookUrl().trim()"
-          class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow disabled:opacity-50 cursor-pointer font-sans"
-        >
+          class="btn btn-primary"
+          >
           Add Integration
         </button>
       </div>
     </div>
 
     <!-- Webhooks List Table -->
-    <div *ngIf="loadingWebhooks()" class="flex flex-col items-center justify-center py-6">
-      <svg class="animate-spin h-5 w-5 text-zinc-550 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-      </svg>
-      <span class="text-[13px] text-zinc-550">Loading integrations...</span>
-    </div>
+    @if (loadingWebhooks()) {
+      <div class="flex flex-col items-center justify-center py-6">
+        <svg class="animate-spin h-5 w-5 text-zinc-550 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <span class="text-[13px] text-zinc-550">Loading integrations...</span>
+      </div>
+    }
 
-    <div *ngIf="!loadingWebhooks() && webhooks().length === 0" class="flex flex-col items-center justify-center py-6 text-center text-zinc-550 text-[13px] italic">
-      No webhooks registered in this project.
-    </div>
+    @if (!loadingWebhooks() && webhooks().length === 0) {
+      <div class="flex flex-col items-center justify-center py-6 text-center text-zinc-550 text-[13px] italic">
+        No webhooks registered in this project.
+      </div>
+    }
 
-    <div *ngIf="!loadingWebhooks() && webhooks().length > 0" class="overflow-x-auto">
-      <table class="w-full border-collapse text-left text-[13px]">
-        <thead>
-          <tr class="border-b border-zinc-900 text-zinc-550 uppercase tracking-wider text-[11px] font-mono pb-2">
-            <th class="pb-2 px-2">Name</th>
-            <th class="pb-2 px-2">Type</th>
-            <th class="pb-2 px-2">Webhook URL</th>
-            <th class="pb-2 px-2">Status</th>
-            <th class="pb-2 px-2 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-zinc-950 text-zinc-350">
-          <tr *ngFor="let wh of webhooks()" class="hover:bg-zinc-950/40 transition-colors">
-            <td class="py-2.5 px-2 font-semibold text-zinc-50">{{ wh.name }}</td>
-            <td class="py-2.5 px-2 font-mono uppercase text-zinc-450">{{ wh.webhookType }}</td>
-            <td class="py-2.5 px-2 font-mono text-zinc-650 text-xs max-w-[250px] truncate select-all">{{ wh.url }}</td>
-            <td class="py-2.5 px-2">
-              <span class="px-2 py-0.5 rounded text-[11px] font-bold border font-mono uppercase bg-emerald-950/20 border-emerald-900/30 text-emerald-400">
-                Active
-              </span>
-            </td>
-            <td class="py-2.5 px-2 text-right">
-              <button 
-                (click)="onDeleteWebhook(wh.id)"
-                class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-red-400 text-xs border border-zinc-850 transition-colors cursor-pointer"
-              >
-                Remove
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    @if (!loadingWebhooks() && webhooks().length > 0) {
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-left text-[13px]">
+          <thead>
+            <tr class="border-b border-zinc-900 text-zinc-550 uppercase tracking-wider text-[11px] font-mono pb-2">
+              <th class="pb-2 px-2">Name</th>
+              <th class="pb-2 px-2">Type</th>
+              <th class="pb-2 px-2">Webhook URL</th>
+              <th class="pb-2 px-2">Status</th>
+              <th class="pb-2 px-2 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-zinc-950 text-zinc-350">
+            @for (wh of webhooks(); track wh) {
+              <tr class="hover:bg-zinc-950/40 transition-colors">
+                <td class="py-2.5 px-2 font-semibold text-zinc-50">{{ wh.name }}</td>
+                <td class="py-2.5 px-2 font-mono uppercase text-zinc-450">{{ wh.webhookType }}</td>
+                <td class="py-2.5 px-2 font-mono text-zinc-650 text-xs max-w-[250px] truncate select-all">{{ wh.url }}</td>
+                <td class="py-2.5 px-2">
+                  <span class="px-2 py-0.5 rounded text-[11px] font-bold border font-mono uppercase bg-emerald-950/20 border-emerald-900/30 text-emerald-400">
+                    Active
+                  </span>
+                </td>
+                <td class="py-2.5 px-2 text-right">
+                  <button
+                    (click)="onDeleteWebhook(wh.id)"
+                    class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-red-400 text-xs border border-zinc-850 transition-colors cursor-pointer"
+                    >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
   </div>
 
   <!-- SSH Keys Card -->
@@ -197,58 +205,60 @@
         <!-- Name -->
         <div class="space-y-1.5">
           <label class="text-[11px] text-zinc-500 uppercase tracking-wider font-bold">Key Name</label>
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="e.g. Production GitLab Key"
             [ngModel]="newSshKeyName()"
             (ngModelChange)="newSshKeyName.set($event)"
             class="w-full px-3 py-2 text-[13px] input font-mono"
-          />
+            />
         </div>
 
         <!-- Host -->
         <div class="space-y-1.5">
           <label class="text-[11px] text-zinc-500 uppercase tracking-wider font-bold">Domain / Git Host (HostName)</label>
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="e.g. gitlab.com or git.company.com"
             [ngModel]="newSshKeyHost()"
             (ngModelChange)="newSshKeyHost.set($event)"
             class="w-full px-3 py-2 text-[13px] input font-mono"
-          />
+            />
         </div>
       </div>
 
       <!-- Generation Mode Toggle -->
       <div class="flex items-center gap-2 py-1 text-[13px] text-zinc-400">
-        <input 
+        <input
           id="auto-gen-ssh-chk"
-          type="checkbox" 
+          type="checkbox"
           [ngModel]="autoGenerateSsh()"
           (ngModelChange)="autoGenerateSsh.set($event)"
           class="accent-zinc-50 cursor-pointer h-3.5 w-3.5"
-        />
+          />
         <label for="auto-gen-ssh-chk" class="cursor-pointer font-sans select-none">Automatically generate a new secure key pair (Recommended)</label>
       </div>
 
       <!-- Custom Private Key Textarea -->
-      <div *ngIf="!autoGenerateSsh()" class="space-y-1.5 animate-fade-in">
-        <label class="text-[11px] text-zinc-500 uppercase tracking-wider font-bold">SSH Private Key (OpenSSH Private Key)</label>
-        <textarea 
-          placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----"
-          [ngModel]="newSshKeyPrivateKey()"
-          (ngModelChange)="newSshKeyPrivateKey.set($event)"
-          rows="5"
-          class="w-full px-3 py-2 text-[13px] input font-mono"
-        ></textarea>
-      </div>
+      @if (!autoGenerateSsh()) {
+        <div class="space-y-1.5 animate-fade-in">
+          <label class="text-[11px] text-zinc-500 uppercase tracking-wider font-bold">SSH Private Key (OpenSSH Private Key)</label>
+          <textarea
+            placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----"
+            [ngModel]="newSshKeyPrivateKey()"
+            (ngModelChange)="newSshKeyPrivateKey.set($event)"
+            rows="5"
+            class="w-full px-3 py-2 text-[13px] input font-mono"
+          ></textarea>
+        </div>
+      }
 
       <div class="flex justify-end pt-2">
-        <button 
+        <button
           (click)="onCreateSshKey()"
           [disabled]="!newSshKeyName().trim() || !newSshKeyHost().trim() || (!autoGenerateSsh() && !newSshKeyPrivateKey().trim()) || generatingSshKey()"
-          class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow disabled:opacity-50 cursor-pointer font-sans flex items-center gap-1.5"
-        >
+          class="btn btn-primary"
+          >
           @if (generatingSshKey()) {
             <svg class="animate-spin h-3 w-3 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -263,60 +273,68 @@
     </div>
 
     <!-- SSH Keys List -->
-    <div *ngIf="loadingSshKeys()" class="flex flex-col items-center justify-center py-6">
-      <svg class="animate-spin h-5 w-5 text-zinc-550 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-      </svg>
-      <span class="text-[13px] text-zinc-550">Loading SSH keys...</span>
-    </div>
+    @if (loadingSshKeys()) {
+      <div class="flex flex-col items-center justify-center py-6">
+        <svg class="animate-spin h-5 w-5 text-zinc-550 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <span class="text-[13px] text-zinc-550">Loading SSH keys...</span>
+      </div>
+    }
 
-    <div *ngIf="!loadingSshKeys() && sshKeys().length === 0" class="flex flex-col items-center justify-center py-6 text-center text-zinc-550 text-[13px] italic">
-      No SSH keys registered in this project.
-    </div>
+    @if (!loadingSshKeys() && sshKeys().length === 0) {
+      <div class="flex flex-col items-center justify-center py-6 text-center text-zinc-550 text-[13px] italic">
+        No SSH keys registered in this project.
+      </div>
+    }
 
-    <div *ngIf="!loadingSshKeys() && sshKeys().length > 0" class="overflow-x-auto">
-      <table class="w-full border-collapse text-left text-[13px]">
-        <thead>
-          <tr class="border-b border-zinc-900 text-zinc-550 uppercase tracking-wider text-[11px] font-mono pb-2">
-            <th class="pb-2 px-2">Name</th>
-            <th class="pb-2 px-2">Host Git</th>
-            <th class="pb-2 px-2">Public Key (Deploy Key)</th>
-            <th class="pb-2 px-2 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-zinc-950 text-zinc-350">
-          <tr *ngFor="let key of sshKeys()" class="hover:bg-zinc-950/40 transition-colors">
-            <td class="py-2.5 px-2 font-semibold text-zinc-50 align-top max-w-[120px] truncate">{{ key.name }}</td>
-            <td class="py-2.5 px-2 font-mono text-zinc-400 align-top max-w-[120px] truncate">{{ key.host }}</td>
-            <td class="py-2.5 px-2 align-top">
-              <div class="flex items-start gap-2 max-w-lg">
-                <textarea 
-                  readonly 
-                  rows="2"
-                  class="w-full bg-zinc-950 text-xs p-1.5 border border-zinc-900 rounded font-mono text-zinc-500 resize-none outline-none focus:border-zinc-800 select-all"
-                >{{ key.publicKey }}</textarea>
-                <button 
-                  (click)="copyToClipboard(key.publicKey)"
-                  class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 text-zinc-400 hover:text-zinc-50 transition-colors cursor-pointer text-xs"
-                >
-                  Copy
-                </button>
-              </div>
-              <p class="text-[11px] text-zinc-650 mt-1">Add this key as a <strong>Deploy Key / Access Key</strong> with read permissions in your Git repository settings.</p>
-            </td>
-            <td class="py-2.5 px-2 text-right align-top">
-              <button 
-                (click)="onDeleteSshKey(key.id)"
-                class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-red-400 text-xs border border-zinc-850 transition-colors cursor-pointer"
-              >
-                Remove
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    @if (!loadingSshKeys() && sshKeys().length > 0) {
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-left text-[13px]">
+          <thead>
+            <tr class="border-b border-zinc-900 text-zinc-550 uppercase tracking-wider text-[11px] font-mono pb-2">
+              <th class="pb-2 px-2">Name</th>
+              <th class="pb-2 px-2">Host Git</th>
+              <th class="pb-2 px-2">Public Key (Deploy Key)</th>
+              <th class="pb-2 px-2 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-zinc-950 text-zinc-350">
+            @for (key of sshKeys(); track key) {
+              <tr class="hover:bg-zinc-950/40 transition-colors">
+                <td class="py-2.5 px-2 font-semibold text-zinc-50 align-top max-w-[120px] truncate">{{ key.name }}</td>
+                <td class="py-2.5 px-2 font-mono text-zinc-400 align-top max-w-[120px] truncate">{{ key.host }}</td>
+                <td class="py-2.5 px-2 align-top">
+                  <div class="flex items-start gap-2 max-w-lg">
+                    <textarea
+                      readonly
+                      rows="2"
+                      class="w-full bg-zinc-950 text-xs p-1.5 border border-zinc-900 rounded font-mono text-zinc-500 resize-none outline-none focus:border-zinc-800 select-all"
+                    >{{ key.publicKey }}</textarea>
+                    <button
+                      (click)="copyToClipboard(key.publicKey)"
+                      class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 text-zinc-400 hover:text-zinc-50 transition-colors cursor-pointer text-xs"
+                      >
+                      Copy
+                    </button>
+                  </div>
+                  <p class="text-[11px] text-zinc-650 mt-1">Add this key as a <strong>Deploy Key / Access Key</strong> with read permissions in your Git repository settings.</p>
+                </td>
+                <td class="py-2.5 px-2 text-right align-top">
+                  <button
+                    (click)="onDeleteSshKey(key.id)"
+                    class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-red-400 text-xs border border-zinc-850 transition-colors cursor-pointer"
+                    >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
   </div>
 
   <!-- Danger Zone: Delete Project (always visible) -->
@@ -336,24 +354,24 @@
         <label for="confirm-project-delete-input" class="text-[13px] text-zinc-400 block">
           Enter the project name <strong class="text-zinc-50 font-mono select-all">{{ parent.project()?.name }}</strong> to confirm deletion:
         </label>
-        <input 
+        <input
           id="confirm-project-delete-input"
-          type="text" 
+          type="text"
           placeholder="Project name"
           [ngModel]="confirmProjectName()"
           (ngModelChange)="confirmProjectName.set($event)"
           [disabled]="deletingProject()"
           class="block w-full px-3 py-2 text-sm bg-zinc-950 border border-red-900/30 rounded text-zinc-50 focus:outline-none focus:border-red-500 font-mono"
-        />
+          />
       </div>
 
       <div class="pt-2 flex justify-end">
-        <button 
+        <button
           (click)="onDeleteProject()"
           [disabled]="confirmProjectName() !== parent.project()?.name || deletingProject()"
           class="px-4 py-2 rounded bg-red-600 hover:bg-red-500 text-zinc-50 text-[13px] font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
           aria-label="Delete project permanently"
-        >
+          >
           @if (!deletingProject()) {
             <span>Delete Project Permanently</span>
           } @else {

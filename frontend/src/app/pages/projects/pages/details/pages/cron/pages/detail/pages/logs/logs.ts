@@ -1,11 +1,10 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { CronComponent } from '../../../../cron';
 
 @Component({
   selector: 'app-cron-logs',
-  standalone: true,
-  imports: [CommonModule, DatePipe],
+  imports: [DatePipe],
   templateUrl: './logs.html',
   styles: ``,
 })

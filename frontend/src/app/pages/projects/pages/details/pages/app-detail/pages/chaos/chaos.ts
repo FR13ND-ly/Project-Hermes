@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, signal, computed } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription, interval, EMPTY } from 'rxjs';
 import { startWith, switchMap, catchError } from 'rxjs/operators';
@@ -12,8 +12,7 @@ export type ChaosKind = 'pod_kill' | 'scale_down' | 'cpu_stress';
 
 @Component({
   selector: 'app-app-chaos',
-  standalone: true,
-  imports: [CommonModule, DatePipe, FormsModule],
+  imports: [DatePipe, FormsModule, NgClass],
   templateUrl: './chaos.html',
   styles: ``,
 })

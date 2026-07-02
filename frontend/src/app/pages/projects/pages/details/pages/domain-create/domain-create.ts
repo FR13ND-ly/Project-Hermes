@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Details } from '../../details';
@@ -10,8 +10,7 @@ import { ToastService } from '../../../../../../core/services/toast.service';
 
 @Component({
   selector: 'app-domain-create',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './domain-create.html',
   styleUrl: './domain-create.css',
 })

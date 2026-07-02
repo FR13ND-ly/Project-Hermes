@@ -6,7 +6,7 @@ import {
   AfterViewInit, 
   HostListener 
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { AppDetailComponent } from '../../app-detail';
 import { Terminal } from '@xterm/xterm';
@@ -15,8 +15,7 @@ import { environment } from '../../../../../../../../../environments/environment
 
 @Component({
   selector: 'app-app-terminal',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './terminal.html',
   styles: `
     :host ::ng-deep .xterm {

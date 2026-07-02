@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute, Router, RouterLink, RouterOutlet, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { Details } from '../../../../details';
 import { ProjectService, ServerlessInstance } from '../../../../../../../../core/services/project.service';
@@ -9,8 +9,7 @@ import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-serverless-detail',
-  standalone: true,
-  imports: [CommonModule, RouterLink, RouterOutlet, RouterLinkActive],
+  imports: [RouterLink, RouterOutlet, RouterLinkActive],
   templateUrl: './detail.html',
   styles: ``,
 })

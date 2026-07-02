@@ -1,11 +1,10 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Storages } from '../../../../storages';
 
 @Component({
   selector: 'app-storage-logs',
-  standalone: true,
-  imports: [CommonModule, DatePipe],
+  imports: [DatePipe],
   templateUrl: './logs.html',
   styles: ``,
 })

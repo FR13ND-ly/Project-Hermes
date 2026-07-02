@@ -1,408 +1,432 @@
-<div class="space-y-6 animate-fade-in" *ngIf="parent.app() && data() as d">
-
-  <!-- 1. Live traffic topology: Client → entrypoints → Service → pods -->
-  <div class="card p-5 space-y-5">
-    <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between gap-3">
-      <div>
-        <h3 class="text-sm font-semibold text-zinc-100">Traffic Topology</h3>
-        <p class="text-xs text-zinc-555 mt-0.5">Live path from clients through the load balancer / domain to your pods</p>
-      </div>
-      <div class="flex items-center gap-2 shrink-0">
-        <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider border"
+@if (parent.app() && data(); as d) {
+  <div class="space-y-6 animate-fade-in">
+    <!-- 1. Live traffic topology: Client → entrypoints → Service → pods -->
+    <div class="card p-5 space-y-5">
+      <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-sm font-semibold text-zinc-100">Traffic Topology</h3>
+          <p class="text-xs text-zinc-555 mt-0.5">Live path from clients through the load balancer / domain to your pods</p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider border"
               [ngClass]="d.readyReplicas >= d.desiredReplicas && d.desiredReplicas > 0
                 ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-400'
                 : 'bg-red-950/20 border-red-900/30 text-red-400'"
-              title="Ready replicas vs the Deployment's desired count (excludes surge/terminating pods)">
-          {{ d.readyReplicas }}/{{ d.desiredReplicas }} ready
-        </span>
-        <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider border bg-zinc-900 border-zinc-800 text-zinc-400"
-              [title]="d.autoscale ? 'Autoscaling between min and max replicas (HPA)' : 'Fixed replica count'">
-          {{ d.autoscale ? ('auto ' + d.replicasMin + '–' + d.replicasMax) : ('fixed ' + d.replicasMin) }}
-        </span>
-      </div>
-    </div>
-
-    <div class="flex items-stretch gap-0 overflow-x-auto pb-2 min-h-[150px]">
-
-      <!-- Client -->
-      <div class="flex flex-col justify-center shrink-0 w-[110px]">
-        <div class="bg-zinc-950/40 border border-zinc-800 rounded-md p-3 flex flex-col items-center gap-1 text-center shadow-inner">
-          <span class="text-base leading-none">🌐</span>
-          <span class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Client</span>
-          <span class="text-[11px] text-zinc-550 truncate max-w-full">internet</span>
+            title="Ready replicas vs the Deployment's desired count (excludes surge/terminating pods)">
+            {{ d.readyReplicas }}/{{ d.desiredReplicas }} ready
+          </span>
+          <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider border bg-zinc-900 border-zinc-800 text-zinc-400"
+            [title]="d.autoscale ? 'Autoscaling between min and max replicas (HPA)' : 'Fixed replica count'">
+            {{ d.autoscale ? ('auto ' + d.replicasMin + '–' + d.replicasMax) : ('fixed ' + d.replicasMin) }}
+          </span>
         </div>
       </div>
-
-      <!-- wire: client → entry -->
-      <div class="flex-1 min-w-[44px] self-center flex flex-col items-center justify-center relative px-1">
-        <div class="wire" [class.active]="hasTraffic(d)"></div>
-        <span class="absolute -top-3.5 text-[11px] text-emerald-400/80 whitespace-nowrap" *ngIf="hasTraffic(d)">{{ trafficLabel(d) }}</span>
-      </div>
-
-      <!-- Entrypoints (domain and/or load balancer — can be both) -->
-      <div class="flex flex-col justify-center gap-2 shrink-0 w-[185px]">
-        @if (d.ingress?.fqdn) {
-          <div class="bg-zinc-950/40 border rounded-md p-3 flex flex-col gap-1 shadow-inner"
-               [ngClass]="d.ingress.status === 'active' ? 'border-indigo-900/40' : 'border-amber-900/40'">
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider">Domain · Traefik</span>
-              <span class="w-2 h-2 rounded-full shrink-0" [ngClass]="d.ingress.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'"></span>
-            </div>
-            <span class="text-xs font-bold text-zinc-200 truncate" [title]="d.ingress.fqdn">{{ d.ingress.fqdn }}</span>
-            <span class="text-[11px] text-zinc-550" *ngIf="d.traffic?.source === 'traefik'">{{ (d.traffic.requestRate ?? 0) | number:'1.1-2' }} r/s · {{ d.traffic.latencyMs !== null ? (d.traffic.latencyMs | number:'1.0-0') + 'ms' : '—' }}</span>
+      <div class="flex items-stretch gap-0 overflow-x-auto pb-2 min-h-[150px]">
+        <!-- Client -->
+        <div class="flex flex-col justify-center shrink-0 w-[110px]">
+          <div class="bg-zinc-950/40 border border-zinc-800 rounded-md p-3 flex flex-col items-center gap-1 text-center shadow-inner">
+            <span class="text-base leading-none">🌐</span>
+            <span class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Client</span>
+            <span class="text-[11px] text-zinc-550 truncate max-w-full">internet</span>
           </div>
-        }
-        @if (d.loadBalancer) {
-          <div class="bg-zinc-950/40 border rounded-md p-3 flex flex-col gap-1 shadow-inner"
+        </div>
+        <!-- wire: client → entry -->
+        <div class="flex-1 min-w-[44px] self-center flex flex-col items-center justify-center relative px-1">
+          <div class="wire" [class.active]="hasTraffic(d)"></div>
+          @if (hasTraffic(d)) {
+            <span class="absolute -top-3.5 text-[11px] text-emerald-400/80 whitespace-nowrap">{{ trafficLabel(d) }}</span>
+          }
+        </div>
+        <!-- Entrypoints (domain and/or load balancer — can be both) -->
+        <div class="flex flex-col justify-center gap-2 shrink-0 w-[185px]">
+          @if (d.ingress?.fqdn) {
+            <div class="bg-zinc-950/40 border rounded-md p-3 flex flex-col gap-1 shadow-inner"
+              [ngClass]="d.ingress.status === 'active' ? 'border-indigo-900/40' : 'border-amber-900/40'">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider">Domain · Traefik</span>
+                <span class="w-2 h-2 rounded-full shrink-0" [ngClass]="d.ingress.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'"></span>
+              </div>
+              <span class="text-xs font-bold text-zinc-200 truncate" [title]="d.ingress.fqdn">{{ d.ingress.fqdn }}</span>
+              @if (d.traffic?.source === 'traefik') {
+                <span class="text-[11px] text-zinc-550">{{ (d.traffic.requestRate ?? 0) | number:'1.1-2' }} r/s · {{ d.traffic.latencyMs !== null ? (d.traffic.latencyMs | number:'1.0-0') + 'ms' : '—' }}</span>
+              }
+            </div>
+          }
+          @if (d.loadBalancer) {
+            <div class="bg-zinc-950/40 border rounded-md p-3 flex flex-col gap-1 shadow-inner"
                [ngClass]="{
                  'border-emerald-900/40': d.loadBalancer.status === 'active',
                  'border-amber-900/40': d.loadBalancer.status === 'pending',
                  'border-red-900/50': d.loadBalancer.status === 'missing'
                }">
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-[11px] font-bold text-purple-300 uppercase tracking-wider">⚖ Load Balancer</span>
-              <span class="w-2 h-2 rounded-full shrink-0"
-                    [ngClass]="d.loadBalancer.status === 'active' ? 'bg-emerald-500' : (d.loadBalancer.status === 'pending' ? 'bg-amber-500 animate-pulse' : 'bg-red-500 animate-pulse')"></span>
-            </div>
-            <span class="text-xs font-bold text-zinc-200 truncate" [title]="(d.loadBalancer.externalIp || 'pending') + ':' + d.loadBalancer.externalPort">
-              {{ d.loadBalancer.externalIp || 'pending' }}:{{ d.loadBalancer.externalPort }}
-            </span>
-            <span class="text-[11px] text-zinc-550">NodePort {{ d.loadBalancer.nodePort || '—' }}</span>
-          </div>
-        }
-        @if (!d.ingress?.fqdn && !d.loadBalancer) {
-          <div class="bg-zinc-950/40 border border-zinc-900 rounded-md p-3 flex flex-col gap-1 shadow-inner">
-            <span class="text-[11px] font-semibold text-zinc-500">Internal only</span>
-            <span class="text-[11px] text-zinc-550">No public entrypoint</span>
-          </div>
-        }
-      </div>
-
-      <!-- wire: entry → service -->
-      <div class="flex-1 min-w-[44px] self-center flex flex-col items-center justify-center px-1">
-        <div class="wire" [class.active]="(d.service?.endpoints?.length || 0) > 0"></div>
-      </div>
-
-      <!-- Service (ClusterIP) -->
-      <div class="flex flex-col justify-center shrink-0 w-[140px]">
-        <div class="bg-zinc-950/40 border rounded-md p-3 flex flex-col gap-1 shadow-inner"
-             [ngClass]="(d.service?.endpoints?.length || 0) > 0 ? 'border-zinc-800' : 'border-red-900/50'">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">⚙ Service</span>
-            <span class="w-2 h-2 rounded-full shrink-0" [ngClass]="(d.service?.endpoints?.length || 0) > 0 ? 'bg-emerald-500' : 'bg-red-500 animate-pulse'"></span>
-          </div>
-          <span class="text-xs font-bold text-zinc-200">ClusterIP :{{ d.service?.port }}</span>
-          <span class="text-[11px]" [ngClass]="(d.service?.endpoints?.length || 0) > 0 ? 'text-zinc-550' : 'text-red-400'">
-            {{ d.service?.endpoints?.length || 0 }} healthy endpoint(s)
-          </span>
-        </div>
-      </div>
-
-      <!-- wire: service → pods (broken when there are no endpoints) -->
-      <div class="flex-1 min-w-[44px] self-center flex flex-col items-center justify-center relative px-1">
-        <div class="wire" [class.active]="(d.service?.endpoints?.length || 0) > 0" [class.broken]="(d.service?.endpoints?.length || 0) === 0 && (d.pods?.length || 0) > 0"></div>
-        <span class="absolute -top-3.5 text-[11px] font-bold text-red-400 whitespace-nowrap"
-              *ngIf="(d.service?.endpoints?.length || 0) === 0 && (d.pods?.length || 0) > 0">503</span>
-      </div>
-
-      <!-- Pods (one box per pod, coloured by readiness) -->
-      <div class="flex flex-col justify-center gap-1.5 shrink-0 w-[210px] max-h-[280px] overflow-y-auto">
-        @for (pod of d.pods; track pod.name) {
-          <div class="bg-zinc-950/40 border rounded-md px-3 py-2 flex flex-col gap-1 shadow-inner"
-               [ngClass]="hopBorder(pod.status === 'Terminating' ? 'na' : podHealth(pod))"
-               [class.opacity-60]="pod.status === 'Terminating'">
-            <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full shrink-0" [ngClass]="dotClass(pod.status === 'Terminating' ? 'na' : podHealth(pod))"></span>
-              <div class="min-w-0 flex-1">
-                <div class="text-xs font-bold text-zinc-200 truncate" [title]="pod.name">{{ podShortName(pod.name) }}</div>
-                <div class="text-[11px] text-zinc-550">{{ pod.status }} · {{ pod.ready }}</div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold text-purple-300 uppercase tracking-wider">⚖ Load Balancer</span>
+                <span class="w-2 h-2 rounded-full shrink-0"
+                [ngClass]="d.loadBalancer.status === 'active' ? 'bg-emerald-500' : (d.loadBalancer.status === 'pending' ? 'bg-amber-500 animate-pulse' : 'bg-red-500 animate-pulse')"></span>
               </div>
-              <span class="text-[11px] font-bold shrink-0" *ngIf="pod.restarts > 0"
-                    [ngClass]="pod.restarts >= 5 ? 'text-red-400' : 'text-amber-400'" [title]="pod.restarts + ' restarts'">⟳{{ pod.restarts }}</span>
+              <span class="text-xs font-bold text-zinc-200 truncate" [title]="(d.loadBalancer.externalIp || 'pending') + ':' + d.loadBalancer.externalPort">
+                {{ d.loadBalancer.externalIp || 'pending' }}:{{ d.loadBalancer.externalPort }}
+              </span>
+              <span class="text-[11px] text-zinc-550">NodePort {{ d.loadBalancer.nodePort || '—' }}</span>
             </div>
-            <div class="text-[11px] text-red-400/90 leading-snug" *ngIf="pod.reason" [title]="pod.reason">{{ pod.reason }}</div>
+          }
+          @if (!d.ingress?.fqdn && !d.loadBalancer) {
+            <div class="bg-zinc-950/40 border border-zinc-900 rounded-md p-3 flex flex-col gap-1 shadow-inner">
+              <span class="text-[11px] font-semibold text-zinc-500">Internal only</span>
+              <span class="text-[11px] text-zinc-550">No public entrypoint</span>
+            </div>
+          }
+        </div>
+        <!-- wire: entry → service -->
+        <div class="flex-1 min-w-[44px] self-center flex flex-col items-center justify-center px-1">
+          <div class="wire" [class.active]="(d.service?.endpoints?.length || 0) > 0"></div>
+        </div>
+        <!-- Service (ClusterIP) -->
+        <div class="flex flex-col justify-center shrink-0 w-[140px]">
+          <div class="bg-zinc-950/40 border rounded-md p-3 flex flex-col gap-1 shadow-inner"
+            [ngClass]="(d.service?.endpoints?.length || 0) > 0 ? 'border-zinc-800' : 'border-red-900/50'">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">⚙ Service</span>
+              <span class="w-2 h-2 rounded-full shrink-0" [ngClass]="(d.service?.endpoints?.length || 0) > 0 ? 'bg-emerald-500' : 'bg-red-500 animate-pulse'"></span>
+            </div>
+            <span class="text-xs font-bold text-zinc-200">ClusterIP :{{ d.service?.port }}</span>
+            <span class="text-[11px]" [ngClass]="(d.service?.endpoints?.length || 0) > 0 ? 'text-zinc-550' : 'text-red-400'">
+              {{ d.service?.endpoints?.length || 0 }} healthy endpoint(s)
+            </span>
           </div>
-        }
-        @if (!d.pods || d.pods.length === 0) {
-          <div class="bg-red-950/10 border border-red-900/40 rounded-md px-3 py-3 flex items-center gap-2 text-red-400 text-xs font-bold">
-            <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0"></span> No pods running
-          </div>
-        }
+        </div>
+        <!-- wire: service → pods (broken when there are no endpoints) -->
+        <div class="flex-1 min-w-[44px] self-center flex flex-col items-center justify-center relative px-1">
+          <div class="wire" [class.active]="(d.service?.endpoints?.length || 0) > 0" [class.broken]="(d.service?.endpoints?.length || 0) === 0 && (d.pods?.length || 0) > 0"></div>
+          @if ((d.service?.endpoints?.length || 0) === 0 && (d.pods?.length || 0) > 0) {
+            <span class="absolute -top-3.5 text-[11px] font-bold text-red-400 whitespace-nowrap"
+            >503</span>
+          }
+        </div>
+        <!-- Pods (one box per pod, coloured by readiness) -->
+        <div class="flex flex-col justify-center gap-1.5 shrink-0 w-[210px] max-h-[280px] overflow-y-auto">
+          @for (pod of d.pods; track pod.name) {
+            <div class="bg-zinc-950/40 border rounded-md px-3 py-2 flex flex-col gap-1 shadow-inner"
+              [ngClass]="hopBorder(pod.status === 'Terminating' ? 'na' : podHealth(pod))"
+              [class.opacity-60]="pod.status === 'Terminating'">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full shrink-0" [ngClass]="dotClass(pod.status === 'Terminating' ? 'na' : podHealth(pod))"></span>
+                <div class="min-w-0 flex-1">
+                  <div class="text-xs font-bold text-zinc-200 truncate" [title]="pod.name">{{ podShortName(pod.name) }}</div>
+                  <div class="text-[11px] text-zinc-550">{{ pod.status }} · {{ pod.ready }}</div>
+                </div>
+                @if (pod.restarts > 0) {
+                  <span class="text-[11px] font-bold shrink-0"
+                  [ngClass]="pod.restarts >= 5 ? 'text-red-400' : 'text-amber-400'" [title]="pod.restarts + ' restarts'">⟳{{ pod.restarts }}</span>
+                }
+              </div>
+              @if (pod.reason) {
+                <div class="text-[11px] text-red-400/90 leading-snug" [title]="pod.reason">{{ pod.reason }}</div>
+              }
+            </div>
+          }
+          @if (!d.pods || d.pods.length === 0) {
+            <div class="bg-red-950/10 border border-red-900/40 rounded-md px-3 py-3 flex items-center gap-2 text-red-400 text-xs font-bold">
+              <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0"></span> No pods running
+            </div>
+          }
+        </div>
       </div>
     </div>
-  </div>
-
-  <!-- 2. Diagnosed issues (where it breaks) -->
-  <div class="space-y-2">
-    <div *ngFor="let issue of d.issues"
-         class="p-3 rounded border flex items-start gap-2.5"
-         [ngClass]="issue.severity === 'critical' ? 'border-red-900/40 bg-red-950/20' : 'border-amber-900/40 bg-amber-950/10'">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"
-           class="w-4 h-4 shrink-0 mt-0.5" [ngClass]="issue.severity === 'critical' ? 'text-red-400' : 'text-amber-400'">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-      </svg>
-      <div class="min-w-0 flex-1">
-        <div class="flex items-center gap-2">
-          <span class="px-1.5 py-0.2 rounded text-[11px] font-bold uppercase tracking-wider border"
+    <!-- 2. Diagnosed issues (where it breaks) -->
+    <div class="space-y-2">
+      @for (issue of d.issues; track issue) {
+        <div
+          class="p-3 rounded border flex items-start gap-2.5"
+          [ngClass]="issue.severity === 'critical' ? 'border-red-900/40 bg-red-950/20' : 'border-amber-900/40 bg-amber-950/10'">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"
+            class="w-4 h-4 shrink-0 mt-0.5" [ngClass]="issue.severity === 'critical' ? 'text-red-400' : 'text-amber-400'">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="px-1.5 py-0.2 rounded text-[11px] font-bold uppercase tracking-wider border"
                 [ngClass]="issue.severity === 'critical' ? 'bg-red-950/40 border-red-900/40 text-red-400' : 'bg-amber-950/30 border-amber-900/40 text-amber-400'">
-            {{ issue.stage }}
-          </span>
-          <span class="text-[13px] font-bold" [ngClass]="issue.severity === 'critical' ? 'text-red-300' : 'text-amber-300'">{{ issue.message }}</span>
+                {{ issue.stage }}
+              </span>
+              <span class="text-[13px] font-bold" [ngClass]="issue.severity === 'critical' ? 'text-red-300' : 'text-amber-300'">{{ issue.message }}</span>
+            </div>
+            @if (issue.hint) {
+              <p class="text-xs text-zinc-400 mt-0.5 font-sans">{{ issue.hint }}</p>
+            }
+          </div>
         </div>
-        <p class="text-xs text-zinc-400 mt-0.5 font-sans" *ngIf="issue.hint">{{ issue.hint }}</p>
-      </div>
-    </div>
-
-    <div *ngIf="!d.issues || d.issues.length === 0"
-         class="p-3 rounded border border-emerald-900/30 bg-emerald-950/10 flex items-center gap-2.5">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-emerald-400 shrink-0">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-      </svg>
-      <span class="text-[13px] font-bold text-emerald-300">All hops healthy — traffic flows end to end.</span>
-    </div>
-  </div>
-
-  <!-- 3. Traffic (adaptive: Traefik HTTP metrics, else pod throughput) -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <!-- Traefik HTTP view -->
-    <ng-container *ngIf="d.traffic?.source === 'traefik'">
-      <div class="card p-5 space-y-2">
-        <span class="text-xs font-semibold text-zinc-400">Traffic Load</span>
-        <p class="text-2xl font-black text-zinc-50">{{ (d.traffic.requestRate | number:'1.1-2') }} r/s</p>
-        <p class="text-[11px] text-zinc-500">Incoming HTTP requests/sec via Traefik (last 5m)</p>
-      </div>
-      <div class="card p-5 space-y-2">
-        <span class="text-xs font-semibold text-zinc-400">Response Latency</span>
-        <p class="text-2xl font-black text-zinc-50">{{ d.traffic.latencyMs !== null ? (d.traffic.latencyMs | number:'1.0-0') + ' ms' : 'N/A' }}</p>
-        <p class="text-[11px] text-zinc-500">Average round-trip through the proxy</p>
-      </div>
-      <div class="card p-5 space-y-2">
-        <span class="text-xs font-semibold text-zinc-400">Response Status Codes</span>
-        <div class="h-2 rounded bg-zinc-900 overflow-hidden flex mt-1" *ngIf="d.traffic.requestRate > 0; else noTraffic">
-          <div [style.width.%]="getTrafficClassRatio(d.traffic.status2xx)" class="h-full bg-emerald-500" title="2xx"></div>
-          <div [style.width.%]="getTrafficClassRatio(d.traffic.status3xx)" class="h-full bg-indigo-500" title="3xx"></div>
-          <div [style.width.%]="getTrafficClassRatio(d.traffic.status4xx)" class="h-full bg-amber-500" title="4xx"></div>
-          <div [style.width.%]="getTrafficClassRatio(d.traffic.status5xx)" class="h-full bg-red-500" title="5xx"></div>
+      }
+      @if (!d.issues || d.issues.length === 0) {
+        <div
+          class="p-3 rounded border border-emerald-900/30 bg-emerald-950/10 flex items-center gap-2.5">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-emerald-400 shrink-0">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
+          <span class="text-[13px] font-bold text-emerald-300">All hops healthy — traffic flows end to end.</span>
         </div>
-        <ng-template #noTraffic><div class="h-2 rounded bg-zinc-900/60 border border-dashed border-zinc-800 mt-1"></div></ng-template>
-        <div class="flex items-center justify-between text-[11px] text-zinc-500 font-sans pt-1">
-          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded bg-emerald-500"></span> 2xx ({{ (d.traffic.status2xx || 0) | number:'1.1-2' }})</span>
-          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded bg-red-500"></span> 5xx ({{ (d.traffic.status5xx || 0) | number:'1.1-2' }})</span>
-        </div>
-      </div>
-    </ng-container>
-
-    <!-- Pod network throughput fallback (LoadBalancer / internal apps) -->
-    <ng-container *ngIf="d.traffic?.source === 'network'">
-      <div class="card p-5 space-y-2">
-        <span class="text-xs font-semibold text-zinc-400">Inbound Throughput</span>
-        <p class="text-2xl font-black text-zinc-50">{{ formatBps(d.traffic.netRxBps) }}</p>
-        <p class="text-[11px] text-zinc-500">Pod network received (last 5m)</p>
-      </div>
-      <div class="card p-5 space-y-2">
-        <span class="text-xs font-semibold text-zinc-400">Outbound Throughput</span>
-        <p class="text-2xl font-black text-zinc-50">{{ formatBps(d.traffic.netTxBps) }}</p>
-        <p class="text-[11px] text-zinc-500">Pod network transmitted (last 5m)</p>
-      </div>
-      <div class="card p-5 flex flex-col justify-center">
-        <p class="text-xs text-zinc-500 leading-relaxed font-sans">
-          No HTTP-level metrics here — this app is exposed via a Load Balancer/port, not a Traefik domain.
-          Attach a domain to see request rate, latency and status codes.
-        </p>
-      </div>
-    </ng-container>
-
-    <!-- No data at all -->
-    <div *ngIf="d.traffic?.source === 'none'" class="md:col-span-3 card p-5 text-center shadow-sm">
-      <p class="text-[13px] text-zinc-500">No traffic metrics available. Prometheus isn't reachable or hasn't collected data yet.</p>
+      }
     </div>
-  </div>
-
-  <!-- 4. Load Balancer details (when exposed on a port) -->
-  <div *ngIf="d.loadBalancer" class="card p-5 space-y-3.5">
-    <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
-      <h3 class="text-sm font-semibold text-zinc-100">External Load Balancer</h3>
-      <span class="px-1.5 py-0.2 rounded text-[11px] font-bold uppercase tracking-wider border"
+    <!-- 3. Traffic (adaptive: Traefik HTTP metrics, else pod throughput) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Traefik HTTP view -->
+      @if (d.traffic?.source === 'traefik') {
+        <div class="card p-5 space-y-2">
+          <span class="text-xs font-semibold text-zinc-400">Traffic Load</span>
+          <p class="text-2xl font-black text-zinc-50">{{ (d.traffic.requestRate | number:'1.1-2') }} r/s</p>
+          <p class="text-[11px] text-zinc-500">Incoming HTTP requests/sec via Traefik (last 5m)</p>
+        </div>
+        <div class="card p-5 space-y-2">
+          <span class="text-xs font-semibold text-zinc-400">Response Latency</span>
+          <p class="text-2xl font-black text-zinc-50">{{ d.traffic.latencyMs !== null ? (d.traffic.latencyMs | number:'1.0-0') + ' ms' : 'N/A' }}</p>
+          <p class="text-[11px] text-zinc-500">Average round-trip through the proxy</p>
+        </div>
+        <div class="card p-5 space-y-2">
+          <span class="text-xs font-semibold text-zinc-400">Response Status Codes</span>
+          @if (d.traffic.requestRate > 0) {
+            <div class="h-2 rounded bg-zinc-900 overflow-hidden flex mt-1">
+              <div [style.width.%]="getTrafficClassRatio(d.traffic.status2xx)" class="h-full bg-emerald-500" title="2xx"></div>
+              <div [style.width.%]="getTrafficClassRatio(d.traffic.status3xx)" class="h-full bg-indigo-500" title="3xx"></div>
+              <div [style.width.%]="getTrafficClassRatio(d.traffic.status4xx)" class="h-full bg-amber-500" title="4xx"></div>
+              <div [style.width.%]="getTrafficClassRatio(d.traffic.status5xx)" class="h-full bg-red-500" title="5xx"></div>
+            </div>
+          } @else {
+            <div class="h-2 rounded bg-zinc-900/60 border border-dashed border-zinc-800 mt-1"></div>
+          }
+          <div class="flex items-center justify-between text-[11px] text-zinc-500 font-sans pt-1">
+            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded bg-emerald-500"></span> 2xx ({{ (d.traffic.status2xx || 0) | number:'1.1-2' }})</span>
+            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded bg-red-500"></span> 5xx ({{ (d.traffic.status5xx || 0) | number:'1.1-2' }})</span>
+          </div>
+        </div>
+      }
+      <!-- Pod network throughput fallback (LoadBalancer / internal apps) -->
+      @if (d.traffic?.source === 'network') {
+        <div class="card p-5 space-y-2">
+          <span class="text-xs font-semibold text-zinc-400">Inbound Throughput</span>
+          <p class="text-2xl font-black text-zinc-50">{{ formatBps(d.traffic.netRxBps) }}</p>
+          <p class="text-[11px] text-zinc-500">Pod network received (last 5m)</p>
+        </div>
+        <div class="card p-5 space-y-2">
+          <span class="text-xs font-semibold text-zinc-400">Outbound Throughput</span>
+          <p class="text-2xl font-black text-zinc-50">{{ formatBps(d.traffic.netTxBps) }}</p>
+          <p class="text-[11px] text-zinc-500">Pod network transmitted (last 5m)</p>
+        </div>
+        <div class="card p-5 flex flex-col justify-center">
+          <p class="text-xs text-zinc-500 leading-relaxed font-sans">
+            No HTTP-level metrics here — this app is exposed via a Load Balancer/port, not a Traefik domain.
+            Attach a domain to see request rate, latency and status codes.
+          </p>
+        </div>
+      }
+      <!-- No data at all -->
+      @if (d.traffic?.source === 'none') {
+        <div class="md:col-span-3 card p-5 text-center shadow-sm">
+          <p class="text-[13px] text-zinc-500">No traffic metrics available. Prometheus isn't reachable or hasn't collected data yet.</p>
+        </div>
+      }
+    </div>
+    <!-- 4. Load Balancer details (when exposed on a port) -->
+    @if (d.loadBalancer) {
+      <div class="card p-5 space-y-3.5">
+        <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-zinc-100">External Load Balancer</h3>
+          <span class="px-1.5 py-0.2 rounded text-[11px] font-bold uppercase tracking-wider border"
             [ngClass]="{
               'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': d.loadBalancer.status === 'active',
               'bg-amber-950/20 border-amber-900/30 text-amber-400': d.loadBalancer.status === 'pending',
               'bg-red-950/20 border-red-900/30 text-red-400': d.loadBalancer.status === 'missing'
             }">{{ d.loadBalancer.status }}</span>
-    </div>
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[13px]">
-      <div><p class="text-[11px] text-zinc-600 uppercase">External Port</p><p class="text-zinc-200 font-bold mt-0.5">{{ d.loadBalancer.externalPort || '—' }}</p></div>
-      <div><p class="text-[11px] text-zinc-600 uppercase">Node Port</p><p class="text-zinc-200 font-bold mt-0.5">{{ d.loadBalancer.nodePort || '—' }}</p></div>
-      <div><p class="text-[11px] text-zinc-600 uppercase">External IP</p><p class="text-zinc-200 font-bold mt-0.5 truncate" [title]="d.loadBalancer.externalIp">{{ d.loadBalancer.externalIp || 'pending' }}</p></div>
-      <div><p class="text-[11px] text-zinc-600 uppercase">Service</p><p class="text-zinc-400 font-semibold mt-0.5 truncate" [title]="d.loadBalancer.name">{{ d.loadBalancer.name }}</p></div>
-    </div>
-  </div>
-
-  <!-- 5. Backend targets (ClusterIP endpoints) -->
-  <div class="card p-5 space-y-3.5">
-    <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-sm font-semibold text-zinc-100">Service Backend Targets</h3>
-      <p class="text-xs text-zinc-555 mt-0.5">Ready pod endpoints the service routes to (pod IP : port)</p>
-    </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-      <div *ngFor="let ep of d.service?.endpoints" class="p-3 bg-zinc-950 border border-zinc-900 rounded-md flex items-center justify-between shadow-inner">
-        <span class="text-[13px] font-extrabold text-zinc-200 select-all">{{ ep }}</span>
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Ready"></span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[13px]">
+          <div><p class="text-[11px] text-zinc-600 uppercase">External Port</p><p class="text-zinc-200 font-bold mt-0.5">{{ d.loadBalancer.externalPort || '—' }}</p></div>
+          <div><p class="text-[11px] text-zinc-600 uppercase">Node Port</p><p class="text-zinc-200 font-bold mt-0.5">{{ d.loadBalancer.nodePort || '—' }}</p></div>
+          <div><p class="text-[11px] text-zinc-600 uppercase">External IP</p><p class="text-zinc-200 font-bold mt-0.5 truncate" [title]="d.loadBalancer.externalIp">{{ d.loadBalancer.externalIp || 'pending' }}</p></div>
+          <div><p class="text-[11px] text-zinc-600 uppercase">Service</p><p class="text-zinc-400 font-semibold mt-0.5 truncate" [title]="d.loadBalancer.name">{{ d.loadBalancer.name }}</p></div>
+        </div>
       </div>
-      <div *ngIf="!d.service?.endpoints || d.service?.endpoints?.length === 0" class="col-span-full py-4 text-center text-[13px] text-red-400 border border-dashed border-red-950/40 rounded bg-red-950/5">
-        ⚠️ No healthy endpoints — the service has nothing to route to (requests will 503).
+    }
+    <!-- 5. Backend targets (ClusterIP endpoints) -->
+    <div class="card p-5 space-y-3.5">
+      <div class="border-b border-zinc-900 pb-2.5">
+        <h3 class="text-sm font-semibold text-zinc-100">Service Backend Targets</h3>
+        <p class="text-xs text-zinc-555 mt-0.5">Ready pod endpoints the service routes to (pod IP : port)</p>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        @for (ep of d.service?.endpoints; track ep) {
+          <div class="p-3 bg-zinc-950 border border-zinc-900 rounded-md flex items-center justify-between shadow-inner">
+            <span class="text-[13px] font-extrabold text-zinc-200 select-all">{{ ep }}</span>
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Ready"></span>
+          </div>
+        }
+        @if (!d.service?.endpoints || d.service?.endpoints?.length === 0) {
+          <div class="col-span-full py-4 text-center text-[13px] text-red-400 border border-dashed border-red-950/40 rounded bg-red-950/5">
+            ⚠️ No healthy endpoints — the service has nothing to route to (requests will 503).
+          </div>
+        }
       </div>
     </div>
-  </div>
-
-  <!-- 6. Pods table -->
-  <div class="card p-5 space-y-4">
-    <div class="border-b border-zinc-900 pb-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <div>
-        <h3 class="text-sm font-semibold text-zinc-100">Containers &amp; Pods</h3>
-        <p class="text-xs text-zinc-555 mt-0.5">Runtime instances mapped to cluster nodes</p>
+    <!-- 6. Pods table -->
+    <div class="card p-5 space-y-4">
+      <div class="border-b border-zinc-900 pb-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h3 class="text-sm font-semibold text-zinc-100">Containers &amp; Pods</h3>
+          <p class="text-xs text-zinc-555 mt-0.5">Runtime instances mapped to cluster nodes</p>
+        </div>
+        <span class="text-[11px] text-zinc-555 shrink-0">{{ d.pods?.length || 0 }} pods</span>
       </div>
-      <span class="text-[11px] text-zinc-555 shrink-0">{{ d.pods?.length || 0 }} pods</span>
-    </div>
-    <div class="overflow-x-auto">
-      <table class="w-full text-left text-[13px] border-collapse">
-        <thead>
-          <tr class="border-b border-zinc-900 text-zinc-500 uppercase text-[11px] font-bold tracking-wider">
-            <th class="py-2.5 px-3">Pod Name</th><th class="py-2.5 px-3">Status</th><th class="py-2.5 px-3">Ready</th>
-            <th class="py-2.5 px-3">IP Address</th><th class="py-2.5 px-3">Node</th><th class="py-2.5 px-3">Restarts</th><th class="py-2.5 px-3">Age</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let pod of d.pods" class="border-b border-zinc-900/50 hover:bg-zinc-950/20 transition-colors">
-            <td class="py-3 px-3 font-semibold text-zinc-200 select-all truncate max-w-[220px]" [title]="pod.name">{{ pod.name }}</td>
-            <td class="py-3 px-3">
-              <span class="px-1.5 py-0.2 rounded text-[11px] font-bold border tracking-wider uppercase"
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-[13px] border-collapse">
+          <thead>
+            <tr class="border-b border-zinc-900 text-zinc-500 uppercase text-[11px] font-bold tracking-wider">
+              <th class="py-2.5 px-3">Pod Name</th><th class="py-2.5 px-3">Status</th><th class="py-2.5 px-3">Ready</th>
+              <th class="py-2.5 px-3">IP Address</th><th class="py-2.5 px-3">Node</th><th class="py-2.5 px-3">Restarts</th><th class="py-2.5 px-3">Age</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (pod of d.pods; track pod) {
+              <tr class="border-b border-zinc-900/50 hover:bg-zinc-950/20 transition-colors">
+                <td class="py-3 px-3 font-semibold text-zinc-200 select-all truncate max-w-[220px]" [title]="pod.name">{{ pod.name }}</td>
+                <td class="py-3 px-3">
+                  <span class="px-1.5 py-0.2 rounded text-[11px] font-bold border tracking-wider uppercase"
                     [ngClass]="{
                       'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': pod.status === 'Running',
                       'bg-amber-950/20 border-amber-900/30 text-amber-400': pod.status === 'Pending',
                       'bg-red-950/20 border-red-900/30 text-red-400': pod.status === 'Failed'
                     }">{{ pod.status }}</span>
-            </td>
-            <td class="py-3 px-3 font-bold" [ngClass]="pod.ready === '1/1' || pod.ready.startsWith('2/') || pod.ready.startsWith('3/') ? 'text-emerald-400' : 'text-zinc-550'">{{ pod.ready }}</td>
-            <td class="py-3 px-3 text-zinc-400 font-semibold select-all">{{ pod.ip || '—' }}</td>
-            <td class="py-3 px-3 text-zinc-500 font-semibold select-all">{{ pod.node || '—' }}</td>
-            <td class="py-3 px-3" [ngClass]="pod.restarts >= 5 ? 'text-red-400 font-bold' : 'text-zinc-400'">{{ pod.restarts }}</td>
-            <td class="py-3 px-3 text-zinc-550">
-              <span *ngIf="pod.ageSeconds < 60">{{ pod.ageSeconds }}s</span>
-              <span *ngIf="pod.ageSeconds >= 60 && pod.ageSeconds < 3600">{{ (pod.ageSeconds / 60) | number:'1.0-0' }}m</span>
-              <span *ngIf="pod.ageSeconds >= 3600">{{ (pod.ageSeconds / 3600) | number:'1.1-1' }}h</span>
-            </td>
-          </tr>
-          <tr *ngIf="!d.pods || d.pods?.length === 0">
-            <td colspan="7" class="py-6 text-center text-zinc-650 italic">No pods detected. If the app is building or stopped, none will be running.</td>
-          </tr>
-        </tbody>
-      </table>
+                </td>
+                <td class="py-3 px-3 font-bold" [ngClass]="pod.ready === '1/1' || pod.ready.startsWith('2/') || pod.ready.startsWith('3/') ? 'text-emerald-400' : 'text-zinc-550'">{{ pod.ready }}</td>
+                <td class="py-3 px-3 text-zinc-400 font-semibold select-all">{{ pod.ip || '—' }}</td>
+                <td class="py-3 px-3 text-zinc-500 font-semibold select-all">{{ pod.node || '—' }}</td>
+                <td class="py-3 px-3" [ngClass]="pod.restarts >= 5 ? 'text-red-400 font-bold' : 'text-zinc-400'">{{ pod.restarts }}</td>
+                <td class="py-3 px-3 text-zinc-550">
+                  @if (pod.ageSeconds < 60) {
+                    <span>{{ pod.ageSeconds }}s</span>
+                  }
+                  @if (pod.ageSeconds >= 60 && pod.ageSeconds < 3600) {
+                    <span>{{ (pod.ageSeconds / 60) | number:'1.0-0' }}m</span>
+                  }
+                  @if (pod.ageSeconds >= 3600) {
+                    <span>{{ (pod.ageSeconds / 3600) | number:'1.1-1' }}h</span>
+                  }
+                </td>
+              </tr>
+            }
+            @if (!d.pods || d.pods?.length === 0) {
+              <tr>
+                <td colspan="7" class="py-6 text-center text-zinc-650 italic">No pods detected. If the app is building or stopped, none will be running.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-
-</div>
+}
 
 <!-- Resource quotas & scaling (config; editable regardless of live status) -->
-<div class="space-y-6 animate-fade-in font-mono max-w-2xl mt-6" *ngIf="parent.app()">
-
-  <!-- Container Resource Quotas -->
-  <div class="card p-5 space-y-4">
-    <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-sm font-semibold text-zinc-100">Container Resource Quotas (Kubernetes)</h3>
-      <p class="text-xs text-zinc-555 mt-0.5 font-mono">Settings will trigger an asynchronous service redeployment</p>
-    </div>
-    <div class="grid gap-4 sm:grid-cols-2">
-      <div class="space-y-1.5">
-        <label for="cpu-lim" class="text-xs font-semibold text-zinc-400">CPU Limit (Millicores)</label>
-        <input id="cpu-lim" type="number" placeholder="500"
-          [ngModel]="parent.cpuLimit()" (ngModelChange)="parent.cpuLimit.set($event)"
-          class="block w-full px-3 py-2 text-[13px] input" required />
-        <span class="text-[11px] text-zinc-600 block">e.g.: 500m = 0.5 CPU cores (vCPU). Set 0 for Unlimited.</span>
+@if (parent.app()) {
+  <div class="space-y-6 animate-fade-in font-mono max-w-2xl mt-6">
+    <!-- Container Resource Quotas -->
+    <div class="card p-5 space-y-4">
+      <div class="border-b border-zinc-900 pb-2.5">
+        <h3 class="text-sm font-semibold text-zinc-100">Container Resource Quotas (Kubernetes)</h3>
+        <p class="text-xs text-zinc-555 mt-0.5 font-mono">Settings will trigger an asynchronous service redeployment</p>
       </div>
-      <div class="space-y-1.5">
-        <label for="mem-lim" class="text-xs font-semibold text-zinc-400">RAM Limit (MB)</label>
-        <input id="mem-lim" type="number" placeholder="1024"
-          [ngModel]="parent.memLimit()" (ngModelChange)="parent.memLimit.set($event)"
-          class="block w-full px-3 py-2 text-[13px] input" required />
-        <span class="text-[11px] text-zinc-600 block">Minimum recommended: 256 MB. Set 0 for Unlimited.</span>
-      </div>
-    </div>
-    <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
-      <button (click)="parent.onSaveSettings()" [disabled]="parent.savingSettings()"
-        class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50">
-        {{ parent.savingSettings() ? 'Saving...' : 'Save Settings' }}
-      </button>
-    </div>
-  </div>
-
-  <!-- Scaling & Availability -->
-  <div class="card p-5 space-y-4">
-    <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-sm font-semibold text-zinc-100">Scaling &amp; Availability</h3>
-      <p class="text-xs text-zinc-555 mt-0.5 font-mono">Number of replicas, autoscaling and auto-sleep for this application. Applied on the next deploy.</p>
-    </div>
-    <div class="grid gap-4 sm:grid-cols-2">
-      <div class="space-y-1.5">
-        <label for="replicas-min" class="text-xs font-semibold text-zinc-400">Replicas Min</label>
-        <input id="replicas-min" type="number" min="1" max="5"
-          [ngModel]="parent.replicasMin()" (ngModelChange)="parent.replicasMin.set($event)" [disabled]="parent.savingSettings()"
-          class="block w-full px-3 py-2 text-[13px] input" />
-        <span class="text-[11px] text-zinc-600 block">Number of pods always running.</span>
-      </div>
-      <div class="space-y-1.5">
-        <label for="replicas-max" class="text-xs font-semibold text-zinc-400">Replicas Max</label>
-        <input id="replicas-max" type="number" min="1" max="10"
-          [ngModel]="parent.replicasMax()" (ngModelChange)="parent.replicasMax.set($event)" [disabled]="parent.savingSettings()"
-          class="block w-full px-3 py-2 text-[13px] input" />
-        <span class="text-[11px] text-zinc-600 block">If Max &gt; Min, the autoscaler (HPA) is enabled.</span>
-      </div>
-    </div>
-    <div class="space-y-1.5 border-t border-zinc-900/40 pt-3">
-      <label for="autoscale-cpu" class="text-xs font-semibold text-zinc-400">Autoscale at CPU (%)</label>
-      <input id="autoscale-cpu" type="number" min="1" max="100"
-        [ngModel]="parent.autoscaleCpuPercent()" (ngModelChange)="parent.autoscaleCpuPercent.set($event)" [disabled]="parent.savingSettings()"
-        class="block w-full px-3 py-2 text-[13px] input" />
-      <span class="text-[11px] text-zinc-600 block">When Max &gt; Min, the autoscaler adds pods (up to Max) when average CPU exceeds this threshold.</span>
-    </div>
-    <div class="space-y-2 border-t border-zinc-900/40 pt-3">
-      <label class="flex items-center gap-2 cursor-pointer">
-        <input type="checkbox" [ngModel]="parent.autoSleepEnabled()" (ngModelChange)="parent.autoSleepEnabled.set($event)" [disabled]="parent.savingSettings()" class="accent-zinc-50 w-3.5 h-3.5 cursor-pointer" />
-        <span class="text-xs font-semibold text-zinc-400">Auto-sleep (stop on inactivity)</span>
-      </label>
-      @if (parent.autoSleepEnabled()) {
-        <div class="space-y-1.5 pl-5">
-          <label for="auto-sleep-min" class="text-xs font-semibold text-zinc-400 block">Inactive (minutes) → scale 0</label>
-          <input id="auto-sleep-min" type="number" min="1"
-            [ngModel]="parent.autoSleepAfterMinutes()" (ngModelChange)="parent.autoSleepAfterMinutes.set($event)" [disabled]="parent.savingSettings()"
-            class="block w-full max-w-[200px] px-3 py-2 text-[13px] input" />
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="space-y-1.5">
+          <label for="cpu-lim" class="text-xs font-semibold text-zinc-400">CPU Limit (Millicores)</label>
+          <input id="cpu-lim" type="number" placeholder="500"
+            [ngModel]="parent.cpuLimit()" (ngModelChange)="parent.cpuLimit.set($event)"
+            class="block w-full px-3 py-2 text-[13px] input" required />
+          <span class="text-[11px] text-zinc-600 block">e.g.: 500m = 0.5 CPU cores (vCPU). Set 0 for Unlimited.</span>
         </div>
-      }
-      <span class="text-[11px] text-zinc-600 block leading-relaxed">When active, the instance is stopped (scale 0) after that many minutes of inactivity. <span class="text-amber-500/80">Does not wake up on traffic</span> — restart via Start or redeploy. Default: off.</span>
+        <div class="space-y-1.5">
+          <label for="mem-lim" class="text-xs font-semibold text-zinc-400">RAM Limit (MB)</label>
+          <input id="mem-lim" type="number" placeholder="1024"
+            [ngModel]="parent.memLimit()" (ngModelChange)="parent.memLimit.set($event)"
+            class="block w-full px-3 py-2 text-[13px] input" required />
+          <span class="text-[11px] text-zinc-600 block">Minimum recommended: 256 MB. Set 0 for Unlimited.</span>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
+        <button (click)="parent.onSaveSettings()" [disabled]="parent.savingSettings()"
+          class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50">
+          {{ parent.savingSettings() ? 'Saving...' : 'Save Settings' }}
+        </button>
+      </div>
     </div>
-    <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
-      <button (click)="parent.onSaveSettings()" [disabled]="parent.savingSettings()"
-        class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50">
-        {{ parent.savingSettings() ? 'Saving...' : 'Save Settings' }}
-      </button>
+    <!-- Scaling & Availability -->
+    <div class="card p-5 space-y-4">
+      <div class="border-b border-zinc-900 pb-2.5">
+        <h3 class="text-sm font-semibold text-zinc-100">Scaling &amp; Availability</h3>
+        <p class="text-xs text-zinc-555 mt-0.5 font-mono">Number of replicas, autoscaling and auto-sleep for this application. Applied on the next deploy.</p>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="space-y-1.5">
+          <label for="replicas-min" class="text-xs font-semibold text-zinc-400">Replicas Min</label>
+          <input id="replicas-min" type="number" min="1" max="5"
+            [ngModel]="parent.replicasMin()" (ngModelChange)="parent.replicasMin.set($event)" [disabled]="parent.savingSettings()"
+            class="block w-full px-3 py-2 text-[13px] input" />
+          <span class="text-[11px] text-zinc-600 block">Number of pods always running.</span>
+        </div>
+        <div class="space-y-1.5">
+          <label for="replicas-max" class="text-xs font-semibold text-zinc-400">Replicas Max</label>
+          <input id="replicas-max" type="number" min="1" max="10"
+            [ngModel]="parent.replicasMax()" (ngModelChange)="parent.replicasMax.set($event)" [disabled]="parent.savingSettings()"
+            class="block w-full px-3 py-2 text-[13px] input" />
+          <span class="text-[11px] text-zinc-600 block">If Max &gt; Min, the autoscaler (HPA) is enabled.</span>
+        </div>
+      </div>
+      <div class="space-y-1.5 border-t border-zinc-900/40 pt-3">
+        <label for="autoscale-cpu" class="text-xs font-semibold text-zinc-400">Autoscale at CPU (%)</label>
+        <input id="autoscale-cpu" type="number" min="1" max="100"
+          [ngModel]="parent.autoscaleCpuPercent()" (ngModelChange)="parent.autoscaleCpuPercent.set($event)" [disabled]="parent.savingSettings()"
+          class="block w-full px-3 py-2 text-[13px] input" />
+        <span class="text-[11px] text-zinc-600 block">When Max &gt; Min, the autoscaler adds pods (up to Max) when average CPU exceeds this threshold.</span>
+      </div>
+      <div class="space-y-2 border-t border-zinc-900/40 pt-3">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" [ngModel]="parent.autoSleepEnabled()" (ngModelChange)="parent.autoSleepEnabled.set($event)" [disabled]="parent.savingSettings()" class="accent-zinc-50 w-3.5 h-3.5 cursor-pointer" />
+          <span class="text-xs font-semibold text-zinc-400">Auto-sleep (stop on inactivity)</span>
+        </label>
+        @if (parent.autoSleepEnabled()) {
+          <div class="space-y-1.5 pl-5">
+            <label for="auto-sleep-min" class="text-xs font-semibold text-zinc-400 block">Inactive (minutes) → scale 0</label>
+            <input id="auto-sleep-min" type="number" min="1"
+              [ngModel]="parent.autoSleepAfterMinutes()" (ngModelChange)="parent.autoSleepAfterMinutes.set($event)" [disabled]="parent.savingSettings()"
+              class="block w-full max-w-[200px] px-3 py-2 text-[13px] input" />
+          </div>
+        }
+        <span class="text-[11px] text-zinc-600 block leading-relaxed">When active, the instance is stopped (scale 0) after that many minutes of inactivity. <span class="text-amber-500/80">Does not wake up on traffic</span> — restart via Start or redeploy. Default: off.</span>
+      </div>
+      <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
+        <button (click)="parent.onSaveSettings()" [disabled]="parent.savingSettings()"
+          class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50">
+          {{ parent.savingSettings() ? 'Saving...' : 'Save Settings' }}
+        </button>
+      </div>
     </div>
   </div>
-
-</div>
+}
 
 <!-- Loading -->
-<div *ngIf="loading()" class="flex flex-col items-center justify-center py-12 gap-3 text-zinc-500 font-mono">
-  <svg class="animate-spin h-5 w-5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-  </svg>
-  <span class="text-[13px]">Loading traffic flow and pod status...</span>
-</div>
+@if (loading()) {
+  <div class="flex flex-col items-center justify-center py-12 gap-3 text-zinc-500 font-mono">
+    <svg class="animate-spin h-5 w-5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+    </svg>
+    <span class="text-[13px]">Loading traffic flow and pod status...</span>
+  </div>
+}
 
 <!-- Error -->
-<div *ngIf="error() && !loading()" class="bg-red-950/10 border border-red-900/30 rounded-lg p-5 text-center space-y-2 font-mono max-w-xl mx-auto">
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-8 h-8 text-red-500 mx-auto">
-    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-  </svg>
-  <h4 class="text-[13px] font-bold text-red-400 uppercase tracking-wider">Connection Observability Error</h4>
-  <p class="text-[13px] text-zinc-400">{{ error() }}</p>
-</div>
+@if (error() && !loading()) {
+  <div class="bg-red-950/10 border border-red-900/30 rounded-lg p-5 text-center space-y-2 font-mono max-w-xl mx-auto">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-8 h-8 text-red-500 mx-auto">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+    </svg>
+    <h4 class="text-[13px] font-bold text-red-400 uppercase tracking-wider">Connection Observability Error</h4>
+    <p class="text-[13px] text-zinc-400">{{ error() }}</p>
+  </div>
+}

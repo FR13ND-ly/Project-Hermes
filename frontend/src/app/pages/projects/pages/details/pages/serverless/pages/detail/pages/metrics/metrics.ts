@@ -1,12 +1,11 @@
 import { Component, inject, signal, OnInit, effect } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { ServerlessDetailComponent } from '../../detail';
 import { ProjectService } from '../../../../../../../../../../core/services/project.service';
 
 @Component({
   selector: 'app-serverless-metrics',
-  standalone: true,
-  imports: [CommonModule, DecimalPipe],
+  imports: [DecimalPipe],
   templateUrl: './metrics.html',
   styles: ``,
 })

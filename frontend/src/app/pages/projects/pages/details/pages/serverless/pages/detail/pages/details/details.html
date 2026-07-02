@@ -1,25 +1,27 @@
-<div class="space-y-4 max-w-3xl animate-fade-in" *ngIf="detailParent.selectedInstance() as inst">
-  <div class="card p-5">
-    <h4 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2.5 mb-3">URL-uri rute</h4>
-    @if ((inst.routes || []).length === 0) {
-      <p class="text-[13px] text-zinc-600 italic font-sans">No routes defined. Go to the "Routes" tab.</p>
-    } @else {
-      <div class="divide-y divide-zinc-900">
-        @for (r of inst.routes || []; track r.id) {
-          <div class="flex items-center gap-3 py-2 text-[13px]">
-            <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-indigo-950/40 text-indigo-300 border border-indigo-900/40 w-14 text-center">{{ r.method }}</span>
-            @if (inst.status === 'active') {
-              <a [href]="invokeUrl(r)" target="_blank" class="text-emerald-400 hover:underline truncate">{{ invokeUrl(r) }}</a>
-            } @else {
-              <span class="text-zinc-550 truncate">{{ invokeUrl(r) || r.routePath }}</span>
-            }
-          </div>
-        }
-      </div>
-    }
+@if (detailParent.selectedInstance(); as inst) {
+  <div class="space-y-4 max-w-3xl animate-fade-in">
+    <div class="card p-5">
+      <h4 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2.5 mb-3">URL-uri rute</h4>
+      @if ((inst.routes || []).length === 0) {
+        <p class="text-[13px] text-zinc-600 italic font-sans">No routes defined. Go to the "Routes" tab.</p>
+      } @else {
+        <div class="divide-y divide-zinc-900">
+          @for (r of inst.routes || []; track r.id) {
+            <div class="flex items-center gap-3 py-2 text-[13px]">
+              <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-indigo-950/40 text-indigo-300 border border-indigo-900/40 w-14 text-center">{{ r.method }}</span>
+              @if (inst.status === 'active') {
+                <a [href]="invokeUrl(r)" target="_blank" class="text-emerald-400 hover:underline truncate">{{ invokeUrl(r) }}</a>
+              } @else {
+                <span class="text-zinc-550 truncate">{{ invokeUrl(r) || r.routePath }}</span>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+    <div class="card p-5 text-[13px] text-zinc-400 font-sans">
+      <p>Memory: {{ inst.memoryLimitMb ? inst.memoryLimitMb + ' MB' : 'Unlimited' }} · Autoscale 0→5 (scale-to-zero).</p>
+      <p class="text-zinc-600 mt-1">Build logs are in the "Builds" tab.</p>
+    </div>
   </div>
-  <div class="card p-5 text-[13px] text-zinc-400 font-sans">
-    <p>Memory: {{ inst.memoryLimitMb ? inst.memoryLimitMb + ' MB' : 'Unlimited' }} · Autoscale 0→5 (scale-to-zero).</p>
-    <p class="text-zinc-600 mt-1">Build logs are in the "Builds" tab.</p>
-  </div>
-</div>
+}

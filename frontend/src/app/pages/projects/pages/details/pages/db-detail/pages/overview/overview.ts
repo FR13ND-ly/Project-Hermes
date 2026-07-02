@@ -1,11 +1,10 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { DbDetailComponent } from '../../db-detail';
 
 @Component({
   selector: 'app-db-overview',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './overview.html',
   styles: ``,
 })

@@ -1,285 +1,273 @@
-<div class="space-y-6 animate-fade-in" *ngIf="parent.app()">
-
-  <!-- Active experiment banner (with live auto-revert progress) -->
-  @if (active(); as exp) {
-    <div class="bg-zinc-900 p-5 rounded-lg border border-amber-900/40 shadow-sm space-y-3">
-      <div class="flex items-start justify-between gap-3">
-        <div class="flex items-start gap-3 min-w-0">
-          <span class="text-lg leading-none mt-0.5 shrink-0">{{ kindIcon(exp.kind) }}</span>
-          <div class="min-w-0">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-[13px] font-bold text-amber-300 uppercase tracking-wider">{{ kindLabel(exp.kind) }} running</span>
-              <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
-              <span class="px-1.5 py-0.2 rounded text-[11px] font-bold uppercase border bg-amber-950/30 border-amber-900/40 text-amber-400">chaos</span>
-            </div>
-            <p class="text-[13px] text-zinc-400 mt-0.5 font-sans">{{ exp.message }}</p>
-          </div>
-        </div>
-        <button
-          (click)="stop(exp)"
-          class="px-3 py-1.5 rounded border border-zinc-700 bg-zinc-950 hover:border-red-500/60 hover:text-zinc-50 text-zinc-300 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer shrink-0"
-        >
-          Stop &amp; restore now
-        </button>
-      </div>
-
-      <!-- Auto-revert progress -->
-      @if (exp.revertAt) {
-        <div class="space-y-1">
-          <div class="flex items-center justify-between text-[11px] uppercase tracking-wider text-zinc-500">
-            <span>Auto-revert window</span>
-            <span class="text-amber-400 font-bold tabular-nums">{{ countdown(exp) }}s left / {{ windowSec(exp) }}s</span>
-          </div>
-          <div class="h-1.5 rounded-full bg-zinc-900 overflow-hidden">
-            <div class="h-full bg-gradient-to-r from-amber-500 to-red-500 transition-[width] duration-1000 ease-linear"
-                 [style.width.%]="progressPct(exp)"></div>
-          </div>
-        </div>
-      }
-    </div>
-  }
-
-  <!-- Live impact: watch the blast radius here instead of jumping to Networking -->
-  <div class="bg-zinc-900 p-5 rounded-lg border shadow-sm space-y-4 transition-colors duration-500"
-       [class]="active() ? 'border-amber-900/50' : 'border-zinc-800'">
-    <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between gap-3">
-      <div>
-        <h3 class="text-sm font-semibold text-zinc-100">Live Impact</h3>
-        <p class="text-xs text-zinc-555 mt-0.5 font-sans">Pods &amp; replicas in real time — watch the fault land and the app self-heal.</p>
-      </div>
-      <div class="flex items-center gap-1.5 shrink-0">
-        <span class="w-1.5 h-1.5 rounded-full animate-pulse" [class]="active() ? 'bg-amber-500' : 'bg-emerald-500'"></span>
-        <span class="text-[11px] uppercase tracking-wider" [class]="active() ? 'text-amber-400' : 'text-zinc-500'">live</span>
-      </div>
-    </div>
-
-    @if (net(); as n) {
-      <!-- Ready / desired replica gauge -->
-      <div class="flex items-center gap-4">
-        <div class="shrink-0">
-          <div class="flex items-baseline gap-1">
-            <span class="text-3xl font-black tabular-nums transition-colors duration-500"
-                  [class]="healthy() ? 'text-emerald-400' : 'text-amber-400'">{{ n.readyReplicas }}</span>
-            <span class="text-lg font-bold text-zinc-600">/ {{ n.desiredReplicas }}</span>
-          </div>
-          <span class="text-[11px] text-zinc-550 uppercase tracking-wider">ready / desired</span>
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="h-2 rounded-full bg-zinc-900 overflow-hidden">
-            <div class="h-full transition-[width,background-color] duration-500 ease-out"
-                 [class]="healthy() ? 'bg-emerald-500' : 'bg-amber-500'"
-                 [style.width.%]="replicaPct()"></div>
-          </div>
-          <div class="flex items-center justify-between text-[11px] text-zinc-550 mt-1.5 font-sans">
-            <span>{{ (n.pods?.length || 0) }} pod(s) live</span>
-            <span class="tabular-nums">{{ trafficLabel() }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Pod tiles: colour-animate as pods die (grey), reschedule (amber), recover (green) -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-        @for (pod of n.pods; track pod.name) {
-          <div class="bg-zinc-950/40 border rounded-md px-3 py-2 flex flex-col gap-1 shadow-inner transition-colors duration-500"
-               [class]="podRing(pod)"
-               [class.opacity-60]="pod.status === 'Terminating'">
-            <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full shrink-0 transition-colors duration-500" [ngClass]="podDot(pod)"></span>
-              <span class="text-xs font-bold text-zinc-200 truncate flex-1" [title]="pod.name">{{ podShortName(pod.name) }}</span>
-              @if (pod.restarts > 0) {
-                <span class="text-[11px] font-bold shrink-0" [class]="pod.restarts >= 5 ? 'text-red-400' : 'text-amber-400'" [title]="pod.restarts + ' restarts'">⟳{{ pod.restarts }}</span>
-              }
-            </div>
-            <span class="text-[11px] text-zinc-550">{{ pod.status }} · {{ pod.ready }}</span>
-            @if (pod.reason) {
-              <span class="text-[11px] text-red-400/90 leading-snug truncate" [title]="pod.reason">{{ pod.reason }}</span>
-            }
-          </div>
-        }
-        @if (!n.pods || n.pods.length === 0) {
-          <div class="col-span-full py-4 text-center text-xs text-red-400 border border-dashed border-red-900/40 rounded bg-red-950/10 font-bold flex items-center justify-center gap-2">
-            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> No pods running — the app is down (or scaled to zero).
-          </div>
-        }
-      </div>
-
-      <!-- Live diagnosis surfaced from the same source the Networking tab uses -->
-      @if (n.issues?.length) {
-        <div class="flex items-center gap-2 text-xs p-2 rounded border border-amber-900/40 bg-amber-950/10">
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
-          <span class="text-amber-300 font-sans truncate" [title]="n.issues[0].message">{{ n.issues[0].message }}</span>
-        </div>
-      }
-    } @else {
-      <div class="py-6 flex items-center justify-center gap-2 text-xs text-zinc-600 italic">
-        <svg class="animate-spin h-3.5 w-3.5 text-zinc-500" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-        </svg>
-        Loading live pod state…
-      </div>
-    }
-  </div>
-
-  <!-- Launcher -->
-  <div class="card p-5 space-y-5">
-    <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-sm font-semibold text-zinc-100">Chaos Simulator</h3>
-      <p class="text-xs text-zinc-555 mt-0.5 font-sans">Inject a controlled, auto-reverting failure to test resilience. Open the Networking &amp; Pods tab to watch the request flow degrade and recover.</p>
-    </div>
-
-    <!-- Experiment type -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      <button (click)="kind = 'pod_kill'" type="button"
-        class="text-left p-3 rounded border transition-all cursor-pointer"
-        [class]="kind === 'pod_kill' ? 'border-rose-500/70 bg-rose-950/15 ring-1 ring-rose-500/20' : 'border-zinc-900 bg-zinc-950 hover:border-zinc-700'">
-        <span class="text-[13px] font-bold text-zinc-200">💥 Pod kill</span>
-        <p class="text-[11px] text-zinc-550 mt-1 font-sans">Delete pod(s); the Deployment reschedules. Tests self-healing.</p>
-      </button>
-      <button (click)="kind = 'scale_down'" type="button"
-        class="text-left p-3 rounded border transition-all cursor-pointer"
-        [class]="kind === 'scale_down' ? 'border-indigo-500/70 bg-indigo-950/15 ring-1 ring-indigo-500/20' : 'border-zinc-900 bg-zinc-950 hover:border-zinc-700'">
-        <span class="text-[13px] font-bold text-zinc-200">📉 Scale-down</span>
-        <p class="text-[11px] text-zinc-550 mt-1 font-sans">Drop replicas for a window, then auto-restore. Tests redundancy.</p>
-      </button>
-      <button (click)="kind = 'cpu_stress'" type="button"
-        class="text-left p-3 rounded border transition-all cursor-pointer"
-        [class]="kind === 'cpu_stress' ? 'border-orange-500/70 bg-orange-950/15 ring-1 ring-orange-500/20' : 'border-zinc-900 bg-zinc-950 hover:border-zinc-700'">
-        <span class="text-[13px] font-bold text-zinc-200">🔥 CPU stress</span>
-        <p class="text-[11px] text-zinc-550 mt-1 font-sans">Best-effort in-pod CPU burn (needs shell tools in the image).</p>
-      </button>
-    </div>
-
-    <!-- Per-kind parameters -->
-    <div class="rounded border border-zinc-900 bg-zinc-950/40 p-4 space-y-4">
-      @switch (kind) {
-        @case ('pod_kill') {
-          <label class="flex items-center gap-2.5 text-[13px] text-zinc-300 cursor-pointer">
-            <input type="checkbox" [(ngModel)]="targetAllPods" class="accent-zinc-50 w-3.5 h-3.5 cursor-pointer" />
-            Kill <span class="font-bold text-zinc-100">all</span> pods (not just one)
-          </label>
-          <p class="text-[11px] text-zinc-600 font-sans">Instant fault — nothing to revert; Kubernetes reschedules the pod(s) automatically.</p>
-        }
-
-        @case ('scale_down') {
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <label class="flex flex-col gap-1 text-xs text-zinc-500 uppercase tracking-wider">
-              Target replicas
-              <input type="number" min="0" max="10" [(ngModel)]="targetReplicas"
-                class="bg-zinc-950 border border-zinc-850 text-zinc-200 text-[13px] px-2.5 py-1.5 rounded focus:outline-none focus:border-indigo-600 font-mono" />
-            </label>
-            <div class="flex flex-col gap-1 text-xs text-zinc-500 uppercase tracking-wider">
-              Duration
-              <div class="flex items-center gap-1.5">
-                <input type="number" min="5" max="300" [(ngModel)]="durationSec"
-                  class="w-20 bg-zinc-950 border border-zinc-850 text-zinc-200 text-[13px] px-2.5 py-1.5 rounded focus:outline-none focus:border-indigo-600 font-mono" />
-                <div class="flex gap-1">
-                  @for (p of durationPresets; track p) {
-                    <button type="button" (click)="setDuration(p)"
-                      class="px-1.5 py-1 rounded text-[11px] font-bold border transition-all cursor-pointer"
-                      [class]="durationSec === p ? 'border-zinc-500 bg-zinc-800 text-zinc-50' : 'border-zinc-850 bg-zinc-950 text-zinc-500 hover:text-zinc-300'">
-                      {{ p >= 60 ? (p / 60) + 'm' : p + 's' }}
-                    </button>
-                  }
-                </div>
-              </div>
-            </div>
-          </div>
-        }
-
-        @case ('cpu_stress') {
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <label class="flex flex-col gap-1 text-xs text-zinc-500 uppercase tracking-wider">
-              CPU workers
-              <input type="number" min="1" max="8" [(ngModel)]="cpuWorkers"
-                class="bg-zinc-950 border border-zinc-850 text-zinc-200 text-[13px] px-2.5 py-1.5 rounded focus:outline-none focus:border-orange-600 font-mono" />
-            </label>
-            <div class="flex flex-col gap-1 text-xs text-zinc-500 uppercase tracking-wider">
-              Duration
-              <div class="flex items-center gap-1.5">
-                <input type="number" min="5" max="300" [(ngModel)]="durationSec"
-                  class="w-20 bg-zinc-950 border border-zinc-850 text-zinc-200 text-[13px] px-2.5 py-1.5 rounded focus:outline-none focus:border-orange-600 font-mono" />
-                <div class="flex gap-1">
-                  @for (p of durationPresets; track p) {
-                    <button type="button" (click)="setDuration(p)"
-                      class="px-1.5 py-1 rounded text-[11px] font-bold border transition-all cursor-pointer"
-                      [class]="durationSec === p ? 'border-zinc-500 bg-zinc-800 text-zinc-50' : 'border-zinc-850 bg-zinc-950 text-zinc-500 hover:text-zinc-300'">
-                      {{ p >= 60 ? (p / 60) + 'm' : p + 's' }}
-                    </button>
-                  }
-                </div>
-              </div>
-            </div>
-          </div>
-        }
-      }
-    </div>
-
-    <!-- Live preview + run -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-      <div class="flex items-start gap-2 min-w-0">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-600 mt-0.5 shrink-0">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-        </svg>
-        <p class="text-xs text-zinc-450 font-sans leading-snug">{{ preview() }} <span class="text-zinc-650">Requires the instance to be Running.</span></p>
-      </div>
-      <button
-        (click)="run()"
-        [disabled]="submitting() || !!active()"
-        class="px-4 py-2 rounded btn-primary text-[13px] font-bold uppercase tracking-wider shadow transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0 justify-center"
-      >
-        <svg *ngIf="submitting()" class="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-        </svg>
-        {{ active() ? 'Experiment in progress…' : 'Run experiment' }}
-      </button>
-    </div>
-  </div>
-
-  <!-- History -->
-  <div class="card p-5 space-y-3.5">
-    <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
-      <h3 class="text-sm font-semibold text-zinc-100">Experiment History</h3>
-      <span class="text-[11px] text-zinc-600 shrink-0">{{ history().length }} total</span>
-    </div>
-
-    <div class="space-y-2">
-      @for (e of history(); track e.id) {
-        <div class="p-3 rounded border bg-zinc-950 flex items-center justify-between gap-3"
-          [class]="e.status === 'running' ? 'border-amber-900/40' : 'border-zinc-900'">
-          <div class="flex items-center gap-3 min-w-0">
-            <span class="text-base leading-none shrink-0">{{ kindIcon(e.kind) }}</span>
+@if (parent.app()) {
+  <div class="space-y-6 animate-fade-in">
+    <!-- Active experiment banner (with live auto-revert progress) -->
+    @if (active(); as exp) {
+      <div class="bg-zinc-900 p-5 rounded-lg border border-amber-900/40 shadow-sm space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-start gap-3 min-w-0">
+            <span class="text-lg leading-none mt-0.5 shrink-0">{{ kindIcon(exp.kind) }}</span>
             <div class="min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-[13px] font-bold text-zinc-200">{{ kindLabel(e.kind) }}</span>
-                <span class="px-1.5 py-0.2 rounded text-[11px] font-bold uppercase border"
+                <span class="text-[13px] font-bold text-amber-300 uppercase tracking-wider">{{ kindLabel(exp.kind) }} running</span>
+                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+                <span class="px-1.5 py-0.2 rounded text-[11px] font-bold uppercase border bg-amber-950/30 border-amber-900/40 text-amber-400">chaos</span>
+              </div>
+              <p class="text-[13px] text-zinc-400 mt-0.5 font-sans">{{ exp.message }}</p>
+            </div>
+          </div>
+          <button
+            (click)="stop(exp)"
+            class="px-3 py-1.5 rounded border border-zinc-700 bg-zinc-950 hover:border-red-500/60 hover:text-zinc-50 text-zinc-300 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer shrink-0"
+            >
+            Stop &amp; restore now
+          </button>
+        </div>
+        <!-- Auto-revert progress -->
+        @if (exp.revertAt) {
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-[11px] uppercase tracking-wider text-zinc-500">
+              <span>Auto-revert window</span>
+              <span class="text-amber-400 font-bold tabular-nums">{{ countdown(exp) }}s left / {{ windowSec(exp) }}s</span>
+            </div>
+            <div class="h-1.5 rounded-full bg-zinc-900 overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-amber-500 to-red-500 transition-[width] duration-1000 ease-linear"
+              [style.width.%]="progressPct(exp)"></div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+    <!-- Live impact: watch the blast radius here instead of jumping to Networking -->
+    <div class="bg-zinc-900 p-5 rounded-lg border shadow-sm space-y-4 transition-colors duration-500"
+      [class]="active() ? 'border-amber-900/50' : 'border-zinc-800'">
+      <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-sm font-semibold text-zinc-100">Live Impact</h3>
+          <p class="text-xs text-zinc-555 mt-0.5 font-sans">Pods &amp; replicas in real time — watch the fault land and the app self-heal.</p>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class="w-1.5 h-1.5 rounded-full animate-pulse" [class]="active() ? 'bg-amber-500' : 'bg-emerald-500'"></span>
+          <span class="text-[11px] uppercase tracking-wider" [class]="active() ? 'text-amber-400' : 'text-zinc-500'">live</span>
+        </div>
+      </div>
+      @if (net(); as n) {
+        <!-- Ready / desired replica gauge -->
+        <div class="flex items-center gap-4">
+          <div class="shrink-0">
+            <div class="flex items-baseline gap-1">
+              <span class="text-3xl font-black tabular-nums transition-colors duration-500"
+              [class]="healthy() ? 'text-emerald-400' : 'text-amber-400'">{{ n.readyReplicas }}</span>
+              <span class="text-lg font-bold text-zinc-600">/ {{ n.desiredReplicas }}</span>
+            </div>
+            <span class="text-[11px] text-zinc-550 uppercase tracking-wider">ready / desired</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="h-2 rounded-full bg-zinc-900 overflow-hidden">
+              <div class="h-full transition-[width,background-color] duration-500 ease-out"
+                [class]="healthy() ? 'bg-emerald-500' : 'bg-amber-500'"
+              [style.width.%]="replicaPct()"></div>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-zinc-550 mt-1.5 font-sans">
+              <span>{{ (n.pods?.length || 0) }} pod(s) live</span>
+              <span class="tabular-nums">{{ trafficLabel() }}</span>
+            </div>
+          </div>
+        </div>
+        <!-- Pod tiles: colour-animate as pods die (grey), reschedule (amber), recover (green) -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          @for (pod of n.pods; track pod.name) {
+            <div class="bg-zinc-950/40 border rounded-md px-3 py-2 flex flex-col gap-1 shadow-inner transition-colors duration-500"
+              [class]="podRing(pod)"
+              [class.opacity-60]="pod.status === 'Terminating'">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full shrink-0 transition-colors duration-500" [ngClass]="podDot(pod)"></span>
+                <span class="text-xs font-bold text-zinc-200 truncate flex-1" [title]="pod.name">{{ podShortName(pod.name) }}</span>
+                @if (pod.restarts > 0) {
+                  <span class="text-[11px] font-bold shrink-0" [class]="pod.restarts >= 5 ? 'text-red-400' : 'text-amber-400'" [title]="pod.restarts + ' restarts'">⟳{{ pod.restarts }}</span>
+                }
+              </div>
+              <span class="text-[11px] text-zinc-550">{{ pod.status }} · {{ pod.ready }}</span>
+              @if (pod.reason) {
+                <span class="text-[11px] text-red-400/90 leading-snug truncate" [title]="pod.reason">{{ pod.reason }}</span>
+              }
+            </div>
+          }
+          @if (!n.pods || n.pods.length === 0) {
+            <div class="col-span-full py-4 text-center text-xs text-red-400 border border-dashed border-red-900/40 rounded bg-red-950/10 font-bold flex items-center justify-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> No pods running — the app is down (or scaled to zero).
+            </div>
+          }
+        </div>
+        <!-- Live diagnosis surfaced from the same source the Networking tab uses -->
+        @if (n.issues?.length) {
+          <div class="flex items-center gap-2 text-xs p-2 rounded border border-amber-900/40 bg-amber-950/10">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+            <span class="text-amber-300 font-sans truncate" [title]="n.issues[0].message">{{ n.issues[0].message }}</span>
+          </div>
+        }
+      } @else {
+        <div class="py-6 flex items-center justify-center gap-2 text-xs text-zinc-600 italic">
+          <svg class="animate-spin h-3.5 w-3.5 text-zinc-500" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          Loading live pod state…
+        </div>
+      }
+    </div>
+    <!-- Launcher -->
+    <div class="card p-5 space-y-5">
+      <div class="border-b border-zinc-900 pb-2.5">
+        <h3 class="text-sm font-semibold text-zinc-100">Chaos Simulator</h3>
+        <p class="text-xs text-zinc-555 mt-0.5 font-sans">Inject a controlled, auto-reverting failure to test resilience. Open the Networking &amp; Pods tab to watch the request flow degrade and recover.</p>
+      </div>
+      <!-- Experiment type -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <button (click)="kind = 'pod_kill'" type="button"
+          class="text-left p-3 rounded border transition-all cursor-pointer"
+          [class]="kind === 'pod_kill' ? 'border-rose-500/70 bg-rose-950/15 ring-1 ring-rose-500/20' : 'border-zinc-900 bg-zinc-950 hover:border-zinc-700'">
+          <span class="text-[13px] font-bold text-zinc-200">💥 Pod kill</span>
+          <p class="text-[11px] text-zinc-550 mt-1 font-sans">Delete pod(s); the Deployment reschedules. Tests self-healing.</p>
+        </button>
+        <button (click)="kind = 'scale_down'" type="button"
+          class="text-left p-3 rounded border transition-all cursor-pointer"
+          [class]="kind === 'scale_down' ? 'border-indigo-500/70 bg-indigo-950/15 ring-1 ring-indigo-500/20' : 'border-zinc-900 bg-zinc-950 hover:border-zinc-700'">
+          <span class="text-[13px] font-bold text-zinc-200">📉 Scale-down</span>
+          <p class="text-[11px] text-zinc-550 mt-1 font-sans">Drop replicas for a window, then auto-restore. Tests redundancy.</p>
+        </button>
+        <button (click)="kind = 'cpu_stress'" type="button"
+          class="text-left p-3 rounded border transition-all cursor-pointer"
+          [class]="kind === 'cpu_stress' ? 'border-orange-500/70 bg-orange-950/15 ring-1 ring-orange-500/20' : 'border-zinc-900 bg-zinc-950 hover:border-zinc-700'">
+          <span class="text-[13px] font-bold text-zinc-200">🔥 CPU stress</span>
+          <p class="text-[11px] text-zinc-550 mt-1 font-sans">Best-effort in-pod CPU burn (needs shell tools in the image).</p>
+        </button>
+      </div>
+      <!-- Per-kind parameters -->
+      <div class="rounded border border-zinc-900 bg-zinc-950/40 p-4 space-y-4">
+        @switch (kind) {
+          @case ('pod_kill') {
+            <label class="flex items-center gap-2.5 text-[13px] text-zinc-300 cursor-pointer">
+              <input type="checkbox" [(ngModel)]="targetAllPods" class="accent-zinc-50 w-3.5 h-3.5 cursor-pointer" />
+              Kill <span class="font-bold text-zinc-100">all</span> pods (not just one)
+            </label>
+            <p class="text-[11px] text-zinc-600 font-sans">Instant fault — nothing to revert; Kubernetes reschedules the pod(s) automatically.</p>
+          }
+          @case ('scale_down') {
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label class="flex flex-col gap-1 text-xs text-zinc-500 uppercase tracking-wider">
+                Target replicas
+                <input type="number" min="0" max="10" [(ngModel)]="targetReplicas"
+                  class="bg-zinc-950 border border-zinc-850 text-zinc-200 text-[13px] px-2.5 py-1.5 rounded focus:outline-none focus:border-indigo-600 font-mono" />
+              </label>
+              <div class="flex flex-col gap-1 text-xs text-zinc-500 uppercase tracking-wider">
+                Duration
+                <div class="flex items-center gap-1.5">
+                  <input type="number" min="5" max="300" [(ngModel)]="durationSec"
+                    class="w-20 bg-zinc-950 border border-zinc-850 text-zinc-200 text-[13px] px-2.5 py-1.5 rounded focus:outline-none focus:border-indigo-600 font-mono" />
+                  <div class="flex gap-1">
+                    @for (p of durationPresets; track p) {
+                      <button type="button" (click)="setDuration(p)"
+                        class="px-1.5 py-1 rounded text-[11px] font-bold border transition-all cursor-pointer"
+                        [class]="durationSec === p ? 'border-zinc-500 bg-zinc-800 text-zinc-50' : 'border-zinc-850 bg-zinc-950 text-zinc-500 hover:text-zinc-300'">
+                        {{ p >= 60 ? (p / 60) + 'm' : p + 's' }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+          @case ('cpu_stress') {
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label class="flex flex-col gap-1 text-xs text-zinc-500 uppercase tracking-wider">
+                CPU workers
+                <input type="number" min="1" max="8" [(ngModel)]="cpuWorkers"
+                  class="bg-zinc-950 border border-zinc-850 text-zinc-200 text-[13px] px-2.5 py-1.5 rounded focus:outline-none focus:border-orange-600 font-mono" />
+              </label>
+              <div class="flex flex-col gap-1 text-xs text-zinc-500 uppercase tracking-wider">
+                Duration
+                <div class="flex items-center gap-1.5">
+                  <input type="number" min="5" max="300" [(ngModel)]="durationSec"
+                    class="w-20 bg-zinc-950 border border-zinc-850 text-zinc-200 text-[13px] px-2.5 py-1.5 rounded focus:outline-none focus:border-orange-600 font-mono" />
+                  <div class="flex gap-1">
+                    @for (p of durationPresets; track p) {
+                      <button type="button" (click)="setDuration(p)"
+                        class="px-1.5 py-1 rounded text-[11px] font-bold border transition-all cursor-pointer"
+                        [class]="durationSec === p ? 'border-zinc-500 bg-zinc-800 text-zinc-50' : 'border-zinc-850 bg-zinc-950 text-zinc-500 hover:text-zinc-300'">
+                        {{ p >= 60 ? (p / 60) + 'm' : p + 's' }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+        }
+      </div>
+      <!-- Live preview + run -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+        <div class="flex items-start gap-2 min-w-0">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-600 mt-0.5 shrink-0">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+          </svg>
+          <p class="text-xs text-zinc-450 font-sans leading-snug">{{ preview() }} <span class="text-zinc-650">Requires the instance to be Running.</span></p>
+        </div>
+        <button
+          (click)="run()"
+          [disabled]="submitting() || !!active()"
+          class="px-4 py-2 rounded btn-primary text-[13px] font-bold uppercase tracking-wider shadow transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0 justify-center"
+          >
+          @if (submitting()) {
+            <svg class="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+          }
+          {{ active() ? 'Experiment in progress…' : 'Run experiment' }}
+        </button>
+      </div>
+    </div>
+    <!-- History -->
+    <div class="card p-5 space-y-3.5">
+      <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-zinc-100">Experiment History</h3>
+        <span class="text-[11px] text-zinc-600 shrink-0">{{ history().length }} total</span>
+      </div>
+      <div class="space-y-2">
+        @for (e of history(); track e.id) {
+          <div class="p-3 rounded border bg-zinc-950 flex items-center justify-between gap-3"
+            [class]="e.status === 'running' ? 'border-amber-900/40' : 'border-zinc-900'">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="text-base leading-none shrink-0">{{ kindIcon(e.kind) }}</span>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-[13px] font-bold text-zinc-200">{{ kindLabel(e.kind) }}</span>
+                  <span class="px-1.5 py-0.2 rounded text-[11px] font-bold uppercase border"
                   [ngClass]="{
                     'bg-amber-950/20 border-amber-900/30 text-amber-400': e.status === 'running',
                     'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': e.status === 'completed',
                     'bg-zinc-900 border-zinc-800 text-zinc-450': e.status === 'cancelled',
                     'bg-red-950/20 border-red-900/30 text-red-400': e.status === 'failed'
                   }">{{ e.status }}</span>
-                <span class="text-[11px] text-zinc-600 font-sans">{{ detail(e) }}</span>
+                  <span class="text-[11px] text-zinc-600 font-sans">{{ detail(e) }}</span>
+                </div>
+                <p class="text-xs text-zinc-550 mt-0.5 font-sans truncate">{{ e.message }}</p>
               </div>
-              <p class="text-xs text-zinc-550 mt-0.5 font-sans truncate">{{ e.message }}</p>
+            </div>
+            <div class="text-right shrink-0">
+              <span class="text-[11px] text-zinc-650 block tabular-nums">{{ e.startedAt | date:'dd.MM HH:mm:ss' }}</span>
+              @if (e.status === 'running') {
+                <span class="text-[11px] text-amber-400 font-bold tabular-nums">{{ countdown(e) }}s left</span>
+              }
             </div>
           </div>
-          <div class="text-right shrink-0">
-            <span class="text-[11px] text-zinc-650 block tabular-nums">{{ e.startedAt | date:'dd.MM HH:mm:ss' }}</span>
-            @if (e.status === 'running') {
-              <span class="text-[11px] text-amber-400 font-bold tabular-nums">{{ countdown(e) }}s left</span>
-            }
+        }
+        @if (history().length === 0) {
+          <div class="py-8 text-center text-[13px] text-zinc-650 italic">
+            No experiments yet. Run one above to test this app's resilience.
           </div>
-        </div>
-      }
-
-      @if (history().length === 0) {
-        <div class="py-8 text-center text-[13px] text-zinc-650 italic">
-          No experiments yet. Run one above to test this app's resilience.
-        </div>
-      }
+        }
+      </div>
     </div>
   </div>
-
-</div>
+}

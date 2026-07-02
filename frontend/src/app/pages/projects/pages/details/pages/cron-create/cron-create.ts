@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Details } from '../../details';
@@ -13,7 +13,7 @@ type CronTargetType = 'app' | 'database' | 'storage';
 
 @Component({
   selector: 'app-cron-create',
-  imports: [CommonModule, FormsModule, EnvLinkModal],
+  imports: [FormsModule, EnvLinkModal],
   templateUrl: './cron-create.html',
   styleUrl: './cron-create.css',
 })

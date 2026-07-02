@@ -1,68 +1,65 @@
-<div class="space-y-6 animate-fade-in" *ngIf="db()">
-  
-  <!-- Back button & Header Info -->
-  <div class="flex flex-col gap-4 border-b border-zinc-900 pb-5">
-    <div class="flex items-center gap-2">
-      <a 
-        [routerLink]="['/projects', parent.projectId(), 'databases']"
-        class="flex items-center gap-1 text-xs uppercase font-bold text-zinc-550 hover:text-zinc-50 transition-colors"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3 h-3">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-        </svg>
-        Back to Databases
-      </a>
-    </div>
-
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div class="space-y-1">
-        <div class="flex items-center gap-3">
-          <h2 class="text-xl font-black text-zinc-50 tracking-tight">{{ db()?.name }}</h2>
-          <span 
-            class="px-2 py-0.5 rounded text-xs font-bold border font-mono uppercase"
+@if (db()) {
+  <div class="space-y-6 animate-fade-in">
+    <!-- Back button & Header Info -->
+    <div class="flex flex-col gap-4 border-b border-zinc-900 pb-5">
+      <div class="flex items-center gap-2">
+        <a
+          [routerLink]="['/projects', parent.projectId(), 'databases']"
+          class="flex items-center gap-1 text-xs uppercase font-bold text-zinc-550 hover:text-zinc-50 transition-colors"
+          >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3 h-3">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
+          Back to Databases
+        </a>
+      </div>
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <div class="flex items-center gap-3">
+            <h2 class="text-xl font-black text-zinc-50 tracking-tight">{{ db()?.name }}</h2>
+            <span
+              class="px-2 py-0.5 rounded text-xs font-bold border font-mono uppercase"
             [ngClass]="{
               'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': db()?.status === 'running',
               'bg-orange-950/20 border-orange-900/30 text-orange-400': db()?.status === 'provisioning',
               'bg-red-950/20 border-red-900/30 text-red-400': db()?.status === 'failed'
             }"
-          >
-            {{ db()?.status === 'provisioning' ? 'constructing (' + (db()?.createdAt ? getLiveDuration(db()!.createdAt) : '0s') + ')' : db()?.status }}
-          </span>
+              >
+              {{ db()?.status === 'provisioning' ? 'constructing (' + (db()?.createdAt ? getLiveDuration(db()!.createdAt) : '0s') + ')' : db()?.status }}
+            </span>
+          </div>
+          <p class="text-xs font-mono text-zinc-500">Database ID: {{ db()?.id }}</p>
         </div>
-        <p class="text-xs font-mono text-zinc-500">Database ID: {{ db()?.id }}</p>
+        <!-- Grouped tab navigation (sub-tabs render below) -->
+        <nav class="flex items-center flex-wrap gap-5" aria-label="Database sections">
+          @for (g of tabGroups; track g.id) {
+            <a
+              [routerLink]="activeGroup().id === g.id ? currentTabPath() : g.default"
+              class="tab"
+              [class.is-active]="activeGroup().id === g.id"
+              >
+              {{ g.label }}
+            </a>
+          }
+        </nav>
       </div>
-
-      <!-- Grouped tab navigation (sub-tabs render below) -->
-      <nav class="flex items-center flex-wrap gap-5" aria-label="Database sections">
-        @for (g of tabGroups; track g.id) {
+    </div>
+    <!-- Sub-tabs for the active group (only when it has more than one) -->
+    @if (activeGroup().tabs.length > 1) {
+      <div class="flex items-center flex-wrap gap-1 mb-4 font-mono text-xs">
+        @for (t of activeGroup().tabs; track t.path) {
           <a
-            [routerLink]="activeGroup().id === g.id ? currentTabPath() : g.default"
-            class="tab"
-            [class.is-active]="activeGroup().id === g.id"
-          >
-            {{ g.label }}
+            [routerLink]="t.path"
+            routerLinkActive
+            #rlaSub="routerLinkActive"
+            class="px-2.5 py-1.5 rounded border transition-all cursor-pointer font-semibold tracking-wide"
+            [class]="rlaSub.isActive ? 'bg-zinc-800 text-zinc-100 border-zinc-700' : 'text-zinc-500 hover:text-zinc-300 border-transparent hover:bg-zinc-900'"
+            >
+            {{ t.label }}
           </a>
         }
-      </nav>
-    </div>
+      </div>
+    }
+    <router-outlet></router-outlet>
   </div>
-
-  <!-- Sub-tabs for the active group (only when it has more than one) -->
-  @if (activeGroup().tabs.length > 1) {
-    <div class="flex items-center flex-wrap gap-1 mb-4 font-mono text-xs">
-      @for (t of activeGroup().tabs; track t.path) {
-        <a
-          [routerLink]="t.path"
-          routerLinkActive
-          #rlaSub="routerLinkActive"
-          class="px-2.5 py-1.5 rounded border transition-all cursor-pointer font-semibold tracking-wide"
-          [class]="rlaSub.isActive ? 'bg-zinc-800 text-zinc-100 border-zinc-700' : 'text-zinc-500 hover:text-zinc-300 border-transparent hover:bg-zinc-900'"
-        >
-          {{ t.label }}
-        </a>
-      }
-    </div>
-  }
-
-  <router-outlet></router-outlet>
-</div>
+}

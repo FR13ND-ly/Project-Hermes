@@ -1,13 +1,12 @@
 import { Component, inject, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
 import { CronComponent } from '../../cron';
 import { ProjectService } from '../../../../../../../../core/services/project.service';
 
 @Component({
   selector: 'app-cron-detail',
-  standalone: true,
-  imports: [CommonModule, DatePipe, RouterLink, RouterOutlet, RouterLinkActive],
+  imports: [DatePipe, RouterLink, RouterOutlet, RouterLinkActive],
   templateUrl: './detail.html',
   styles: ``,
 })

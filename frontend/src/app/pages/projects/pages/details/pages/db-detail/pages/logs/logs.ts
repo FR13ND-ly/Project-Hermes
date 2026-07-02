@@ -1,13 +1,12 @@
 import { Component, inject, signal, OnInit, OnDestroy, AfterViewChecked, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { DbDetailComponent } from '../../db-detail';
 import { DatabaseService } from '../../../../../../../../core/services/database.service';
 
 @Component({
   selector: 'app-db-logs',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './logs.html',
   styles: ``,
 })

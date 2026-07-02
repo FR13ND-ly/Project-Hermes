@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterLink } from '@angular/router';
 import { Details } from '../../../../details';
 import { ProjectService, ServerlessInstance } from '../../../../../../../../core/services/project.service';
@@ -8,8 +8,7 @@ import { DEFAULT_PAGE_SIZE } from '../../../../../../../../core/models/paginatio
 
 @Component({
   selector: 'app-serverless-list',
-  standalone: true,
-  imports: [CommonModule, Pagination, RouterLink],
+  imports: [Pagination, RouterLink],
   templateUrl: './list.html',
   styles: ``,
 })

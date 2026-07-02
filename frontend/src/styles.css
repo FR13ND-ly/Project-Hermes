@@ -247,14 +247,17 @@ html[data-theme="retro"] { --accent: #ffb000; --accent-hover: #e0a020; --accent-
   }
 
   /* ---- Cards / panels ---- */
+  /* Lightly frosted glass: a translucent surface + backdrop blur so cards pick up the
+     background glow/texture behind them (strongest near the top glow), with a hairline
+     top highlight + soft drop for depth. Kept mostly opaque so content stays crisp. */
   .card {
-    background: var(--surface-panel);
-    border: 1px solid var(--surface-border);
+    background: color-mix(in oklab, var(--surface-panel) 80%, transparent);
+    backdrop-filter: blur(10px) saturate(1.2);
+    -webkit-backdrop-filter: blur(10px) saturate(1.2);
+    border: 1px solid color-mix(in oklab, var(--color-zinc-50) 8%, transparent);
     border-radius: 8px;
-    /* Subtle depth: a hairline top highlight + a soft drop, so cards sit ON the
-       canvas instead of being flat rectangles. Reads on dark; invisible on light. */
     box-shadow:
-      inset 0 1px 0 color-mix(in oklab, var(--color-zinc-50) 4%, transparent),
+      inset 0 1px 0 color-mix(in oklab, var(--color-zinc-50) 6%, transparent),
       0 1px 2px rgba(0, 0, 0, 0.22);
   }
 

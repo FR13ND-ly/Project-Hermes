@@ -1,5 +1,5 @@
 import { Component, inject, signal, effect } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DbDetailComponent } from '../../db-detail';
@@ -9,8 +9,7 @@ import { ConfirmService } from '../../../../../../../../core/services/confirm.se
 
 @Component({
   selector: 'app-db-settings',
-  standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe],
   templateUrl: './settings.html',
   styles: ``,
 })

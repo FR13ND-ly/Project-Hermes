@@ -1,13 +1,12 @@
 import { Component, inject, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AppDetailComponent } from '../../app-detail';
 import { Pagination } from '../../../../../../../../shared/components/pagination/pagination';
 
 @Component({
   selector: 'app-app-builds',
-  standalone: true,
-  imports: [CommonModule, DatePipe, FormsModule, Pagination],
+  imports: [DatePipe, FormsModule, Pagination, NgClass],
   templateUrl: './builds.html',
   styles: ``,
 })

@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit, OnDestroy, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Details } from '../../details';
 import { ProjectService, CronJob, CronJobLog } from '../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
@@ -11,8 +11,7 @@ import { DEFAULT_PAGE_SIZE } from '../../../../../../core/models/pagination';
 
 @Component({
   selector: 'app-project-cron',
-  standalone: true,
-  imports: [CommonModule, RouterLink, RouterOutlet],
+  imports: [RouterLink, RouterOutlet],
   templateUrl: './cron.html',
 })
 export class CronComponent implements OnInit, OnDestroy {

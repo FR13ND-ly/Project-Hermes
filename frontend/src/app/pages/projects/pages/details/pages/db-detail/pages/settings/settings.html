@@ -5,7 +5,7 @@
       <h3 class="text-sm font-semibold text-zinc-100">Resize Physical Resources</h3>
       <p class="text-xs text-zinc-550">Update the maximum RAM and CPU quota allocated to the database container.</p>
     </div>
-    
+
     <div class="grid gap-6 md:grid-cols-2 pt-2">
       <!-- CPU Limit -->
       <div class="space-y-2">
@@ -22,7 +22,7 @@
           (ngModelChange)="cpuLimit.set($event)"
           [disabled]="savingSettings()"
           class="w-full h-1 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-zinc-50"
-        />
+          />
         <p class="text-[11px] text-zinc-550 font-mono">Current setting: {{ dbDetail.db()?.cpuLimit === 0 ? 'Unlimited' : dbDetail.db()?.cpuLimit + 'm (millicores)' }} · 0 = unlimited</p>
       </div>
 
@@ -41,7 +41,7 @@
           (ngModelChange)="memLimit.set($event)"
           [disabled]="savingSettings()"
           class="w-full h-1 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-zinc-50"
-        />
+          />
         <p class="text-[11px] text-zinc-550 font-mono">Current setting: {{ dbDetail.db()?.memoryLimitMb === 0 ? 'Unlimited' : dbDetail.db()?.memoryLimitMb + ' MB' }} · 0 = unlimited</p>
       </div>
     </div>
@@ -54,98 +54,110 @@
       </div>
 
       <!-- OFF: add button + inline retention prompt -->
-      <div *ngIf="!backupEnabled()">
-        <div *ngIf="!showAddBackup()">
-          <button
-            (click)="openAddBackup()"
-            class="px-3.5 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.4" stroke="currentColor" class="w-3.5 h-3.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Enable auto-backup
-          </button>
+      @if (!backupEnabled()) {
+        <div>
+          @if (!showAddBackup()) {
+            <div>
+              <button
+                (click)="openAddBackup()"
+                class="px-3.5 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.4" stroke="currentColor" class="w-3.5 h-3.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Enable auto-backup
+              </button>
+            </div>
+          }
+          @if (showAddBackup()) {
+            <div class="p-4 rounded bg-zinc-950/60 border border-zinc-900 space-y-3 max-w-sm animate-fade-in">
+              <div class="space-y-1.5">
+                <label class="text-xs uppercase tracking-wider font-semibold text-zinc-450">How many backups to retain?</label>
+                <input
+                  type="number" min="1" max="30"
+                  [ngModel]="newBackupCount()"
+                  (ngModelChange)="newBackupCount.set($event)"
+                  [disabled]="savingBackup()"
+                  class="w-full px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 font-mono focus:outline-none focus:border-zinc-500 transition-colors"
+                  />
+                <p class="text-[11px] text-zinc-550">The oldest backups are automatically deleted when the limit is reached.</p>
+              </div>
+              <div class="flex items-center justify-end gap-2">
+                <button (click)="showAddBackup.set(false)" [disabled]="savingBackup()" class="btn btn-secondary btn-sm">Cancel</button>
+                <button (click)="onEnableBackup()" [disabled]="savingBackup()" class="px-3.5 py-1.5 rounded btn-primary text-[13px] font-semibold shadow disabled:opacity-50 cursor-pointer">{{ savingBackup() ? 'Enabling...' : 'Enable' }}</button>
+              </div>
+            </div>
+          }
         </div>
-
-        <div *ngIf="showAddBackup()" class="p-4 rounded bg-zinc-950/60 border border-zinc-900 space-y-3 max-w-sm animate-fade-in">
-          <div class="space-y-1.5">
-            <label class="text-xs uppercase tracking-wider font-semibold text-zinc-450">How many backups to retain?</label>
-            <input
-              type="number" min="1" max="30"
-              [ngModel]="newBackupCount()"
-              (ngModelChange)="newBackupCount.set($event)"
-              [disabled]="savingBackup()"
-              class="w-full px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 font-mono focus:outline-none focus:border-zinc-500 transition-colors"
-            />
-            <p class="text-[11px] text-zinc-550">The oldest backups are automatically deleted when the limit is reached.</p>
-          </div>
-          <div class="flex items-center justify-end gap-2">
-            <button (click)="showAddBackup.set(false)" [disabled]="savingBackup()" class="btn btn-secondary btn-sm">Cancel</button>
-            <button (click)="onEnableBackup()" [disabled]="savingBackup()" class="px-3.5 py-1.5 rounded btn-primary text-[13px] font-semibold shadow disabled:opacity-50 cursor-pointer">{{ savingBackup() ? 'Enabling...' : 'Enable' }}</button>
-          </div>
-        </div>
-      </div>
+      }
 
       <!-- ON: retention editor + linked cron job + link -->
-      <div *ngIf="backupEnabled()" class="space-y-4">
-        <div class="flex flex-wrap items-end gap-3">
-          <div class="space-y-1.5">
-            <label class="text-xs uppercase tracking-wider font-semibold text-zinc-450">Backups retained</label>
-            <input
-              type="number" min="1" max="30"
-              [ngModel]="backupCount()"
-              (ngModelChange)="backupCount.set($event)"
-              [disabled]="savingBackup()"
-              class="w-28 px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 font-mono focus:outline-none focus:border-zinc-500 transition-colors"
-            />
+      @if (backupEnabled()) {
+        <div class="space-y-4">
+          <div class="flex flex-wrap items-end gap-3">
+            <div class="space-y-1.5">
+              <label class="text-xs uppercase tracking-wider font-semibold text-zinc-450">Backups retained</label>
+              <input
+                type="number" min="1" max="30"
+                [ngModel]="backupCount()"
+                (ngModelChange)="backupCount.set($event)"
+                [disabled]="savingBackup()"
+                class="w-28 px-3 py-1.5 text-[13px] bg-zinc-950 border border-zinc-800 rounded text-zinc-50 font-mono focus:outline-none focus:border-zinc-500 transition-colors"
+                />
+            </div>
+            <button (click)="onUpdateBackupRetention()" [disabled]="savingBackup()" class="px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer disabled:opacity-50">Update</button>
+            <button (click)="onDisableBackup()" [disabled]="savingBackup()" class="px-3 py-1.5 rounded hover:bg-red-950/20 text-zinc-500 hover:text-red-400 text-[13px] font-semibold transition-colors cursor-pointer ml-auto">Disable</button>
           </div>
-          <button (click)="onUpdateBackupRetention()" [disabled]="savingBackup()" class="px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer disabled:opacity-50">Update</button>
-          <button (click)="onDisableBackup()" [disabled]="savingBackup()" class="px-3 py-1.5 rounded hover:bg-red-950/20 text-zinc-500 hover:text-red-400 text-[13px] font-semibold transition-colors cursor-pointer ml-auto">Disable</button>
+          <!-- Linked cron job card -->
+          @if (backupCron(); as cron) {
+            <div class="p-4 rounded bg-zinc-900 border border-zinc-800 space-y-3">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="px-1.5 py-0.5 rounded bg-sky-950/30 border border-sky-900/40 text-[11px] font-bold uppercase tracking-wider text-sky-400">Cron Backup</span>
+                  <span class="font-mono text-[13px] text-zinc-50 truncate">{{ cron.name }}</span>
+                  <span class="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[11px] font-bold uppercase text-zinc-450">{{ cron.status }}</span>
+                </div>
+                <button (click)="goToBackupCron()" class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-50 text-xs font-semibold cursor-pointer shrink-0 flex items-center gap-1">
+                  View in Cron Jobs
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+                </button>
+              </div>
+              <div class="grid gap-1.5 text-[13px]">
+                <div class="flex items-center gap-2">
+                  <span class="text-zinc-550 w-16 shrink-0">Schedule</span>
+                  <code class="px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-850 text-zinc-300 font-mono select-all">{{ cron.schedule }}</code>
+                  <span class="text-zinc-650">· next: {{ cron.nextRunAt ? (cron.nextRunAt | date:'dd MMM, HH:mm') : '—' }}</span>
+                </div>
+                <div class="flex items-start gap-2">
+                  <span class="text-zinc-550 w-16 shrink-0 pt-1">Command</span>
+                  <code class="flex-1 px-2 py-1.5 rounded bg-zinc-950 border border-zinc-900 text-zinc-300 font-mono text-xs whitespace-pre-wrap break-all select-all">{{ cron.command }}</code>
+                </div>
+              </div>
+              <p class="text-[11px] text-zinc-600">Edit the schedule or command directly from the Cron Jobs tab. Created backups appear in the "Backups" tab.</p>
+            </div>
+          }
         </div>
-
-        <!-- Linked cron job card -->
-        <div *ngIf="backupCron() as cron" class="p-4 rounded bg-zinc-900 border border-zinc-800 space-y-3">
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2 min-w-0">
-              <span class="px-1.5 py-0.5 rounded bg-sky-950/30 border border-sky-900/40 text-[11px] font-bold uppercase tracking-wider text-sky-400">Cron Backup</span>
-              <span class="font-mono text-[13px] text-zinc-50 truncate">{{ cron.name }}</span>
-              <span class="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[11px] font-bold uppercase text-zinc-450">{{ cron.status }}</span>
-            </div>
-            <button (click)="goToBackupCron()" class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-50 text-xs font-semibold cursor-pointer shrink-0 flex items-center gap-1">
-              View in Cron Jobs
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
-            </button>
-          </div>
-          <div class="grid gap-1.5 text-[13px]">
-            <div class="flex items-center gap-2">
-              <span class="text-zinc-550 w-16 shrink-0">Schedule</span>
-              <code class="px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-850 text-zinc-300 font-mono select-all">{{ cron.schedule }}</code>
-              <span class="text-zinc-650">· next: {{ cron.nextRunAt ? (cron.nextRunAt | date:'dd MMM, HH:mm') : '—' }}</span>
-            </div>
-            <div class="flex items-start gap-2">
-              <span class="text-zinc-550 w-16 shrink-0 pt-1">Command</span>
-              <code class="flex-1 px-2 py-1.5 rounded bg-zinc-950 border border-zinc-900 text-zinc-300 font-mono text-xs whitespace-pre-wrap break-all select-all">{{ cron.command }}</code>
-            </div>
-          </div>
-          <p class="text-[11px] text-zinc-600">Edit the schedule or command directly from the Cron Jobs tab. Created backups appear in the "Backups" tab.</p>
-        </div>
-      </div>
+      }
     </div>
 
     <div class="pt-4 border-t border-zinc-900 flex justify-end gap-3">
-      <button 
+      <button
         (click)="onSaveSettings()"
         [disabled]="savingSettings() || (dbDetail.db()?.status === 'running' && cpuLimit() === dbDetail.db()?.cpuLimit && memLimit() === dbDetail.db()?.memoryLimitMb && backupEnabled() === dbDetail.db()?.backupEnabled && backupCount() === dbDetail.db()?.backupCount)"
         class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-      >
-        <span *ngIf="!savingSettings()">Save Settings</span>
-        <span *ngIf="savingSettings()" class="flex items-center gap-1">
-          <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          Saving...
-        </span>
+        >
+        @if (!savingSettings()) {
+          <span>Save Settings</span>
+        }
+        @if (savingSettings()) {
+          <span class="flex items-center gap-1">
+            <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Saving...
+          </span>
+        }
       </button>
     </div>
   </div>
@@ -165,7 +177,7 @@
       <button
         (click)="onDeleteDatabase()"
         class="px-3.5 py-2 rounded bg-red-950/20 hover:bg-red-950/40 text-red-400 border border-red-900/30 hover:border-red-900/60 text-[13px] font-bold cursor-pointer transition-colors shrink-0"
-      >
+        >
         Delete Database Instance
       </button>
     </div>

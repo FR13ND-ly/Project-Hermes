@@ -1,49 +1,47 @@
-<div class="space-y-6 animate-fade-in" *ngIf="selectedInstance() as inst">
-  <a [routerLink]="['/projects', parent.projectId(), 'serverless']" class="text-[13px] text-zinc-550 hover:text-zinc-50 cursor-pointer block">← Back to instance list</a>
-
-  <div class="card p-5 flex items-center justify-between">
-    <div>
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full" [class]="inst.status === 'active' ? 'bg-emerald-500' : inst.status === 'building' ? 'bg-amber-500 animate-pulse' : inst.status === 'failed' ? 'bg-red-500' : 'bg-zinc-600'"></span>
-        <h3 class="text-sm font-bold text-zinc-50">{{ inst.name }}</h3>
-        <span class="text-[11px] uppercase px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">{{ inst.runtime }}</span>
+@if (selectedInstance(); as inst) {
+  <div class="space-y-6 animate-fade-in">
+    <a [routerLink]="['/projects', parent.projectId(), 'serverless']" class="text-[13px] text-zinc-550 hover:text-zinc-50 cursor-pointer block">← Back to instance list</a>
+    <div class="card p-5 flex items-center justify-between">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full" [class]="inst.status === 'active' ? 'bg-emerald-500' : inst.status === 'building' ? 'bg-amber-500 animate-pulse' : inst.status === 'failed' ? 'bg-red-500' : 'bg-zinc-600'"></span>
+          <h3 class="text-sm font-bold text-zinc-50">{{ inst.name }}</h3>
+          <span class="text-[11px] uppercase px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">{{ inst.runtime }}</span>
+        </div>
+        <p class="text-xs text-zinc-550 mt-1 font-sans">{{ (inst.routes || []).length }} routes · {{ inst.assignedDomain || (inst.externalPort ? ('localhost:' + inst.externalPort) : 'not deployed') }}</p>
       </div>
-      <p class="text-xs text-zinc-550 mt-1 font-sans">{{ (inst.routes || []).length }} routes · {{ inst.assignedDomain || (inst.externalPort ? ('localhost:' + inst.externalPort) : 'not deployed') }}</p>
+      <button (click)="onDeployInstance()" [disabled]="deploying() || inst.status === 'building'" class="px-4 py-2 rounded btn-primary text-[13px] font-bold cursor-pointer disabled:opacity-50">
+        {{ deploying() || inst.status === 'building' ? 'Building...' : '🚀 Deploy' }}
+      </button>
     </div>
-    <button (click)="onDeployInstance()" [disabled]="deploying() || inst.status === 'building'" class="px-4 py-2 rounded btn-primary text-[13px] font-bold cursor-pointer disabled:opacity-50">
-      {{ deploying() || inst.status === 'building' ? 'Building...' : '🚀 Deploy' }}
-    </button>
-  </div>
-
-  <!-- Grouped tabs (sub-tabs render below) -->
-  <div class="flex items-center flex-wrap gap-5 border-b border-zinc-900">
-    @for (g of tabGroups; track g.id) {
-      <a
-        [routerLink]="activeGroup().id === g.id ? currentTabPath() : g.default"
-        class="tab"
-        [class.is-active]="activeGroup().id === g.id"
-      >
-        {{ g.label }}
-      </a>
-    }
-  </div>
-
-  <!-- Sub-tabs for the active group (only when it has more than one) -->
-  @if (activeGroup().tabs.length > 1) {
-    <div class="flex items-center flex-wrap gap-1 mt-4 font-mono text-xs">
-      @for (t of activeGroup().tabs; track t.path) {
+    <!-- Grouped tabs (sub-tabs render below) -->
+    <div class="flex items-center flex-wrap gap-5 border-b border-zinc-900">
+      @for (g of tabGroups; track g.id) {
         <a
-          [routerLink]="t.path"
-          routerLinkActive
-          #rlaSub="routerLinkActive"
-          class="px-2.5 py-1.5 rounded border transition-all cursor-pointer font-semibold tracking-wide"
-          [class]="rlaSub.isActive ? 'bg-zinc-800 text-zinc-100 border-zinc-700' : 'text-zinc-500 hover:text-zinc-300 border-transparent hover:bg-zinc-900'"
-        >
-          {{ t.label }}
+          [routerLink]="activeGroup().id === g.id ? currentTabPath() : g.default"
+          class="tab"
+          [class.is-active]="activeGroup().id === g.id"
+          >
+          {{ g.label }}
         </a>
       }
     </div>
-  }
-
-  <router-outlet></router-outlet>
-</div>
+    <!-- Sub-tabs for the active group (only when it has more than one) -->
+    @if (activeGroup().tabs.length > 1) {
+      <div class="flex items-center flex-wrap gap-1 mt-4 font-mono text-xs">
+        @for (t of activeGroup().tabs; track t.path) {
+          <a
+            [routerLink]="t.path"
+            routerLinkActive
+            #rlaSub="routerLinkActive"
+            class="px-2.5 py-1.5 rounded border transition-all cursor-pointer font-semibold tracking-wide"
+            [class]="rlaSub.isActive ? 'bg-zinc-800 text-zinc-100 border-zinc-700' : 'text-zinc-500 hover:text-zinc-300 border-transparent hover:bg-zinc-900'"
+            >
+            {{ t.label }}
+          </a>
+        }
+      </div>
+    }
+    <router-outlet></router-outlet>
+  </div>
+}

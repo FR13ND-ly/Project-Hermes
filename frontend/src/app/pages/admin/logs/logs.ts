@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit, effect } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth';
@@ -7,8 +7,7 @@ import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-admin-logs',
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive],
+  imports: [FormsModule, RouterLink, RouterLinkActive],
   templateUrl: './logs.html',
   styleUrl: './logs.css',
 })

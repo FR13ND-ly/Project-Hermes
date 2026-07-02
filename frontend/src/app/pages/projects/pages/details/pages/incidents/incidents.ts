@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit, OnDestroy, effect, computed } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Details } from '../../details';
 import { IncidentService, Incident } from '../../../../../../core/services/incident.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
@@ -11,8 +11,7 @@ import { DEFAULT_PAGE_SIZE } from '../../../../../../core/models/pagination';
 
 @Component({
   selector: 'app-project-incidents',
-  standalone: true,
-  imports: [CommonModule, DatePipe, Pagination],
+  imports: [DatePipe, Pagination],
   templateUrl: './incidents.html',
 })
 export class Incidents implements OnInit, OnDestroy {

@@ -1,5 +1,5 @@
 <div class="space-y-6 animate-fade-in">
-  
+
   <!-- Specs Grid -->
   <div class="grid gap-4 md:grid-cols-3">
     <!-- Database technology -->
@@ -75,7 +75,7 @@
         <button
           (click)="dbDetail.onRevealCredentials()"
           class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer border border-zinc-800 transition-colors flex items-center gap-1.5"
-        >
+          >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-500">
             <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -87,7 +87,7 @@
           [disabled]="dbDetail.rotatingPassword()"
           class="px-2.5 py-1 rounded bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 hover:text-amber-200 text-[13px] font-semibold cursor-pointer border border-amber-900/50 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
           title="Generate a new password in the DB engine and restart connected applications"
-        >
+          >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5" [class.animate-spin]="dbDetail.rotatingPassword()">
             <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
           </svg>
@@ -96,49 +96,53 @@
       </div>
     </div>
 
-    <div *ngIf="dbDetail.credentialsRevealed()" class="space-y-4 animate-fade-in">
-      <!-- Connection String -->
-      <div class="space-y-1">
-        <div class="flex items-center justify-between text-[11px] text-zinc-555 uppercase font-mono tracking-wider font-semibold">
-          <span>DATABASE_URL Connection String</span>
-          <button 
-            (click)="dbDetail.copyToClipboard(dbDetail.connectionUrl() || '')"
-            class="text-zinc-50 hover:underline cursor-pointer"
-          >
-            Copy URL
-          </button>
-        </div>
-        <div class="p-3 rounded bg-zinc-950 border border-zinc-900 font-mono text-[13px] text-emerald-400 select-all truncate">
-          {{ dbDetail.connectionUrl() }}
-        </div>
-      </div>
-
-      <div class="grid gap-4 md:grid-cols-2 text-[13px] font-mono" *ngIf="dbDetail.db()?.type !== 'redis'">
-        <!-- Username -->
+    @if (dbDetail.credentialsRevealed()) {
+      <div class="space-y-4 animate-fade-in">
+        <!-- Connection String -->
         <div class="space-y-1">
-          <span class="text-[11px] text-zinc-555 uppercase tracking-wider font-semibold">Username</span>
-          <div class="flex items-center justify-between p-2 rounded bg-zinc-950 border border-zinc-900">
-            <span class="text-zinc-300 select-all">{{ dbDetail.databaseUser() }}</span>
-            <button (click)="dbDetail.copyToClipboard(dbDetail.databaseUser() || '')" class="text-zinc-500 hover:text-zinc-50">Copy</button>
+          <div class="flex items-center justify-between text-[11px] text-zinc-555 uppercase font-mono tracking-wider font-semibold">
+            <span>DATABASE_URL Connection String</span>
+            <button
+              (click)="dbDetail.copyToClipboard(dbDetail.connectionUrl() || '')"
+              class="text-zinc-50 hover:underline cursor-pointer"
+              >
+              Copy URL
+            </button>
+          </div>
+          <div class="p-3 rounded bg-zinc-950 border border-zinc-900 font-mono text-[13px] text-emerald-400 select-all truncate">
+            {{ dbDetail.connectionUrl() }}
           </div>
         </div>
-
-        <!-- Password -->
-        <div class="space-y-1">
-          <span class="text-[11px] text-zinc-555 uppercase tracking-wider font-semibold">Password</span>
-          <div class="flex items-center justify-between p-2 rounded bg-zinc-950 border border-zinc-900">
-            <span class="text-zinc-300 select-all">{{ dbDetail.databasePassword() }}</span>
-            <button (click)="dbDetail.copyToClipboard(dbDetail.databasePassword() || '')" class="text-zinc-500 hover:text-zinc-50">Copy</button>
+        @if (dbDetail.db()?.type !== 'redis') {
+          <div class="grid gap-4 md:grid-cols-2 text-[13px] font-mono">
+            <!-- Username -->
+            <div class="space-y-1">
+              <span class="text-[11px] text-zinc-555 uppercase tracking-wider font-semibold">Username</span>
+              <div class="flex items-center justify-between p-2 rounded bg-zinc-950 border border-zinc-900">
+                <span class="text-zinc-300 select-all">{{ dbDetail.databaseUser() }}</span>
+                <button (click)="dbDetail.copyToClipboard(dbDetail.databaseUser() || '')" class="text-zinc-500 hover:text-zinc-50">Copy</button>
+              </div>
+            </div>
+            <!-- Password -->
+            <div class="space-y-1">
+              <span class="text-[11px] text-zinc-555 uppercase tracking-wider font-semibold">Password</span>
+              <div class="flex items-center justify-between p-2 rounded bg-zinc-950 border border-zinc-900">
+                <span class="text-zinc-300 select-all">{{ dbDetail.databasePassword() }}</span>
+                <button (click)="dbDetail.copyToClipboard(dbDetail.databasePassword() || '')" class="text-zinc-500 hover:text-zinc-50">Copy</button>
+              </div>
+            </div>
           </div>
-        </div>
+        }
       </div>
-    </div>
+    }
 
-    <div *ngIf="!dbDetail.credentialsRevealed()" class="flex flex-col items-center justify-center py-6 text-center">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-zinc-655 mb-2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-      </svg>
-      <p class="text-[13px] text-zinc-555">Credentials are stored securely. Click the button above to decrypt them.</p>
-    </div>
+    @if (!dbDetail.credentialsRevealed()) {
+      <div class="flex flex-col items-center justify-center py-6 text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-zinc-655 mb-2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+        </svg>
+        <p class="text-[13px] text-zinc-555">Credentials are stored securely. Click the button above to decrypt them.</p>
+      </div>
+    }
   </div>
 </div>

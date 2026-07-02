@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit, OnDestroy, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { ServerlessDetailComponent } from '../../detail';
 import { ProjectService, ServerlessRoute } from '../../../../../../../../../../core/services/project.service';
@@ -10,8 +10,7 @@ declare const monaco: any;
 
 @Component({
   selector: 'app-serverless-routes',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './routes.html',
   styles: ``,
 })

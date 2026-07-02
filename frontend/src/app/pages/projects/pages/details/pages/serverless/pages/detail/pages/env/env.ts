@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { ServerlessDetailComponent } from '../../detail';
 import { ProjectService, ProjectEnvResponse, FunctionEnvResponse } from '../../../../../../../../../../core/services/project.service';
@@ -8,8 +8,7 @@ import { ConfirmService } from '../../../../../../../../../../core/services/conf
 
 @Component({
   selector: 'app-serverless-env',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './env.html',
   styles: ``,
 })

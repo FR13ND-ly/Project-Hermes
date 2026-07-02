@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit, OnDestroy, effect, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Details } from '../../details';
 import { StorageService, StorageBucket, StorageObject, ImageVariant, ImageVariantSpec, ImageFormatTarget, ProjectVolume } from '../../../../../../core/services/storage.service';
 import { VolumeService, VolumeFileItem } from '../../../../../../core/services/volume.service';
@@ -34,8 +34,7 @@ export interface VirtualItem {
 
 @Component({
   selector: 'app-storages',
-  standalone: true,
-  imports: [CommonModule, RouterOutlet],
+  imports: [RouterOutlet],
   template: `<router-outlet></router-outlet>`,
   styles: ``,
 })

@@ -1,6 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService, User } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
@@ -8,7 +8,7 @@ import { ConfirmService } from '../../../core/services/confirm.service';
 
 @Component({
   selector: 'app-admin-users',
-  imports: [CommonModule, FormsModule, DatePipe, RouterLink, RouterLinkActive],
+  imports: [FormsModule, DatePipe, RouterLink, RouterLinkActive],
   templateUrl: './users.html',
   styleUrl: './users.css',
 })

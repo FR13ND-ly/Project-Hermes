@@ -1,11 +1,10 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { CronComponent } from '../../../../cron';
 
 @Component({
   selector: 'app-cron-details',
-  standalone: true,
-  imports: [CommonModule, DatePipe],
+  imports: [DatePipe],
   templateUrl: './details.html',
   styles: ``,
 })

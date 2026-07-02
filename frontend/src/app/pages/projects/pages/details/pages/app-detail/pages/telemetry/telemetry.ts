@@ -1,12 +1,11 @@
 import { Component, inject, OnDestroy, effect } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { DecimalPipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AppDetailComponent } from '../../app-detail';
 
 @Component({
   selector: 'app-app-telemetry',
-  standalone: true,
-  imports: [CommonModule, DecimalPipe, FormsModule],
+  imports: [DecimalPipe, FormsModule, NgClass],
   templateUrl: './telemetry.html',
   styles: ``,
 })

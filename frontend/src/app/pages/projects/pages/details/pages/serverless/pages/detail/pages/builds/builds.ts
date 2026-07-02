@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit, OnDestroy, effect } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { ServerlessDetailComponent } from '../../detail';
 import { ProjectService, ServerlessBuild } from '../../../../../../../../../../core/services/project.service';
@@ -8,8 +8,7 @@ import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-serverless-builds',
-  standalone: true,
-  imports: [CommonModule, DatePipe],
+  imports: [DatePipe],
   templateUrl: './builds.html',
   styles: ``,
 })

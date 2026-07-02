@@ -1,12 +1,11 @@
 import { Component, inject, signal, OnInit, OnDestroy, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ServerlessDetailComponent } from '../../detail';
 import { environment } from '../../../../../../../../../../../environments/environment';
 
 @Component({
   selector: 'app-serverless-logs',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './logs.html',
   styles: ``,
 })

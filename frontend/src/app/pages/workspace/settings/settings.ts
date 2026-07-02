@@ -6,11 +6,11 @@ import { CloudflareService, CloudflareCredential } from '../../../core/services/
 import { AuthService } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
-import { DecimalPipe, CommonModule } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 
 @Component({
   selector: 'app-workspace-settings',
-  imports: [DecimalPipe, CommonModule, FormsModule],
+  imports: [DecimalPipe, FormsModule],
   templateUrl: './settings.html',
   styleUrl: './settings.css',
 })

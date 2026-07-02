@@ -1,12 +1,11 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ServerlessDetailComponent } from '../../detail';
 import { ServerlessRoute } from '../../../../../../../../../../core/services/project.service';
 
 @Component({
   selector: 'app-serverless-details',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './details.html',
   styles: ``,
 })

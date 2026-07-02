@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink, RouterOutlet, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { Details } from '../../details';
@@ -14,8 +14,7 @@ import { DEFAULT_PAGE_SIZE } from '../../../../../../core/models/pagination';
 
 @Component({
   selector: 'app-app-detail',
-  standalone: true,
-  imports: [CommonModule, DatePipe, DecimalPipe, FormsModule, RouterLink, RouterOutlet, RouterLinkActive],
+  imports: [DatePipe, DecimalPipe, FormsModule, RouterLink, RouterOutlet, RouterLinkActive],
   templateUrl: './app-detail.html',
   styleUrl: './app-detail.css',
 })

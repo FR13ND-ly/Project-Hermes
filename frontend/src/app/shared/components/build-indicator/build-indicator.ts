@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ProjectService, BuildQueueItem } from '../../../core/services/project.service';
@@ -12,8 +12,7 @@ import { WebSocketService } from '../../../core/services/websocket.service';
  */
 @Component({
   selector: 'app-build-indicator',
-  standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [RouterLink],
   template: `
     @if (items().length > 0) {
       <div class="fixed bottom-6 right-6 z-[9990] font-sans animate-fade-in">
