@@ -1,47 +1,49 @@
 @if (db()) {
   <div class="space-y-6 animate-fade-in">
-    <!-- Back button & Header Info (inline layout) -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-5">
-      <div class="flex items-center gap-3">
-        <a
-          [routerLink]="['/projects', parent.projectId(), 'databases']"
-          class="btn btn-secondary btn-sm shrink-0 px-2"
-          title="Back to Databases"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-          </svg>
-        </a>
-        <div>
-          <div class="flex items-center gap-2.5">
-            <h2 class="text-lg font-semibold tracking-tight text-zinc-50">{{ db()?.name }}</h2>
-            <span
-              class="px-1.5 py-0.2 rounded text-[11px] font-bold border font-mono uppercase"
-              [ngClass]="{
-                'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': db()?.status === 'running',
-                'bg-orange-950/20 border-orange-900/30 text-orange-400': db()?.status === 'provisioning',
-                'bg-red-950/20 border-red-900/30 text-red-400': db()?.status === 'failed'
-              }"
-            >
-              {{ db()?.status === 'provisioning' ? 'constructing (' + (db()?.createdAt ? getLiveDuration(db()!.createdAt) : '0s') + ')' : db()?.status }}
-            </span>
+    <div class="space-y-4">
+      <!-- Back button & Header Info (inline layout) -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <a
+            [routerLink]="['/projects', parent.projectId(), 'databases']"
+            class="btn btn-secondary btn-sm shrink-0 px-2"
+            title="Back to Databases"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+          </a>
+          <div>
+            <div class="flex items-center gap-2.5">
+              <h2 class="text-lg font-semibold tracking-tight text-zinc-50">{{ db()?.name }}</h2>
+              <span
+                class="px-1.5 py-0.2 rounded text-[11px] font-bold border font-mono uppercase"
+                [ngClass]="{
+                  'bg-emerald-950/20 border-emerald-900/30 text-emerald-400': db()?.status === 'running',
+                  'bg-orange-950/20 border-orange-900/30 text-orange-400': db()?.status === 'provisioning',
+                  'bg-red-950/20 border-red-900/30 text-red-400': db()?.status === 'failed'
+                }"
+              >
+                {{ db()?.status === 'provisioning' ? 'constructing (' + (db()?.createdAt ? getLiveDuration(db()!.createdAt) : '0s') + ')' : db()?.status }}
+              </span>
+            </div>
+            <p class="text-[13px] text-zinc-500 font-mono mt-0.5">Database ID: {{ db()?.id }}</p>
           </div>
-          <p class="text-[13px] text-zinc-500 font-mono mt-0.5">Database ID: {{ db()?.id }}</p>
         </div>
       </div>
-    </div>
 
-    <!-- Tab navigation menu -->
-    <div class="flex border-b border-zinc-900 mb-5 gap-5 select-none">
-      @for (g of tabGroups; track g.id) {
-        <a
-          [routerLink]="activeGroup().id === g.id ? currentTabPath() : g.default"
-          class="tab"
-          [class.is-active]="activeGroup().id === g.id"
-        >
-          {{ g.label }}
-        </a>
-      }
+      <!-- Tab navigation menu -->
+      <div class="flex border-b border-zinc-900 pb-px gap-5 select-none">
+        @for (g of tabGroups; track g.id) {
+          <a
+            [routerLink]="activeGroup().id === g.id ? currentTabPath() : g.default"
+            class="tab"
+            [class.is-active]="activeGroup().id === g.id"
+          >
+            {{ g.label }}
+          </a>
+        }
+      </div>
     </div>
     <!-- Sub-tabs for the active group (only when it has more than one) -->
     @if (activeGroup().tabs.length > 1) {

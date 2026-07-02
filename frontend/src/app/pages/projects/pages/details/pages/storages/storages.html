@@ -13,12 +13,12 @@
       <div class="flex items-center gap-3">
         <button 
           [routerLink]="['/projects', parent.projectId(), 'storages', 'create']"
-          class="btn btn-secondary btn-sm"
+          class="btn btn-primary btn-sm"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-550">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
-          Create New Bucket
+          Create Bucket
         </button>
       </div>
     </div>
@@ -290,59 +290,60 @@
 
     <!-- CASE 2: Selected Bucket Details view -->
     @let bucket = selectedBucket()!;
-    
-    <!-- Detail Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <button 
-          (click)="deselectBucket()"
-          class="btn btn-secondary btn-sm shrink-0"
-          title="Back to list"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-          </svg>
-        </button>
-        <div>
-          <div class="flex items-center gap-2">
-            <h2 class="text-lg font-semibold tracking-tight text-zinc-50">{{ bucket.name }}</h2>
-            <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border border-purple-900 bg-purple-950/20 text-purple-400 uppercase">Private</span>
+    <div class="space-y-4">
+      <!-- Detail Header -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <button 
+            (click)="deselectBucket()"
+            class="btn btn-secondary btn-sm shrink-0"
+            title="Back to list"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+          </button>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg font-semibold tracking-tight text-zinc-50">{{ bucket.name }}</h2>
+              <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border border-purple-900 bg-purple-950/20 text-purple-400 uppercase">Private</span>
+            </div>
+            <p class="text-[13px] text-zinc-500 font-mono mt-0.5">slug: {{ bucket.slug }} | limit: {{ formatBytes(bucket.maxBucketSizeBytes) }}@if (bucket.maxFileSizeBytes > 0) { <span> | max/file: {{ formatBytes(bucket.maxFileSizeBytes) }}</span> }@if (bucket.allowCustomProcessing) { <span class="text-emerald-500"> · custom options</span> }</p>
           </div>
-          <p class="text-[13px] text-zinc-500 font-mono mt-0.5">slug: {{ bucket.slug }} | limit: {{ formatBytes(bucket.maxBucketSizeBytes) }}@if (bucket.maxFileSizeBytes > 0) { <span> | max/file: {{ formatBytes(bucket.maxFileSizeBytes) }}</span> }@if (bucket.allowCustomProcessing) { <span class="text-emerald-500"> · custom options</span> }</p>
         </div>
       </div>
-    </div>
 
-    <!-- Tab Menu -->
-    <div class="flex border-b border-zinc-900 mb-5 gap-5">
-      <button 
-        (click)="activeTab.set('files')"
-        class="tab"
-        [class.is-active]="activeTab() === 'files'"
-      >
-        Stored Files
-      </button>
-      <button 
-        (click)="activeTab.set('logs')"
-        class="tab"
-        [class.is-active]="activeTab() === 'logs'"
-      >
-        Log-uri Activitate
-      </button>
-      <button 
-        (click)="activeTab.set('settings')"
-        class="tab"
-        [class.is-active]="activeTab() === 'settings'"
-      >
-        Bucket Settings
-      </button>
-      <button 
-        (click)="activeTab.set('api')"
-        class="tab"
-        [class.is-active]="activeTab() === 'api'"
-      >
-        Integrare API
-      </button>
+      <!-- Tab Menu -->
+      <div class="flex border-b border-zinc-900 pb-px gap-5 select-none">
+        <button 
+          (click)="activeTab.set('files')"
+          class="tab"
+          [class.is-active]="activeTab() === 'files'"
+        >
+          Stored Files
+        </button>
+        <button 
+          (click)="activeTab.set('logs')"
+          class="tab"
+          [class.is-active]="activeTab() === 'logs'"
+        >
+          Log-uri Activitate
+        </button>
+        <button 
+          (click)="activeTab.set('settings')"
+          class="tab"
+          [class.is-active]="activeTab() === 'settings'"
+        >
+          Bucket Settings
+        </button>
+        <button 
+          (click)="activeTab.set('api')"
+          class="tab"
+          [class.is-active]="activeTab() === 'api'"
+        >
+          Integrare API
+        </button>
+      </div>
     </div>
 
     <!-- Tab 1: FILES EXPLORER -->

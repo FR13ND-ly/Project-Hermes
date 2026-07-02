@@ -2,10 +2,10 @@
   <div class="lg:col-span-1 space-y-2">
     <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
       <h4 class="text-xs font-semibold text-zinc-400">Rute ({{ (routes() || []).length }})</h4>
-      <button (click)="onAddRoute()" class="btn btn-primary btn-sm">+ Add</button>
+      <button (click)="onAddRoute()" class="btn btn-primary btn-sm">+ Create</button>
     </div>
     @if ((routes() || []).length === 0) {
-      <p class="text-[13px] text-zinc-600 italic py-3 font-sans">No routes. Click "+ Add".</p>
+      <p class="text-[13px] text-zinc-600 italic py-3 font-sans">No routes. Click "+ Create".</p>
     } @else {
       <div class="space-y-1">
         @for (r of routes(); track r.id) {
@@ -37,7 +37,7 @@
         </div>
       </div>
     } @else {
-      <div class="bg-zinc-900 border border-dashed border-zinc-800 rounded-lg p-10 text-center text-[13px] text-zinc-600 font-sans">Select a route on the left to edit its code, or add a new one.</div>
+      <div class="bg-zinc-900 border border-dashed border-zinc-800 rounded-lg p-10 text-center text-[13px] text-zinc-600 font-sans">Select a route on the left to edit its code, or create a new one.</div>
     }
   </div>
 </div>

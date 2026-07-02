@@ -31,23 +31,6 @@
 
   <!-- MAIN LIST VIEW (selectedRoute is null) -->
   @if (selectedRoute() === null) {
-    <!-- Local Development Help -->
-    <div class="p-4 rounded-lg border border-zinc-800 bg-zinc-950 space-y-3 font-sans">
-      <div class="flex items-start gap-3">
-        <div class="p-2 bg-indigo-950/45 border border-indigo-900/30 rounded text-indigo-400 shrink-0">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 111.083 1.083l-.04.02a.75.75 0 01-1.083-1.083zM12 21a9 9 0 100-18 9 9 0 000 18z" />
-          </svg>
-        </div>
-        <div class="space-y-1">
-          <h4 class="text-[13px] font-bold text-zinc-200">Local Connection Guide (Minikube on Windows)</h4>
-          <p class="text-[13px] text-zinc-400 leading-relaxed">
-            Since you are running the application in a local Kubernetes cluster, external ports are not automatically exposed directly on your host machine.
-            To access the application, open a terminal and run the command <code class="px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-900 text-zinc-50 font-mono text-xs">minikube tunnel</code>.
-          </p>
-        </div>
-      </div>
-    </div>
 
     <!-- Unified HTTP Entries list -->
     <div class="card p-5 space-y-4 font-sans">
