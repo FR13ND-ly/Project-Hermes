@@ -41,8 +41,8 @@
               type="button"
               (click)="onTypeChange($any(type))"
               [disabled]="provisioning()"
-              class="py-2.5 px-1.5 rounded-lg border text-[11px] font-bold text-center uppercase transition-all cursor-pointer flex items-center justify-center font-mono"
-              [ngClass]="dbType() === type ? 'bg-zinc-900 border-zinc-500 text-zinc-50 shadow-md shadow-black/30 scale-[1.02]' : 'bg-zinc-950 border-zinc-850 text-zinc-400 hover:text-zinc-50 hover:border-zinc-700'"
+              class="py-2.5 px-1.5 rounded-lg border text-[13px] font-semibold text-center capitalize transition-all cursor-pointer flex items-center justify-center"
+              [ngClass]="dbType() === type ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-300' : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-50 hover:border-zinc-700'"
             >
               <span>{{ type }}</span>
             </button>
