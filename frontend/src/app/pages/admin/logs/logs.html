@@ -1,62 +1,62 @@
-<div class="max-w-6xl mx-auto px-6 py-8 space-y-6 animate-fade-in">
+<div class="space-y-6 animate-fade-in">
 
   <!-- Sub-navigation tabs for Admin Console -->
-  <div class="flex items-center gap-2 border-b border-zinc-900 pb-3 font-mono text-[13px] select-none">
+  <div class="flex border-b border-zinc-900 mb-5 gap-5 select-none">
     <a
       routerLink="/admin/users"
-      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold text-zinc-400 hover:text-zinc-50"
+      routerLinkActive="is-active"
+      class="tab"
     >
       Users
     </a>
     <a
       routerLink="/admin/workspaces"
-      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold text-zinc-400 hover:text-zinc-50"
+      routerLinkActive="is-active"
+      class="tab"
     >
       Workspaces
     </a>
     <a
       routerLink="/admin/logs"
-      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold text-zinc-400 hover:text-zinc-50"
+      routerLinkActive="is-active"
+      class="tab"
     >
       Logs
     </a>
   </div>
 
   <!-- Header -->
-  <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
+  <div class="flex items-center justify-between gap-4">
     <div>
-      <h1 class="text-sm font-bold text-zinc-300 font-mono">Platform Observability & Audit Logs</h1>
-      <p class="text-[13px] text-zinc-550 mt-0.5">Real-time system diagnostics and security authentication audit trails.</p>
+      <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Platform Observability &amp; Audit Logs</h2>
+      <p class="text-[13px] text-zinc-500">Real-time system diagnostics and security authentication audit trails.</p>
     </div>
   </div>
 
   <!-- Console Tabs and Actions -->
-  <div class="card p-5 space-y-4 font-mono">
+  <div class="card p-5 space-y-4">
     
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-3">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-1 mb-4">
       <!-- Selector for sub-logs -->
-      <div class="flex items-center gap-2 font-mono text-[13px] select-none">
+      <div class="flex items-center gap-5 select-none">
         <button
           (click)="onTabChange('system')"
-          class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
-          [class]="activeTab() === 'system' ? 'bg-zinc-50 text-zinc-950 font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
+          class="tab"
+          [class.is-active]="activeTab() === 'system'"
         >
           System Logs
         </button>
         <button
           (click)="onTabChange('auth')"
-          class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
-          [class]="activeTab() === 'auth' ? 'bg-zinc-50 text-zinc-950 font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
+          class="tab"
+          [class.is-active]="activeTab() === 'auth'"
         >
           Authentication Logs
         </button>
         <button
           (click)="onTabChange('gc')"
-          class="px-2.5 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider"
-          [class]="activeTab() === 'gc' ? 'bg-zinc-50 text-zinc-950 font-extrabold' : 'text-zinc-555 hover:text-zinc-300'"
+          class="tab"
+          [class.is-active]="activeTab() === 'gc'"
         >
           GC Worker
         </button>
@@ -69,12 +69,12 @@
           placeholder="Filter logs..." 
           [ngModel]="logSearchQuery()"
           (ngModelChange)="logSearchQuery.set($event)"
-          class="bg-zinc-950 border border-zinc-850 text-zinc-300 text-[13px] px-2.5 py-1.5 rounded focus:outline-none focus:border-zinc-700 w-32 sm:w-44 font-mono"
+          class="input text-[13px] px-2.5 py-1.5 w-32 sm:w-44 font-mono"
         />
 
         <button 
           (click)="loadLogs()"
-          class="p-1.5 rounded border border-zinc-850 bg-zinc-950 hover:border-zinc-500 text-zinc-500 hover:text-zinc-50 transition-colors cursor-pointer"
+          class="btn btn-secondary btn-sm px-2 shrink-0"
           title="Refresh Logs"
           [disabled]="loading()"
         >
@@ -85,7 +85,7 @@
 
         <button 
           (click)="onDownloadLogs()"
-          class="p-1.5 rounded border border-zinc-850 bg-zinc-950 hover:border-zinc-500 text-zinc-500 hover:text-zinc-50 transition-colors cursor-pointer"
+          class="btn btn-secondary btn-sm px-2 shrink-0"
           title="Download log file"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5">
@@ -95,8 +95,8 @@
 
         <button 
           (click)="toggleAutoScroll()"
-          class="px-2.5 py-1.5 rounded text-xs font-bold uppercase border cursor-pointer transition-all"
-          [class]="autoScroll() ? 'bg-zinc-50 text-zinc-950 border-zinc-50' : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-zinc-50'"
+          class="btn btn-sm cursor-pointer shrink-0"
+          [class]="autoScroll() ? 'btn-primary' : 'btn-secondary'"
         >
           Autoscroll: {{ autoScroll() ? 'ON' : 'OFF' }}
         </button>

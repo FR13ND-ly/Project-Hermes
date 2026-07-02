@@ -6,8 +6,8 @@
     <!-- Section Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
-        <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Object storage & buckets</h2>
-        <p class="text-[13px] text-zinc-555">Manage static files, media and storage rules for your workspace.</p>
+        <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Object storage &amp; buckets</h2>
+        <p class="text-[13px] text-zinc-500">Manage static files, media and storage rules for your workspace.</p>
       </div>
       
       <div class="flex items-center gap-3">
@@ -124,7 +124,7 @@
     <div class="bg-zinc-900 rounded border border-zinc-900 shadow-sm">
       <div class="border-b border-zinc-900 px-5 py-3.5">
         <h3 class="text-sm font-semibold text-zinc-100">Persistent volumes (PVC)</h3>
-        <p class="text-xs text-zinc-555 mt-0.5">Automatically created at build from application <code>VOLUME</code> directives. Browse their contents here.</p>
+        <p class="text-xs text-zinc-500 mt-0.5">Automatically created at build from application <code>VOLUME</code> directives. Browse their contents here.</p>
       </div>
       @if (parent.loadingPvcs()) {
         <div class="px-5 py-6 text-center text-[13px] text-zinc-600">Loading volumes...</div>
@@ -165,18 +165,18 @@
     @let pvc = parent.selectedPvc()!;
 
     <!-- CASE 2b: Selected PVC — browsed in the SAME detail layout as buckets -->
-    <div class="flex items-center gap-3 border-b border-zinc-900 pb-4">
-      <button (click)="parent.deselectBucket()" class="p-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-455 hover:text-zinc-50 cursor-pointer transition-colors" title="Back to list">
+    <div class="flex items-center gap-3">
+      <button (click)="parent.deselectBucket()" class="btn btn-secondary btn-sm shrink-0" title="Back to list">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
           <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
       </button>
       <div>
         <div class="flex items-center gap-2">
-          <h3 class="text-[13px] font-bold text-zinc-50">{{ pvc.appName }}</h3>
+          <h2 class="text-lg font-semibold tracking-tight text-zinc-50">{{ pvc.appName }}</h2>
           <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border border-sky-900 bg-sky-950/20 text-sky-400 uppercase">PVC</span>
         </div>
-        <p class="text-xs text-zinc-555 font-mono mt-0.5">mounted at: {{ pvc.containerPath }} {{ pvc.isAuto ? '· auto (build)' : '' }}</p>
+        <p class="text-[13px] text-zinc-500 font-mono mt-0.5">mounted at: {{ pvc.containerPath }} {{ pvc.isAuto ? '· auto (build)' : '' }}</p>
       </div>
     </div>
 

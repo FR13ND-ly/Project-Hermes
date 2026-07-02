@@ -1,12 +1,12 @@
-<div class="space-y-6 py-4 font-mono">
+<div class="space-y-6 py-4">
   
   <!-- State A.1: Selection Screen (no repo selected and not custom url mode) -->
   @if (!selectedImportRepo() && !isCustomGitUrl()) {
     <div class="space-y-4 max-w-4xl mx-auto">
       <div class="flex items-center justify-between">
         <div class="space-y-1">
-          <h2 class="text-lg font-bold text-zinc-50 font-sans">Import a Project</h2>
-          <p class="text-zinc-550 text-[13px] font-medium font-sans">Choose a repository from GitHub or start with a popular template.</p>
+          <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Import a Project</h2>
+          <p class="text-[13px] text-zinc-500">Choose a repository from GitHub or start with a popular template.</p>
         </div>
         <button
           (click)="onCancel()"
@@ -137,7 +137,7 @@
       </button>
 
       <div class="space-y-1">
-        <h2 class="text-lg font-bold text-zinc-50 font-sans">Configure Application Import</h2>
+        <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Configure Application Import</h2>
         @if (selectedImportRepo()) {
           <p class="text-zinc-500 text-[13px]">
             Configuring repo <span class="font-mono text-zinc-300">{{ selectedImportRepo()?.fullPath || selectedImportRepo()?.name }}</span>.

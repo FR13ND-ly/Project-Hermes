@@ -1,38 +1,40 @@
-<div class="space-y-6 animate-fade-in w-full">
+<div class="space-y-6 animate-fade-in">
   
   <!-- Sub-navigation tabs for Admin Console -->
-  <div class="flex items-center gap-2 border-b border-zinc-900 pb-3 font-mono text-[13px] select-none">
+  <div class="flex border-b border-zinc-900 mb-5 gap-5 select-none">
     <a
       routerLink="/admin/users"
-      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold text-zinc-400 hover:text-zinc-50"
+      routerLinkActive="is-active"
+      class="tab"
     >
       Users
     </a>
     <a
       routerLink="/admin/workspaces"
-      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold text-zinc-400 hover:text-zinc-50"
+      routerLinkActive="is-active"
+      class="tab"
     >
       Workspaces
     </a>
     <a
       routerLink="/admin/logs"
-      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold text-zinc-400 hover:text-zinc-50"
+      routerLinkActive="is-active"
+      class="tab"
     >
       Logs
     </a>
   </div>
 
   <!-- Section Header -->
-  <div class="border-b border-zinc-900 pb-4">
-    <h3 class="text-sm font-semibold text-zinc-100">User Management</h3>
-    <p class="text-[13px] text-zinc-550">Register new accounts and manage existing users on the Hermes platform.</p>
+  <div class="flex items-center justify-between gap-4">
+    <div>
+      <h2 class="text-lg font-semibold tracking-tight text-zinc-50">User Management</h2>
+      <p class="text-[13px] text-zinc-500">Register new accounts and manage existing users on the Hermes platform.</p>
+    </div>
   </div>
 
   <!-- Change My Password (self-service for the logged-in admin / root) -->
-  <div class="bg-zinc-900/90 p-6 rounded-lg border border-zinc-900 space-y-5 shadow-lg font-mono">
+  <div class="card p-6 space-y-5">
     <div class="border-b border-zinc-900 pb-2.5">
       <h4 class="text-sm font-semibold text-zinc-100">Your Account · Change Password</h4>
       <p class="text-[13px] text-zinc-550 mt-0.5">Update the password for <span class="text-zinc-300">{{ auth.currentUser()?.username }}</span> (requires your current password).</p>
@@ -85,7 +87,7 @@
     
     <!-- Provisioning Form (Left/6 cols) -->
     <div class="lg:col-span-7">
-      <div class="bg-zinc-900/90 p-6 rounded-lg border border-zinc-900 space-y-5 shadow-lg">
+      <div class="card p-6 space-y-5">
         
         <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
           <h4 class="text-sm font-semibold text-zinc-100">Register New User</h4>
@@ -167,7 +169,7 @@
 
     <!-- Info & Temporary Password Reveal (Right/5 cols) -->
     <div class="lg:col-span-5 space-y-4">
-      <div class="p-5 rounded-lg border border-zinc-850 bg-zinc-950 space-y-3">
+      <div class="card p-5 space-y-3">
         <h4 class="text-xs font-semibold text-zinc-300">Account Activation Flow</h4>
         <p class="text-[13px] text-zinc-500 font-sans leading-relaxed">
           The system creates the account with a pending activation status and generates a temporary password.
@@ -180,7 +182,7 @@
 
       <!-- Result Card (Password Reveal) -->
       @if (provisionedPassword()) {
-        <div class="bg-zinc-950 border border-zinc-800/80 p-5 rounded-lg space-y-3 shadow-xl">
+        <div class="card p-5 space-y-3 shadow-xl">
           <div class="flex items-center gap-2 text-zinc-50 font-bold text-xs">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-emerald-450">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -208,18 +210,18 @@
   </div>
 
   <!-- Bottom Section: Users List -->
-  <div class="bg-zinc-900 border border-zinc-900 rounded-lg overflow-hidden shadow-lg font-mono">
+  <div class="card overflow-hidden shadow-lg mt-6">
     
-    <div class="p-4 bg-zinc-950/40 border-b border-zinc-900 flex items-center justify-between">
+    <div class="p-4 bg-zinc-950/10 border-b border-zinc-900 flex items-center justify-between">
       <h4 class="text-sm font-semibold text-zinc-100">Registered Users ({{ users().length }})</h4>
       <button
         (click)="loadUsers()"
         [disabled]="loadingUsers()"
-        class="p-1 rounded hover:bg-zinc-900 text-zinc-400 hover:text-zinc-50 transition-colors cursor-pointer"
+        class="btn btn-ghost btn-sm px-2 shrink-0"
         title="Refresh list"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4" [class.animate-spin]="loadingUsers()">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
         </svg>
       </button>
     </div>
@@ -283,7 +285,7 @@
                     <button 
                       (click)="onResetPassword(user)"
                       title="Reset Password"
-                      class="p-1.5 rounded border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-50 cursor-pointer transition-all mr-1.5"
+                      class="btn btn-secondary btn-sm px-2 shrink-0 mr-1.5"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H3.75v-2.25c-.247-.247-.5-.5-.5-.75V15.75l4.873-4.873c.403-.403.526-.999.43-1.563A6 6 0 1 1 15.75 5.25Z" />
@@ -294,8 +296,8 @@
                     <button 
                       (click)="onToggleSuspend(user)"
                       [title]="user.status.toLowerCase() === 'suspended' ? 'Activate Account' : 'Suspend Account'"
-                      class="p-1.5 rounded border transition-all mr-1.5 cursor-pointer"
-                      [class]="user.status.toLowerCase() === 'suspended' ? 'border-emerald-900/40 hover:bg-emerald-950/20 text-emerald-450' : 'border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-50'"
+                      class="btn btn-sm px-2 shrink-0 mr-1.5"
+                      [class]="user.status.toLowerCase() === 'suspended' ? 'btn-primary bg-emerald-950/40 text-emerald-400 border-emerald-900/30' : 'btn-secondary'"
                     >
                       @if (user.status.toLowerCase() === 'suspended') {
                         <!-- Unlock Icon -->
@@ -314,7 +316,7 @@
                     <button 
                       (click)="onDeleteUser(user)"
                       title="Delete User"
-                      class="p-1.5 rounded border border-red-955/20 hover:bg-red-955/15 text-red-500/70 hover:text-red-400 cursor-pointer transition-all"
+                      class="btn btn-secondary btn-sm px-2 text-red-500 hover:text-red-400 shrink-0"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />

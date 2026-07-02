@@ -1,15 +1,15 @@
-<div class="space-y-6 animate-fade-in font-sans max-w-2xl">
-  <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
-    <div>
-      <h3 class="text-sm font-semibold text-zinc-100">New Domain Configuration</h3>
-      <p class="text-xs text-zinc-550 mt-0.5">Attach custom domains or configure DNS entries for applications, databases, or functions.</p>
+<div class="space-y-6 animate-fade-in max-w-2xl mx-auto py-4">
+  <div class="flex items-center justify-between gap-4">
+    <div class="space-y-0.5">
+      <h2 class="text-lg font-semibold tracking-tight text-zinc-50">New Domain Configuration</h2>
+      <p class="text-[13px] text-zinc-500">Attach custom domains or configure DNS entries for applications, databases, or functions.</p>
     </div>
-    <button (click)="onCancel()" class="text-[13px] text-zinc-400 hover:text-zinc-50 cursor-pointer font-sans flex items-center gap-1">
-      ← Back to list
+    <button (click)="onCancel()" class="btn btn-secondary btn-sm shrink-0">
+      Cancel
     </button>
   </div>
 
-  <div class="p-5 rounded-lg border border-zinc-800 bg-zinc-900 space-y-4">
+  <div class="card p-5 space-y-4">
     <div class="grid gap-4 sm:grid-cols-2 font-mono">
       <div class="space-y-1.5">
         <label for="fqdn-input" class="text-xs font-semibold text-zinc-400">Domain Name (FQDN)</label>

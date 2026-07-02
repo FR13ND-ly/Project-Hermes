@@ -1,19 +1,17 @@
-<div class="space-y-6 animate-fade-in max-w-xl mx-auto py-4 font-mono text-zinc-350">
+<div class="space-y-6 animate-fade-in max-w-xl mx-auto py-4">
 
   <!-- Header -->
-  <div class="flex items-center justify-between border-b border-zinc-900 pb-3.5">
+  <div class="flex items-center justify-between gap-4">
     <div class="space-y-0.5">
-      <h3 class="text-sm font-bold text-zinc-50 font-sans">Provision New Database</h3>
-      <p class="text-xs text-zinc-500 font-medium font-sans">Configure resource quotas and network exposure for the instance.</p>
+      <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Provision New Database</h2>
+      <p class="text-[13px] text-zinc-500">Configure resource quotas and network exposure for the instance.</p>
     </div>
     <button 
       (click)="onCancel()"
       [disabled]="provisioning()"
-      class="text-zinc-500 hover:text-zinc-50 cursor-pointer transition-colors p-1"
+      class="btn btn-secondary btn-sm shrink-0"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-      </svg>
+      Cancel
     </button>
   </div>
 
@@ -31,7 +29,7 @@
           [ngModel]="dbName()"
           (ngModelChange)="dbName.set($event)"
           [disabled]="provisioning()"
-          class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded-lg text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+          class="block w-full px-3 py-2 text-[13px] input font-mono"
         />
       </div>
 
@@ -155,7 +153,7 @@
               [ngModel]="externalPort()"
               (ngModelChange)="externalPort.set($event)"
               [disabled]="provisioning()"
-              class="block w-24 px-2.5 py-1 text-[13px] bg-zinc-950 border border-zinc-850 rounded-lg text-zinc-50 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
+              class="block w-24 px-2.5 py-1 text-[13px] input font-mono"
             />
           </div>
         }

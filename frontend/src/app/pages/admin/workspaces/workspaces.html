@@ -1,37 +1,37 @@
-<div class="max-w-6xl mx-auto px-6 py-8 space-y-6 animate-fade-in">
+<div class="space-y-6 animate-fade-in">
 
   <!-- Sub-navigation tabs for Admin Console -->
-  <div class="flex items-center gap-2 border-b border-zinc-900 pb-3 font-mono text-[13px] select-none">
+  <div class="flex border-b border-zinc-900 mb-5 gap-5 select-none">
     <a
       routerLink="/admin/users"
-      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold text-zinc-400 hover:text-zinc-50"
+      routerLinkActive="is-active"
+      class="tab"
     >
       Users
     </a>
     <a
       routerLink="/admin/workspaces"
-      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold text-zinc-400 hover:text-zinc-50"
+      routerLinkActive="is-active"
+      class="tab"
     >
       Workspaces
     </a>
     <a
       routerLink="/admin/logs"
-      routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold text-zinc-400 hover:text-zinc-50"
+      routerLinkActive="is-active"
+      class="tab"
     >
       Logs
     </a>
   </div>
 
   <!-- Header -->
-  <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
+  <div class="flex items-center justify-between gap-4">
     <div>
-      <h1 class="text-sm font-bold text-zinc-300 font-mono">Workspaces Management</h1>
-      <p class="text-[13px] text-zinc-550 mt-0.5">Telemetry and management for all of the platform's workspaces.</p>
+      <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Workspaces Management</h2>
+      <p class="text-[13px] text-zinc-500">Telemetry and management for all of the platform's workspaces.</p>
     </div>
-    <span class="text-xs font-mono text-zinc-600">{{ workspaces().length }} workspaces</span>
+    <span class="text-xs text-zinc-500">{{ workspaces().length }} workspaces</span>
   </div>
 
   <!-- Loading -->
@@ -54,13 +54,13 @@
 
     <div class="grid gap-4 md:grid-cols-2">
       @for (ws of workspaces(); track ws.id) {
-        <div class="rounded-lg border border-zinc-800 bg-zinc-900 shadow-sm overflow-hidden flex flex-col">
+        <div class="card overflow-hidden flex flex-col">
 
           <!-- Card header -->
-          <div class="flex items-start justify-between px-5 py-3.5 border-b border-zinc-900 bg-zinc-950">
+          <div class="flex items-start justify-between px-5 py-3.5 border-b border-zinc-900 bg-zinc-950/20">
             <div class="min-w-0">
               <h3 class="text-[13px] font-bold text-zinc-50 font-mono truncate">{{ ws.name }}</h3>
-              <p class="text-xs text-zinc-600 font-mono truncate">{{ ws.slug }}</p>
+              <p class="text-xs text-zinc-500 font-mono truncate">{{ ws.slug }}</p>
             </div>
             <button
               (click)="onDelete(ws)"
@@ -124,7 +124,7 @@
           </div>
 
           <!-- Footer -->
-          <div class="px-5 py-2.5 border-t border-zinc-900 bg-zinc-950/40">
+          <div class="px-5 py-2.5 border-t border-zinc-900 bg-zinc-950/10">
             <span class="text-[11px] text-zinc-600 font-mono">Created {{ ws.createdAt | date:'mediumDate' }}</span>
           </div>
         </div>

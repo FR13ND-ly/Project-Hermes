@@ -1,18 +1,16 @@
-<div class="space-y-6 animate-fade-in max-w-xl mx-auto py-4 font-mono text-zinc-350">
+<div class="space-y-6 animate-fade-in max-w-xl mx-auto py-4">
   
-  <div class="flex items-center justify-between border-b border-zinc-900 pb-3">
+  <div class="flex items-center justify-between gap-4">
     <div class="space-y-0.5">
-      <h3 class="text-sm font-bold text-zinc-50 font-sans">Create Serverless Instance</h3>
-      <p class="text-xs text-zinc-500 font-medium font-sans">Deploy an isolated, auto-scaling function handler in the cluster.</p>
+      <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Create Serverless Instance</h2>
+      <p class="text-[13px] text-zinc-500">Deploy an isolated, auto-scaling function handler in the cluster.</p>
     </div>
     <button 
       (click)="onCancel()"
       [disabled]="creating()"
-      class="text-zinc-550 hover:text-zinc-50 cursor-pointer transition-colors"
+      class="btn btn-secondary btn-sm shrink-0"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-      </svg>
+      Cancel
     </button>
   </div>
 
@@ -56,7 +54,7 @@
         [ngModel]="newMemory()" 
         (ngModelChange)="newMemory.set($event)" 
         [disabled]="creating()"
-        class="block w-full px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-855 rounded text-zinc-50 focus:outline-none focus:border-zinc-550 cursor-pointer font-mono"
+        class="block w-full px-3 py-2 text-[13px] input cursor-pointer font-mono"
       >
         <option [ngValue]="0">Memory: Unlimited</option>
         <option [ngValue]="128">Memory: 128 MB</option>
