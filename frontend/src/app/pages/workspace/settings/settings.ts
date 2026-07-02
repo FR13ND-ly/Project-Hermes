@@ -62,6 +62,34 @@ export class WorkspaceSettings implements OnInit {
   readonly newMemberEmail = signal('');
   readonly newMemberRole = signal('developer');
 
+  // Modal signals
+  readonly showAddMemberModal = signal(false);
+  readonly showAddGitCredModal = signal(false);
+  readonly showAddCfCredModal = signal(false);
+
+  onOpenAddMemberModal(): void {
+    this.newMemberEmail.set('');
+    this.newMemberRole.set('developer');
+    this.showAddMemberModal.set(true);
+  }
+
+  onOpenAddGitCredModal(): void {
+    this.newCredProvider.set('github');
+    this.newCredHost.set('');
+    this.newCredLabel.set('');
+    this.newCredToken.set('');
+    this.newCredSkipTls.set(false);
+    this.showAddGitCredModal.set(true);
+  }
+
+  onOpenAddCfCredModal(): void {
+    this.newCfLabel.set('');
+    this.newCfToken.set('');
+    this.newCfZoneId.set('');
+    this.newCfBaseDomain.set('');
+    this.showAddCfCredModal.set(true);
+  }
+
   ngOnInit(): void {
     this.loadData();
     this.loadGitCredentials();
@@ -94,6 +122,7 @@ export class WorkspaceSettings implements OnInit {
         this.newCfToken.set('');
         this.newCfZoneId.set('');
         this.newCfBaseDomain.set('');
+        this.showAddCfCredModal.set(false);
         this.toast.success('Cloudflare token added.');
         this.loadCloudflareCredentials();
       },
@@ -147,6 +176,7 @@ export class WorkspaceSettings implements OnInit {
         this.newCredToken.set('');
         this.newCredHost.set('');
         this.newCredSkipTls.set(false);
+        this.showAddGitCredModal.set(false);
         this.toast.success('Git credential added.');
         this.loadGitCredentials();
       },
@@ -259,6 +289,7 @@ export class WorkspaceSettings implements OnInit {
         this.toast.success('Member added successfully!');
         this.newMemberEmail.set('');
         this.invitingMember.set(false);
+        this.showAddMemberModal.set(false);
         this.loadMembers();
       },
       error: (err) => {
