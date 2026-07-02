@@ -100,7 +100,7 @@ export class Overview implements OnInit {
 
   onViewApp(app: AppDetail, tab: string = 'telemetry'): void {
     this.parent.selectedApp.set(app);
-    this.router.navigate([`/projects/${this.parent.projectId()}/apps/${app.id}`], { queryParams: { tab } });
+    this.router.navigate([`/projects/${this.parent.projectId()}/apps/${app.id}/${tab}`]);
   }
 }
 

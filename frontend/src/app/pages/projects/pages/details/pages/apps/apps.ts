@@ -37,7 +37,7 @@ export class Apps implements OnInit {
 
   onViewDetails(app: AppDetail, tab: string = 'telemetry'): void {
     this.parent.selectedApp.set(app);
-    this.router.navigate([`/projects/${this.parent.projectId()}/apps/${app.id}`], { queryParams: { tab } });
+    this.router.navigate([`/projects/${this.parent.projectId()}/apps/${app.id}/${tab}`]);
   }
 
   async onDeleteApp(app: AppDetail): Promise<void> {
