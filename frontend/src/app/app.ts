@@ -25,6 +25,7 @@ export class App {
   readonly isAuthenticated = computed(() => this.auth.isAuthenticated());
   readonly currentUser = computed(() => this.auth.currentUser());
   readonly isSuperAdmin = computed(() => this.auth.currentUser()?.is_super_admin === true);
+  readonly logoUrl = computed(() => ['dark', 'retro', 'barbie'].includes(this.theme.theme()) ? '/logo_dark.png' : '/logo.png');
 
   isAdminRouteActive(): boolean {
     return this.router.url.startsWith('/admin/');

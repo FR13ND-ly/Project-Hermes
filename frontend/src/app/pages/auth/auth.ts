@@ -1,7 +1,8 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth';
+import { ThemeService } from '../../core/services/theme.service';
 
 @Component({
   selector: 'app-auth',
@@ -12,6 +13,9 @@ import { AuthService } from '../../core/services/auth';
 export class Auth {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  readonly theme = inject(ThemeService);
+
+  readonly logoUrl = computed(() => ['dark', 'retro', 'barbie'].includes(this.theme.theme()) ? '/logo_dark.png' : '/logo.png');
 
   // Toggle between 'login' and 'activate'
   readonly mode = signal<'login' | 'activate'>('login');
