@@ -281,17 +281,51 @@
 
           <!-- Existing credentials -->
           @if (gitCredentials().length === 0) {
-            <p class="text-xs text-zinc-600 py-1">No credentials added yet.</p>
+            <div class="flex flex-col items-center justify-center py-6 text-center">
+              <span class="text-zinc-600 text-xs font-sans">No Git credentials configured yet.</span>
+            </div>
           } @else {
-            <div class="divide-y divide-zinc-900">
+            <div class="grid gap-3 sm:grid-cols-2">
               @for (c of gitCredentials(); track c.id) {
-                <div class="flex items-center justify-between gap-3 py-2">
-                  <div class="flex items-center gap-2 min-w-0">
-                    <span class="text-[11px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 shrink-0">{{ c.provider }}</span>
-                    <span class="text-[13px] text-zinc-50 truncate">{{ c.label }}</span>
-                    <span class="text-xs text-zinc-600 truncate">{{ c.host }}{{ c.username ? ' · @' + c.username : '' }}</span>
+                <div class="flex items-start justify-between gap-3 p-3 rounded-lg border border-zinc-850 bg-zinc-950/40 hover:bg-zinc-950/80 transition-colors group">
+                  <div class="flex gap-3 min-w-0">
+                    <!-- Provider Icon -->
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-zinc-900 border border-zinc-800 shrink-0 text-zinc-300">
+                      @if (c.provider === 'github') {
+                        <!-- GitHub Icon -->
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                          <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+                        </svg>
+                      } @else {
+                        <!-- GitLab Icon -->
+                        <svg class="w-4 h-4 fill-current text-orange-500" viewBox="0 0 24 24">
+                          <path d="m23.978 12.008-.035-.093L20.31 2.12a.965.965 0 0 0-.323-.42.92.92 0 0 0-.53-.133.916.916 0 0 0-.531.139.991.991 0 0 0-.327.427l-2.222 6.84H7.625l-2.222-6.84a.972.972 0 0 0-.326-.427.915.915 0 0 0-.531-.139.92.92 0 0 0-.53.133c-.152.1-.264.244-.323.42L.057 11.915a.777.777 0 0 0 .009.497.808.808 0 0 0 .285.405l11.085 8.163.023.016.028.016.009.005a1.05 1.05 0 0 0 .524.16.994.994 0 0 0 .5-.152l.024-.015.023-.016 11.116-8.188a.807.807 0 0 0 .284-.405.776.776 0 0 0 .008-.497z"/>
+                        </svg>
+                      }
+                    </div>
+                    
+                    <div class="min-w-0 font-sans">
+                      <div class="font-semibold text-zinc-200 text-[13px] tracking-tight truncate">{{ c.label }}</div>
+                      <div class="text-[11px] text-zinc-500 mt-0.5 flex items-center gap-1.5 truncate">
+                        <span class="font-mono text-[10px]">{{ c.host }}</span>
+                        @if (c.username) {
+                          <span class="text-zinc-650">•</span>
+                          <span class="font-mono text-[10px] text-zinc-400">@{{ c.username }}</span>
+                        }
+                      </div>
+                    </div>
                   </div>
-                  <button (click)="onDeleteCredential(c)" class="px-2.5 py-1 rounded text-xs font-semibold border border-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-red-950/20 cursor-pointer shrink-0">Delete</button>
+                  
+                  <!-- Actions -->
+                  <button 
+                    (click)="onDeleteCredential(c)" 
+                    class="p-1 rounded-md border border-zinc-850 bg-zinc-900/50 hover:bg-red-950/20 text-zinc-500 hover:text-red-400 hover:border-red-900/30 transition-all cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                    title="Delete credential"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                    </svg>
+                  </button>
                 </div>
               }
             </div>
@@ -312,17 +346,40 @@
 
           <!-- Existing credentials -->
           @if (cloudflareCredentials().length === 0) {
-            <p class="text-xs text-zinc-600 py-1">No Cloudflare tokens added yet.</p>
+            <div class="flex flex-col items-center justify-center py-6 text-center">
+              <span class="text-zinc-600 text-xs font-sans">No Cloudflare tokens configured yet.</span>
+            </div>
           } @else {
-            <div class="divide-y divide-zinc-900">
+            <div class="grid gap-3 sm:grid-cols-2">
               @for (c of cloudflareCredentials(); track c.id) {
-                <div class="flex items-center justify-between gap-3 py-2">
-                  <div class="flex items-center gap-2 min-w-0">
-                    <span class="text-[11px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-950/30 border border-amber-900/40 text-amber-400 shrink-0">CF</span>
-                    <span class="text-[13px] text-zinc-50 truncate">{{ c.label }}</span>
-                    <span class="text-xs text-zinc-600 truncate">{{ c.baseDomain || c.zoneId }}</span>
+                <div class="flex items-start justify-between gap-3 p-3 rounded-lg border border-zinc-850 bg-zinc-950/40 hover:bg-zinc-950/80 transition-colors group">
+                  <div class="flex gap-3 min-w-0">
+                    <!-- Cloudflare Icon -->
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-zinc-900 border border-zinc-800 shrink-0 text-orange-500">
+                      <svg class="w-4.5 h-4.5 fill-current" viewBox="0 0 24 24">
+                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+                      </svg>
+                    </div>
+                    
+                    <div class="min-w-0 font-sans">
+                      <div class="font-semibold text-zinc-200 text-[13px] tracking-tight truncate">{{ c.label }}</div>
+                      <div class="text-[11px] text-zinc-500 mt-0.5 flex flex-col gap-0.5 truncate">
+                        <span class="font-mono text-[10px] truncate" [title]="c.baseDomain">Domain: {{ c.baseDomain || 'any' }}</span>
+                        <span class="font-mono text-[10px] text-zinc-600 truncate" [title]="c.zoneId">Zone: {{ c.zoneId }}</span>
+                      </div>
+                    </div>
                   </div>
-                  <button (click)="onDeleteCloudflareCredential(c)" class="px-2.5 py-1 rounded text-xs font-semibold border border-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-red-950/20 cursor-pointer shrink-0">Delete</button>
+                  
+                  <!-- Actions -->
+                  <button 
+                    (click)="onDeleteCloudflareCredential(c)" 
+                    class="p-1 rounded-md border border-zinc-850 bg-zinc-900/50 hover:bg-red-950/20 text-zinc-500 hover:text-red-400 hover:border-red-900/30 transition-all cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                    title="Delete token"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                    </svg>
+                  </button>
                 </div>
               }
             </div>
