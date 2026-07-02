@@ -1,4 +1,4 @@
-<div class="space-y-6 animate-fade-in max-w-xl mx-auto py-4">
+<div class="space-y-6 animate-fade-in py-4">
   
   <div class="flex items-center justify-between gap-4">
     <div class="space-y-0.5">
@@ -14,164 +14,196 @@
     </button>
   </div>
 
-  <div class="space-y-4 py-2 text-[13px]">
-    <!-- Target type -->
-    <div class="space-y-1.5">
-      <label class="text-xs font-semibold text-zinc-400">Target Type</label>
-      <div class="flex items-center gap-0.5 bg-zinc-950 border border-zinc-850 rounded p-0.5 text-xs font-bold uppercase tracking-wider">
-        @for (t of [{ v: 'app', l: 'Application' }, { v: 'database', l: 'Database' }, { v: 'storage', l: 'Storage' }]; track t.v) {
-          <button
-            type="button"
-            (click)="onChangeTargetType(t.v)"
-            class="flex-1 px-2 py-1.5 rounded transition-all cursor-pointer"
-            [class]="newCronTargetType() === t.v ? 'bg-zinc-50 text-zinc-950' : 'text-zinc-550 hover:text-zinc-300'"
-          >{{ t.l }}</button>
-        }
-      </div>
-    </div>
-
-    <!-- Target resource -->
-    <div class="space-y-1.5">
-      <label class="text-xs font-semibold text-zinc-400">Target Resource</label>
-      @if (targetOptions().length === 0) {
-        <p class="text-xs text-amber-500/80 font-sans py-1.5">No resources of this type in the project. Create one first.</p>
-      } @else {
-        <select
-          id="cron-target-select"
-          [ngModel]="selectedTargetId()"
-          (ngModelChange)="selectedTargetId.set($event)"
-          class="block w-full px-3 py-2 input cursor-pointer"
-        >
-          @for (opt of targetOptions(); track opt.id) {
-            <option [value]="opt.id">{{ opt.name }}</option>
+  <div class="card p-6 space-y-6">
+    <div class="space-y-4 text-[13px]">
+      <!-- Target type -->
+      <div class="space-y-1.5">
+        <label class="text-xs font-semibold text-zinc-400">Target Type</label>
+        <div class="flex items-center gap-0.5 bg-zinc-950 border border-zinc-850 rounded p-0.5 text-xs font-bold uppercase tracking-wider max-w-md">
+          @for (t of [{ v: 'app', l: 'Application' }, { v: 'database', l: 'Database' }, { v: 'storage', l: 'Storage' }]; track t.v) {
+            <button
+              type="button"
+              (click)="onChangeTargetType(t.v)"
+              class="flex-1 px-2 py-1.5 rounded transition-all cursor-pointer"
+              [class]="newCronTargetType() === t.v ? 'bg-zinc-50 text-zinc-950' : 'text-zinc-550 hover:text-zinc-300'"
+            >{{ t.l }}</button>
           }
-        </select>
-      }
-      <p class="text-[11px] text-zinc-600 font-sans">
-        @switch (newCronTargetType()) {
-          @case ('database') { Runs on the database image (pg_dump etc.), with <code>$DATABASE_URL</code> + <code>$DB_*</code> injected. }
-          @case ('storage') { Runs on a curl image, with <code>$BUCKET_URL</code> + <code>$BUCKET_TOKEN</code> injected. }
-          @default { Runs in the context of the application's production image, with its env. }
-        }
-      </p>
-    </div>
-
-    <!-- Job Name -->
-    <div class="space-y-1.5">
-      <label for="cron-name-input" class="text-xs font-semibold text-zinc-400">Job Name</label>
-      <input 
-        id="cron-name-input"
-        type="text" 
-        placeholder="e.g. daily-backup or cache-cleanup"
-        [ngModel]="newCronName()"
-        (ngModelChange)="newCronName.set($event)"
-        class="block w-full px-3 py-2 input"
-      />
-    </div>
-
-    <!-- Cron Schedule Expression -->
-    <div class="space-y-1.5">
-      <div class="flex items-center justify-between">
-        <label for="cron-sched-input" class="text-xs font-semibold text-zinc-400">Schedule (Cron Syntax)</label>
-        <span class="text-[11px] text-zinc-550 font-sans">standard 5-field</span>
-      </div>
-      <input 
-        id="cron-sched-input"
-        type="text" 
-        placeholder="*/5 * * * *"
-        [ngModel]="newCronSchedule()"
-        (ngModelChange)="newCronSchedule.set($event)"
-        class="block w-full px-3 py-2 input"
-      />
-      <p class="text-[11px] text-zinc-600 leading-normal font-sans">
-        Examples: <code class="text-zinc-550 font-bold select-all">0 0 * * *</code> (daily at midnight), <code class="text-zinc-550 font-bold select-all">*/15 * * * *</code> (every 15 minutes).
-      </p>
-    </div>
-
-    <!-- Command -->
-    <div class="space-y-1.5">
-      <label for="cron-cmd-input" class="text-xs font-semibold text-zinc-400">Command to Execute</label>
-      <textarea 
-        id="cron-cmd-input"
-        rows="3"
-        placeholder="python manage.py clear_expired_sessions or npm run clean"
-        [ngModel]="newCronCommand()"
-        (ngModelChange)="newCronCommand.set($event)"
-        class="block w-full px-3 py-2 input resize-none"
-      ></textarea>
-      <p class="text-[11px] text-zinc-605 leading-normal font-sans">
-        The command will run inside the container with the stable image of the selected application.
-      </p>
-    </div>
-
-    <!-- Environment Variables -->
-    <div class="pt-4 border-t border-zinc-900 space-y-3">
-      <div class="flex items-center justify-between gap-2 flex-wrap">
-        <div>
-          <h4 class="text-xs font-semibold text-zinc-400">Environment Variables</h4>
-          <p class="text-xs text-zinc-600 font-sans">Optional · injected into the container at job runtime</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <button
-            type="button"
-            (click)="openCreateEnvModal()"
-            [disabled]="creatingCron()"
-            class="btn btn-secondary btn-sm"
-          >From Project@if (selectedProjectEnvIds().length > 0) {<span class="ml-1 text-emerald-400">· {{ selectedProjectEnvIds().length }}</span>}</button>
-          <button
-            type="button"
-            (click)="addEnvRow()"
-            [disabled]="creatingCron()"
-            class="btn btn-secondary btn-sm"
-          >+ Add Variable</button>
         </div>
       </div>
 
-      @if (selectedProjectEnvIds().length > 0) {
-        <p class="text-xs text-zinc-550 font-sans">
-          <span class="text-emerald-400 font-semibold">{{ selectedProjectEnvIds().length }}</span> variables linked from the project pool (live reference).
-        </p>
-      }
-
-      @for (row of newCronEnvRows(); track $index) {
-        <div class="flex items-center gap-2 animate-fade-in">
-          <input
-            type="text"
-            placeholder="KEY"
-            [ngModel]="row.key"
-            (ngModelChange)="updateEnvRow($index, 'key', $event)"
-            [disabled]="creatingCron()"
-            class="flex-1 px-3 py-2 text-[13px] input uppercase font-mono font-bold"
-          />
-          <input
-            type="text"
-            placeholder="value"
-            [ngModel]="row.value"
-            (ngModelChange)="updateEnvRow($index, 'value', $event)"
-            [disabled]="creatingCron()"
-            class="flex-1 px-3 py-2 text-[13px] input"
-          />
-          <button
-            type="button"
-            (click)="toggleEnvRowSecret($index)"
-            [disabled]="creatingCron()"
-            class="px-2 py-2 rounded border text-[11px] font-bold uppercase transition-colors cursor-pointer shrink-0"
-            [class]="row.isSecret ? 'bg-zinc-900 border-zinc-700 text-zinc-300' : 'bg-zinc-950 border-zinc-850 text-zinc-600'"
-            [title]="row.isSecret ? 'Secret (encrypted)' : 'Plaintext'"
-          >{{ row.isSecret ? 'Secret' : 'Plain' }}</button>
-          <button
-            type="button"
-            (click)="removeEnvRow($index)"
-            [disabled]="creatingCron()"
-            class="p-2 rounded text-zinc-500 hover:text-red-400 hover:bg-red-950/20 transition-colors cursor-pointer shrink-0"
-            title="Remove"
+      <!-- Target resource -->
+      <div class="space-y-1.5">
+        <label class="text-xs font-semibold text-zinc-400">Target Resource</label>
+        @if (targetOptions().length === 0) {
+          <p class="text-xs text-amber-500/80 font-sans py-1.5">No resources of this type in the project. Create one first.</p>
+        } @else {
+          <select
+            id="cron-target-select"
+            [ngModel]="selectedTargetId()"
+            (ngModelChange)="selectedTargetId.set($event)"
+            class="block w-full max-w-md px-3 py-2 input cursor-pointer"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+            @for (opt of targetOptions(); track opt.id) {
+              <option [value]="opt.id">{{ opt.name }}</option>
+            }
+          </select>
+        }
+        <p class="text-[11px] text-zinc-600 font-sans">
+          @switch (newCronTargetType()) {
+            @case ('database') { Runs on the database image (pg_dump etc.), with <code>$DATABASE_URL</code> + <code>$DB_*</code> injected. }
+            @case ('storage') { Runs on a curl image, with <code>$BUCKET_URL</code> + <code>$BUCKET_TOKEN</code> injected. }
+            @default { Runs in the context of the application's production image, with its env. }
+          }
+        </p>
+      </div>
+
+      <div class="grid gap-5 md:grid-cols-2">
+        <!-- Job Name -->
+        <div class="space-y-1.5">
+          <label for="cron-name-input" class="text-xs font-semibold text-zinc-400">Job Name</label>
+          <input 
+            id="cron-name-input"
+            type="text" 
+            placeholder="e.g. daily-backup or cache-cleanup"
+            [ngModel]="newCronName()"
+            (ngModelChange)="newCronName.set($event)"
+            class="block w-full px-3 py-2 input"
+          />
         </div>
-      }
+
+        <!-- Cron Schedule Expression -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label for="cron-sched-input" class="text-xs font-semibold text-zinc-400">Schedule (Cron Syntax)</label>
+            <span class="text-[11px] text-zinc-550 font-sans">standard 5-field</span>
+          </div>
+          <input 
+            id="cron-sched-input"
+            type="text" 
+            placeholder="*/5 * * * *"
+            [ngModel]="newCronSchedule()"
+            (ngModelChange)="newCronSchedule.set($event)"
+            class="block w-full px-3 py-2 input"
+          />
+          <p class="text-[11px] text-zinc-600 leading-normal font-sans">
+            Examples: <code class="text-zinc-550 font-bold select-all">0 0 * * *</code> (daily at midnight), <code class="text-zinc-550 font-bold select-all">*/15 * * * *</code> (every 15 minutes).
+          </p>
+        </div>
+      </div>
+
+      <!-- Command -->
+      <div class="space-y-1.5">
+        <label for="cron-cmd-input" class="text-xs font-semibold text-zinc-400">Command to Execute</label>
+        <textarea 
+          id="cron-cmd-input"
+          rows="3"
+          placeholder="python manage.py clear_expired_sessions or npm run clean"
+          [ngModel]="newCronCommand()"
+          (ngModelChange)="newCronCommand.set($event)"
+          class="block w-full px-3 py-2 input resize-none"
+        ></textarea>
+        <p class="text-[11px] text-zinc-605 leading-normal font-sans">
+          The command will run inside the container with the stable image of the selected application.
+        </p>
+      </div>
+
+      <!-- Environment Variables -->
+      <div class="pt-4 border-t border-zinc-950/40 space-y-3">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <div>
+            <h4 class="text-xs font-semibold text-zinc-400">Environment Variables</h4>
+            <p class="text-xs text-zinc-600 font-sans">Optional · injected into the container at job runtime</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="openCreateEnvModal()"
+              [disabled]="creatingCron()"
+              class="btn btn-secondary btn-sm"
+            >From Project@if (selectedProjectEnvIds().length > 0) {<span class="ml-1 text-emerald-400">· {{ selectedProjectEnvIds().length }}</span>}</button>
+            <button
+              type="button"
+              (click)="addEnvRow()"
+              [disabled]="creatingCron()"
+              class="btn btn-secondary btn-sm"
+            >+ Add Variable</button>
+          </div>
+        </div>
+
+        @if (selectedProjectEnvIds().length > 0) {
+          <p class="text-xs text-zinc-550 font-sans">
+            <span class="text-emerald-400 font-semibold">{{ selectedProjectEnvIds().length }}</span> variables linked from the project pool (live reference).
+          </p>
+        }
+
+        <div class="grid gap-3">
+          @for (row of newCronEnvRows(); track $index) {
+            <div class="flex items-center gap-2 animate-fade-in">
+              <input
+                type="text"
+                placeholder="KEY"
+                [ngModel]="row.key"
+                (ngModelChange)="updateEnvRow($index, 'key', $event)"
+                [disabled]="creatingCron()"
+                class="flex-1 px-3 py-2 text-[13px] input uppercase font-mono font-bold"
+              />
+              <input
+                type="text"
+                placeholder="value"
+                [ngModel]="row.value"
+                (ngModelChange)="updateEnvRow($index, 'value', $event)"
+                [disabled]="creatingCron()"
+                class="flex-1 px-3 py-2 text-[13px] input"
+              />
+              <button
+                type="button"
+                (click)="toggleEnvRowSecret($index)"
+                [disabled]="creatingCron()"
+                class="px-2 py-2 rounded border text-[11px] font-bold uppercase transition-colors cursor-pointer shrink-0"
+                [class]="row.isSecret ? 'bg-zinc-900 border-zinc-700 text-zinc-300' : 'bg-zinc-950 border-zinc-850 text-zinc-600'"
+                [title]="row.isSecret ? 'Secret (encrypted)' : 'Plaintext'"
+              >{{ row.isSecret ? 'Secret' : 'Plain' }}</button>
+              <button
+                type="button"
+                (click)="removeEnvRow($index)"
+                [disabled]="creatingCron()"
+                class="p-2 rounded text-zinc-500 hover:text-red-400 hover:bg-red-950/20 transition-colors cursor-pointer shrink-0"
+                title="Remove"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2 pt-4 border-t border-zinc-950/40 font-sans">
+      <button
+        (click)="onCancel()"
+        [disabled]="creatingCron()"
+        class="btn btn-secondary btn-sm"
+      >
+        Cancel
+      </button>
+      
+      <button 
+        (click)="onCreateCronJob()"
+        [disabled]="creatingCron() || !newCronName().trim() || !newCronSchedule().trim() || !newCronCommand().trim() || !selectedTargetId()"
+        class="btn btn-primary btn-sm"
+      >
+        @if (creatingCron()) {
+          <svg class="animate-spin h-3.5 w-3.5 text-zinc-950 inline mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>Creating...</span>
+        } @else {
+          <span>Create Task</span>
+        }
+      </button>
     </div>
   </div>
 
@@ -181,31 +213,4 @@
     [vars]="projectEnvForModal()"
     (toggle)="toggleCreateEnvSelection($event)"
   />
-
-  <div class="flex justify-end gap-2 pt-3 border-t border-zinc-900 font-sans">
-    <button
-      (click)="onCancel()"
-      [disabled]="creatingCron()"
-      class="btn btn-secondary btn-sm"
-    >
-      Cancel
-    </button>
-    
-    <button 
-      (click)="onCreateCronJob()"
-      [disabled]="creatingCron() || !newCronName().trim() || !newCronSchedule().trim() || !newCronCommand().trim() || !selectedTargetId()"
-      class="btn btn-primary btn-sm"
-    >
-      @if (creatingCron()) {
-        <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <span>Creating...</span>
-      } @else {
-        <span>Create Task</span>
-      }
-    </button>
-  </div>
-
 </div>

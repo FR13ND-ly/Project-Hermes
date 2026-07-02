@@ -1,10 +1,10 @@
-<div class="space-y-6 animate-fade-in max-w-xl mx-auto py-4">
+<div class="space-y-6 animate-fade-in py-4">
 
   <!-- Header -->
   <div class="flex items-center justify-between gap-4">
     <div class="space-y-0.5">
       <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Provision New Database</h2>
-      <p class="text-[13px] text-zinc-500">Configure resource quotas and network exposure for the instance.</p>
+      <p class="text-[13px] text-zinc-550">Configure resource quotas and network exposure for the instance.</p>
     </div>
     <button 
       (click)="onCancel()"
@@ -15,218 +15,220 @@
     </button>
   </div>
 
-  <div class="space-y-6">
-    
-    <!-- General Details Grid -->
-    <div class="grid gap-5 md:grid-cols-2">
-      <!-- DB Name -->
-      <div class="space-y-2">
-        <label for="db-name-input" class="text-xs font-semibold text-zinc-400">Database Name</label>
-        <input 
-          id="db-name-input"
-          type="text" 
-          placeholder="ex. client-db, cache-store"
-          [ngModel]="dbName()"
-          (ngModelChange)="dbName.set($event)"
-          [disabled]="provisioning()"
-          class="block w-full px-3 py-2 text-[13px] input"
-        />
+  <div class="card p-6 space-y-6">
+    <div class="space-y-6">
+      
+      <!-- General Details Grid -->
+      <div class="grid gap-5 md:grid-cols-2">
+        <!-- DB Name -->
+        <div class="space-y-2">
+          <label for="db-name-input" class="text-xs font-semibold text-zinc-400">Database Name</label>
+          <input 
+            id="db-name-input"
+            type="text" 
+            placeholder="ex. client-db, cache-store"
+            [ngModel]="dbName()"
+            (ngModelChange)="dbName.set($event)"
+            [disabled]="provisioning()"
+            class="block w-full px-3 py-2 text-[13px] input"
+          />
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-xs font-semibold text-zinc-400 block">Technology Type</label>
+          <div class="grid grid-cols-3 gap-2">
+            @for (type of ['postgres', 'redis', 'mongodb']; track type) {
+              <button
+                type="button"
+                (click)="onTypeChange($any(type))"
+                [disabled]="provisioning()"
+                class="py-2.5 px-1.5 rounded-lg border text-[13px] font-semibold text-center capitalize transition-all cursor-pointer flex items-center justify-center"
+                [ngClass]="dbType() === type ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-300' : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-50 hover:border-zinc-700'"
+              >
+                <span>{{ type }}</span>
+              </button>
+            }
+          </div>
+        </div>
       </div>
 
-      <div class="space-y-2">
-        <label class="text-xs font-semibold text-zinc-400 block">Technology Type</label>
-        <div class="grid grid-cols-3 gap-2">
-          @for (type of ['postgres', 'redis', 'mongodb']; track type) {
-            <button
-              type="button"
-              (click)="onTypeChange($any(type))"
+      <!-- Resource limits sliders -->
+      <div class="space-y-5 border-t border-zinc-950/40 pt-5">
+        <h4 class="text-xs font-bold text-zinc-450">Container Resource Quotas</h4>
+
+        <!-- CPU Slider -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-[13px]">
+            <span class="font-semibold text-xs text-zinc-500">CPU Limit</span>
+            <span class="text-zinc-50 font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-xs">@if (cpuLimit() === 0) { Unlimited } @else { {{ cpuLimit() }}m }</span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="2000"
+            step="50"
+            [ngModel]="cpuLimit()"
+            (ngModelChange)="cpuLimit.set($event)"
+            [disabled]="provisioning()"
+            class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-zinc-50 custom-slider"
+          />
+          <div class="flex justify-between text-[11px] text-zinc-600 font-mono">
+            <span>Unlimited (0)</span>
+            <span>2000m (2 cores)</span>
+          </div>
+        </div>
+
+        <!-- RAM Slider -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-[13px]">
+            <span class="font-semibold text-xs text-zinc-500">Memory Limit (RAM)</span>
+            <span class="text-zinc-50 font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-xs">@if (memLimit() === 0) { Unlimited } @else { {{ memLimit() }} MB }</span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="4096"
+            step="128"
+            [ngModel]="memLimit()"
+            (ngModelChange)="memLimit.set($event)"
+            [disabled]="provisioning()"
+            class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-zinc-50 custom-slider"
+          />
+          <div class="flex justify-between text-[11px] text-zinc-600 font-mono">
+            <span>Unlimited (0)</span>
+            <span>4096 MB (4 GB)</span>
+          </div>
+        </div>
+
+        <!-- Storage Slider -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-[13px]">
+            <span class="font-semibold text-xs text-zinc-550">Storage Size (PVC)</span>
+            <span class="text-zinc-50 font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-xs">{{ storageGb() }} GB</span>
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="50"
+            step="1"
+            [ngModel]="storageGb()"
+            (ngModelChange)="storageGb.set($event)"
+            [disabled]="provisioning()"
+            class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-zinc-50 custom-slider"
+          />
+          <div class="flex justify-between text-[11px] text-zinc-600 font-mono">
+            <span>1 GB</span>
+            <span>50 GB · fixed at creation</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- External exposures loadbalancers -->
+      <div class="border-t border-zinc-950/40 pt-5 space-y-4">
+        <h4 class="text-xs font-bold text-zinc-455">Network Access Configuration</h4>
+
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <!-- Expose toggle -->
+          <label class="flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              id="expose-toggle"
+              type="checkbox"
+              [ngModel]="isExternal()"
+              (ngModelChange)="isExternal.set($event)"
               [disabled]="provisioning()"
-              class="py-2.5 px-1.5 rounded-lg border text-[13px] font-semibold text-center capitalize transition-all cursor-pointer flex items-center justify-center"
-              [ngClass]="dbType() === type ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-300' : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-50 hover:border-zinc-700'"
-            >
-              <span>{{ type }}</span>
-            </button>
+              class="w-4 h-4 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 shrink-0"
+            />
+            <span class="text-[13px] text-zinc-300 font-semibold font-sans">
+              Expose database publicly (LoadBalancer)
+            </span>
+          </label>
+
+          <!-- External Port -->
+          @if (isExternal()) {
+            <div class="flex items-center gap-2 animate-fade-in shrink-0">
+              <label for="ext-port-input" class="text-xs font-semibold text-zinc-550">Public Port:</label>
+              <input 
+                id="ext-port-input"
+                type="number" 
+                placeholder="5432"
+                [ngModel]="externalPort()"
+                (ngModelChange)="externalPort.set($event)"
+                [disabled]="provisioning()"
+                class="block w-24 px-2.5 py-1 text-[13px] input"
+              />
+            </div>
           }
         </div>
       </div>
+
     </div>
 
-    <!-- Resource limits sliders -->
-    <div class="space-y-5 border-t border-zinc-900 pt-5">
-      <h4 class="text-xs font-bold text-zinc-450">Container Resource Quotas</h4>
-
-      <!-- CPU Slider -->
-      <div class="space-y-2">
-        <div class="flex items-center justify-between text-[13px]">
-          <span class="font-semibold text-xs text-zinc-500">CPU Limit</span>
-          <span class="text-zinc-50 font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-xs">@if (cpuLimit() === 0) { Unlimited } @else { {{ cpuLimit() }}m }</span>
-        </div>
+    <!-- Publish to project env pool -->
+    <div class="pt-5 border-t border-zinc-950/40 space-y-3">
+      <label class="flex items-center gap-2.5 cursor-pointer select-none">
         <input
-          type="range"
-          min="0"
-          max="2000"
-          step="50"
-          [ngModel]="cpuLimit()"
-          (ngModelChange)="cpuLimit.set($event)"
+          type="checkbox"
+          [checked]="publishToEnv()"
+          (change)="publishToEnv.set(!publishToEnv())"
           [disabled]="provisioning()"
-          class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-zinc-50 custom-slider"
+          class="h-3.5 w-3.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer"
         />
-        <div class="flex justify-between text-[11px] text-zinc-600 font-mono">
-          <span>Unlimited (0)</span>
-          <span>2000m (2 cores)</span>
-        </div>
-      </div>
-
-      <!-- RAM Slider -->
-      <div class="space-y-2">
-        <div class="flex items-center justify-between text-[13px]">
-          <span class="font-semibold text-xs text-zinc-500">Memory Limit (RAM)</span>
-          <span class="text-zinc-50 font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-xs">@if (memLimit() === 0) { Unlimited } @else { {{ memLimit() }} MB }</span>
-        </div>
-        <input
-          type="range"
-          min="0"
-          max="4096"
-          step="128"
-          [ngModel]="memLimit()"
-          (ngModelChange)="memLimit.set($event)"
-          [disabled]="provisioning()"
-          class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-zinc-50 custom-slider"
-        />
-        <div class="flex justify-between text-[11px] text-zinc-600 font-mono">
-          <span>Unlimited (0)</span>
-          <span>4096 MB (4 GB)</span>
-        </div>
-      </div>
-
-      <!-- Storage Slider -->
-      <div class="space-y-2">
-        <div class="flex items-center justify-between text-[13px]">
-          <span class="font-semibold text-xs text-zinc-550">Storage Size (PVC)</span>
-          <span class="text-zinc-50 font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-xs">{{ storageGb() }} GB</span>
-        </div>
-        <input
-          type="range"
-          min="1"
-          max="50"
-          step="1"
-          [ngModel]="storageGb()"
-          (ngModelChange)="storageGb.set($event)"
-          [disabled]="provisioning()"
-          class="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-zinc-50 custom-slider"
-        />
-        <div class="flex justify-between text-[11px] text-zinc-600 font-mono">
-          <span>1 GB</span>
-          <span>50 GB · fixed at creation</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- External exposures loadbalancers -->
-    <div class="border-t border-zinc-900 pt-5 space-y-4">
-      <h4 class="text-xs font-bold text-zinc-455">Network Access Configuration</h4>
-
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <!-- Expose toggle -->
-        <label class="flex items-center gap-2.5 cursor-pointer select-none">
+        <span class="text-[13px] font-semibold text-zinc-300 font-sans">Add to project .env</span>
+        <span class="text-xs text-zinc-650 font-sans">— connection string will be available to apps.</span>
+      </label>
+      @if (publishToEnv()) {
+        <div class="flex items-center gap-2 pl-6 animate-fade-in">
+          <label for="db-env-key" class="text-xs font-semibold text-zinc-500 shrink-0">Key name:</label>
           <input
-            id="expose-toggle"
-            type="checkbox"
-            [ngModel]="isExternal()"
-            (ngModelChange)="isExternal.set($event)"
+            id="db-env-key"
+            type="text"
+            placeholder="DATABASE_URL (implicit)"
+            [ngModel]="envKeyName()"
+            (ngModelChange)="envKeyName.set($event)"
             [disabled]="provisioning()"
-            class="w-4 h-4 bg-zinc-950 rounded border-zinc-800 accent-zinc-50 shrink-0"
+            class="block w-full max-w-xs px-2.5 py-1.5 text-[13px] input uppercase font-bold"
           />
-          <span class="text-[13px] text-zinc-300 font-semibold font-sans">
-            Expose database publicly (LoadBalancer)
-          </span>
-        </label>
-
-        <!-- External Port -->
-        @if (isExternal()) {
-          <div class="flex items-center gap-2 animate-fade-in shrink-0">
-            <label for="ext-port-input" class="text-xs font-semibold text-zinc-500">Public Port:</label>
-            <input 
-              id="ext-port-input"
-              type="number" 
-              placeholder="5432"
-              [ngModel]="externalPort()"
-              (ngModelChange)="externalPort.set($event)"
-              [disabled]="provisioning()"
-              class="block w-24 px-2.5 py-1 text-[13px] input"
-            />
-          </div>
-        }
-      </div>
-    </div>
-
-  </div>
-
-  <!-- Publish to project env pool -->
-  <div class="pt-4 border-t border-zinc-900 space-y-3">
-    <label class="flex items-center gap-2.5 cursor-pointer select-none">
-      <input
-        type="checkbox"
-        [checked]="publishToEnv()"
-        (change)="publishToEnv.set(!publishToEnv())"
-        [disabled]="provisioning()"
-        class="h-3.5 w-3.5 bg-zinc-950 border border-zinc-800 rounded accent-zinc-50 cursor-pointer"
-      />
-      <span class="text-[13px] font-semibold text-zinc-300 font-sans">Add to project .env</span>
-      <span class="text-xs text-zinc-600 font-sans">— connection string will be available to apps.</span>
-    </label>
-    @if (publishToEnv()) {
-      <div class="flex items-center gap-2 pl-6 animate-fade-in">
-        <label for="db-env-key" class="text-xs font-semibold text-zinc-500 shrink-0">Key name:</label>
-        <input
-          id="db-env-key"
-          type="text"
-          placeholder="DATABASE_URL (implicit)"
-          [ngModel]="envKeyName()"
-          (ngModelChange)="envKeyName.set($event)"
-          [disabled]="provisioning()"
-          class="block w-full max-w-xs px-2.5 py-1.5 text-[13px] input uppercase font-bold"
-        />
-      </div>
-      <p class="text-[11px] text-zinc-600 pl-6 leading-relaxed font-sans">The value is secret (encrypted). You can reveal it anytime from the "Environments" tab.</p>
-    }
-  </div>
-
-  <!-- Error inside modal -->
-  @if (error()) {
-    <div class="p-3 rounded-lg border border-red-500/20 bg-red-950/20 text-red-400 text-[13px] flex items-start gap-2.5 animate-fade-in" role="alert">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0 mt-0.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-      </svg>
-      <span class="font-sans">{{ error() }}</span>
-    </div>
-  }
-
-  <!-- Form Actions -->
-  <div class="pt-4.5 border-t border-zinc-900 flex justify-end gap-3 font-sans">
-    <button 
-      (click)="onCancel()"
-      [disabled]="provisioning()"
-      class="btn btn-secondary"
-    >
-      Cancel
-    </button>
-
-    <button
-      (click)="onCreateDatabase()"
-      [disabled]="provisioning() || !dbName()"
-      class="btn btn-primary"
-    >
-      @if (!provisioning()) {
-        <span>Provision</span>
-      } @else {
-        <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <span>Provisioning...</span>
+        </div>
+        <p class="text-[11px] text-zinc-600 pl-6 leading-relaxed font-sans">The value is secret (encrypted). You can reveal it anytime from the "Environments" tab.</p>
       }
-    </button>
+    </div>
+
+    <!-- Error inside modal -->
+    @if (error()) {
+      <div class="p-3 rounded-lg border border-red-500/20 bg-red-950/20 text-red-400 text-[13px] flex items-start gap-2.5 animate-fade-in" role="alert">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 shrink-0 mt-0.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+        </svg>
+        <span class="font-sans">{{ error() }}</span>
+      </div>
+    }
+
+    <!-- Form Actions -->
+    <div class="pt-4 border-t border-zinc-950/40 flex justify-end gap-3 font-sans">
+      <button 
+        (click)="onCancel()"
+        [disabled]="provisioning()"
+        class="btn btn-secondary"
+      >
+        Cancel
+      </button>
+
+      <button
+        (click)="onCreateDatabase()"
+        [disabled]="provisioning() || !dbName()"
+        class="btn btn-primary"
+      >
+        @if (!provisioning()) {
+          <span>Provision</span>
+        } @else {
+          <svg class="animate-spin h-3.5 w-3.5 text-zinc-950 inline mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>Provisioning...</span>
+        }
+      </button>
+    </div>
   </div>
 
 </div>

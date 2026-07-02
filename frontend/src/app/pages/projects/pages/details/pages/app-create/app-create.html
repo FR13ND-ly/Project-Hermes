@@ -2,7 +2,7 @@
   
   <!-- State A.1: Selection Screen (no repo selected and not custom url mode) -->
   @if (!selectedImportRepo() && !isCustomGitUrl()) {
-    <div class="space-y-4 max-w-4xl mx-auto">
+    <div class="space-y-4">
       <div class="flex items-center justify-between">
         <div class="space-y-1">
           <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Import a Project</h2>
@@ -16,7 +16,7 @@
         </button>
       </div>
       <!-- Center column -->
-      <div class="max-w-3xl mx-auto">
+      <div class="w-full">
         
         <!-- GitHub Repository List (Full width) -->
         <div class="card p-5 space-y-4 shadow-xl">
@@ -124,7 +124,7 @@
 
   <!-- State A.2: Configuration Form Screen (when repo is selected or custom git url matches) -->
   @if (selectedImportRepo() || isCustomGitUrl()) {
-    <div class="max-w-xl mx-auto space-y-4">
+    <div class="space-y-4">
       <!-- Back button -->
       <button 
         (click)="onBackToSelection()"
