@@ -38,6 +38,7 @@ import { List } from './pages/list/list';
                 path: 'auth-management', 
                 loadComponent: () => import('./pages/details/pages/auth-management/auth-management-list').then(m => m.AuthManagementList),
               },
+              { path: 'auth-management/create', loadComponent: () => import('./pages/details/pages/auth-management-create/auth-management-create').then(m => m.AuthManagementCreate) },
               {
                 path: 'auth-management/:serviceId',
                 loadComponent: () => import('./pages/details/pages/auth-management/auth-management').then(m => m.AuthManagementDetail),
@@ -49,7 +50,6 @@ import { List } from './pages/list/list';
                   { path: 'integration', loadComponent: () => import('./pages/details/pages/auth-management/pages/integration/integration').then(m => m.AuthIntegrationComponent) },
                 ]
               },
-              { path: 'auth-management/create', loadComponent: () => import('./pages/details/pages/auth-management-create/auth-management-create').then(m => m.AuthManagementCreate) },
               { path: 'databases', loadComponent: () => import('./pages/details/pages/databases/databases').then(m => m.Databases) },
               { path: 'databases/create', loadComponent: () => import('./pages/details/pages/db-create/db-create').then(m => m.DbCreate) },
               { 
