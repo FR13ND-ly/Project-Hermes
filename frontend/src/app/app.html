@@ -308,52 +308,56 @@
 
     <!-- Global Confirmation Modal -->
     @if (confirm.activeModal(); as modal) {
-      <div class="fixed inset-0 bg-zinc-950/80 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 animate-fade-in font-sans" (click)="confirm.cancel()">
-        <div class="dialog max-w-md w-full p-6 space-y-5 border border-zinc-800 shadow-2xl relative" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" (click)="$event.stopPropagation()">
+      <div class="fixed inset-0 bg-zinc-950/85 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 animate-fade-in font-sans" (click)="confirm.cancel()">
+        <div class="bg-zinc-900 border border-zinc-850 rounded-lg p-5 space-y-5 max-w-sm w-full shadow-2xl relative" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" (click)="$event.stopPropagation()">
           
           <button (click)="confirm.cancel()" class="absolute top-4 right-4 text-zinc-500 hover:text-zinc-200 cursor-pointer">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
 
-          <div class="flex items-start gap-4">
-            @if (modal.options.isDanger) {
-              <div class="w-10 h-10 rounded-full flex items-center justify-center bg-red-950/40 border border-red-500/20 text-red-400 shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                </svg>
-              </div>
-            } @else {
-              <div class="w-10 h-10 rounded-full flex items-center justify-center bg-blue-950/40 border border-blue-500/20 text-blue-400 shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 111.085 1.085l-.04.02C12.25 12.5 12 12.75 12 13h.007v.008H12v-.008zM12 9h.008v.008H12V9zm.007 9.75a9 9 0 110-18 9 9 0 010 18z" />
-                </svg>
-              </div>
-            }
-
-            <div class="space-y-1.5 flex-1 min-w-0">
-              <h3 id="confirm-modal-title" class="text-[14px] font-bold text-zinc-50 tracking-tight">{{ modal.options.title }}</h3>
-              <p class="text-xs text-zinc-400 leading-relaxed">{{ modal.options.message }}</p>
-
-              @if (modal.options.matchText) {
-                <div class="space-y-2 pt-3">
-                  <label class="text-[11px] font-semibold text-zinc-500">
-                    Type <span class="text-zinc-300 font-bold select-all">"{{ modal.options.matchText }}"</span> to confirm
-                  </label>
-                  <input
-                    type="text"
-                    [ngModel]="confirm.typedText()"
-                    (ngModelChange)="confirm.typedText.set($event)"
-                    class="input block w-full px-3 py-2 text-[13px] font-mono"
-                    placeholder="Enter the confirmation"
-                  />
+          <div class="space-y-4">
+            <!-- Header with Warning Icon & Title -->
+            <div class="flex items-center gap-3">
+              @if (modal.options.isDanger) {
+                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-red-950/60 border border-red-500/20 text-red-400 shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-4.5 h-4.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                </div>
+              } @else {
+                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-indigo-950/60 border border-indigo-500/20 text-indigo-400 shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-4.5 h-4.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 111.085 1.085l-.04.02C12.25 12.5 12 12.75 12 13h.007v.008H12v-.008zM12 9h.008v.008H12V9zm.007 9.75a9 9 0 110-18 9 9 0 010 18z" />
+                  </svg>
                 </div>
               }
+              <h3 id="confirm-modal-title" class="text-sm font-bold text-zinc-50 tracking-tight">{{ modal.options.title }}</h3>
             </div>
+
+            <!-- Message Description -->
+            <p class="text-xs text-zinc-400 leading-relaxed font-sans">{{ modal.options.message }}</p>
+
+            <!-- Match confirmation input if required -->
+            @if (modal.options.matchText) {
+              <div class="space-y-2 pt-1 font-sans">
+                <label class="text-[10px] font-semibold text-zinc-550 uppercase tracking-wider">
+                  Type <span class="text-zinc-300 font-mono font-bold select-all">"{{ modal.options.matchText }}"</span> to confirm
+                </label>
+                <input
+                  type="text"
+                  [ngModel]="confirm.typedText()"
+                  (ngModelChange)="confirm.typedText.set($event)"
+                  class="input block w-full px-3 py-2 text-xs font-mono"
+                  placeholder="Enter confirmation text"
+                />
+              </div>
+            }
           </div>
 
-          <div class="pt-4 border-t border-zinc-950 flex justify-end gap-2.5">
+          <!-- Actions Footer -->
+          <div class="pt-4 border-t border-zinc-950/40 flex justify-end gap-2 font-sans">
             <button (click)="confirm.cancel()" class="btn btn-secondary btn-sm">{{ modal.options.cancelText }}</button>
             <button
               (click)="confirm.confirm()"
