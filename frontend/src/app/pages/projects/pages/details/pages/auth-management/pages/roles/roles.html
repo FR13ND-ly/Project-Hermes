@@ -44,7 +44,7 @@
           <button 
             (click)="parent.onAddVisualRole()"
             [disabled]="!parent.newVisualRoleName().trim()"
-            class="px-3.5 py-1.5 rounded btn-primary text-[13px] font-semibold cursor-pointer disabled:opacity-40 shrink-0 transition-all font-sans"
+            class="btn btn-primary btn-sm shrink-0"
           >
             Add
           </button>
@@ -146,7 +146,7 @@
       <button 
         (click)="parent.onSaveConfig()"
         [disabled]="!!parent.parseError() || parent.savingConfig()"
-        class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-mono"
+        class="btn btn-primary"
       >
         @if (parent.savingConfig()) {
           <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

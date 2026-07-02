@@ -1,7 +1,7 @@
 <div class="space-y-6 animate-fade-in">
 
   <!-- Cloudflare / Ingress Card (project-level) -->
-  <div class="card p-5 space-y-4 font-mono mt-6">
+  <div class="card p-5 space-y-4 mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-sm font-semibold text-zinc-100">Cloudflare & Ingress integration</h3>
       <p class="text-[13px] text-zinc-550">DNS configuration used when attaching domains for this project's resources.</p>
@@ -75,7 +75,7 @@
   </div>
 
   <!-- Webhooks Integrations Card -->
-  <div class="card p-5 space-y-4 font-mono mt-6">
+  <div class="card p-5 space-y-4 mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-sm font-semibold text-zinc-100">Webhook Integrations (Slack & Discord)</h3>
       <p class="text-[13px] text-zinc-550">Send automatic real-time alerts when incidents occur on Slack or Discord.</p>
@@ -178,7 +178,7 @@
                 <td class="py-2.5 px-2 text-right">
                   <button
                     (click)="onDeleteWebhook(wh.id)"
-                    class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-red-400 text-xs border border-zinc-850 transition-colors cursor-pointer"
+                    class="btn btn-danger btn-sm"
                     >
                     Remove
                   </button>
@@ -192,7 +192,7 @@
   </div>
 
   <!-- SSH Keys Card -->
-  <div class="card p-5 space-y-4 font-mono mt-6">
+  <div class="card p-5 space-y-4 mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
       <h3 class="text-sm font-semibold text-zinc-100">Project SSH Keys (Deploy Keys)</h3>
       <p class="text-[13px] text-zinc-550">Configure SSH keys so Hermes can connect to private Git repositories or dependencies from GitLab, Bitbucket and other servers.</p>
@@ -314,7 +314,7 @@
                     >{{ key.publicKey }}</textarea>
                     <button
                       (click)="copyToClipboard(key.publicKey)"
-                      class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-850 text-zinc-400 hover:text-zinc-50 transition-colors cursor-pointer text-xs"
+                      class="btn btn-secondary btn-sm"
                       >
                       Copy
                     </button>
@@ -324,7 +324,7 @@
                 <td class="py-2.5 px-2 text-right align-top">
                   <button
                     (click)="onDeleteSshKey(key.id)"
-                    class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-red-400 text-xs border border-zinc-850 transition-colors cursor-pointer"
+                    class="btn btn-danger btn-sm"
                     >
                     Remove
                   </button>
@@ -340,7 +340,7 @@
   <!-- Danger Zone: Delete Project (always visible) -->
   <div class="bg-zinc-900 p-5 rounded-lg border border-red-900/30 space-y-4 shadow-sm font-mono mt-6">
     <div class="border-b border-zinc-900 pb-2.5">
-      <h3 class="text-[13px] font-bold text-red-500 uppercase tracking-wider">Delete Project</h3>
+      <h3 class="text-[13px] font-bold text-red-500">Delete Project</h3>
       <p class="text-[13px] text-zinc-550">Completely removes the project and all associated resources from the system. This action is irreversible.</p>
     </div>
 

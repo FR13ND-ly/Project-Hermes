@@ -7,7 +7,7 @@
     @if (queryHistory().length > 0) {
       <button
         (click)="clearConsole()"
-        class="px-2.5 py-1 rounded bg-zinc-955 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-50 text-xs font-bold border border-zinc-850 transition-colors cursor-pointer"
+        class="btn btn-secondary btn-sm"
         >
         Clear History
       </button>
@@ -95,7 +95,7 @@
       <button
         (click)="onRunQuery()"
         [disabled]="queryLoading() || !queryInput().trim() || dbDetail.db()?.status !== 'running'"
-        class="px-4 py-1.5 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+        class="btn btn-primary btn-sm shrink-0"
         >
         @if (!queryLoading()) {
           <span>Execute</span>

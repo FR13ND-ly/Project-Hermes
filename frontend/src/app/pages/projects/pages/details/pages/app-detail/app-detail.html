@@ -25,7 +25,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="space-y-1.5">
           <div class="flex items-center gap-2.5 flex-wrap">
-            <h2 class="text-base font-extrabold text-zinc-50 font-mono tracking-tight">{{ app()?.name }}</h2>
+            <h2 class="text-base font-extrabold text-zinc-50 tracking-tight">{{ app()?.name }}</h2>
             
             <span 
               class="px-2 py-0.5 rounded text-[11px] font-bold border font-mono tracking-wider"
@@ -220,7 +220,7 @@
       <div class="w-full max-w-md card p-5 shadow-2xl space-y-4 font-mono">
         
         <div class="flex items-center justify-between border-b border-zinc-900 pb-3">
-          <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider">Add Domain for {{ app()?.name }}</h3>
+          <h3 class="text-[13px] font-bold text-zinc-50">Add Domain for {{ app()?.name }}</h3>
           <button 
             (click)="showAddDomainModal.set(false)"
             class="text-zinc-550 hover:text-zinc-50 cursor-pointer transition-colors"
@@ -279,7 +279,7 @@
           <button 
             (click)="showAddDomainModal.set(false)"
             [disabled]="addingDomain()"
-            class="px-3 py-1.5 rounded border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer transition-colors"
+            class="btn btn-secondary btn-sm"
           >
             Cancel
           </button>
@@ -287,7 +287,7 @@
           <button 
             (click)="onAddDomainSubmit()"
             [disabled]="addingDomain() || !appDomainFqdn().trim() || !getSelectedInstanceContainerName()"
-            class="px-4 py-1.5 rounded btn-primary text-[13px] font-semibold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+            class="btn btn-primary btn-sm"
           >
             @if (addingDomain()) {
               <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

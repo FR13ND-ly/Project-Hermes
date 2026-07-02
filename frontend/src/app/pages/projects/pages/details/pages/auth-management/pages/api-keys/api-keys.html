@@ -91,7 +91,7 @@
       <button 
         (click)="parent.onCreateApiKey()"
         [disabled]="!parent.newKeyName().trim() || parent.creatingKey()"
-        class="w-full py-2 rounded btn-primary text-[13px] font-semibold shadow disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5 font-sans"
+        class="btn btn-primary w-full"
       >
         @if (parent.creatingKey()) {
           <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -112,7 +112,7 @@
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/90 backdrop-blur-xs animate-fade-in font-mono">
     <div class="w-full max-w-lg card shadow-2xl p-6 space-y-6">
       <div class="space-y-1">
-        <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider">API Key Generated</h3>
+        <h3 class="text-[13px] font-bold text-zinc-50">API Key Generated</h3>
         <p class="text-zinc-500 text-[13px] font-sans">The server-to-server access key was created successfully.</p>
       </div>
 
@@ -151,7 +151,7 @@
       <div class="flex justify-end pt-2">
         <button 
           (click)="parent.showGeneratedKeyModal.set(false); parent.generatedKeySecret.set(null)"
-          class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow cursor-pointer transition-colors font-sans"
+          class="btn btn-primary"
         >
           I've saved the key, close window
         </button>

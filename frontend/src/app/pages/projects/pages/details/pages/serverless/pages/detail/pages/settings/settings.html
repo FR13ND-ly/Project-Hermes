@@ -30,7 +30,7 @@
   <div class="card p-5 space-y-3">
     <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
       <h4 class="text-sm font-semibold text-zinc-100">Domeniu & Rutare</h4>
-      <button (click)="onOpenAddDomainModal()" class="px-2.5 py-1 rounded border border-zinc-800 text-zinc-300 hover:bg-zinc-900 hover:text-zinc-50 text-xs font-semibold cursor-pointer">+ Associate Domain</button>
+      <button (click)="onOpenAddDomainModal()" class="btn btn-secondary btn-sm">+ Associate Domain</button>
     </div>
     <div class="space-y-1.5">
       <label class="text-xs font-semibold text-zinc-400 uppercase">Associated Domain (instance)</label>
@@ -44,7 +44,7 @@
 
   <div class="flex items-center justify-between">
     <button (click)="onDeleteInstance()" class="px-3 py-2 rounded border border-red-950/40 text-red-500/90 hover:bg-red-950/20 text-[13px] font-semibold cursor-pointer">Delete Instance</button>
-    <button (click)="onSaveSettings()" [disabled]="savingSettings()" class="px-4 py-2 rounded btn-primary text-[13px] font-bold cursor-pointer disabled:opacity-50">{{ savingSettings() ? 'Saving...' : 'Save Settings' }}</button>
+    <button (click)="onSaveSettings()" [disabled]="savingSettings()" class="btn btn-primary">{{ savingSettings() ? 'Saving...' : 'Save Settings' }}</button>
   </div>
 
   <!-- ================= REGISTER DOMAIN MODAL ================= -->
@@ -55,7 +55,7 @@
         <input type="text" placeholder="api.exemplu.ro" [ngModel]="newDomainFqdn()" (ngModelChange)="newDomainFqdn.set($event)" class="block w-full px-3 py-2 text-[13px] input" />
         <div class="flex justify-end gap-2">
           <button (click)="showAddDomainModal.set(false)" class="btn btn-secondary btn-sm">Cancel</button>
-          <button (click)="onRegisterDomain()" [disabled]="addingDomain()" class="px-3 py-1.5 rounded btn-primary text-[13px] font-semibold cursor-pointer disabled:opacity-50">{{ addingDomain() ? 'Registering...' : 'Register' }}</button>
+          <button (click)="onRegisterDomain()" [disabled]="addingDomain()" class="btn btn-primary btn-sm">{{ addingDomain() ? 'Registering...' : 'Register' }}</button>
         </div>
       </div>
     </div>

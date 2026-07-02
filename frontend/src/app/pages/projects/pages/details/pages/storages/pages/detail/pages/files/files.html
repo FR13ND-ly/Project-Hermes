@@ -98,7 +98,7 @@
           <button 
             (click)="parent.onCreateFolder()"
             [disabled]="!parent.newFolderName().trim()"
-            class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-50 text-xs font-bold cursor-pointer disabled:opacity-50"
+            class="btn btn-secondary btn-sm"
           >
             Create
           </button>
@@ -112,7 +112,7 @@
       } @else {
         <button 
           (click)="parent.showFolderForm.set(true)"
-          class="px-2.5 py-1 rounded border border-zinc-900 hover:border-zinc-850 bg-zinc-950 hover:bg-zinc-950 text-zinc-400 hover:text-zinc-50 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
+          class="btn btn-secondary btn-sm"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-550">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 10.5v6m3-3H9m4.06-7.19l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
@@ -131,7 +131,7 @@
       />
       <label 
         for="file-upload-picker"
-        class="px-3 py-1.5 rounded btn-primary text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
+        class="btn btn-primary btn-sm"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -275,7 +275,7 @@
                 <div class="flex items-center gap-1.5 w-full justify-between">
                   <button
                     (click)="parent.onNavigate(item.filePath)"
-                    class="px-2.5 py-1 rounded bg-zinc-900 text-zinc-400 hover:text-zinc-50 text-[11px] font-bold w-full uppercase text-center cursor-pointer border border-zinc-800"
+                    class="btn btn-secondary btn-sm w-full"
                   >
                     Open
                   </button>
@@ -411,13 +411,13 @@
                         }
                       </div>
                     } @else if (item.isFolder) {
-                      <button (click)="parent.onNavigate(item.filePath)" class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-xs font-bold text-zinc-350 hover:text-zinc-50 cursor-pointer">Open</button>
+                      <button (click)="parent.onNavigate(item.filePath)" class="btn btn-secondary btn-sm">Open</button>
                       @if (item.id) {
                         <button (click)="parent.onDeleteFile(item)" class="px-2 py-0.5 rounded hover:bg-red-950/20 text-zinc-555 hover:text-red-400 text-xs font-bold uppercase cursor-pointer">Delete</button>
                       }
                     } @else {
                       @if (item.virtualUrl) {
-                        <button (click)="parent.copyPublicUrl(item)" class="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-450 hover:text-zinc-50 text-xs font-bold uppercase cursor-pointer">URL</button>
+                        <button (click)="parent.copyPublicUrl(item)" class="btn btn-secondary btn-sm">URL</button>
                         <a [href]="item.virtualUrl" target="_blank" class="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-850 text-zinc-555 hover:text-zinc-50 text-xs font-bold uppercase">View</a>
                       }
                       @if (item.id) {

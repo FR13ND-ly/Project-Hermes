@@ -245,7 +245,7 @@
             <button 
               (click)="onSaveSettings()"
               [disabled]="saving() || !wsName().trim()"
-              class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
+              class="btn btn-primary"
             >
               @if (!saving()) {
                 <span>Save Settings</span>
@@ -264,7 +264,7 @@
         <!-- Git Credentials card -->
         <div class="bg-zinc-900 border border-zinc-850 rounded-lg p-5 space-y-4 shadow-sm font-mono mt-6">
           <div class="border-b border-zinc-900 pb-2.5">
-            <h4 class="text-[13px] font-bold text-zinc-355 uppercase tracking-wider">Git Credentials</h4>
+            <h4 class="text-[13px] font-bold text-zinc-355">Git Credentials</h4>
             <p class="text-xs text-zinc-550 mt-0.5 font-sans">Access tokens (GitHub / GitLab) used when importing and cloning repositories. Select a credential when creating an application.</p>
           </div>
 
@@ -322,7 +322,7 @@
               <span class="text-xs text-zinc-500 font-sans">Accept self-signed SSL certificates <span class="text-zinc-650">(self-hosted)</span></span>
             </label>
             <button (click)="onAddCredential()" [disabled]="addingCred()"
-              class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
+              class="btn btn-primary">
               {{ addingCred() ? 'Verifying...' : 'Add Credential' }}
             </button>
           </div>
@@ -331,7 +331,7 @@
         <!-- Cloudflare Tokens card -->
         <div class="bg-zinc-900 border border-zinc-850 rounded-lg p-5 space-y-4 shadow-sm font-mono mt-6">
           <div class="border-b border-zinc-900 pb-2.5">
-            <h4 class="text-[13px] font-bold text-zinc-355 uppercase tracking-wider">Cloudflare Tokens</h4>
+            <h4 class="text-[13px] font-bold text-zinc-355">Cloudflare Tokens</h4>
             <p class="text-xs text-zinc-550 mt-0.5 font-sans">Tokens for custom domain DNS. One token = one domain (includes Zone ID + domain). Select a token when creating a project, or change it from project settings.</p>
           </div>
 
@@ -382,7 +382,7 @@
           </div>
           <div class="flex items-center justify-end pt-1">
             <button (click)="onAddCloudflareCredential()" [disabled]="addingCf()"
-              class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 font-sans">
+              class="btn btn-primary">
               {{ addingCf() ? 'Adding...' : 'Add Token' }}
             </button>
           </div>
@@ -427,7 +427,7 @@
             <button 
               (click)="onInviteMember()"
               [disabled]="invitingMember() || !newMemberEmail().trim()"
-              class="px-4 py-2 rounded btn-primary font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 font-sans"
+              class="btn btn-primary"
             >
               @if (invitingMember()) {
                 <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

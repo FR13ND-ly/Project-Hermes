@@ -127,7 +127,7 @@
           <button
             (click)="parent.onRetryBuild(build)"
             [disabled]="parent.retryingBuild()"
-            class="px-3 py-1.5 rounded btn-primary text-xs font-bold shadow transition-all cursor-pointer disabled:opacity-50 shrink-0 flex items-center gap-1.5"
+            class="btn btn-primary btn-sm shrink-0"
           >
             @if (parent.retryingBuild()) {
               <svg class="animate-spin h-3 w-3 text-zinc-950" fill="none" viewBox="0 0 24 24">

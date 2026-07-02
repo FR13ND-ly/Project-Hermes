@@ -33,7 +33,7 @@
           <button
             (click)="onCreateWorkspace()"
             [disabled]="loading() || !newWorkspaceName().trim()"
-            class="w-full py-2.5 rounded-lg btn-primary text-sm font-semibold shadow transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            class="btn btn-primary w-full"
           >
             @if (loading()) {
               <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
@@ -72,7 +72,7 @@
 
       <a
         routerLink="/projects/create"
-        class="shrink-0 px-4 py-2.5 rounded-lg btn-primary text-sm font-semibold shadow-sm transition-colors cursor-pointer inline-flex items-center gap-2 self-start sm:self-auto"
+        class="btn btn-primary shrink-0"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -226,7 +226,7 @@
           <p class="text-sm text-zinc-500 mb-5 max-w-xs">Projects let you group related applications and databases.</p>
           <a
             routerLink="/projects"
-            class="px-4 py-2.5 rounded-lg btn-primary text-sm font-semibold shadow-sm transition-colors"
+            class="btn btn-primary"
           >
             Create your first project
           </a>

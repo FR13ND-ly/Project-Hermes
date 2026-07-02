@@ -2,7 +2,7 @@
   
   <div class="flex items-center justify-between border-b border-zinc-900 pb-3">
     <div class="space-y-0.5">
-      <h3 class="text-sm font-bold text-zinc-50 uppercase tracking-wider font-sans">Create Serverless Instance</h3>
+      <h3 class="text-sm font-bold text-zinc-50 font-sans">Create Serverless Instance</h3>
       <p class="text-xs text-zinc-500 font-medium font-sans">Deploy an isolated, auto-scaling function handler in the cluster.</p>
     </div>
     <button 
@@ -72,14 +72,14 @@
     <button 
       (click)="onCancel()" 
       [disabled]="creating()" 
-      class="px-3 py-1.5 rounded border border-zinc-850 text-zinc-450 hover:text-zinc-50 hover:bg-zinc-950 text-[13px] font-semibold cursor-pointer"
+      class="btn btn-secondary btn-sm"
     >
       Cancel
     </button>
     <button 
       (click)="onCreateInstance()" 
       [disabled]="creating() || !newName().trim()" 
-      class="px-4 py-1.5 rounded btn-primary text-[13px] font-bold shadow cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+      class="btn btn-primary btn-sm"
     >
       @if (creating()) {
         <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

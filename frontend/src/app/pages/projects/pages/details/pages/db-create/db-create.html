@@ -3,7 +3,7 @@
   <!-- Header -->
   <div class="flex items-center justify-between border-b border-zinc-900 pb-3.5">
     <div class="space-y-0.5">
-      <h3 class="text-sm font-bold text-zinc-50 uppercase tracking-wider font-sans">Provision New Database</h3>
+      <h3 class="text-sm font-bold text-zinc-50 font-sans">Provision New Database</h3>
       <p class="text-xs text-zinc-500 font-medium font-sans">Configure resource quotas and network exposure for the instance.</p>
     </div>
     <button 
@@ -55,12 +55,12 @@
 
     <!-- Resource limits sliders -->
     <div class="space-y-5 border-t border-zinc-900 pt-5">
-      <h4 class="text-xs font-bold text-zinc-450 uppercase tracking-wider">Container Resource Quotas</h4>
+      <h4 class="text-xs font-bold text-zinc-450">Container Resource Quotas</h4>
 
       <!-- CPU Slider -->
       <div class="space-y-2">
         <div class="flex items-center justify-between text-[13px]">
-          <span class="uppercase tracking-wider font-semibold text-xs text-zinc-500">CPU Limit</span>
+          <span class="font-semibold text-xs text-zinc-500">CPU Limit</span>
           <span class="text-zinc-50 font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-xs">@if (cpuLimit() === 0) { Unlimited } @else { {{ cpuLimit() }}m }</span>
         </div>
         <input
@@ -82,7 +82,7 @@
       <!-- RAM Slider -->
       <div class="space-y-2">
         <div class="flex items-center justify-between text-[13px]">
-          <span class="uppercase tracking-wider font-semibold text-xs text-zinc-500">Memory Limit (RAM)</span>
+          <span class="font-semibold text-xs text-zinc-500">Memory Limit (RAM)</span>
           <span class="text-zinc-50 font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-xs">@if (memLimit() === 0) { Unlimited } @else { {{ memLimit() }} MB }</span>
         </div>
         <input
@@ -104,7 +104,7 @@
       <!-- Storage Slider -->
       <div class="space-y-2">
         <div class="flex items-center justify-between text-[13px]">
-          <span class="uppercase tracking-wider font-semibold text-xs text-zinc-550">Storage Size (PVC)</span>
+          <span class="font-semibold text-xs text-zinc-550">Storage Size (PVC)</span>
           <span class="text-zinc-50 font-mono font-bold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850 text-xs">{{ storageGb() }} GB</span>
         </div>
         <input
@@ -126,7 +126,7 @@
 
     <!-- External exposures loadbalancers -->
     <div class="border-t border-zinc-900 pt-5 space-y-4">
-      <h4 class="text-xs font-bold text-zinc-455 uppercase tracking-wider">Network Access Configuration</h4>
+      <h4 class="text-xs font-bold text-zinc-455">Network Access Configuration</h4>
 
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <!-- Expose toggle -->
@@ -209,7 +209,7 @@
     <button 
       (click)="onCancel()"
       [disabled]="provisioning()"
-      class="px-4 py-2 rounded-lg text-zinc-450 hover:text-zinc-50 text-[13px] font-semibold border border-zinc-850 hover:bg-zinc-955 transition-colors cursor-pointer"
+      class="btn btn-secondary"
     >
       Cancel
     </button>
@@ -217,7 +217,7 @@
     <button
       (click)="onCreateDatabase()"
       [disabled]="provisioning() || !dbName()"
-      class="px-4.5 py-2.5 rounded-lg btn-primary text-[13px] font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+      class="btn btn-primary"
     >
       @if (!provisioning()) {
         <span>Provision</span>

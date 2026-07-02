@@ -214,7 +214,7 @@
       <span class="text-[11px] font-bold text-amber-400 uppercase tracking-wider">New SECRET_KEY (shown once)</span>
       <div class="flex items-center gap-2">
         <code class="flex-1 px-3 py-2 text-[13px] bg-zinc-950 border border-zinc-850 rounded text-zinc-300 select-all truncate">{{ parent.rotatedSecret() }}</code>
-        <button (click)="parent.copyToClipboard(parent.rotatedSecret()!)" class="px-2.5 py-2 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-xs font-semibold cursor-pointer shrink-0">Copy</button>
+        <button (click)="parent.copyToClipboard(parent.rotatedSecret()!)" class="btn btn-secondary btn-sm shrink-0">Copy</button>
       </div>
       <p class="text-[11px] text-amber-500/80 font-sans">The app_id remains unchanged. Applications using the old key need a manual reload.</p>
     </div>
@@ -249,7 +249,7 @@
       <button 
         (click)="parent.onSaveSettings()"
         [disabled]="parent.savingSettings()"
-        class="px-4 py-2 rounded btn-primary text-[13px] font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+        class="btn btn-primary"
       >
         @if (!parent.savingSettings()) {
           <span>Save Settings</span>

@@ -10,7 +10,7 @@
         </div>
         <button
           (click)="onCancel()"
-          class="px-3 py-1.5 rounded text-zinc-400 hover:text-zinc-50 text-[13px] font-semibold border border-zinc-800 hover:bg-zinc-900 transition-all cursor-pointer font-sans"
+          class="btn btn-secondary btn-sm"
         >
           Cancel
         </button>
@@ -38,7 +38,7 @@
               <p class="text-zinc-400 text-[13px] leading-relaxed max-w-sm font-sans">
                 Add an access token (GitHub or GitLab) in workspace settings to browse and import repositories. Or use a custom URL.
               </p>
-              <a [routerLink]="['/workspace/settings']" class="px-3 py-1.5 rounded btn-primary text-[13px] font-semibold cursor-pointer font-sans">
+              <a [routerLink]="['/workspace/settings']" class="btn btn-primary btn-sm">
                 Add Git Credential
               </a>
             </div>
@@ -104,7 +104,7 @@
                     </div>
                     <button
                       (click)="onImportRepo(repo)"
-                      class="px-3 py-1 rounded btn-primary text-[13px] font-semibold transition-colors cursor-pointer ml-3 flex-shrink-0 font-sans"
+                      class="btn btn-primary btn-sm shrink-0"
                     >
                       Import
                     </button>
@@ -420,10 +420,10 @@
           </div>
 
           <div class="border-t border-zinc-900 pt-4 space-y-4 font-sans">
-            <h3 class="text-[13px] font-semibold text-zinc-400 uppercase tracking-wider">Network & pool</h3>
+            <h3 class="text-[13px] font-semibold text-zinc-400">Network & pool</h3>
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="space-y-1.5">
-                <label for="new-app-netname" class="text-xs font-semibold text-zinc-550 uppercase tracking-wider">Service name (network)</label>
+                <label for="new-app-netname" class="text-xs font-semibold text-zinc-550">Service name (network)</label>
                 <input
                   id="new-app-netname"
                   type="text"
@@ -436,7 +436,7 @@
                 <p class="text-xs text-zinc-650 font-sans">Address at which other apps can reach it. Empty = auto. E.g. <span class="text-zinc-400">backend</span> → http://backend:{{ internalPort() }}</p>
               </div>
               <div class="space-y-1.5">
-                <label for="new-app-urlkey" class="text-xs font-semibold text-zinc-555 uppercase tracking-wider">URL key in pool</label>
+                <label for="new-app-urlkey" class="text-xs font-semibold text-zinc-555">URL key in pool</label>
                 <input
                   id="new-app-urlkey"
                   type="text"
@@ -455,11 +455,11 @@
           </div>
 
           <div class="border-t border-zinc-900 pt-4 space-y-4 font-sans">
-            <h3 class="text-[13px] font-semibold text-zinc-400 uppercase tracking-wider">Optional Commands (Build/Start)</h3>
+            <h3 class="text-[13px] font-semibold text-zinc-400">Optional Commands (Build/Start)</h3>
 
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="space-y-1.5">
-                <label for="new-app-build" class="text-xs font-semibold text-zinc-550 uppercase tracking-wider">Build Command</label>
+                <label for="new-app-build" class="text-xs font-semibold text-zinc-550">Build Command</label>
                 <input 
                   id="new-app-build"
                   type="text" 
@@ -472,7 +472,7 @@
               </div>
     
               <div class="space-y-1.5">
-                <label for="new-app-start" class="text-xs font-semibold text-zinc-550 uppercase tracking-wider">Start Command</label>
+                <label for="new-app-start" class="text-xs font-semibold text-zinc-550">Start Command</label>
                 <input 
                   id="new-app-start"
                   type="text" 
@@ -501,20 +501,20 @@
                   type="button"
                   (click)="openCreateEnvModal()"
                   [disabled]="deployingApp()"
-                  class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-xs font-semibold transition-colors cursor-pointer"
+                  class="btn btn-secondary btn-sm"
                 >From Project@if (selectedProjectEnvIds().length > 0) {<span class="ml-1 text-emerald-400 font-mono">· {{ selectedProjectEnvIds().length }}</span>}</button>
                 <button
                   type="button"
                   (click)="newAppEnvJsonMode() ? newAppEnvJsonMode.set(false) : openNewAppEnvJson()"
                   [disabled]="deployingApp()"
-                  class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-xs font-semibold transition-colors cursor-pointer"
+                  class="btn btn-secondary btn-sm"
                 >{{ newAppEnvJsonMode() ? 'Back to form' : 'Edit as JSON' }}</button>
                 @if (!newAppEnvJsonMode()) {
                   <button
                     type="button"
                     (click)="addEnvRow()"
                     [disabled]="deployingApp()"
-                    class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-xs font-semibold transition-colors cursor-pointer"
+                    class="btn btn-secondary btn-sm"
                   >+ Add Variable</button>
                 }
               </div>
@@ -541,7 +541,7 @@
                     type="button"
                     (click)="applyNewAppEnvJson()"
                     [disabled]="deployingApp()"
-                    class="px-3 py-1.5 rounded btn-primary text-xs font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
+                    class="btn btn-primary btn-sm"
                   >Apply JSON</button>
                 </div>
               </div>
@@ -602,7 +602,7 @@
             <div class="w-full max-w-3xl card shadow-2xl flex flex-col max-h-[85vh]" (click)="$event.stopPropagation()">
               <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-900">
                 <div>
-                  <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider font-mono">Split from docker-compose</h3>
+                  <h3 class="text-[13px] font-bold text-zinc-50 font-mono">Split from docker-compose</h3>
                   <p class="text-xs text-zinc-550 mt-0.5 font-sans">Check what you want to create and click "Edit" to adjust names, ports and variables before creating.</p>
                 </div>
                 <button (click)="showComposePreview.set(false)" class="p-1.5 rounded hover:bg-zinc-900 text-zinc-500 hover:text-zinc-50 cursor-pointer">
@@ -624,7 +624,7 @@
                           </div>
                           <div class="flex items-center gap-2 shrink-0">
                             <span class="text-[11px] text-zinc-600">:{{ db.internalPort }}</span>
-                            <button type="button" (click)="toggleDbExpand(i)" class="text-[11px] px-1.5 py-0.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 hover:bg-zinc-900 cursor-pointer font-sans">
+                            <button type="button" (click)="toggleDbExpand(i)" class="btn btn-secondary">
                               {{ expandedDbs()[i] ? 'Close' : 'Edit' }}
                             </button>
                           </div>
@@ -654,7 +654,7 @@
                               </label>
                               @if (db.publishToEnv) {
                                 <div class="flex items-center gap-2 pl-6 animate-fade-in">
-                                  <label class="text-[11px] font-bold text-zinc-550 uppercase tracking-wider shrink-0 font-sans">Key name:</label>
+                                  <label class="text-[11px] font-bold text-zinc-550 shrink-0 font-sans">Key name:</label>
                                   <input type="text" placeholder="DATABASE_URL (implicit)" [ngModel]="db.envKey" (ngModelChange)="updateDbEnvKey(i, $event)" class="block w-full max-w-xs px-2 py-1 text-xs input uppercase font-bold" />
                                 </div>
                               }
@@ -709,7 +709,7 @@
                 <div class="flex items-center gap-2">
                   <button (click)="showComposePreview.set(false)" class="btn btn-secondary btn-sm font-sans">Cancel</button>
                   <button (click)="onApplyComposeSplit()" [disabled]="applyingCompose() || composeSelectedCount() === 0"
-                    class="px-4 py-1.5 rounded btn-primary text-[13px] font-bold shadow disabled:opacity-50 cursor-pointer font-sans">
+                    class="btn btn-primary btn-sm">
                     {{ applyingCompose() ? 'Creating...' : 'Create All' }}
                   </button>
                 </div>
@@ -802,7 +802,7 @@
               </div>
 
               <div class="flex justify-end gap-2 px-6 py-4 border-t border-zinc-900">
-                <button (click)="closeAppEditor()" class="px-4 py-2 rounded btn-primary text-[13px] font-bold cursor-pointer font-sans">Done</button>
+                <button (click)="closeAppEditor()" class="btn btn-primary">Done</button>
               </div>
             </div>
           </div>
@@ -823,7 +823,7 @@
           <button
             (click)="nextCreateStep()"
             [disabled]="deployingApp() || (createStep() === 1 && (!appName() || !gitRepository()))"
-            class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50"
+            class="btn btn-primary"
           >
             Continue →
           </button>
@@ -831,7 +831,7 @@
           <button
             (click)="onDeployApp()"
             [disabled]="deployingApp() || !appName() || !gitRepository()"
-            class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+            class="btn btn-primary"
           >
             @if (!deployingApp()) {
               <span>Launch Application</span>

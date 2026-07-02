@@ -3,7 +3,7 @@
   <!-- Section Header -->
   <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
     <div>
-      <h3 class="text-sm font-semibold text-zinc-100">Environment Variables</h3>
+      <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Environment variables</h2>
       <p class="text-[13px] text-zinc-500">Project-level shared pool + per-application variables.</p>
     </div>
     <span class="text-xs font-mono text-zinc-600 uppercase tracking-wider">{{ totalVars }} per-app</span>
@@ -13,7 +13,7 @@
   <div class="card">
     <div class="flex items-center justify-between gap-3 border-b border-zinc-900 px-5 py-3.5">
       <div>
-        <h3 class="text-sm font-semibold text-zinc-100 font-mono">Variable Pool (Project)</h3>
+        <h3 class="text-sm font-semibold text-zinc-100">Variable Pool (Project)</h3>
         <p class="text-xs text-zinc-550 mt-0.5">Shared across the project. Resources (e.g. database) publish here; apps pull them in from their env editor.</p>
       </div>
       <button
@@ -153,7 +153,7 @@
     <!-- Empty: no apps -->
     @if (groups().length === 0) {
       <div class="card p-10 flex flex-col items-center justify-center text-center max-w-sm mx-auto">
-        <h4 class="text-[13px] font-bold text-zinc-200 mb-1 uppercase tracking-wider font-mono">No Applications</h4>
+        <h4 class="text-[13px] font-bold text-zinc-200 mb-1">No Applications</h4>
         <p class="text-[13px] text-zinc-500">Environment variables are defined per application. Create an application first.</p>
       </div>
     }
@@ -167,7 +167,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-500">
             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
           </svg>
-          <h4 class="text-[13px] font-bold text-zinc-200 font-mono truncate">{{ app.appName }}</h4>
+          <h4 class="text-[13px] font-bold text-zinc-200 truncate">{{ app.appName }}</h4>
         </div>
 
         <!-- Instances -->
@@ -183,7 +183,7 @@
               <div class="flex items-center gap-1.5">
                 <button
                   (click)="openJsonEditor(inst.instanceId, inst.variables)"
-                  class="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-xs font-semibold transition-colors cursor-pointer"
+                  class="btn btn-secondary btn-sm"
                 >JSON</button>
                 <button
                   (click)="openAddForm(inst.instanceId)"
@@ -226,7 +226,7 @@
                   <div class="flex items-center gap-2">
                     <button
                       (click)="cancelAddForm()"
-                      class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 hover:bg-zinc-900 text-xs font-semibold cursor-pointer"
+                      class="btn btn-secondary btn-sm"
                     >Cancel</button>
                     <button
                       (click)="saveEnv()"

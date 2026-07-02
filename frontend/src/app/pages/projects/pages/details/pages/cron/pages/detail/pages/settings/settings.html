@@ -80,14 +80,14 @@
       <button 
         (click)="parent.selectCronJob(job)"
         [disabled]="parent.savingSettings()"
-        class="px-3 py-1.5 rounded border border-zinc-850 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-50 cursor-pointer transition-colors"
+        class="btn btn-secondary btn-sm"
       >
         Cancel
       </button>
       <button 
         (click)="parent.onSaveSettings()"
         [disabled]="parent.savingSettings() || !parent.editName().trim() || !parent.editSchedule().trim() || !parent.editCommand().trim()"
-        class="px-4 py-1.5 rounded btn-primary font-bold shadow disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+        class="btn btn-primary btn-sm"
       >
         @if (parent.savingSettings()) {
           <svg class="animate-spin h-3 w-3 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -104,7 +104,7 @@
 
   <!-- Danger Area -->
   <div class="bg-zinc-900 border border-red-955/20 rounded-lg p-5 space-y-4 shadow-sm">
-    <h3 class="text-[13px] font-bold text-red-500 uppercase tracking-wider border-b border-zinc-900 pb-3">Danger Zone</h3>
+    <h3 class="text-[13px] font-bold text-red-500 border-b border-zinc-900 pb-3">Danger Zone</h3>
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-[13px] font-sans">
       <div class="space-y-1">
         <h4 class="font-bold text-zinc-300">Permanently delete this scheduled job</h4>

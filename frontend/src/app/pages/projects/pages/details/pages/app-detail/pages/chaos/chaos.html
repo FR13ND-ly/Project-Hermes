@@ -215,7 +215,7 @@
         <button
           (click)="run()"
           [disabled]="submitting() || !!active()"
-          class="px-4 py-2 rounded btn-primary text-[13px] font-bold uppercase tracking-wider shadow transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0 justify-center"
+          class="btn btn-primary shrink-0"
           >
           @if (submitting()) {
             <svg class="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">

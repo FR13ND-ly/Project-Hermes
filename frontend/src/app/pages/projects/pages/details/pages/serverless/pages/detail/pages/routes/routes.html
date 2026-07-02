@@ -2,7 +2,7 @@
   <div class="lg:col-span-1 space-y-2">
     <div class="flex items-center justify-between border-b border-zinc-900 pb-2">
       <h4 class="text-xs font-semibold text-zinc-400">Rute ({{ (routes() || []).length }})</h4>
-      <button (click)="onAddRoute()" class="px-2 py-1 rounded btn-primary text-xs font-semibold cursor-pointer">+ Add</button>
+      <button (click)="onAddRoute()" class="btn btn-primary btn-sm">+ Add</button>
     </div>
     @if ((routes() || []).length === 0) {
       <p class="text-[13px] text-zinc-600 italic py-3 font-sans">No routes. Click "+ Add".</p>
@@ -33,7 +33,7 @@
         <div id="route-editor-container" class="w-full h-[420px] border border-zinc-850 rounded overflow-hidden"></div>
         <div class="flex justify-end gap-2">
           <button (click)="closeRouteEditor()" class="btn btn-secondary btn-sm">Close</button>
-          <button (click)="onSaveRoute()" [disabled]="savingRoute()" class="px-3 py-1.5 rounded btn-primary text-[13px] font-semibold cursor-pointer disabled:opacity-50">{{ savingRoute() ? 'Saving...' : 'Save route' }}</button>
+          <button (click)="onSaveRoute()" [disabled]="savingRoute()" class="btn btn-primary btn-sm">{{ savingRoute() ? 'Saving...' : 'Save route' }}</button>
         </div>
       </div>
     } @else {

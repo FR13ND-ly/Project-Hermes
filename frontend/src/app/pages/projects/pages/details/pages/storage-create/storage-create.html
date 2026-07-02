@@ -2,7 +2,7 @@
   
   <div class="flex items-center justify-between border-b border-zinc-900 pb-3.5">
     <div class="space-y-0.5">
-      <h3 class="text-sm font-bold text-zinc-50 uppercase tracking-wider font-sans">Create New Bucket</h3>
+      <h3 class="text-sm font-bold text-zinc-50 font-sans">Create New Bucket</h3>
       <p class="text-xs text-zinc-550 font-medium font-sans">Configure static files, media storage and rules for your project.</p>
     </div>
     <button 
@@ -162,14 +162,14 @@
     <button 
       (click)="onCancel()"
       [disabled]="creatingBucket()"
-      class="px-4 py-2 rounded text-zinc-455 hover:text-zinc-50 text-[13px] font-semibold border border-zinc-850 hover:bg-zinc-950 transition-colors cursor-pointer"
+      class="btn btn-secondary"
     >
       Cancel
     </button>
     <button 
       (click)="onCreateBucket()"
       [disabled]="creatingBucket() || !newBucketName().trim()"
-      class="px-4.5 py-2.5 rounded btn-primary text-[13px] font-bold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+      class="btn btn-primary"
     >
       @if (!creatingBucket()) {
         <span>Create Bucket</span>

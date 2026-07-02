@@ -6,14 +6,14 @@
     <!-- Section Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-900 pb-4 gap-4">
       <div>
-        <h3 class="text-sm font-semibold text-zinc-100">Object Storage & Buckets</h3>
+        <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Object storage & buckets</h2>
         <p class="text-[13px] text-zinc-555">Manage static files, media and storage rules for your workspace.</p>
       </div>
       
       <div class="flex items-center gap-3">
         <button 
           [routerLink]="['/projects', parent.parent.projectId(), 'storages', 'create']"
-          class="px-3.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-350 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer transition-all flex items-center gap-1.5"
+          class="btn btn-secondary btn-sm"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-550">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -40,7 +40,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.008 1.24l.885 1.77a2.25 2.25 0 002.007 1.24h1.98a2.25 2.25 0 002.007-1.24l.885-1.77a2.25 2.25 0 012.007-1.24h3.86m-18 0h18a2.25 2.25 0 002.25-2.25V5.25A2.25 2.25 0 0019.5 3H4.5A2.25 2.25 0 002.25 5.25v6a2.25 2.25 0 002.25 2.25z" />
             </svg>
           </div>
-          <h4 class="text-[13px] font-bold text-zinc-200 mb-1.5 uppercase tracking-wider">No Storage Buckets</h4>
+          <h4 class="text-[13px] font-bold text-zinc-200 mb-1.5">No Storage Buckets</h4>
           <p class="text-[13px] text-zinc-500 mb-6">Create a bucket to store images, code or other static resources.</p>
           <button 
             [routerLink]="['/projects', parent.parent.projectId(), 'storages', 'create']"
@@ -100,7 +100,7 @@
                     <div class="flex items-center justify-end gap-2">
                       <button 
                         (click)="navigateToBucket(bucket.id)"
-                        class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-zinc-50 hover:border-zinc-700 text-xs font-semibold transition-all cursor-pointer"
+                        class="btn btn-secondary btn-sm"
                       >
                         Details
                       </button>
@@ -153,7 +153,7 @@
                   }
                 </td>
                 <td class="p-3.5 text-right">
-                  <button (click)="parent.selectPvc(pvc)" class="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-350 hover:text-zinc-50 hover:border-zinc-700 text-xs font-semibold transition-all cursor-pointer">Open</button>
+                  <button (click)="parent.selectPvc(pvc)" class="btn btn-secondary btn-sm">Open</button>
                 </td>
               </tr>
             }
@@ -173,7 +173,7 @@
       </button>
       <div>
         <div class="flex items-center gap-2">
-          <h3 class="text-[13px] font-bold text-zinc-50 uppercase tracking-wider">{{ pvc.appName }}</h3>
+          <h3 class="text-[13px] font-bold text-zinc-50">{{ pvc.appName }}</h3>
           <span class="px-1.5 py-0.2 rounded text-[7px] font-bold border border-sky-900 bg-sky-950/20 text-sky-400 uppercase">PVC</span>
         </div>
         <p class="text-xs text-zinc-555 font-mono mt-0.5">mounted at: {{ pvc.containerPath }} {{ pvc.isAuto ? '· auto (build)' : '' }}</p>
@@ -205,7 +205,7 @@
             <button (click)="parent.viewMode.set('grid')" class="px-2.5 py-1.5 text-[13px] cursor-pointer" [class]="parent.viewMode() === 'grid' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'" title="Grid">▦</button>
             <button (click)="parent.viewMode.set('list')" class="px-2.5 py-1.5 text-[13px] cursor-pointer" [class]="parent.viewMode() === 'list' ? 'bg-zinc-900 text-zinc-50' : 'text-zinc-650 hover:text-zinc-400'" title="List">≣</button>
           </div>
-          <button (click)="parent.showFolderForm.set(!parent.showFolderForm())" class="px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-zinc-50 text-[13px] font-semibold cursor-pointer">+ Dosar</button>
+          <button (click)="parent.showFolderForm.set(!parent.showFolderForm())" class="btn btn-secondary btn-sm">+ Dosar</button>
           <label class="btn btn-primary btn-sm">
             {{ parent.uploading() ? 'Uploading ' + parent.uploadProgress() + '%' : 'Upload' }}
             <input type="file" class="hidden" (change)="parent.onPvcFileSelected($event)" [disabled]="parent.uploading()" />
@@ -218,7 +218,7 @@
         <div class="bg-zinc-900 border border-zinc-900 rounded p-3 flex items-center gap-2 animate-fade-in">
           <input type="text" placeholder="New folder name" [ngModel]="parent.newFolderName()" (ngModelChange)="parent.newFolderName.set($event)" (keyup.enter)="parent.createPvcFolder()" class="flex-1 px-3 py-1.5 text-[13px] input font-mono" />
           <button (click)="parent.createPvcFolder()" [disabled]="!parent.newFolderName().trim()" class="btn btn-primary btn-sm">Create</button>
-          <button (click)="parent.showFolderForm.set(false); parent.newFolderName.set('')" class="px-3 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-50 text-[13px] cursor-pointer">Cancel</button>
+          <button (click)="parent.showFolderForm.set(false); parent.newFolderName.set('')" class="btn btn-secondary btn-sm">Cancel</button>
         </div>
       }
 

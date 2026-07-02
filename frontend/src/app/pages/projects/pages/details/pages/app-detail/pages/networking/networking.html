@@ -350,7 +350,7 @@
       </div>
       <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
         <button (click)="parent.onSaveSettings()" [disabled]="parent.savingSettings()"
-          class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50">
+          class="btn btn-primary">
           {{ parent.savingSettings() ? 'Saving...' : 'Save Settings' }}
         </button>
       </div>
@@ -401,7 +401,7 @@
       </div>
       <div class="flex items-center justify-end gap-2 border-t border-zinc-900 pt-3">
         <button (click)="parent.onSaveSettings()" [disabled]="parent.savingSettings()"
-          class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50">
+          class="btn btn-primary">
           {{ parent.savingSettings() ? 'Saving...' : 'Save Settings' }}
         </button>
       </div>
@@ -426,7 +426,7 @@
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-8 h-8 text-red-500 mx-auto">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
     </svg>
-    <h4 class="text-[13px] font-bold text-red-400 uppercase tracking-wider">Connection Observability Error</h4>
+    <h4 class="text-[13px] font-bold text-red-400">Connection Observability Error</h4>
     <p class="text-[13px] text-zinc-400">{{ error() }}</p>
   </div>
 }

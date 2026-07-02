@@ -5,21 +5,21 @@
     <a
       routerLink="/admin/users"
       routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-50"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold text-zinc-400 hover:text-zinc-50"
     >
       Users
     </a>
     <a
       routerLink="/admin/workspaces"
       routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-50"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold text-zinc-400 hover:text-zinc-50"
     >
       Workspaces
     </a>
     <a
       routerLink="/admin/logs"
       routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-50"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold text-zinc-400 hover:text-zinc-50"
     >
       Logs
     </a>
@@ -28,10 +28,10 @@
   <!-- Header -->
   <div class="flex items-center justify-between border-b border-zinc-900 pb-4">
     <div>
-      <h1 class="text-sm font-bold text-zinc-300 uppercase tracking-wider font-mono">Workspaces Management</h1>
+      <h1 class="text-sm font-bold text-zinc-300 font-mono">Workspaces Management</h1>
       <p class="text-[13px] text-zinc-550 mt-0.5">Telemetry and management for all of the platform's workspaces.</p>
     </div>
-    <span class="text-xs font-mono text-zinc-600 uppercase tracking-wider">{{ workspaces().length }} workspaces</span>
+    <span class="text-xs font-mono text-zinc-600">{{ workspaces().length }} workspaces</span>
   </div>
 
   <!-- Loading -->
@@ -85,19 +85,19 @@
           <div class="grid grid-cols-4 divide-x divide-zinc-900 border-b border-zinc-900">
             <div class="px-3 py-3 text-center">
               <div class="text-sm font-bold text-zinc-50 font-mono">{{ ws.memberCount }}</div>
-              <div class="text-[11px] text-zinc-600 uppercase tracking-wider mt-0.5">Members</div>
+              <div class="text-[11px] text-zinc-600 mt-0.5">Members</div>
             </div>
             <div class="px-3 py-3 text-center">
               <div class="text-sm font-bold text-zinc-50 font-mono">{{ ws.activeAppCount }}/{{ ws.appCount }}</div>
-              <div class="text-[11px] text-zinc-600 uppercase tracking-wider mt-0.5">Active apps</div>
+              <div class="text-[11px] text-zinc-600 mt-0.5">Active apps</div>
             </div>
             <div class="px-3 py-3 text-center">
               <div class="text-sm font-bold text-zinc-50 font-mono">{{ ws.databaseCount }}</div>
-              <div class="text-[11px] text-zinc-600 uppercase tracking-wider mt-0.5">Databases</div>
+              <div class="text-[11px] text-zinc-600 mt-0.5">Databases</div>
             </div>
             <div class="px-3 py-3 text-center">
               <div class="text-sm font-bold text-zinc-50 font-mono">{{ ws.creator || '—' }}</div>
-              <div class="text-[11px] text-zinc-600 uppercase tracking-wider mt-0.5">Creator</div>
+              <div class="text-[11px] text-zinc-600 mt-0.5">Creator</div>
             </div>
           </div>
 
@@ -105,7 +105,7 @@
           <div class="px-5 py-4 space-y-3 flex-1">
             <div class="space-y-1">
               <div class="flex items-center justify-between text-xs font-mono">
-                <span class="text-zinc-500 uppercase tracking-wider">RAM allocated</span>
+                <span class="text-zinc-500">RAM allocated</span>
                 <span class="text-zinc-400">{{ ws.allocatedMemoryMb | number }} / {{ ws.maxMemoryMb | number }} MB</span>
               </div>
               <div class="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">
@@ -114,7 +114,7 @@
             </div>
             <div class="space-y-1">
               <div class="flex items-center justify-between text-xs font-mono">
-                <span class="text-zinc-500 uppercase tracking-wider">Storage allocated</span>
+                <span class="text-zinc-500">Storage allocated</span>
                 <span class="text-zinc-400">{{ ws.allocatedStorageGb | number }} / {{ ws.maxStorageGb | number }} GB</span>
               </div>
               <div class="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/40">

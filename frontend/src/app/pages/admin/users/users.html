@@ -5,21 +5,21 @@
     <a
       routerLink="/admin/users"
       routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-50"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold text-zinc-400 hover:text-zinc-50"
     >
       Users
     </a>
     <a
       routerLink="/admin/workspaces"
       routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-50"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold text-zinc-400 hover:text-zinc-50"
     >
       Workspaces
     </a>
     <a
       routerLink="/admin/logs"
       routerLinkActive="bg-zinc-50 text-zinc-950 font-extrabold!"
-      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-50"
+      class="px-3 py-1.5 rounded transition-all cursor-pointer font-bold text-zinc-400 hover:text-zinc-50"
     >
       Logs
     </a>
@@ -66,7 +66,7 @@
 
     <div class="flex justify-end">
       <button (click)="onChangePassword()" [disabled]="changingPassword()"
-        class="px-4 py-2 rounded btn-primary text-[13px] font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2">
+        class="btn btn-primary">
         @if (changingPassword()) {
           <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -148,7 +148,7 @@
           <button 
             (click)="onProvisionUser()"
             [disabled]="provisioningUser() || !newUserEmail().trim() || !newUserName().trim()"
-            class="px-4 py-2 rounded btn-primary text-[13px] font-semibold shadow transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 font-sans"
+            class="btn btn-primary"
           >
             @if (provisioningUser()) {
               <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -181,7 +181,7 @@
       <!-- Result Card (Password Reveal) -->
       @if (provisionedPassword()) {
         <div class="bg-zinc-950 border border-zinc-800/80 p-5 rounded-lg space-y-3 shadow-xl">
-          <div class="flex items-center gap-2 text-zinc-50 font-bold uppercase tracking-wider text-xs">
+          <div class="flex items-center gap-2 text-zinc-50 font-bold text-xs">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-emerald-450">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -196,7 +196,7 @@
             <span class="text-zinc-50 font-bold tracking-wide select-all text-[13px]">{{ provisionedPassword() }}</span>
             <button 
               (click)="copyToClipboard(provisionedPassword()!)" 
-              class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-850 text-zinc-300 text-xs cursor-pointer transition-colors border border-zinc-800 font-sans"
+              class="btn btn-secondary btn-sm"
             >
               Copy
             </button>
@@ -230,7 +230,7 @@
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
         </svg>
-        <span class="text-xs text-zinc-550 uppercase tracking-wider">Loading user list...</span>
+        <span class="text-xs text-zinc-550">Loading user list...</span>
       </div>
     } @else {
       <div class="overflow-x-auto w-full">
