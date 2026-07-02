@@ -13,7 +13,7 @@ import { Component, input } from '@angular/core';
 @Component({
   selector: 'app-empty-state',
   template: `
-    <div class="card py-14 px-8 flex flex-col items-center justify-center text-center max-w-md mx-auto">
+    <div class="card py-14 px-8 flex flex-col items-center justify-center text-center w-full">
       <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4">
         <ng-content select="[icon]" />
       </div>
