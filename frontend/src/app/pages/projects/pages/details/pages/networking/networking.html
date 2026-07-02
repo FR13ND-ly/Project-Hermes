@@ -262,27 +262,27 @@
 
       <!-- Tabs selector -->
       <div class="flex border-b border-zinc-900 pb-px gap-5 select-none font-sans">
-        <button 
+        <a 
           (click)="activeTab.set('details')"
-          class="tab"
+          class="tab cursor-pointer"
           [class.is-active]="activeTab() === 'details'"
         >
           Details &amp; Diagnostics
-        </button>
-        <button 
+        </a>
+        <a 
           (click)="activeTab.set('logs')"
-          class="tab"
+          class="tab cursor-pointer"
           [class.is-active]="activeTab() === 'logs'"
         >
           Live Traffic Logs
-        </button>
-        <button 
+        </a>
+        <a 
           (click)="activeTab.set('settings')"
-          class="tab"
+          class="tab cursor-pointer"
           [class.is-active]="activeTab() === 'settings'"
         >
           Settings &amp; Nginx Config
-        </button>
+        </a>
       </div>
     </div>
 

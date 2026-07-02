@@ -315,34 +315,34 @@
 
       <!-- Tab Menu -->
       <div class="flex border-b border-zinc-900 pb-px gap-5 select-none">
-        <button 
+        <a 
           (click)="activeTab.set('files')"
-          class="tab"
+          class="tab cursor-pointer"
           [class.is-active]="activeTab() === 'files'"
         >
           Stored Files
-        </button>
-        <button 
+        </a>
+        <a 
           (click)="activeTab.set('logs')"
-          class="tab"
+          class="tab cursor-pointer"
           [class.is-active]="activeTab() === 'logs'"
         >
           Log-uri Activitate
-        </button>
-        <button 
+        </a>
+        <a 
           (click)="activeTab.set('settings')"
-          class="tab"
+          class="tab cursor-pointer"
           [class.is-active]="activeTab() === 'settings'"
         >
           Bucket Settings
-        </button>
-        <button 
+        </a>
+        <a 
           (click)="activeTab.set('api')"
-          class="tab"
+          class="tab cursor-pointer"
           [class.is-active]="activeTab() === 'api'"
         >
           Integrare API
-        </button>
+        </a>
       </div>
     </div>
 
