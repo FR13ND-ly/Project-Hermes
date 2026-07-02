@@ -342,6 +342,13 @@ html[data-theme="retro"] { --accent: #ffb000; --accent-hover: #e0a020; --accent-
    reads as a separate rail instead of blending into the page canvas. */
 .sidebar { background: var(--surface-sidebar); }
 
+/* Sticky top header — frosted so content scrolls under it cleanly. */
+.topbar {
+  background: color-mix(in oklab, var(--surface-page) 72%, transparent);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+}
+
 /* Sidebar nav item (left navigation shell). */
 .nav-item {
   display: flex; align-items: center; gap: 0.625rem;
