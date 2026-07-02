@@ -1,59 +1,54 @@
 @if (parent.selectedCronJob(); as job) {
 <div class="space-y-6 animate-fade-in font-sans">
-  <!-- Return link -->
-  <div class="flex items-center gap-2">
-    <a 
-      [routerLink]="['../']" 
-      class="flex items-center gap-1 text-[13px] text-zinc-400 hover:text-zinc-50 cursor-pointer transition-colors font-sans"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-      </svg>
-      Back to cron jobs list
-    </a>
-  </div>
-
-  <!-- Header -->
-  <div class="p-5 rounded-lg border border-zinc-900 bg-zinc-900 flex flex-col md:flex-row md:items-center md:justify-between gap-4 font-sans shadow-sm">
-    <div class="space-y-1">
-      <div class="flex items-center gap-2.5 flex-wrap">
-        <h2 class="text-base font-bold text-zinc-50 tracking-tight select-all font-mono">{{ job.name }}</h2>
-        <span 
-          class="px-2 py-0.5 rounded text-[11px] font-bold uppercase border"
-          [class]="job.status.toLowerCase() === 'active' ? 'bg-emerald-950/20 text-emerald-400 border-emerald-900/40' : (job.status.toLowerCase() === 'paused' ? 'bg-amber-955/20 text-amber-400 border-amber-900/40' : 'bg-red-955/20 text-red-400 border-red-900/40')"
-        >
-          {{ job.status.toLowerCase() === 'active' ? 'Active' : (job.status.toLowerCase() === 'paused' ? 'Paused' : 'Failed') }}
-        </span>
+  <!-- Header Summary (inline style matching storage) -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-5">
+    <div class="flex items-center gap-3">
+      <a 
+        [routerLink]="['../']"
+        class="btn btn-secondary btn-sm shrink-0 px-2"
+        title="Back to cron jobs list"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+      </a>
+      <div>
+        <div class="flex items-center gap-2.5">
+          <h2 class="text-lg font-semibold tracking-tight text-zinc-50 select-all">{{ job.name }}</h2>
+          <span 
+            class="px-1.5 py-0.5 rounded text-[11px] font-bold uppercase border font-mono tracking-wider"
+            [class]="job.status.toLowerCase() === 'active' ? 'bg-emerald-950/20 text-emerald-400 border-emerald-900/40' : (job.status.toLowerCase() === 'paused' ? 'bg-amber-955/20 text-amber-400 border-amber-900/40' : 'bg-red-955/20 text-red-400 border-red-900/40')"
+          >
+            {{ job.status.toLowerCase() === 'active' ? 'Active' : (job.status.toLowerCase() === 'paused' ? 'Paused' : 'Failed') }}
+          </span>
+        </div>
+        <p class="text-[13px] text-zinc-500 font-mono mt-0.5">
+          Schedule: {{ job.schedule }} &bull; App: {{ parent.getAppName(job.appId || job.app_id) }}
+        </p>
       </div>
-      <p class="text-[13px] text-zinc-400 font-mono">
-        Schedule: {{ job.schedule }} &bull; App: {{ parent.getAppName(job.appId || job.app_id) }}
-      </p>
     </div>
   </div>
 
-  <!-- Tabs selector -->
-  <div class="flex border-b border-zinc-900 gap-6 font-sans">
+  <!-- Tab navigation menu -->
+  <div class="flex border-b border-zinc-900 mb-5 gap-5 select-none">
     <a 
       routerLink="details"
-      routerLinkActive
-      #rlaDetails="routerLinkActive"
-      [class]="rlaDetails.isActive ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 text-[13px] font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-[13px] font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
+      routerLinkActive="is-active"
+      class="tab"
     >
-      Details & Diagnostics
+      Details &amp; Diagnostics
     </a>
     <a
       routerLink="logs"
-      routerLinkActive
-      #rlaLogs="routerLinkActive"
-      [class]="rlaLogs.isActive ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 text-[13px] font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-[13px] font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
+      routerLinkActive="is-active"
+      class="tab"
     >
       Execution History
     </a>
     <a
       routerLink="settings"
-      routerLinkActive
-      #rlaSettings="routerLinkActive"
-      [class]="rlaSettings.isActive ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 text-[13px] font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-[13px] font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
+      routerLinkActive="is-active"
+      class="tab"
     >
       Cron Settings
     </a>

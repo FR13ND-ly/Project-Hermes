@@ -1,48 +1,47 @@
 <div class="space-y-6 animate-fade-in">
   
-  <!-- Back navigation & App Header Summary -->
-  <div class="flex flex-col gap-4 border-b border-zinc-900 pb-5">
-    <div>
-      <a 
-        [routerLink]="['/projects', parent.projectId(), 'apps']"
-        class="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-550 hover:text-zinc-50 uppercase tracking-wider transition-colors cursor-pointer group"
-      >
-        <span class="transform group-hover:-translate-x-0.5 transition-transform">←</span> Back to Applications
-      </a>
+  @if (loading() && !app()) {
+    <div class="flex items-center gap-2 py-4">
+      <svg class="animate-spin h-4 w-4 text-zinc-50" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+      </svg>
+      <span class="text-[13px] text-zinc-500 font-mono">Loading service details...</span>
     </div>
+  }
 
-    @if (loading() && !app()) {
-      <div class="flex items-center gap-2 py-4">
-        <svg class="animate-spin h-4 w-4 text-zinc-50" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-        </svg>
-        <span class="text-[13px] text-zinc-550 font-mono">Loading service details...</span>
-      </div>
-    }
-
-    @if (app()) {
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div class="space-y-1.5">
+  @if (app()) {
+    <!-- App Header Summary (inline style matching storage) -->
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-zinc-900 pb-5">
+      <div class="flex items-center gap-3 min-w-0">
+        <a 
+          [routerLink]="['/projects', parent.projectId(), 'apps']"
+          class="btn btn-secondary btn-sm shrink-0 px-2"
+          title="Back to Applications"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+        </a>
+        <div class="min-w-0">
           <div class="flex items-center gap-2.5 flex-wrap">
-            <h2 class="text-base font-extrabold text-zinc-50 tracking-tight">{{ app()?.name }}</h2>
-            
+            <h2 class="text-lg font-semibold tracking-tight text-zinc-50 truncate">{{ app()?.name }}</h2>
             <span 
-              class="px-2 py-0.5 rounded text-[11px] font-bold border font-mono tracking-wider"
+              class="px-1.5 py-0.2 rounded text-[11px] font-bold border font-mono tracking-wider shrink-0"
               [class]="parent.getAppStatusClass(app())"
             >
               {{ parent.getAppStatus(app()) }}
             </span>
           </div>
 
-          <div class="flex items-center gap-4 text-xs text-zinc-555 font-mono">
+          <div class="flex items-center gap-x-4 gap-y-1 text-xs text-zinc-500 font-mono mt-0.5 flex-wrap">
             <div>
-              <span class="text-zinc-600">Repository:</span>
-              <span class="text-zinc-300 ml-1 select-all">{{ app()?.git_repo_url }}</span>
+              <span class="text-zinc-600">Repo:</span>
+              <span class="text-zinc-400 ml-1 select-all">{{ app()?.git_repo_url }}</span>
             </div>
             @if (getSelectedInstance()?.metaData?.github_webhook; as wh) {
               <div>
-                <span class="text-zinc-650">Webhook:</span>
+                <span class="text-zinc-600">Webhook:</span>
                 @if (wh.status === 'success') {
                   <span class="text-emerald-400 ml-1 font-bold" title="GitHub Webhook is successfully registered. App will auto-deploy on push.">✓ Active</span>
                 } @else if (wh.status === 'failed') {
@@ -52,22 +51,22 @@
             }
             <div>
               <span class="text-zinc-600">Created:</span>
-              <span class="text-zinc-300 ml-1">{{ app()?.created_at | date:'dd.MM.yyyy HH:mm' }}</span>
+              <span class="text-zinc-400 ml-1">{{ app()?.created_at | date:'dd.MM.yyyy HH:mm' }}</span>
             </div>
             @if (app()?.namespace) {
               <div>
-                <span class="text-zinc-600">Namespace:</span>
-                <span class="text-zinc-300 ml-1 select-all font-mono">{{ app()?.namespace }}</span>
+                <span class="text-zinc-600">NS:</span>
+                <span class="text-zinc-400 ml-1 select-all">{{ app()?.namespace }}</span>
               </div>
             }
             @if (getSelectedInstance(); as inst) {
               <div>
-                <span class="text-zinc-600">Internal address:</span>
-                <span class="text-zinc-300 ml-1 select-all font-mono" title="The address at which other applications in the project reach this one">http://{{ inst.networkAlias || stripHash(inst.containerName) }}:{{ inst.internalPort }}</span>
+                <span class="text-zinc-600">Internal:</span>
+                <span class="text-zinc-400 ml-1 select-all" title="The address at which other applications in the project reach this one">http://{{ inst.networkAlias || stripHash(inst.containerName) }}:{{ inst.internalPort }}</span>
               </div>
               @if (inst.assignedDomain) {
                 <div>
-                  <span class="text-zinc-600">Public link:</span>
+                  <span class="text-zinc-600">Public:</span>
                   <a
                     [href]="'https://' + inst.assignedDomain"
                     target="_blank"
@@ -78,111 +77,111 @@
             }
           </div>
         </div>
+      </div>
 
-        <div class="flex items-center gap-3">
-          @if ((app()?.instances || []).length > 0) {
+      <div class="flex items-center gap-3 shrink-0">
+        @if ((app()?.instances || []).length > 0) {
 
-            <!-- Reload Button: re-apply current image with fresh env (no rebuild) -->
-            <button
-              (click)="onReloadInstance()"
-              [disabled]="reloadingInstance() || redeployingInstance() || getSelectedInstance()?.status === 'building'"
-              class="btn btn-secondary btn-sm"
-              title="Re-applies the current image with updated env (no rebuild)"
-            >
-              @if (reloadingInstance()) {
-                <svg class="animate-spin h-3.5 w-3.5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                </svg>
-                Reload...
-              } @else {
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-400">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                </svg>
-                Reload
-              }
-            </button>
-
-            <!-- Redeploy Button: full rebuild from Git -->
-            <button
-              (click)="onRedeployInstance()"
-              [disabled]="redeployingInstance() || reloadingInstance() || getSelectedInstance()?.status === 'building'"
-              class="btn btn-secondary btn-sm"
-              title="Full rebuild: clone from Git, rebuild image and redeploy"
-            >
-              @if (redeployingInstance()) {
-                <svg class="animate-spin h-3.5 w-3.5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                </svg>
-                Rebuild...
-              } @else {
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-400">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
-                </svg>
-                Redeploy
-              }
-            </button>
-
-            <!-- Stop / Start Button -->
-            @if (getSelectedInstance()?.status === 'running') {
-              <button 
-                (click)="onStopInstance()"
-                [disabled]="stoppingInstance()"
-                class="btn btn-sm bg-red-950/20 border-red-900/30 hover:border-red-900/50 hover:bg-red-950/35 text-red-400"
-              >
-                @if (stoppingInstance()) {
-                  <svg class="animate-spin h-3.5 w-3.5 text-red-455" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                  </svg>
-                  Stopping...
-                } @else {
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-red-500">
-                    <rect x="6" y="6" width="12" height="12" rx="1.5" />
-                  </svg>
-                  Stop
-                }
-              </button>
-            } @else if (getSelectedInstance()?.status === 'stopped' || getSelectedInstance()?.status === 'crashed' || getSelectedInstance()?.status === 'failed') {
-              <button
-                (click)="onStartInstance()"
-                [disabled]="startingInstance()"
-                class="btn btn-sm bg-emerald-950/20 border-emerald-900/30 hover:border-emerald-900/50 hover:bg-emerald-950/35 text-emerald-450"
-              >
-                @if (startingInstance()) {
-                  <svg class="animate-spin h-3.5 w-3.5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                  </svg>
-                  Starting...
-                } @else {
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-emerald-500">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
-                  </svg>
-                  Start
-                }
-              </button>
+          <!-- Reload Button: re-apply current image with fresh env (no rebuild) -->
+          <button
+            (click)="onReloadInstance()"
+            [disabled]="reloadingInstance() || redeployingInstance() || getSelectedInstance()?.status === 'building'"
+            class="btn btn-secondary btn-sm"
+            title="Re-applies the current image with updated env (no rebuild)"
+          >
+            @if (reloadingInstance()) {
+              <svg class="animate-spin h-3.5 w-3.5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              Reload...
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-400">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+              Reload
             }
+          </button>
 
+          <!-- Redeploy Button: full rebuild from Git -->
+          <button
+            (click)="onRedeployInstance()"
+            [disabled]="redeployingInstance() || reloadingInstance() || getSelectedInstance()?.status === 'building'"
+            class="btn btn-secondary btn-sm"
+            title="Full rebuild: clone from Git, rebuild image and redeploy"
+          >
+            @if (redeployingInstance()) {
+              <svg class="animate-spin h-3.5 w-3.5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              Rebuild...
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-400">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
+              </svg>
+              Redeploy
+            }
+          </button>
+
+          <!-- Stop / Start Button -->
+          @if (getSelectedInstance()?.status === 'running') {
+            <button 
+              (click)="onStopInstance()"
+              [disabled]="stoppingInstance()"
+              class="btn btn-sm bg-red-950/20 border-red-900/30 hover:border-red-900/50 hover:bg-red-950/35 text-red-400"
+            >
+              @if (stoppingInstance()) {
+                <svg class="animate-spin h-3.5 w-3.5 text-red-455" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Stopping...
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-red-500">
+                  <rect x="6" y="6" width="12" height="12" rx="1.5" />
+                </svg>
+                Stop
+              }
+            </button>
+          } @else if (getSelectedInstance()?.status === 'stopped' || getSelectedInstance()?.status === 'crashed' || getSelectedInstance()?.status === 'failed') {
+            <button
+              (click)="onStartInstance()"
+              [disabled]="startingInstance()"
+              class="btn btn-sm bg-emerald-950/20 border-emerald-900/30 hover:border-emerald-900/50 hover:bg-emerald-950/35 text-emerald-450"
+            >
+              @if (startingInstance()) {
+                <svg class="animate-spin h-3.5 w-3.5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Starting...
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-emerald-500">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+                </svg>
+                Start
+              }
+            </button>
           }
 
-          <!-- Two-tier tab nav: top-level purpose groups (sub-tabs render below the header) -->
-          <div class="flex items-center gap-5">
-            @for (g of tabGroups; track g.id) {
-              <a
-                [routerLink]="activeGroup().id === g.id ? currentTabPath() : g.default"
-                class="tab"
-                [class.is-active]="activeGroup().id === g.id"
-              >
-                {{ g.label }}
-              </a>
-            }
-          </div>
-        </div>
+        }
       </div>
-    }
-  </div>
+    </div>
+
+    <!-- Tab navigation menu -->
+    <div class="flex border-b border-zinc-900 mb-5 gap-5 select-none">
+      @for (g of tabGroups; track g.id) {
+        <a
+          [routerLink]="activeGroup().id === g.id ? currentTabPath() : g.default"
+          class="tab"
+          [class.is-active]="activeGroup().id === g.id"
+        >
+          {{ g.label }}
+        </a>
+      }
+    </div>
+  }
 
   @if (error()) {
     <div class="p-4 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-[13px] flex items-center gap-2 max-w-md mx-auto">

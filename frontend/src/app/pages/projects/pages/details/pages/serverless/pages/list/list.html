@@ -1,10 +1,10 @@
 <div class="space-y-6 animate-fade-in">
-  <div class="flex items-center justify-between">
-    <div>
+  <div class="flex items-center justify-between gap-4">
+    <div class="space-y-0.5">
       <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Serverless instances</h2>
-      <p class="text-xs text-zinc-550 mt-0.5 font-sans">One instance = one container hosting multiple routes (method + path + code). The domain attaches at the instance level.</p>
+      <p class="text-[13px] text-zinc-500">One instance = one container hosting multiple routes (method + path + code). The domain attaches at the instance level.</p>
     </div>
-    <button routerLink="create" class="btn btn-primary btn-sm">+ Create Instance</button>
+    <button routerLink="create" class="btn btn-primary btn-sm shrink-0">+ Create Instance</button>
   </div>
 
   @if (loading()) {

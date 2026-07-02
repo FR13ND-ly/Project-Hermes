@@ -1,1 +1,3 @@
-/* Admin Users Styles */
+:host {
+  display: block;
+}
