@@ -33,194 +33,28 @@
   </div>
 
   <!-- Section Header -->
-  <div class="flex items-center justify-between gap-4">
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
       <h2 class="text-lg font-semibold tracking-tight text-zinc-50">User Management</h2>
-      <p class="text-[13px] text-zinc-500">Register new accounts and manage existing users on the Hermes platform.</p>
+      <p class="text-[13px] text-zinc-500 font-sans mt-0.5">Manage existing users or register new accounts on the Hermes platform.</p>
     </div>
-  </div>
-
-  <!-- Change My Password (self-service for the logged-in admin / root) -->
-  <div class="card p-6 space-y-5">
-    <div class="border-b border-zinc-900 pb-2.5">
-      <h4 class="text-sm font-semibold text-zinc-100">Your Account · Change Password</h4>
-      <p class="text-[13px] text-zinc-550 mt-0.5">Update the password for <span class="text-zinc-300">{{ auth.currentUser()?.username }}</span> (requires your current password).</p>
-    </div>
-
-    @if (passwordError()) {
-      <div class="p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-[13px]">{{ passwordError() }}</div>
-    }
-
-    <div class="grid gap-4 sm:grid-cols-3">
-      <div class="space-y-1.5">
-        <label for="cur-pwd" class="text-xs font-semibold text-zinc-400">Current Password</label>
-        <input id="cur-pwd" type="password" autocomplete="current-password" placeholder="••••••••"
-          [ngModel]="currentPassword()" (ngModelChange)="currentPassword.set($event)" [disabled]="changingPassword()"
-          class="block w-full px-3 py-2 text-[13px] input font-mono" />
-      </div>
-      <div class="space-y-1.5">
-        <label for="new-pwd" class="text-xs font-semibold text-zinc-400">New Password</label>
-        <input id="new-pwd" type="password" autocomplete="new-password" placeholder="min. 8 characters"
-          [ngModel]="newPassword()" (ngModelChange)="newPassword.set($event)" [disabled]="changingPassword()"
-          class="block w-full px-3 py-2 text-[13px] input font-mono" />
-      </div>
-      <div class="space-y-1.5">
-        <label for="conf-pwd" class="text-xs font-semibold text-zinc-400">Confirm New Password</label>
-        <input id="conf-pwd" type="password" autocomplete="new-password" placeholder="repeat new password"
-          [ngModel]="confirmPassword()" (ngModelChange)="confirmPassword.set($event)" [disabled]="changingPassword()"
-          (keyup.enter)="onChangePassword()"
-          class="block w-full px-3 py-2 text-[13px] input font-mono" />
-      </div>
-    </div>
-
-    <div class="flex justify-end">
-      <button (click)="onChangePassword()" [disabled]="changingPassword()"
-        class="btn btn-primary">
-        @if (changingPassword()) {
-          <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-          </svg>
-          <span>Updating...</span>
-        } @else {
-          <span>Change Password</span>
-        }
+    <div class="flex items-center gap-2 shrink-0">
+      <button (click)="onOpenChangePasswordModal()" class="btn btn-secondary btn-sm font-sans">
+        Change Password
+      </button>
+      <button (click)="onOpenRegisterModal()" class="btn btn-primary btn-sm font-sans">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 mr-1 inline">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        Register User
       </button>
     </div>
   </div>
 
-  <!-- Top Section: Form and Info -->
-  <div class="grid gap-6 lg:grid-cols-12 font-mono">
-    
-    <!-- Provisioning Form (Left/6 cols) -->
-    <div class="lg:col-span-7">
-      <div class="card p-6 space-y-5">
-        
-        <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
-          <h4 class="text-sm font-semibold text-zinc-100">Register New User</h4>
-        </div>
-
-        @if (provisioningError()) {
-          <div class="p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-[13px]">
-            {{ provisioningError() }}
-          </div>
-        }
-
-        <!-- Form Fields -->
-        <div class="space-y-4">
-          <div class="grid gap-4 sm:grid-cols-2">
-            <!-- Email -->
-            <div class="space-y-1.5">
-              <label for="new-user-email" class="text-xs font-semibold text-zinc-400">Email Address</label>
-              <input
-                id="new-user-email"
-                type="email"
-                placeholder="user@company.com"
-                [ngModel]="newUserEmail()"
-                (ngModelChange)="newUserEmail.set($event)"
-                [disabled]="provisioningUser()"
-                class="block w-full px-3 py-2 text-[13px] input font-mono"
-              />
-            </div>
-
-            <!-- Username -->
-            <div class="space-y-1.5">
-              <label for="new-user-name" class="text-xs font-semibold text-zinc-400">Username</label>
-              <input 
-                id="new-user-name"
-                type="text" 
-                placeholder="e.g. john.doe"
-                [ngModel]="newUserName()"
-                (ngModelChange)="newUserName.set($event)"
-                [disabled]="provisioningUser()"
-                class="block w-full px-3 py-2 text-[13px] input font-mono"
-              />
-            </div>
-          </div>
-
-          <!-- Is Super Admin Checkbox -->
-          <div class="flex items-center gap-2 py-1 select-none">
-            <input 
-              id="new-user-admin"
-              type="checkbox" 
-              [ngModel]="newUserIsAdmin()"
-              (ngModelChange)="newUserIsAdmin.set($event)"
-              [disabled]="provisioningUser()"
-              class="w-3.5 h-3.5 bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:ring-0 cursor-pointer accent-zinc-50"
-            />
-            <label for="new-user-admin" class="text-xs font-semibold text-zinc-400 cursor-pointer">Super Administrator Rights</label>
-          </div>
-        </div>
-
-        <!-- Submit Button -->
-        <div class="pt-4 border-t border-zinc-900 flex justify-end">
-          <button 
-            (click)="onProvisionUser()"
-            [disabled]="provisioningUser() || !newUserEmail().trim() || !newUserName().trim()"
-            class="btn btn-primary"
-          >
-            @if (provisioningUser()) {
-              <svg class="animate-spin h-3.5 w-3.5 text-zinc-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-              </svg>
-              <span>Registering...</span>
-            } @else {
-              <span>Provision User</span>
-            }
-          </button>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Info & Temporary Password Reveal (Right/5 cols) -->
-    <div class="lg:col-span-5 space-y-4">
-      <div class="card p-5 space-y-3">
-        <h4 class="text-xs font-semibold text-zinc-300">Account Activation Flow</h4>
-        <p class="text-[13px] text-zinc-500 font-sans leading-relaxed">
-          The system creates the account with a pending activation status and generates a temporary password.
-          It also automatically provisions a default <strong>Personal Workspace</strong> and a Kubernetes namespace.
-        </p>
-        <p class="text-[13px] text-zinc-500 font-sans leading-relaxed">
-          The new user can log in directly with the temporary password. On first login, the platform will require them to set a new permanent password.
-        </p>
-      </div>
-
-      <!-- Result Card (Password Reveal) -->
-      @if (provisionedPassword()) {
-        <div class="card p-5 space-y-3 shadow-xl">
-          <div class="flex items-center gap-2 text-zinc-50 font-bold text-xs">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-emerald-450">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>Registration Successful</span>
-          </div>
-          
-          <p class="text-xs text-zinc-500 font-sans leading-relaxed">
-            Send the user this temporary password:
-          </p>
-
-          <div class="flex items-center justify-between bg-zinc-950 border border-zinc-900 p-2.5 rounded font-mono">
-            <span class="text-zinc-50 font-bold tracking-wide select-all text-[13px]">{{ provisionedPassword() }}</span>
-            <button 
-              (click)="copyToClipboard(provisionedPassword()!)" 
-              class="btn btn-secondary btn-sm"
-            >
-              Copy
-            </button>
-          </div>
-        </div>
-      }
-    </div>
-
-  </div>
-
-  <!-- Bottom Section: Users List -->
-  <div class="card overflow-hidden shadow-lg mt-6">
-    
+  <!-- Registered Users List (Top priority) -->
+  <div class="card overflow-hidden shadow-lg mt-1">
     <div class="p-4 bg-zinc-950/10 border-b border-zinc-900 flex items-center justify-between">
-      <h4 class="text-sm font-semibold text-zinc-100">Registered Users ({{ users().length }})</h4>
+      <h4 class="text-sm font-semibold text-zinc-100 font-sans">Registered Users ({{ users().length }})</h4>
       <button
         (click)="loadUsers()"
         [disabled]="loadingUsers()"
@@ -239,13 +73,13 @@
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
         </svg>
-        <span class="text-xs text-zinc-550">Loading user list...</span>
+        <span class="text-xs text-zinc-550 font-sans">Loading user list...</span>
       </div>
     } @else {
       <div class="overflow-x-auto w-full">
         <table class="w-full text-left border-collapse text-[13px]">
           <thead>
-            <tr class="bg-zinc-950/80 border-b border-zinc-900 text-xs text-zinc-500 uppercase tracking-wider">
+            <tr class="bg-zinc-950/80 border-b border-zinc-900 text-xs text-zinc-500 uppercase tracking-wider font-sans">
               <th class="p-3 font-bold">Username</th>
               <th class="p-3 font-bold">E-mail</th>
               <th class="p-3 font-bold">Platform Role</th>
@@ -263,19 +97,19 @@
                     <span class="w-1.5 h-1.5 rounded-full" [class]="user.is_super_admin ? 'bg-purple-500 shadow-sm shadow-purple-500/50' : 'bg-zinc-650'"></span>
                     <span class="font-bold text-zinc-300">{{ user.username }}</span>
                     @if (user.id === auth.currentUser()?.id) {
-                      <span class="text-[11px] px-1 py-0.2 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 font-sans shrink-0">You</span>
+                      <span class="text-[11px] px-1 py-0.2 rounded bg-zinc-900 border border-zinc-850 text-zinc-500 font-sans shrink-0">You</span>
                     }
                   </div>
                 </td>
                 <td class="p-3 text-zinc-400 select-all truncate max-w-[200px]" [title]="user.email">{{ user.email }}</td>
                 <td class="p-3">
-                  <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider"
+                  <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider font-sans"
                     [class]="user.is_super_admin ? 'bg-purple-950/40 border border-purple-500/20 text-purple-400' : 'bg-zinc-900 border border-zinc-850 text-zinc-450'">
                     {{ user.is_super_admin ? 'Super Admin' : 'User' }}
                   </span>
                 </td>
                 <td class="p-3">
-                  <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider"
+                  <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider font-sans"
                     [class]="user.status.toLowerCase() === 'active' ? 'bg-emerald-950/40 border border-emerald-500/20 text-emerald-450' : (user.status.toLowerCase() === 'pending_verification' || user.status.toLowerCase() === 'pendingverification') ? 'bg-amber-950/40 border border-amber-500/20 text-amber-450' : 'bg-red-950/40 border border-red-500/20 text-red-450'">
                     {{ user.status.toLowerCase() === 'active' ? 'Active' : (user.status.toLowerCase() === 'pending_verification' || user.status.toLowerCase() === 'pendingverification') ? 'Pending' : 'Suspended' }}
                   </span>
@@ -338,5 +172,197 @@
       </div>
     }
   </div>
+
+  <!-- MODALS -->
+
+  <!-- Register User Modal -->
+  @if (showRegisterModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm animate-fade-in">
+      <div class="card p-6 space-y-5 max-w-lg w-full relative">
+        <!-- Close button -->
+        <button (click)="showRegisterModal.set(false)" class="absolute top-4 right-4 text-zinc-500 hover:text-zinc-200 cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        
+        <div class="border-b border-zinc-900 pb-2.5">
+          <h4 class="text-sm font-semibold text-zinc-100 font-sans">Register New User</h4>
+          <p class="text-xs text-zinc-500 mt-0.5 font-sans">Create a pending platform account with default Personal Workspace.</p>
+        </div>
+
+        @if (provisioningError()) {
+          <div class="p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-[13px]">
+            {{ provisioningError() }}
+          </div>
+        }
+
+        <!-- Form Fields -->
+        <div class="space-y-4">
+          <div class="grid gap-4 sm:grid-cols-2">
+            <!-- Email -->
+            <div class="space-y-1.5">
+              <label for="new-user-email" class="text-xs font-semibold text-zinc-400 font-sans">Email Address</label>
+              <input
+                id="new-user-email"
+                type="email"
+                placeholder="user@company.com"
+                [ngModel]="newUserEmail()"
+                (ngModelChange)="newUserEmail.set($event)"
+                [disabled]="provisioningUser() || !!provisionedPassword()"
+                class="block w-full px-3 py-2 text-[13px] input font-mono"
+              />
+            </div>
+
+            <!-- Username -->
+            <div class="space-y-1.5">
+              <label for="new-user-name" class="text-xs font-semibold text-zinc-400 font-sans">Username</label>
+              <input 
+                id="new-user-name"
+                type="text" 
+                placeholder="e.g. john.doe"
+                [ngModel]="newUserName()"
+                (ngModelChange)="newUserName.set($event)"
+                [disabled]="provisioningUser() || !!provisionedPassword()"
+                class="block w-full px-3 py-2 text-[13px] input font-mono"
+              />
+            </div>
+          </div>
+
+          <!-- Is Super Admin Checkbox -->
+          <div class="flex items-center gap-2 py-1 select-none">
+            <input 
+              id="new-user-admin"
+              type="checkbox" 
+              [ngModel]="newUserIsAdmin()"
+              (ngModelChange)="newUserIsAdmin.set($event)"
+              [disabled]="provisioningUser() || !!provisionedPassword()"
+              class="w-3.5 h-3.5 bg-zinc-950 border border-zinc-850 rounded text-zinc-50 focus:outline-none focus:ring-0 cursor-pointer accent-zinc-50"
+            />
+            <label for="new-user-admin" class="text-xs font-semibold text-zinc-400 cursor-pointer font-sans">Super Administrator Rights</label>
+          </div>
+        </div>
+
+        <!-- Result Card (Password Reveal) -->
+        @if (provisionedPassword()) {
+          <div class="p-4 rounded border border-emerald-500/20 bg-emerald-950/10 space-y-3 font-sans">
+            <div class="flex items-center gap-2 text-zinc-50 font-bold text-xs">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-emerald-450">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Registration Successful</span>
+            </div>
+            <p class="text-xs text-zinc-550 leading-relaxed">
+              Send the user this temporary password:
+            </p>
+            <div class="flex items-center justify-between bg-zinc-950 border border-zinc-900 p-2.5 rounded font-mono">
+              <span class="text-zinc-50 font-bold tracking-wide select-all text-[13px]">{{ provisionedPassword() }}</span>
+              <button 
+                (click)="copyToClipboard(provisionedPassword()!)" 
+                class="btn btn-secondary btn-sm font-sans"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Submit Button -->
+        <div class="pt-4 border-t border-zinc-900 flex justify-end gap-2 font-sans">
+          @if (provisionedPassword()) {
+            <button (click)="showRegisterModal.set(false)" class="btn btn-primary btn-sm">
+              Done
+            </button>
+          } @else {
+            <button (click)="showRegisterModal.set(false)" class="btn btn-secondary btn-sm">
+              Cancel
+            </button>
+            <button 
+              (click)="onProvisionUser()"
+              [disabled]="provisioningUser() || !newUserEmail().trim() || !newUserName().trim()"
+              class="btn btn-primary btn-sm"
+            >
+              @if (provisioningUser()) {
+                <svg class="animate-spin h-3.5 w-3.5 text-zinc-950 inline mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span>Registering...</span>
+              } @else {
+                <span>Register User</span>
+              }
+            </button>
+          }
+        </div>
+
+      </div>
+    </div>
+  }
+
+  <!-- Change Password Modal -->
+  @if (showChangePasswordModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm animate-fade-in">
+      <div class="card p-6 space-y-5 max-w-lg w-full relative">
+        <!-- Close button -->
+        <button (click)="showChangePasswordModal.set(false)" class="absolute top-4 right-4 text-zinc-500 hover:text-zinc-200 cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        
+        <div class="border-b border-zinc-900 pb-2.5">
+          <h4 class="text-sm font-semibold text-zinc-100 font-sans">Change Password</h4>
+          <p class="text-xs text-zinc-500 mt-0.5 font-sans">Update the password for <span class="text-zinc-300 font-mono">{{ auth.currentUser()?.username }}</span>.</p>
+        </div>
+
+        @if (passwordError()) {
+          <div class="p-3 rounded border border-red-500/20 bg-red-950/20 text-red-400 text-[13px]">
+            {{ passwordError() }}
+          </div>
+        }
+
+        <div class="space-y-4">
+          <div class="space-y-1.5">
+            <label for="cur-pwd" class="text-xs font-semibold text-zinc-400 font-sans">Current Password</label>
+            <input id="cur-pwd" type="password" autocomplete="current-password" placeholder="••••••••"
+              [ngModel]="currentPassword()" (ngModelChange)="currentPassword.set($event)" [disabled]="changingPassword()"
+              class="block w-full px-3 py-2 text-[13px] input font-mono" />
+          </div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="space-y-1.5">
+              <label for="new-pwd" class="text-xs font-semibold text-zinc-400 font-sans">New Password</label>
+              <input id="new-pwd" type="password" autocomplete="new-password" placeholder="min. 8 characters"
+                [ngModel]="newPassword()" (ngModelChange)="newPassword.set($event)" [disabled]="changingPassword()"
+                class="block w-full px-3 py-2 text-[13px] input font-mono" />
+            </div>
+            <div class="space-y-1.5">
+              <label for="conf-pwd" class="text-xs font-semibold text-zinc-400 font-sans">Confirm Password</label>
+              <input id="conf-pwd" type="password" autocomplete="new-password" placeholder="repeat new password"
+                [ngModel]="confirmPassword()" (ngModelChange)="confirmPassword.set($event)" [disabled]="changingPassword()"
+                (keyup.enter)="onChangePassword()"
+                class="block w-full px-3 py-2 text-[13px] input font-mono" />
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-zinc-900 flex justify-end gap-2 font-sans">
+          <button (click)="showChangePasswordModal.set(false)" class="btn btn-secondary btn-sm">
+            Cancel
+            </button>
+          <button (click)="onChangePassword()" [disabled]="changingPassword()" class="btn btn-primary btn-sm">
+            @if (changingPassword()) {
+              <svg class="animate-spin h-3.5 w-3.5 text-zinc-950 inline mr-1" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              <span>Updating...</span>
+            } @else {
+              <span>Update Password</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 
 </div>

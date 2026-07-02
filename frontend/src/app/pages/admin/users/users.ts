@@ -26,6 +26,10 @@ export class AdminUsers implements OnInit {
   readonly provisionedPassword = signal<string | null>(null);
   readonly provisioningError = signal<string | null>(null);
 
+  // Modals
+  readonly showRegisterModal = signal(false);
+  readonly showChangePasswordModal = signal(false);
+
   // User list signals
   readonly users = signal<User[]>([]);
   readonly loadingUsers = signal(false);
@@ -36,6 +40,23 @@ export class AdminUsers implements OnInit {
   readonly confirmPassword = signal('');
   readonly changingPassword = signal(false);
   readonly passwordError = signal<string | null>(null);
+
+  onOpenRegisterModal(): void {
+    this.newUserName.set('');
+    this.newUserEmail.set('');
+    this.newUserIsAdmin.set(false);
+    this.provisionedPassword.set(null);
+    this.provisioningError.set(null);
+    this.showRegisterModal.set(true);
+  }
+
+  onOpenChangePasswordModal(): void {
+    this.currentPassword.set('');
+    this.newPassword.set('');
+    this.confirmPassword.set('');
+    this.passwordError.set(null);
+    this.showChangePasswordModal.set(true);
+  }
 
   constructor() {
     // Security check: only super admins are allowed here
@@ -124,6 +145,7 @@ export class AdminUsers implements OnInit {
         this.currentPassword.set('');
         this.newPassword.set('');
         this.confirmPassword.set('');
+        this.showChangePasswordModal.set(false);
         this.toast.success('Your password has been changed.');
       },
       error: (err) => {
