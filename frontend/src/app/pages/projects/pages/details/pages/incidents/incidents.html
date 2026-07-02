@@ -1,38 +1,16 @@
 <div class="space-y-6 animate-fade-in font-sans">
   
-  <!-- Header Title & Filters -->
-  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-zinc-900 pb-4 gap-4">
-    <div>
-      <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Incidents & alerts</h2>
-      <p class="text-[13px] text-zinc-500 mt-1">
-        Instance health monitoring and incident history detected by the health check system.
-      </p>
-    </div>
-    
-    <!-- Filters tabs -->
-    <div class="flex items-center bg-zinc-950 border border-zinc-900 rounded p-0.5 text-xs font-mono">
-      <button 
-        (click)="filter.set('all')" 
-        [class]="filter() === 'all' ? 'bg-zinc-900 border border-zinc-800 text-zinc-50 font-bold' : 'text-zinc-500 hover:text-zinc-300'"
-        class="px-3 py-1 rounded transition-colors cursor-pointer"
-      >
-        All ({{ incidents().length }})
-      </button>
-      <button 
-        (click)="filter.set('active')" 
-        [class]="filter() === 'active' ? 'bg-red-950/60 border border-red-900/50 text-red-400 font-bold' : 'text-zinc-500 hover:text-zinc-300'"
-        class="px-3 py-1 rounded transition-colors cursor-pointer"
-      >
-        Active ({{ activeCount() }})
-      </button>
-      <button 
-        (click)="filter.set('resolved')" 
-        [class]="filter() === 'resolved' ? 'bg-zinc-900 border border-zinc-800 text-zinc-50 font-bold' : 'text-zinc-500 hover:text-zinc-300'"
-        class="px-3 py-1 rounded transition-colors cursor-pointer"
-      >
-        Resolved ({{ resolvedCount() }})
-      </button>
-    </div>
+  <!-- Header -->
+  <div class="space-y-0.5">
+    <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Incidents &amp; alerts</h2>
+    <p class="text-[13px] text-zinc-500">Instance health monitoring and incident history from the health-check system.</p>
+  </div>
+
+  <!-- Filter tabs -->
+  <div class="flex items-center gap-5 border-b border-zinc-900">
+    <button (click)="filter.set('all')" class="tab" [class.is-active]="filter() === 'all'">All ({{ incidents().length }})</button>
+    <button (click)="filter.set('active')" class="tab" [class.is-active]="filter() === 'active'">Active ({{ activeCount() }})</button>
+    <button (click)="filter.set('resolved')" class="tab" [class.is-active]="filter() === 'resolved'">Resolved ({{ resolvedCount() }})</button>
   </div>
 
   @if (loading()) {

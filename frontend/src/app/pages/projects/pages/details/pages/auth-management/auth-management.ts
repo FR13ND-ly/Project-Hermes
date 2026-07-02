@@ -165,11 +165,12 @@ export const requireRole = (role) => (req, res, next) =>
     this.authMgmtService.listServices(projectId).subscribe({
       next: (list) => {
         this.services.set(list || []);
-        // Keep the current selection if still present, else select the first.
+        // List-first: land on the service list, not auto-opened into the first one.
+        // Preserve the current selection only if it still exists (e.g. after a refresh).
         const current = this.selectedService();
         const stillThere = current && (list || []).some(s => s.id === current.id);
         if (!stillThere) {
-          this.selectedService.set((list || [])[0] || null);
+          this.selectedService.set(null);
         }
         this.loadingServices.set(false);
       },
@@ -187,6 +188,11 @@ export const requireRole = (role) => (req, res, next) =>
     if (svc) this.selectService(svc);
   }
 
+  /** Return to the service list (deselect the active service). */
+  backToList(): void {
+    this.selectedService.set(null);
+  }
+
   async onDeleteService(svc: BaasService): Promise<void> {
     const confirmed = await this.confirm.ask({
       title: 'Delete Authentication Service',
@@ -201,7 +207,7 @@ export const requireRole = (role) => (req, res, next) =>
         this.toast.success(`Service "${svc.name}" deleted.`);
         this.services.update(list => list.filter(s => s.id !== svc.id));
         if (this.selectedService()?.id === svc.id) {
-          this.selectedService.set(this.services()[0] || null);
+          this.selectedService.set(null); // back to the list after deleting the open one
         }
       },
       error: (err) => this.toast.error(err.error?.message || 'Failed to delete service.')

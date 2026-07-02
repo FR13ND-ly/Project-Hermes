@@ -1,74 +1,93 @@
-<div class="space-y-6 animate-fade-in font-mono text-zinc-350">
+<div class="space-y-6 animate-fade-in">
 
-  <!-- Section Header + service selector/creator -->
-  <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-900 pb-4 gap-4">
-    <div>
-      <h3 class="text-sm font-semibold text-zinc-100">Authentication (BaaS)</h3>
-      <p class="text-[13px] text-zinc-550">End-user authentication services — project resources, independent of applications.</p>
+  <!-- Page header -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="space-y-0.5">
+      <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Authentication (BaaS)</h2>
+      <p class="text-[13px] text-zinc-500">End-user authentication services — project resources, independent of applications.</p>
     </div>
-
-    <div class="flex items-center gap-2 flex-wrap">
-      @if (services().length > 0) {
-        <select
-          [ngModel]="selectedService()?.id"
-          (ngModelChange)="selectServiceById($event)"
-          class="px-3 py-1.5 text-[13px] input cursor-pointer"
-        >
-          @for (s of services(); track s.id) {
-            <option [value]="s.id">{{ s.name }}</option>
-          }
-        </select>
-        @if (selectedService(); as svc) {
-          <button
-            (click)="onDeleteService(svc)"
-            class="px-2.5 py-1.5 rounded border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-red-400 hover:border-red-900/50 text-xs font-semibold transition-colors cursor-pointer"
-            title="Delete service"
-          >Delete</button>
-        }
-      }      <button 
-        [routerLink]="['/projects', parent.projectId(), 'auth-management', 'create']"
-        class="btn btn-secondary btn-sm"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-zinc-550">
+    @if (!selectedService()) {
+      <button [routerLink]="['/projects', parent.projectId(), 'auth-management', 'create']" class="btn btn-primary btn-sm shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
-        New Service
+        Add service
       </button>
-    </div>
+    }
   </div>
 
-  @if (!selectedService()) {
-    <!-- Zero State: no service yet -->
-    <div class="bg-zinc-950/30 border border-zinc-900 rounded-lg p-12 text-center text-zinc-550 text-[13px]">
-      No authentication service in this project. Create one above to manage users,
-      roles, and API keys — without needing an application.
+  @if (loadingServices()) {
+    <div class="flex justify-center py-16">
+      <svg class="animate-spin h-6 w-6 text-zinc-400" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+      </svg>
     </div>
+  } @else if (!selectedService()) {
+
+    <!-- LIST MODE -->
+    @if (services().length === 0) {
+      <div class="card py-14 px-8 text-center space-y-4 max-w-md mx-auto">
+        <p class="text-sm text-zinc-400">No authentication service in this project yet. Create one to manage users, roles and API keys — no application required.</p>
+        <button [routerLink]="['/projects', parent.projectId(), 'auth-management', 'create']" class="btn btn-primary">Add your first service</button>
+      </div>
+    } @else {
+      <div class="grid gap-4 md:grid-cols-2">
+        @for (svc of services(); track svc.id) {
+          <div
+            (click)="selectService(svc)"
+            class="group card p-5 flex items-center justify-between gap-4 hover:border-indigo-500/40 transition-all cursor-pointer"
+          >
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" class="w-4.5 h-4.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <div class="min-w-0">
+                <h3 class="text-sm font-semibold text-zinc-50 group-hover:text-indigo-300 transition-colors truncate">{{ svc.name }}</h3>
+                <p class="text-[11px] text-zinc-600 font-mono truncate">{{ svc.id }}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0" (click)="$event.stopPropagation()">
+              <button (click)="selectService(svc)" class="btn btn-secondary btn-sm">Open</button>
+              <button (click)="onDeleteService(svc)" class="btn btn-danger btn-sm">Delete</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
   } @else {
-    
+
+    <!-- DETAIL MODE -->
+    <div class="flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3 min-w-0">
+        <button (click)="backToList()" class="btn btn-ghost btn-sm px-2" title="Back to services" aria-label="Back to services">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
+        </button>
+        <div class="min-w-0">
+          <h3 class="text-sm font-semibold text-zinc-50 truncate">{{ selectedService()?.name }}</h3>
+          <p class="text-[11px] text-zinc-600 font-mono truncate">{{ selectedService()?.id }}</p>
+        </div>
+      </div>
+      <button (click)="onDeleteService(selectedService()!)" class="btn btn-danger btn-sm shrink-0">Delete service</button>
+    </div>
+
     <!-- Tab Selector Navigation -->
-    <div class="flex items-center border-b border-zinc-900 pb-px font-mono text-[13px]">
-      <a routerLink="users" routerLinkActive #rlaUsers="routerLinkActive"
-        class="pb-3 px-4 text-[13px] font-semibold border-b-2 transition-all cursor-pointer"
-        [class]="rlaUsers.isActive ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
-      >
-        Registered Users
+    <div class="flex items-center flex-wrap gap-5 border-b border-zinc-900">
+      <a routerLink="users" routerLinkActive #rlaUsers="routerLinkActive" class="tab" [class.is-active]="rlaUsers.isActive">
+        Registered users
       </a>
-      <a routerLink="roles" routerLinkActive #rlaRoles="routerLinkActive"
-        class="pb-3 px-4 text-[13px] font-semibold border-b-2 transition-all cursor-pointer"
-        [class]="rlaRoles.isActive ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
-      >
-        Roles &amp; Permissions (JSON)
+      <a routerLink="roles" routerLinkActive #rlaRoles="routerLinkActive" class="tab" [class.is-active]="rlaRoles.isActive">
+        Roles &amp; permissions
       </a>
-      <a routerLink="api-keys" routerLinkActive #rlaApiKeys="routerLinkActive"
-        class="pb-3 px-4 text-[13px] font-semibold border-b-2 transition-all cursor-pointer"
-        [class]="rlaApiKeys.isActive ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
-      >
-        Service API Keys (S2S)
+      <a routerLink="api-keys" routerLinkActive #rlaApiKeys="routerLinkActive" class="tab" [class.is-active]="rlaApiKeys.isActive">
+        API keys
       </a>
-      <a routerLink="integration" routerLinkActive #rlaIntegration="routerLinkActive"
-        class="pb-3 px-4 text-[13px] font-semibold border-b-2 transition-all cursor-pointer"
-        [class]="rlaIntegration.isActive ? 'border-zinc-50 text-zinc-50' : 'border-transparent text-zinc-500 hover:text-zinc-300'"
-      >
+      <a routerLink="integration" routerLinkActive #rlaIntegration="routerLinkActive" class="tab" [class.is-active]="rlaIntegration.isActive">
         Integration
       </a>
     </div>
