@@ -215,73 +215,75 @@
     </div>
   }
 
-  <!-- DEEP ROUTE DETAIL VIEW -->
   @if (selectedRoute(); as route) {
-    <!-- Return link -->
-    <div class="flex items-center gap-2">
-      <button 
-        (click)="deselectRoute()" 
-        class="flex items-center gap-1 text-[13px] text-zinc-400 hover:text-zinc-50 cursor-pointer transition-colors font-sans"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-        </svg>
-        Back to network list
-      </button>
-    </div>
-
-    <!-- Route title header -->
-    <div class="p-5 rounded-lg border border-zinc-800 bg-zinc-900 flex flex-col md:flex-row md:items-center md:justify-between gap-4 font-sans shadow-sm">
-      <div class="space-y-1">
-        <div class="flex items-center gap-2.5 flex-wrap">
-          <h2 class="text-base font-bold text-zinc-50 tracking-tight select-all font-mono">{{ route.fqdn }}</h2>
-          <span 
-            class="px-2 py-0.5 rounded text-[11px] font-bold uppercase border"
-            [class]="route.type === 'automatic' ? 'bg-indigo-950/20 text-indigo-400 border-indigo-900/40' : 'bg-purple-950/20 text-purple-400 border-purple-900/40'"
+    <div class="space-y-4">
+      <!-- Route title header (inline layout matching standard) -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <button 
+            (click)="deselectRoute()" 
+            class="btn btn-secondary btn-sm shrink-0 px-2"
+            title="Back to network list"
           >
-            {{ route.type === 'automatic' ? 'Automat' : 'Custom' }}
-          </span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+          </button>
+          <div>
+            <div class="flex items-center gap-2.5">
+              <h2 class="text-lg font-semibold tracking-tight text-zinc-50 select-all">{{ route.fqdn }}</h2>
+              <span 
+                class="px-1.5 py-0.2 rounded text-[11px] font-bold uppercase border font-mono tracking-wider shrink-0"
+                [class]="route.type === 'automatic' ? 'bg-indigo-950/20 text-indigo-400 border-indigo-900/40' : 'bg-purple-950/20 text-purple-400 border-purple-900/40'"
+              >
+                {{ route.type === 'automatic' ? 'Automat' : 'Custom' }}
+              </span>
+            </div>
+            <p class="text-[13px] text-zinc-500 font-sans mt-0.5">
+              Entry type: {{ route.routingType.toUpperCase().replace('_', ' ') }}
+            </p>
+          </div>
         </div>
-        <p class="text-[13px] text-zinc-550">
-          Entry type: {{ route.routingType.toUpperCase().replace('_', ' ') }}
-        </p>
+
+        <div class="flex items-center gap-2.5 shrink-0">
+          <a 
+            href="http://{{ route.fqdn }}" 
+            target="_blank" 
+            rel="noopener"
+            class="btn btn-primary btn-sm"
+          >
+            Open Link
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+            </svg>
+          </a>
+        </div>
       </div>
 
-      <div class="flex items-center gap-2.5 shrink-0">
-        <a 
-          href="http://{{ route.fqdn }}" 
-          target="_blank" 
-          rel="noopener"
-          class="btn btn-primary btn-sm"
+      <!-- Tabs selector -->
+      <div class="flex border-b border-zinc-900 pb-px gap-5 select-none font-sans">
+        <button 
+          (click)="activeTab.set('details')"
+          class="tab"
+          [class.is-active]="activeTab() === 'details'"
         >
-          Open Link
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-          </svg>
-        </a>
+          Details &amp; Diagnostics
+        </button>
+        <button 
+          (click)="activeTab.set('logs')"
+          class="tab"
+          [class.is-active]="activeTab() === 'logs'"
+        >
+          Live Traffic Logs
+        </button>
+        <button 
+          (click)="activeTab.set('settings')"
+          class="tab"
+          [class.is-active]="activeTab() === 'settings'"
+        >
+          Settings &amp; Nginx Config
+        </button>
       </div>
-    </div>
-
-    <!-- Tabs selector -->
-    <div class="flex border-b border-zinc-900 gap-6 font-sans">
-      <button 
-        (click)="activeTab.set('details')"
-        [class]="activeTab() === 'details' ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 text-[13px] font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-[13px] font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
-      >
-        Details & Diagnostics
-      </button>
-      <button 
-        (click)="activeTab.set('logs')"
-        [class]="activeTab() === 'logs' ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 text-[13px] font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-[13px] font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
-      >
-        Live Traffic Logs
-      </button>
-      <button 
-        (click)="activeTab.set('settings')"
-        [class]="activeTab() === 'settings' ? 'border-b-2 border-zinc-50 text-zinc-50 pb-3 px-1 text-[13px] font-semibold transition-all cursor-pointer' : 'text-zinc-500 hover:text-zinc-300 pb-3 px-1 text-[13px] font-semibold border-b-2 border-transparent transition-all cursor-pointer'"
-      >
-        Settings & Nginx Config
-      </button>
     </div>
 
     <!-- TAB 1: DETAILS & DIAGNOSTICS -->
