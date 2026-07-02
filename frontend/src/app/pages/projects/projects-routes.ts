@@ -36,7 +36,11 @@ import { List } from './pages/list/list';
               },
               { 
                 path: 'auth-management', 
-                loadComponent: () => import('./pages/details/pages/auth-management/auth-management').then(m => m.AuthManagement),
+                loadComponent: () => import('./pages/details/pages/auth-management/auth-management-list').then(m => m.AuthManagementList),
+              },
+              {
+                path: 'auth-management/:serviceId',
+                loadComponent: () => import('./pages/details/pages/auth-management/auth-management').then(m => m.AuthManagementDetail),
                 children: [
                   { path: '', redirectTo: 'users', pathMatch: 'full' },
                   { path: 'users', loadComponent: () => import('./pages/details/pages/auth-management/pages/users/users').then(m => m.AuthUsersComponent) },
@@ -62,8 +66,24 @@ import { List } from './pages/list/list';
                 ]
               },
               { path: 'environments', loadComponent: () => import('./pages/details/pages/environments/environments').then(m => m.Environments) },
-              { path: 'networking', loadComponent: () => import('./pages/details/pages/networking/networking').then(m => m.Networking) },
-              { path: 'networking/create', loadComponent: () => import('./pages/details/pages/domain-create/domain-create').then(m => m.DomainCreate) },
+              { 
+                path: 'networking', 
+                loadComponent: () => import('./pages/details/pages/networking/networking-list').then(m => m.NetworkingList) 
+              },
+              { 
+                path: 'networking/create', 
+                loadComponent: () => import('./pages/details/pages/domain-create/domain-create').then(m => m.DomainCreate) 
+              },
+              {
+                path: 'networking/:routeId',
+                loadComponent: () => import('./pages/details/pages/networking/networking-detail').then(m => m.NetworkingDetail),
+                children: [
+                  { path: '', redirectTo: 'details', pathMatch: 'full' },
+                  { path: 'details', loadComponent: () => import('./pages/details/pages/networking/pages/info/info').then(m => m.NetworkingDetailInfo) },
+                  { path: 'logs', loadComponent: () => import('./pages/details/pages/networking/pages/logs/logs').then(m => m.NetworkingDetailLogs) },
+                  { path: 'settings', loadComponent: () => import('./pages/details/pages/networking/pages/settings/settings').then(m => m.NetworkingDetailSettings) },
+                ]
+              },
               { path: 'settings', loadComponent: () => import('./pages/details/pages/settings/settings').then(m => m.Settings) },
               { path: 'storages/create', loadComponent: () => import('./pages/details/pages/storage-create/storage-create').then(m => m.StorageCreate) },
               { 

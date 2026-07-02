@@ -1,0 +1,84 @@
+@if (loading()) {
+  <div class="flex justify-center py-16 animate-fade-in">
+    <svg class="animate-spin h-6 w-6 text-zinc-400" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+    </svg>
+  </div>
+} @else if (selectedRoute(); as route) {
+  <div class="space-y-6 animate-fade-in font-sans">
+    
+    <div class="space-y-4">
+      <!-- Route title header (inline layout matching standard) -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <button 
+            (click)="deselectRoute()" 
+            class="btn btn-secondary btn-sm shrink-0 px-2"
+            title="Back to network list"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+          </button>
+          <div>
+            <div class="flex items-center gap-2.5">
+              <h2 class="text-lg font-semibold tracking-tight text-zinc-50 select-all">{{ route.fqdn }}</h2>
+              <span 
+                class="px-1.5 py-0.2 rounded text-[11px] font-bold uppercase border font-mono tracking-wider shrink-0"
+                [class]="route.type === 'automatic' ? 'bg-indigo-950/20 text-indigo-400 border-indigo-900/40' : 'bg-purple-950/20 text-purple-400 border-purple-900/40'"
+              >
+                {{ route.type === 'automatic' ? 'Automat' : 'Custom' }}
+              </span>
+            </div>
+            <p class="text-[13px] text-zinc-500 font-sans mt-0.5">
+              Entry type: {{ route.routingType.toUpperCase().replace('_', ' ') }}
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 shrink-0">
+          <a 
+            href="http://{{ route.fqdn }}" 
+            target="_blank" 
+            rel="noopener"
+            class="btn btn-primary btn-sm"
+          >
+            Open Link
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Tabs selector -->
+      <div class="flex border-b border-zinc-900 pb-px gap-5 select-none font-sans">
+        <a 
+          routerLink="details"
+          routerLinkActive="is-active"
+          class="tab"
+        >
+          Details &amp; Diagnostics
+        </a>
+        <a 
+          routerLink="logs"
+          routerLinkActive="is-active"
+          class="tab"
+        >
+          Live Traffic Logs
+        </a>
+        <a 
+          routerLink="settings"
+          routerLinkActive="is-active"
+          class="tab"
+        >
+          Settings &amp; Nginx Config
+        </a>
+      </div>
+    </div>
+
+    <router-outlet></router-outlet>
+
+  </div>
+}

@@ -1,7 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AuthManagement } from '../../auth-management';
+import { AuthManagementDetail } from '../../auth-management';
 
 @Component({
   selector: 'app-auth-api-keys',
@@ -9,7 +9,7 @@ import { AuthManagement } from '../../auth-management';
   templateUrl: './api-keys.html',
 })
 export class AuthApiKeysComponent implements OnInit {
-  readonly parent = inject(AuthManagement);
+  readonly parent = inject(AuthManagementDetail);
 
   ngOnInit(): void {
     this.parent.loadApiKeys();

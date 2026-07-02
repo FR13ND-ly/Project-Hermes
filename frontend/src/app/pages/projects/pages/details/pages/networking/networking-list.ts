@@ -1,10 +1,9 @@
-import { Component, inject, signal, OnInit, OnDestroy, computed } from '@angular/core';
-import { RouterLink } from '@angular/router';
-
+import { Component, inject, signal, OnInit, computed } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Details } from '../../details';
 import { DatabaseService, DatabaseServiceInfo } from '../../../../../../core/services/database.service';
-import { DomainService, Domain, DomainRoutingType } from '../../../../../../core/services/domain.service';
+import { DomainService, Domain } from '../../../../../../core/services/domain.service';
 import { ProjectService, ServerlessInstance } from '../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
@@ -22,18 +21,18 @@ export interface UnifiedRoute {
 }
 
 @Component({
-  selector: 'app-networking',
+  selector: 'app-networking-list',
   imports: [FormsModule, RouterLink],
-  templateUrl: './networking.html',
-  styleUrl: './networking.css',
+  templateUrl: './networking-list.html',
 })
-export class Networking implements OnInit, OnDestroy {
+export class NetworkingList implements OnInit {
   readonly parent = inject(Details);
   private readonly dbService = inject(DatabaseService);
   private readonly domainService = inject(DomainService);
   private readonly projectService = inject(ProjectService);
+  private readonly router = inject(Router);
   readonly toast = inject(ToastService);
-  readonly confirm = inject(ConfirmService);
+  private readonly confirm = inject(ConfirmService);
 
   readonly databases = signal<DatabaseServiceInfo[]>([]);
   readonly serverlessFunctions = signal<ServerlessInstance[]>([]);
@@ -41,51 +40,22 @@ export class Networking implements OnInit, OnDestroy {
   readonly successMsg = signal<string | null>(null);
   readonly errorMsg = signal<string | null>(null);
 
-  // Custom Domains
   readonly customDomains = signal<Domain[]>([]);
   readonly loadingDomains = signal(false);
-
-  // Deep Routing panel states
-  readonly selectedRoute = signal<UnifiedRoute | null>(null);
-  readonly activeTab = signal<'details' | 'logs' | 'settings'>('details');
-  readonly liveLogs = signal<string[]>([]);
-  readonly logsSupported = signal(true);
   readonly expandedDomainCerts = signal<Record<string, boolean>>({});
 
-  // Editing state for custom domains
-  readonly editRoutingType = signal<DomainRoutingType>('reverse_proxy');
-  readonly editClientMaxBodySize = signal<number>(50);
-  readonly editIsSsl = signal<boolean>(true);
-  readonly editNginxTargetHost = signal('');
-  readonly editNginxRootPath = signal('');
-  readonly editNginxConfigContent = signal('');
-  readonly updatingSettings = signal(false);
-
-  private logTimer: any = null;
-
-  // Cert-manager TLS provisioning diagnostics checklist
-  readonly dnsVerified = signal(true);
-  readonly certRequested = signal(true);
-  readonly tlsSecured = signal(true);
-
-  // Serverless functions with active ports for the TCP/UDP section
   readonly activeServerlessPorts = computed(() => {
     return this.serverlessFunctions().filter(fn => fn.status === 'active' && fn.externalPort);
   });
 
-  // Unified computed list of HTTP entry points
   readonly unifiedRoutes = computed<UnifiedRoute[]>(() => {
     const insts = this.parent.appDetail()?.instances || [];
     const domains = this.customDomains();
     const functions = this.serverlessFunctions();
     const routes: UnifiedRoute[] = [];
 
-    // fqdns that already have an explicit `domains` row (rendered in step 3 below).
-    // Skip the synthesized "Automat (Ingress)" entry for those so the same fqdn isn't
-    // listed twice — for serverless the assigned domain IS the attached custom domain.
     const attachedFqdns = new Set(domains.map(d => d.fqdn));
 
-    // 1. Ingress automatic routes (app instances)
     insts.forEach(inst => {
       if (inst.assignedDomain && attachedFqdns.has(inst.assignedDomain)) return;
       routes.push({
@@ -101,7 +71,6 @@ export class Networking implements OnInit, OnDestroy {
       });
     });
 
-    // 2. Serverless function routes (those with assigned domain)
     functions.forEach(fn => {
       if (fn.assignedDomain && fn.status === 'active' && !attachedFqdns.has(fn.assignedDomain)) {
         routes.push({
@@ -118,7 +87,6 @@ export class Networking implements OnInit, OnDestroy {
       }
     });
 
-    // 3. Custom/attached domains — use the backend-resolved target (no guessing).
     const typeLabel: Record<string, string> = {
       app: 'Application', serverless: 'Serverless Function', database: 'Database', custom: 'Custom'
     };
@@ -143,10 +111,6 @@ export class Networking implements OnInit, OnDestroy {
     this.loadExposedDbs();
     this.loadDomains();
     this.loadServerlessFunctions();
-  }
-
-  ngOnDestroy(): void {
-    this.stopLogSimulation();
   }
 
   loadExposedDbs(): void {
@@ -182,34 +146,11 @@ export class Networking implements OnInit, OnDestroy {
 
   loadDomains(): void {
     this.loadingDomains.set(true);
-    // Scope to the current project so other projects' routes don't show up here.
     const projectId = this.parent.projectId();
     this.domainService.listDomains(1, 1000, projectId || undefined).subscribe({
       next: (res) => {
         this.customDomains.set(res?.items || []);
         this.loadingDomains.set(false);
-
-        // Update selected route if currently viewed custom domain has updated
-        const currentSelected = this.selectedRoute();
-        if (currentSelected && currentSelected.type === 'custom') {
-          const updated = (res?.items || []).find(d => d.id === currentSelected.id);
-          if (updated) {
-            const typeLabel: Record<string, string> = {
-              app: 'Application', serverless: 'Serverless Function', database: 'Database', custom: 'Custom'
-            };
-            this.selectedRoute.set({
-              id: updated.id,
-              fqdn: updated.fqdn,
-              type: 'custom',
-              routingType: updated.routingType as any,
-              status: updated.status as any,
-              connectedApp: updated.targetName || (updated.targetType === 'custom' ? 'Nginx custom' : undefined),
-              branchName: typeLabel[updated.targetType] || undefined,
-              port: updated.targetType === 'database' ? undefined : (updated.routingType === 'reverse_proxy' ? 80 : undefined),
-              rawObject: updated
-            });
-          }
-        }
       },
       error: (err) => {
         console.error('Failed to load domains', err);
@@ -243,7 +184,6 @@ export class Networking implements OnInit, OnDestroy {
     this.domainService.removeDomain(id).subscribe({
       next: () => {
         this.toast.success('Custom domain removed.');
-        this.deselectRoute();
         this.loadDomains();
       },
       error: (err) => {
@@ -253,52 +193,7 @@ export class Networking implements OnInit, OnDestroy {
   }
 
   selectRoute(route: UnifiedRoute): void {
-    this.selectedRoute.set(route);
-    this.activeTab.set('details');
-
-    if (route.type === 'custom') {
-      const d = route.rawObject as Domain;
-      this.editRoutingType.set(d.routingType);
-      this.editClientMaxBodySize.set(d.clientMaxBodySize);
-      this.editIsSsl.set(d.isSsl);
-      this.editNginxTargetHost.set(d.nginxTargetHost || '');
-      this.editNginxRootPath.set(d.nginxRootPath || '');
-      this.editNginxConfigContent.set(d.nginxConfigContent || '');
-    }
-
-    this.startLogStream(route);
-  }
-
-  deselectRoute(): void {
-    this.selectedRoute.set(null);
-    this.stopLogSimulation();
-  }
-
-  onSaveDomainSettings(): void {
-    const route = this.selectedRoute();
-    if (!route || route.type !== 'custom') return;
-
-    this.updatingSettings.set(true);
-    this.domainService.updateDomain(route.id, {
-      fqdn: route.fqdn,
-      targetType: (route.rawObject as Domain).targetType || 'custom',
-      routingType: this.editRoutingType(),
-      clientMaxBodySize: this.editClientMaxBodySize(),
-      isSsl: this.editIsSsl(),
-      nginxTargetHost: this.editRoutingType() === 'reverse_proxy' ? this.editNginxTargetHost().trim() || undefined : undefined,
-      nginxRootPath: this.editRoutingType() === 'static_host' ? this.editNginxRootPath().trim() || undefined : undefined,
-      nginxConfigContent: this.editRoutingType() === 'custom' ? this.editNginxConfigContent().trim() || undefined : undefined,
-    }).subscribe({
-      next: () => {
-        this.updatingSettings.set(false);
-        this.toast.success('Domain configuration updated!');
-        this.loadDomains();
-      },
-      error: (err) => {
-        this.toast.error(err.error?.message || 'Failed to update configuration.');
-        this.updatingSettings.set(false);
-      }
-    });
+    this.router.navigate(['/projects', this.parent.projectId(), 'networking', route.id]);
   }
 
   toggleCertDetails(domainId: string): void {
@@ -307,54 +202,6 @@ export class Networking implements OnInit, OnDestroy {
       ...current,
       [domainId]: !current[domainId]
     });
-  }
-
-  // Real nginx access logs, polled from the backend. Only custom/attached domains
-  // flow through the host nginx (and thus have a per-domain access log); automatic
-  // ingress routes don't, so we mark them unsupported.
-  startLogStream(route: UnifiedRoute): void {
-    this.stopLogSimulation();
-    if (route.type !== 'custom') {
-      this.liveLogs.set([]);
-      this.logsSupported.set(false);
-      return;
-    }
-    this.logsSupported.set(true);
-    this.loadDomainLogs(route.id);
-    this.logTimer = setInterval(() => this.loadDomainLogs(route.id), 5000);
-  }
-
-  loadDomainLogs(id: string): void {
-    this.domainService.getDomainLogs(id).subscribe({
-      next: (res) => {
-        this.logsSupported.set(res.supported);
-        this.liveLogs.set(res.lines || []);
-      },
-      error: () => { /* keep last view; transient errors are fine */ }
-    });
-  }
-
-  stopLogSimulation(): void {
-    if (this.logTimer) {
-      clearInterval(this.logTimer);
-      this.logTimer = null;
-    }
-  }
-
-  refreshDiagnostics(): void {
-    this.dnsVerified.set(false);
-    this.certRequested.set(false);
-    this.tlsSecured.set(false);
-
-    setTimeout(() => {
-      this.dnsVerified.set(true);
-    }, 800);
-    setTimeout(() => {
-      this.certRequested.set(true);
-    }, 1600);
-    setTimeout(() => {
-      this.tlsSecured.set(true);
-    }, 2400);
   }
 
   copyPort(port: number | null | undefined): void {

@@ -1,0 +1,128 @@
+<div class="space-y-6 animate-fade-in font-sans">
+  
+  <!-- Status and Target mapping Info -->
+  <div class="grid gap-6 md:grid-cols-2">
+    
+    <!-- Box A: Connected Info -->
+    <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
+      <h3 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2.5">App Connection</h3>
+      
+      <div class="space-y-3.5 text-[13px]">
+        <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+          <span class="text-zinc-500">Workspace App:</span>
+          <span class="text-zinc-200 font-semibold font-mono">{{ route.connectedApp || 'Unspecified' }}</span>
+        </div>
+        <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+          <span class="text-zinc-500">Branch mapat:</span>
+          <span class="text-zinc-200 font-semibold font-mono">{{ route.branchName || 'N/A' }}</span>
+        </div>
+        
+        @if (route.routingType === 'ingress' || route.routingType === 'reverse_proxy') {
+          <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+            <span class="text-zinc-500">Proxy Target Host (Nginx):</span>
+            <span class="text-indigo-400 font-bold font-mono">
+              {{ route.type === 'automatic' ? (route.rawObject.containerName + ':' + route.port) : (route.rawObject.nginxTargetHost || 'localhost:80') }}
+            </span>
+          </div>
+        } @else if (route.routingType === 'static_host') {
+          <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+            <span class="text-zinc-500">Static Directory (Volume):</span>
+            <span class="text-purple-400 font-bold font-mono">{{ route.rawObject.nginxRootPath }}</span>
+          </div>
+        }
+
+        <div class="flex justify-between pb-1">
+          <span class="text-zinc-500">HTTP Routing Status:</span>
+          <span class="font-semibold font-mono text-xs uppercase flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full" [class]="route.status === 'active' ? 'bg-emerald-500' : (route.status === 'pending_verification' ? 'bg-amber-500 animate-pulse' : 'bg-red-500')"></span>
+            {{ route.status }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Box B: SSL certificate information -->
+    <div class="bg-zinc-900 border border-zinc-900 rounded-lg p-5 space-y-4 shadow-sm">
+      <h3 class="text-sm font-semibold text-zinc-100 border-b border-zinc-900 pb-2.5">Security & TLS (SSL) Certificate</h3>
+      
+      <div class="space-y-3.5 text-[13px]">
+        <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+          <span class="text-zinc-500">SSL/TLS State:</span>
+          <span class="text-zinc-200 font-semibold">
+            {{ (route.type === 'automatic' || route.rawObject.isSsl) ? 'Enabled (Secure HTTPS)' : 'Disabled (Simple HTTP)' }}
+          </span>
+        </div>
+        <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+          <span class="text-zinc-500">Issuing Authority (CA):</span>
+          <span class="text-zinc-200 font-mono">Let's Encrypt / Kubernetes Cert-Manager</span>
+        </div>
+        <div class="flex justify-between border-b border-zinc-900/60 pb-2">
+          <span class="text-zinc-500">Protocol & Encryption:</span>
+          <span class="text-zinc-200 font-mono">TLSv1.3 (ECDHE-RSA-AES256-GCM-SHA384)</span>
+        </div>
+        <div class="flex justify-between pb-1">
+          <span class="text-zinc-500">Certificat Valid:</span>
+          <span class="text-emerald-400 font-semibold font-mono">Auto-renewal active (365 days)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SSL Diagnostics Checklist -->
+  <div class="card p-5 space-y-4">
+    <div class="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+      <h3 class="text-sm font-semibold text-zinc-100">Verificare Diagnostic DNS & SSL</h3>
+      <button (click)="parent.refreshDiagnostics()" class="btn btn-secondary btn-sm">Re-test</button>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-3 text-[13px] font-mono">
+      <div class="flex items-center gap-2.5 p-3 rounded border border-zinc-900 bg-zinc-950/40">
+        @if (parent.dnsVerified()) {
+          <svg class="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+          </svg>
+        } @else {
+          <svg class="w-5 h-5 text-amber-500 animate-spin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17"/>
+          </svg>
+        }
+        <div>
+          <div class="font-bold text-zinc-200 font-sans">DNS IP Resolution</div>
+          <div class="text-[11px] text-zinc-500 mt-0.5">Domain correctly points to local Ingress</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5 p-3 rounded border border-zinc-900 bg-zinc-950/40">
+        @if (parent.certRequested()) {
+          <svg class="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+          </svg>
+        } @else {
+          <svg class="w-5 h-5 text-amber-500 animate-spin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17"/>
+          </svg>
+        }
+        <div>
+          <div class="font-bold text-zinc-200 font-sans">Emitere Certificat</div>
+          <div class="text-[11px] text-zinc-500 mt-0.5">CA cert-manager Let's Encrypt valid</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5 p-3 rounded border border-zinc-900 bg-zinc-950/40">
+        @if (parent.tlsSecured()) {
+          <svg class="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+          </svg>
+        } @else {
+          <svg class="w-5 h-5 text-amber-500 animate-spin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17"/>
+          </svg>
+        }
+        <div>
+          <div class="font-bold text-zinc-200 font-sans">Nginx Configuration</div>
+          <div class="text-[11px] text-zinc-500 mt-0.5">SSL Proxy & port 443 locally secured</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

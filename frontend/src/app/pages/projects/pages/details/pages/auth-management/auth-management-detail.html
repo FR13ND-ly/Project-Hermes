@@ -1,0 +1,52 @@
+@if (loading()) {
+  <div class="flex justify-center py-16 animate-fade-in">
+    <svg class="animate-spin h-6 w-6 text-zinc-400" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+    </svg>
+  </div>
+} @else if (selectedService(); as service) {
+  <div class="space-y-6 animate-fade-in font-sans">
+    
+    <div class="space-y-4">
+      <!-- DETAIL MODE HEADER (inline layout matching standard) -->
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <button 
+            (click)="backToList()" 
+            class="btn btn-secondary btn-sm shrink-0 px-2" 
+            title="Back to services"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+          </button>
+          <div class="min-w-0">
+            <h2 class="text-lg font-semibold tracking-tight text-zinc-50 truncate">{{ service.name }}</h2>
+            <p class="text-[13px] text-zinc-500 font-mono mt-0.5 truncate">Service ID: {{ service.id }}</p>
+          </div>
+        </div>
+        <button (click)="onDeleteService(service)" class="btn btn-danger btn-sm shrink-0">Delete service</button>
+      </div>
+
+      <!-- Tab Selector Navigation -->
+      <div class="flex items-center flex-wrap gap-5 border-b border-zinc-900 pb-px select-none">
+        <a routerLink="users" routerLinkActive="is-active" class="tab">
+          Registered users
+        </a>
+        <a routerLink="roles" routerLinkActive="is-active" class="tab">
+          Roles &amp; permissions
+        </a>
+        <a routerLink="api-keys" routerLinkActive="is-active" class="tab">
+          API keys
+        </a>
+        <a routerLink="integration" routerLinkActive="is-active" class="tab">
+          Integration
+        </a>
+      </div>
+    </div>
+
+    <router-outlet></router-outlet>
+
+  </div>
+}

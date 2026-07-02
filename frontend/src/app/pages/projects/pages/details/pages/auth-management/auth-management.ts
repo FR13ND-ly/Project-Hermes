@@ -1,5 +1,5 @@
 import { Component, inject, signal, effect, computed } from '@angular/core';
-import { RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
+import { RouterLink, RouterOutlet, RouterLinkActive, ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Details } from '../../details';
@@ -9,17 +9,19 @@ import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 
 @Component({
-  selector: 'app-auth-management',
+  selector: 'app-auth-management-detail',
   imports: [FormsModule, DatePipe, RouterLink, RouterOutlet, RouterLinkActive],
-  templateUrl: './auth-management.html',
+  templateUrl: './auth-management-detail.html',
   styleUrl: './auth-management.css',
 })
-export class AuthManagement {
+export class AuthManagementDetail {
   readonly parent = inject(Details);
   private readonly authMgmtService = inject(AuthManagementService);
   private readonly projectService = inject(ProjectService);
   readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
 
   readonly activeTab = signal<'users' | 'roles' | 'api-keys' | 'integration'>('users');
@@ -135,11 +137,10 @@ export const requireRole = (role) => (req, res, next) =>
   readonly showGeneratedKeyModal = signal(false);
 
   constructor() {
-    // Load this project's BaaS services whenever the project changes.
-    effect(() => {
-      const projectId = this.parent.projectId();
-      if (projectId) {
-        this.loadServices(projectId);
+    this.route.paramMap.subscribe(params => {
+      const serviceId = params.get('serviceId');
+      if (serviceId) {
+        this.loadServiceDetail(serviceId);
       }
     });
 
@@ -159,38 +160,32 @@ export const requireRole = (role) => (req, res, next) =>
     });
   }
 
-  // --- BaaS service management ---
-  loadServices(projectId: string): void {
-    this.loadingServices.set(true);
+  loadServiceDetail(serviceId: string): void {
+    const projectId = this.parent.projectId();
+    if (!projectId) return;
+
+    this.loading.set(true);
     this.authMgmtService.listServices(projectId).subscribe({
       next: (list) => {
-        this.services.set(list || []);
-        // List-first: land on the service list, not auto-opened into the first one.
-        // Preserve the current selection only if it still exists (e.g. after a refresh).
-        const current = this.selectedService();
-        const stillThere = current && (list || []).some(s => s.id === current.id);
-        if (!stillThere) {
-          this.selectedService.set(null);
+        const svc = (list || []).find(s => s.id === serviceId);
+        if (svc) {
+          this.selectedService.set(svc);
+        } else {
+          this.toast.error('Authentication service not found.');
+          this.backToList();
         }
-        this.loadingServices.set(false);
+        this.loading.set(false);
       },
-      error: () => { this.services.set([]); this.loadingServices.set(false); }
+      error: () => {
+        this.loading.set(false);
+        this.toast.error('Failed to load authentication service.');
+      }
     });
-  }
-
-  selectService(svc: BaasService): void {
-    if (this.selectedService()?.id === svc.id) return;
-    this.selectedService.set(svc);
-  }
-
-  selectServiceById(id: string): void {
-    const svc = this.services().find(s => s.id === id);
-    if (svc) this.selectService(svc);
   }
 
   /** Return to the service list (deselect the active service). */
   backToList(): void {
-    this.selectedService.set(null);
+    this.router.navigate(['/projects', this.parent.projectId(), 'auth-management']);
   }
 
   async onDeleteService(svc: BaasService): Promise<void> {
@@ -205,10 +200,7 @@ export const requireRole = (role) => (req, res, next) =>
     this.authMgmtService.deleteService(svc.id).subscribe({
       next: () => {
         this.toast.success(`Service "${svc.name}" deleted.`);
-        this.services.update(list => list.filter(s => s.id !== svc.id));
-        if (this.selectedService()?.id === svc.id) {
-          this.selectedService.set(null); // back to the list after deleting the open one
-        }
+        this.backToList();
       },
       error: (err) => this.toast.error(err.error?.message || 'Failed to delete service.')
     });

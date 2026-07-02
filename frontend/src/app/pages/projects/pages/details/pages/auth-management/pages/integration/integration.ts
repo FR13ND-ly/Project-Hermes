@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 
-import { AuthManagement } from '../../auth-management';
+import { AuthManagementDetail } from '../../auth-management';
 
 @Component({
   selector: 'app-auth-integration',
@@ -8,7 +8,7 @@ import { AuthManagement } from '../../auth-management';
   templateUrl: './integration.html',
 })
 export class AuthIntegrationComponent implements OnInit {
-  readonly parent = inject(AuthManagement);
+  readonly parent = inject(AuthManagementDetail);
 
   ngOnInit(): void {
     this.parent.loadIntegration();

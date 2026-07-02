@@ -1,0 +1,31 @@
+<div class="card p-5 space-y-4 animate-fade-in font-sans">
+  <div class="border-b border-zinc-900 pb-2.5 flex items-center justify-between">
+    <div>
+      <h3 class="text-sm font-semibold text-zinc-100 font-sans">Live HTTP Traffic Logs</h3>
+      <p class="text-xs text-zinc-550 mt-0.5">Real-time access logs from the Nginx reverse proxy gateway.</p>
+    </div>
+    <span class="px-2 py-0.5 rounded text-[10px] font-bold border border-zinc-800 bg-zinc-950 text-zinc-400 font-mono">
+      tail -f access.log
+    </span>
+  </div>
+
+  @if (!parent.logsSupported()) {
+    <div class="p-6 rounded border border-zinc-800/80 bg-zinc-950/20 text-zinc-455 text-center font-sans space-y-2">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-7 h-7 mx-auto text-zinc-500">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+      </svg>
+      <p class="text-[13px]">Automatic routes (Ingress) do not pass through the host nginx. See logs in the <span class="text-zinc-300 font-mono">Logs</span> tab of the application / function.</p>
+    </div>
+  } @else {
+    <div class="bg-zinc-950 border border-zinc-900 rounded p-4 font-mono text-xs text-zinc-300 h-96 overflow-y-auto space-y-1">
+      @if (parent.liveLogs().length === 0) {
+        <div class="text-zinc-650 text-center py-20 italic">No request logs received yet. Try hitting the endpoint...</div>
+      } @else {
+        @for (log of parent.liveLogs(); track log) {
+          <div class="hover:bg-zinc-900/40 py-0.5 px-1 rounded transition-colors break-all select-all">{{ log }}</div>
+        }
+      }
+    </div>
+    <p class="text-[11px] text-zinc-500 italic font-sans mt-1">Logs automatically refresh every 5 seconds.</p>
+  }
+</div>

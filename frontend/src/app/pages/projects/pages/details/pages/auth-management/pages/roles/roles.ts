@@ -1,7 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { AuthManagement } from '../../auth-management';
+import { AuthManagementDetail } from '../../auth-management';
 
 @Component({
   selector: 'app-auth-roles',
@@ -9,7 +9,7 @@ import { AuthManagement } from '../../auth-management';
   templateUrl: './roles.html',
 })
 export class AuthRolesComponent implements OnInit {
-  readonly parent = inject(AuthManagement);
+  readonly parent = inject(AuthManagementDetail);
 
   ngOnInit(): void {
     this.parent.loadAuthConfig();
