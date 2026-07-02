@@ -173,6 +173,51 @@
     }
   </div>
 
+  <!-- Reset Password Success Modal -->
+  @if (showResetSuccessModal() && resetUser()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm animate-fade-in font-sans">
+      <div class="card p-6 space-y-5 max-w-lg w-full relative">
+        <button (click)="showResetSuccessModal.set(false)" class="absolute top-4 right-4 text-zinc-500 hover:text-zinc-200 cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        
+        <div class="border-b border-zinc-900 pb-2.5">
+          <h4 class="text-sm font-semibold text-zinc-100 font-sans">Password Reset Successful</h4>
+          <p class="text-xs text-zinc-550 mt-0.5 font-sans">The password for <span class="text-zinc-300 font-mono">{{ resetUser()?.username }}</span> ({{ resetUser()?.email }}) has been reset.</p>
+        </div>
+
+        <div class="p-4 rounded border border-emerald-500/20 bg-emerald-950/10 space-y-3 font-sans">
+          <div class="flex items-center gap-2 text-zinc-50 font-bold text-xs">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-emerald-450">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>New Temporary Password Generated</span>
+          </div>
+          <p class="text-xs text-zinc-550 leading-relaxed">
+            Send the user this new temporary password to log in and set a permanent one:
+          </p>
+          <div class="flex items-center justify-between bg-zinc-950 border border-zinc-900 p-2.5 rounded font-mono">
+            <span class="text-zinc-50 font-bold tracking-wide select-all text-[13px]">{{ provisionedPassword() }}</span>
+            <button 
+              (click)="copyToClipboard(provisionedPassword()!)" 
+              class="btn btn-secondary btn-sm font-sans"
+            >
+              Copy
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-zinc-900 flex justify-end">
+          <button (click)="showResetSuccessModal.set(false)" class="btn btn-primary btn-sm font-sans">
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
   <!-- MODALS -->
 
   <!-- Register User Modal -->

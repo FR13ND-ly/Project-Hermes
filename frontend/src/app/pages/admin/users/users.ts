@@ -29,6 +29,8 @@ export class AdminUsers implements OnInit {
   // Modals
   readonly showRegisterModal = signal(false);
   readonly showChangePasswordModal = signal(false);
+  readonly showResetSuccessModal = signal(false);
+  readonly resetUser = signal<{ username: string, email: string } | null>(null);
 
   // User list signals
   readonly users = signal<User[]>([]);
@@ -101,8 +103,6 @@ export class AdminUsers implements OnInit {
     this.auth.provisionUser(username, email, isAdmin).subscribe({
       next: (tempPwd) => {
         this.provisionedPassword.set(tempPwd);
-        this.newUserName.set('');
-        this.newUserEmail.set('');
         this.newUserIsAdmin.set(false);
         this.provisioningUser.set(false);
         this.toast.success('User registered successfully on the platform!');
@@ -202,10 +202,11 @@ export class AdminUsers implements OnInit {
 
     this.auth.resetUserPassword(user.id).subscribe({
       next: (tempPwd) => {
+        this.resetUser.set({ username: user.username, email: user.email });
         this.provisionedPassword.set(tempPwd);
+        this.showResetSuccessModal.set(true);
         this.toast.success('Password has been reset successfully!');
         this.loadUsers();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
       },
       error: (err) => {
         this.toast.error(err.error?.message || 'Failed to reset password.');
