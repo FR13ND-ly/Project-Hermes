@@ -24,6 +24,7 @@ export class NetworkingDetail implements OnInit, OnDestroy {
   private readonly confirm = inject(ConfirmService);
 
   readonly selectedRoute = signal<UnifiedRoute | null>(null);
+  readonly routeId = signal<string | null>(null);
   readonly loading = signal(false);
 
   // Deep Routing panel settings states
@@ -45,23 +46,31 @@ export class NetworkingDetail implements OnInit, OnDestroy {
   readonly logsSupported = signal(true);
   private logTimer: any = null;
 
-  ngOnInit(): void {
+  constructor() {
     this.route.paramMap.subscribe(params => {
-      const routeId = params.get('routeId');
-      if (routeId) {
-        this.loadRouteDetail(routeId);
+      this.routeId.set(params.get('routeId'));
+    });
+
+    effect(() => {
+      const projectId = this.parent.projectId();
+      const rId = this.routeId();
+      if (projectId && rId) {
+        this.loadRouteDetail(rId);
       }
     });
   }
+
+  ngOnInit(): void {}
 
   ngOnDestroy(): void {
     this.stopLogSimulation();
   }
 
   loadRouteDetail(routeId: string): void {
-    this.loading.set(true);
     const projectId = this.parent.projectId();
     if (!projectId) return;
+
+    this.loading.set(true);
 
     // Load custom domains and check
     this.domainService.listDomains(1, 1000, projectId).subscribe({

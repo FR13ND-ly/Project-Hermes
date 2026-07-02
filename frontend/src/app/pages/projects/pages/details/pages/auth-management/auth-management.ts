@@ -32,6 +32,7 @@ export class AuthManagementDetail {
   // the selected service; users/roles/api-keys/integration are all scoped to it.
   readonly services = signal<BaasService[]>([]);
   readonly selectedService = signal<BaasService | null>(null);
+  readonly serviceId = signal<string | null>(null);
   readonly loadingServices = signal(false);
 
   // Integration tab
@@ -138,9 +139,15 @@ export const requireRole = (role) => (req, res, next) =>
 
   constructor() {
     this.route.paramMap.subscribe(params => {
-      const serviceId = params.get('serviceId');
-      if (serviceId) {
-        this.loadServiceDetail(serviceId);
+      this.serviceId.set(params.get('serviceId'));
+    });
+
+    // React to both projectId and serviceId changes
+    effect(() => {
+      const projectId = this.parent.projectId();
+      const sId = this.serviceId();
+      if (projectId && sId) {
+        this.loadServiceDetail(sId);
       }
     });
 
