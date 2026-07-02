@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, effect } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthManagementDetail } from '../../auth-management';
@@ -8,10 +8,14 @@ import { AuthManagementDetail } from '../../auth-management';
   imports: [FormsModule, DatePipe],
   templateUrl: './api-keys.html',
 })
-export class AuthApiKeysComponent implements OnInit {
+export class AuthApiKeysComponent {
   readonly parent = inject(AuthManagementDetail);
 
-  ngOnInit(): void {
-    this.parent.loadApiKeys();
+  constructor() {
+    effect(() => {
+      if (this.parent.selectedService()) {
+        this.parent.loadApiKeys();
+      }
+    });
   }
 }

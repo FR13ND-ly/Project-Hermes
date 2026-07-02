@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, effect } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthManagementDetail } from '../../auth-management';
@@ -8,10 +8,14 @@ import { AuthManagementDetail } from '../../auth-management';
   imports: [FormsModule, DatePipe],
   templateUrl: './users.html',
 })
-export class AuthUsersComponent implements OnInit {
+export class AuthUsersComponent {
   readonly parent = inject(AuthManagementDetail);
 
-  ngOnInit(): void {
-    this.parent.loadUsers();
+  constructor() {
+    effect(() => {
+      if (this.parent.selectedService()) {
+        this.parent.loadUsers();
+      }
+    });
   }
 }
