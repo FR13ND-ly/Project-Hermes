@@ -41,18 +41,12 @@
   @if (!loading()) {
     <!-- Empty List State -->
     @if (databases().length === 0) {
-      <div class="card p-10 flex flex-col items-center justify-center text-center max-w-sm mx-auto">
-        <div class="w-10 h-10 rounded border border-zinc-900 bg-zinc-950 flex items-center justify-center text-zinc-550 mb-3 shadow">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-          </svg>
-        </div>
-        <h4 class="text-sm font-semibold text-zinc-100 mb-1">No databases</h4>
-        <p class="text-[13px] text-zinc-500 mb-4">Add a Postgres, Redis or MongoDB instance to this project.</p>
-        <button [routerLink]="['/projects', parent.projectId(), 'databases', 'create']" class="btn btn-primary">
-          Provision database
-        </button>
-      </div>
+      <app-empty-state title="No databases yet" description="Add a Postgres, Redis or MongoDB instance to this project.">
+        <svg icon xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75" />
+        </svg>
+        <button [routerLink]="['/projects', parent.projectId(), 'databases', 'create']" class="btn btn-primary">Provision database</button>
+      </app-empty-state>
     }
 
     <!-- Databases Cards Grid -->

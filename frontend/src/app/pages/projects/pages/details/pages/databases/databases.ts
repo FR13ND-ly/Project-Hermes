@@ -12,9 +12,11 @@ import { RouterLink } from '@angular/router';
 import { Pagination } from '../../../../../../shared/components/pagination/pagination';
 import { DEFAULT_PAGE_SIZE } from '../../../../../../core/models/pagination';
 
+import { EmptyState } from '../../../../../../shared/components/empty-state/empty-state';
+
 @Component({
   selector: 'app-databases',
-  imports: [NgClass, FormsModule, RouterLink, Pagination],
+  imports: [NgClass, FormsModule, RouterLink, Pagination, EmptyState],
   templateUrl: './databases.html',
   styleUrl: './databases.css',
 })

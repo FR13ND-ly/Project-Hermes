@@ -40,7 +40,7 @@
           id="cron-target-select"
           [ngModel]="selectedTargetId()"
           (ngModelChange)="selectedTargetId.set($event)"
-          class="block w-full px-3 py-2 input font-mono cursor-pointer"
+          class="block w-full px-3 py-2 input cursor-pointer"
         >
           @for (opt of targetOptions(); track opt.id) {
             <option [value]="opt.id">{{ opt.name }}</option>
@@ -65,7 +65,7 @@
         placeholder="e.g. daily-backup or cache-cleanup"
         [ngModel]="newCronName()"
         (ngModelChange)="newCronName.set($event)"
-        class="block w-full px-3 py-2 input font-mono"
+        class="block w-full px-3 py-2 input"
       />
     </div>
 
@@ -81,7 +81,7 @@
         placeholder="*/5 * * * *"
         [ngModel]="newCronSchedule()"
         (ngModelChange)="newCronSchedule.set($event)"
-        class="block w-full px-3 py-2 input font-mono"
+        class="block w-full px-3 py-2 input"
       />
       <p class="text-[11px] text-zinc-600 leading-normal font-sans">
         Examples: <code class="text-zinc-550 font-bold select-all">0 0 * * *</code> (daily at midnight), <code class="text-zinc-550 font-bold select-all">*/15 * * * *</code> (every 15 minutes).
@@ -97,7 +97,7 @@
         placeholder="python manage.py clear_expired_sessions or npm run clean"
         [ngModel]="newCronCommand()"
         (ngModelChange)="newCronCommand.set($event)"
-        class="block w-full px-3 py-2 input font-mono resize-none"
+        class="block w-full px-3 py-2 input resize-none"
       ></textarea>
       <p class="text-[11px] text-zinc-605 leading-normal font-sans">
         The command will run inside the container with the stable image of the selected application.
@@ -149,7 +149,7 @@
             [ngModel]="row.value"
             (ngModelChange)="updateEnvRow($index, 'value', $event)"
             [disabled]="creatingCron()"
-            class="flex-1 px-3 py-2 text-[13px] input font-mono"
+            class="flex-1 px-3 py-2 text-[13px] input"
           />
           <button
             type="button"

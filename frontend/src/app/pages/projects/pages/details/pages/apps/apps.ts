@@ -6,9 +6,11 @@ import { ProjectService, AppDetail } from '../../../../../../core/services/proje
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 
+import { EmptyState } from '../../../../../../shared/components/empty-state/empty-state';
+
 @Component({
   selector: 'app-apps',
-  imports: [DatePipe],
+  imports: [DatePipe, EmptyState],
   templateUrl: './apps.html',
   styleUrl: './apps.css',
 })

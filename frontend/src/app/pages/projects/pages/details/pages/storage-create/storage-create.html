@@ -26,7 +26,7 @@
           [ngModel]="newBucketName()"
           (ngModelChange)="newBucketName.set($event)"
           [disabled]="creatingBucket()"
-          class="block w-full px-3 py-2 text-[13px] input font-mono"
+          class="block w-full px-3 py-2 text-[13px] input"
         />
       </div>
 
@@ -89,7 +89,7 @@
               [ngModel]="appIdEnvKeyName()"
               (ngModelChange)="appIdEnvKeyName.set($event)"
               [disabled]="creatingBucket()"
-              class="block w-full max-w-xs px-2.5 py-1.5 text-[13px] input font-mono uppercase font-bold"
+              class="block w-full max-w-xs px-2.5 py-1.5 text-[13px] input uppercase font-bold"
             />
           </div>
         }
@@ -117,7 +117,7 @@
               [ngModel]="secretKeyEnvKeyName()"
               (ngModelChange)="secretKeyEnvKeyName.set($event)"
               [disabled]="creatingBucket()"
-              class="block w-full max-w-xs px-2.5 py-1.5 text-[13px] input font-mono uppercase font-bold"
+              class="block w-full max-w-xs px-2.5 py-1.5 text-[13px] input uppercase font-bold"
             />
           </div>
         }
@@ -137,7 +137,7 @@
           [ngModel]="maxFileSizeMb()"
           (ngModelChange)="maxFileSizeMb.set($event)"
           [disabled]="creatingBucket()"
-          class="block w-32 px-2.5 py-1.5 text-[13px] input font-mono"
+          class="block w-32 px-2.5 py-1.5 text-[13px] input"
         />
         <span class="text-xs text-zinc-600 font-sans">0 = unlimited</span>
       </div>

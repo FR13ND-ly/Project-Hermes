@@ -5,9 +5,11 @@ import { AuthManagementService, BaasService } from '../../../../../../core/servi
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 
+import { EmptyState } from '../../../../../../shared/components/empty-state/empty-state';
+
 @Component({
   selector: 'app-auth-management-list',
-  imports: [RouterLink],
+  imports: [RouterLink, EmptyState],
   templateUrl: './auth-management-list.html',
 })
 export class AuthManagementList implements OnInit {

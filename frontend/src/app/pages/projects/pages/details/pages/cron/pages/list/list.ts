@@ -5,9 +5,11 @@ import { RouterLink } from '@angular/router';
 import { CronComponent } from '../../cron';
 import { Pagination } from '../../../../../../../../shared/components/pagination/pagination';
 
+import { EmptyState } from '../../../../../../../../shared/components/empty-state/empty-state';
+
 @Component({
   selector: 'app-cron-list',
-  imports: [FormsModule, DatePipe, RouterLink, Pagination],
+  imports: [FormsModule, DatePipe, RouterLink, Pagination, EmptyState],
   templateUrl: './list.html',
   styles: ``,
 })

@@ -26,17 +26,12 @@
     <span class="text-[13px] text-zinc-500 font-mono">Loading cron jobs...</span>
   </div>
 } @else if (parent.cronJobs().length === 0) {
-  <div class="flex flex-col items-center justify-center border border-dashed border-zinc-800 rounded-lg p-12 text-center space-y-4">
-    <div class="p-3 bg-zinc-955 border border-zinc-900 rounded-full text-zinc-650">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    </div>
-    <div class="space-y-1">
-      <h3 class="text-sm font-semibold text-zinc-100">No scheduled tasks</h3>
-      <p class="text-[13px] text-zinc-555 max-w-sm">No cron jobs have been created for this project. Create one to run asynchronous commands in your applications.</p>
-    </div>
-  </div>
+  <app-empty-state title="No scheduled tasks yet" description="Create a cron job to run scheduled commands inside your applications.">
+    <svg icon xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" class="w-6 h-6">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <button [routerLink]="['/projects', parent.parent.projectId(), 'cron', 'create']" class="btn btn-primary">Create cron job</button>
+  </app-empty-state>
 } @else {
   <!-- Jobs Grid/List -->
   <div class="border border-zinc-900 rounded-lg overflow-hidden bg-zinc-950/40">

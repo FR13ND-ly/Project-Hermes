@@ -50,7 +50,7 @@
                 id="cred-select"
                 [ngModel]="selectedCredentialId()"
                 (ngModelChange)="onSelectCredential($event)"
-                class="block w-full px-3 py-1.5 text-[13px] input font-mono cursor-pointer"
+                class="block w-full px-3 py-1.5 text-[13px] input cursor-pointer"
               >
                 @for (c of credentials(); track c.id) {
                   <option [value]="c.id">{{ c.label }} · {{ c.provider }}{{ c.username ? ' (@' + c.username + ')' : '' }}</option>
@@ -361,7 +361,7 @@
                     [ngModel]="gitSubpath()"
                     (ngModelChange)="onSubpathInputChange($event)"
                     [disabled]="deployingApp()"
-                    class="block w-full px-3 py-2 text-sm input font-mono pr-24"
+                    class="block w-full px-3 py-2 text-sm input pr-24"
                   />
                   @if (detectedSubdirectories().length > 0) {
                     <button
@@ -562,7 +562,7 @@
                     [ngModel]="row.value"
                     (ngModelChange)="updateEnvRow($index, 'value', $event)"
                     [disabled]="deployingApp()"
-                    class="flex-1 px-3 py-2 text-[13px] input font-mono"
+                    class="flex-1 px-3 py-2 text-[13px] input"
                   />
                   <button
                     type="button"

@@ -6,9 +6,11 @@ import { ProjectService, ServerlessInstance } from '../../../../../../../../core
 import { Pagination } from '../../../../../../../../shared/components/pagination/pagination';
 import { DEFAULT_PAGE_SIZE } from '../../../../../../../../core/models/pagination';
 
+import { EmptyState } from '../../../../../../../../shared/components/empty-state/empty-state';
+
 @Component({
   selector: 'app-serverless-list',
-  imports: [Pagination, RouterLink],
+  imports: [Pagination, RouterLink, EmptyState],
   templateUrl: './list.html',
   styles: ``,
 })

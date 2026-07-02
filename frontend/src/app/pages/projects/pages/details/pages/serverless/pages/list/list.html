@@ -15,10 +15,12 @@
   @if (loading()) {
     <div class="flex justify-center py-16"><svg class="animate-spin h-5 w-5 text-zinc-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg></div>
   } @else if (instances().length === 0) {
-    <div class="card p-10 text-center max-w-sm mx-auto">
-      <h4 class="text-sm font-semibold text-zinc-100">No instances</h4>
-      <p class="text-[13px] text-zinc-550 mt-1 font-sans">Create a serverless instance and add routes inside it.</p>
-    </div>
+    <app-empty-state title="No serverless instances yet" description="Create an instance, then add HTTP routes and deploy your function.">
+      <svg icon xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" class="w-6 h-6">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+      </svg>
+      <button routerLink="create" class="btn btn-primary">Create instance</button>
+    </app-empty-state>
   } @else {
     <div class="card overflow-hidden">
       <table class="w-full text-left text-[13px]">

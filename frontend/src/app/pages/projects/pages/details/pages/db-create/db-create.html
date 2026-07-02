@@ -29,7 +29,7 @@
           [ngModel]="dbName()"
           (ngModelChange)="dbName.set($event)"
           [disabled]="provisioning()"
-          class="block w-full px-3 py-2 text-[13px] input font-mono"
+          class="block w-full px-3 py-2 text-[13px] input"
         />
       </div>
 
@@ -153,7 +153,7 @@
               [ngModel]="externalPort()"
               (ngModelChange)="externalPort.set($event)"
               [disabled]="provisioning()"
-              class="block w-24 px-2.5 py-1 text-[13px] input font-mono"
+              class="block w-24 px-2.5 py-1 text-[13px] input"
             />
           </div>
         }
@@ -185,7 +185,7 @@
           [ngModel]="envKeyName()"
           (ngModelChange)="envKeyName.set($event)"
           [disabled]="provisioning()"
-          class="block w-full max-w-xs px-2.5 py-1.5 text-[13px] input font-mono uppercase font-bold"
+          class="block w-full max-w-xs px-2.5 py-1.5 text-[13px] input uppercase font-bold"
         />
       </div>
       <p class="text-[11px] text-zinc-600 pl-6 leading-relaxed font-sans">The value is secret (encrypted). You can reveal it anytime from the "Environments" tab.</p>
