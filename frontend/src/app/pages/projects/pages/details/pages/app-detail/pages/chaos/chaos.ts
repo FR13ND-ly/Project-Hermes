@@ -134,6 +134,13 @@ export class AppChaosComponent implements OnInit, OnDestroy {
     return (inst.replicasMax ?? 0) > (inst.replicasMin ?? 1);
   }
 
+  /** True when the instance declares a CPU limit — Hermes mirrors limits into
+   *  requests, and the HPA can only measure utilization against a request. */
+  hasCpuRequest(): boolean {
+    const inst = this.parent.getSelectedInstance();
+    return !!inst && (inst.cpuLimit ?? 0) > 0;
+  }
+
   /** Seconds remaining until a running experiment auto-reverts. */
   countdown(e: ChaosExperiment): number {
     if (!e.revertAt) return 0;

@@ -232,13 +232,18 @@
                 </div>
               </div>
             </div>
-            @if (autoscaleEnabled()) {
-              <p class="text-[11px] text-zinc-600 font-sans">Keep this page open — new pod(s) show up in the Live Impact panel above once average CPU passes the HPA target (usually 30–90s in). They scale back down on their own after the burst.</p>
-            } @else {
+            @if (!autoscaleEnabled()) {
               <div class="flex items-center gap-2 text-xs p-2 rounded border border-amber-900/40 bg-amber-950/10">
                 <span class="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
                 <span class="text-amber-300 font-sans">Autoscaling is off for this instance — set <span class="font-bold">max replicas</span> above min in Settings → Scaling first, or the HPA has no room to add a pod.</span>
               </div>
+            } @else if (!hasCpuRequest()) {
+              <div class="flex items-center gap-2 text-xs p-2 rounded border border-amber-900/40 bg-amber-950/10">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
+                <span class="text-amber-300 font-sans">This instance has no <span class="font-bold">CPU limit</span>, so its pods carry no CPU request and the HPA can't measure utilization — the second pod will never come. Set a CPU limit in Settings → Resources and redeploy first.</span>
+              </div>
+            } @else {
+              <p class="text-[11px] text-zinc-600 font-sans">Keep this page open — new pod(s) show up in the Live Impact panel above once average CPU passes the HPA target (usually 30–90s in). They scale back down on their own after the burst.</p>
             }
           }
         }

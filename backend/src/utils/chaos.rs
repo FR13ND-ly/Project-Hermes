@@ -19,8 +19,87 @@ use crate::utils::k8s::K8sManager;
 const MIN_DURATION_SEC: i64 = 5;
 const MAX_DURATION_SEC: i64 = 300;
 
+/// Sentinel the burn workers poll — touching it stops every worker within
+/// milliseconds. Lives in /tmp so it also works on read-only root filesystems
+/// that mount a writable /tmp; each new burn removes it before starting.
+const CHAOS_STOP_FILE: &str = "/tmp/.hermes-chaos-stop";
+
 fn clamp_duration(secs: Option<i64>) -> i64 {
     secs.unwrap_or(60).clamp(MIN_DURATION_SEC, MAX_DURATION_SEC)
+}
+
+/// POSIX-sh CPU burn that actually terminates. The previous
+/// `timeout N sh -c '(while true …)&'` variant killed only the parent shell on
+/// timeout/cancel — the background busy-loops were reparented to PID 1 and kept
+/// spinning forever, eating the node's CPU. Here each worker re-checks (every
+/// ~20k arithmetic iterations, i.e. every few ms) both its own deadline and the
+/// stop sentinel, so it exits on time by itself and instantly when a revert
+/// touches [`CHAOS_STOP_FILE`].
+fn burn_script(dur: i64, workers: i32) -> String {
+    format!(
+        "S={stop}; rm -f $S; end=$(($(date +%s)+{dur})); i=0; \
+         while [ $i -lt {workers} ]; do \
+         (c=0; while :; do c=$((c+1)); if [ $c -ge 20000 ]; then c=0; \
+         if [ -f $S ] || [ $(date +%s) -ge $end ]; then break; fi; fi; done) & \
+         i=$((i+1)); done; wait",
+        stop = CHAOS_STOP_FILE,
+        dur = dur,
+        workers = workers
+    )
+}
+
+/// Non-terminating pods behind an app deployment (full objects, for spec checks).
+async fn list_app_pods(
+    client: &kube::Client,
+    namespace: &str,
+    container_name: &str,
+) -> Vec<k8s_openapi::api::core::v1::Pod> {
+    let pods: kube::Api<k8s_openapi::api::core::v1::Pod> =
+        kube::Api::namespaced(client.clone(), namespace);
+    let lp = kube::api::ListParams::default().labels(&format!("app={}", container_name));
+    pods.list(&lp)
+        .await
+        .map(|l| {
+            l.items
+                .into_iter()
+                .filter(|p| p.metadata.deletion_timestamp.is_none())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Touch the stop sentinel in every pod so burn workers exit now. Best-effort:
+/// pods that died or images without `sh` are skipped silently.
+async fn stop_burn(client: &kube::Client, namespace: &str, container_name: &str) {
+    let cmd = format!("touch {}", CHAOS_STOP_FILE);
+    for pod in list_app_pods(client, namespace, container_name).await {
+        if let Some(name) = pod.metadata.name {
+            let _ = K8sManager::exec_in_pod(
+                client,
+                namespace,
+                &name,
+                vec!["sh".into(), "-c".into(), cmd.clone()],
+            )
+            .await;
+        }
+    }
+}
+
+/// True when at least one container in the pod declares a CPU *request* —
+/// without one the HPA cannot compute utilization and will never scale up.
+fn pod_has_cpu_request(pod: &k8s_openapi::api::core::v1::Pod) -> bool {
+    pod.spec
+        .as_ref()
+        .map(|s| {
+            s.containers.iter().any(|c| {
+                c.resources
+                    .as_ref()
+                    .and_then(|r| r.requests.as_ref())
+                    .map(|req| req.contains_key("cpu"))
+                    .unwrap_or(false)
+            })
+        })
+        .unwrap_or(false)
 }
 
 /// Broadcast a refresh nudge so open Networking/Overview tabs re-poll.
@@ -138,16 +217,14 @@ pub async fn start_experiment(
                 serde_json::json!({ "target_replicas": target, "duration_sec": dur }),
             )
         }
-        // Best-effort in-pod CPU burn (needs a shell in the image). Self-terminates
-        // via `timeout`, so the revert is just closing the record.
+        // Best-effort in-pod CPU burn (needs a shell in the image). Workers
+        // self-terminate at the deadline and honour the stop sentinel, so a
+        // manual revert genuinely kills them (see `burn_script`).
         "cpu_stress" => {
             let dur = clamp_duration(req.duration_sec);
             let workers = req.cpu_workers.unwrap_or(1).clamp(1, 8);
             let pod = K8sManager::pod_name_for_app(&client, &namespace, container_name).await?;
-            let burn = format!(
-                "timeout {dur} sh -c 'n={workers}; i=0; while [ $i -lt $n ]; do (while true; do :; done) & i=$((i+1)); done; wait' 2>/dev/null || true",
-                dur = dur, workers = workers
-            );
+            let burn = burn_script(dur, workers);
             // Fire-and-forget: exec blocks for `dur`, so don't hold the request.
             let c = client.clone();
             let ns = namespace.clone();
@@ -179,27 +256,30 @@ pub async fn start_experiment(
             // ~30–90s before the new pod appears, so leave time to watch it happen.
             let dur = req.duration_sec.unwrap_or(240).clamp(MIN_DURATION_SEC, MAX_DURATION_SEC);
             let workers = req.cpu_workers.unwrap_or(4).clamp(1, 8);
-            let pods: kube::Api<k8s_openapi::api::core::v1::Pod> =
-                kube::Api::namespaced(client.clone(), &namespace);
-            let lp = kube::api::ListParams::default().labels(&format!("app={}", container_name));
-            let names: Vec<String> = pods
-                .list(&lp)
-                .await
-                .map(|l| {
-                    l.items
-                        .into_iter()
-                        .filter(|p| p.metadata.deletion_timestamp.is_none())
-                        .filter_map(|p| p.metadata.name)
-                        .collect()
-                })
-                .unwrap_or_default();
-            if names.is_empty() {
+            let pod_items = list_app_pods(&client, &namespace, container_name).await;
+            if pod_items.is_empty() {
                 return Err(AppError::Validation("No running pods to stress for this instance.".into()));
             }
-            let burn = format!(
-                "timeout {dur} sh -c 'n={workers}; i=0; while [ $i -lt $n ]; do (while true; do :; done) & i=$((i+1)); done; wait' 2>/dev/null || true",
-                dur = dur, workers = workers
-            );
+            // The HPA scales on utilization = usage / *request*. Hermes only sets a
+            // CPU request when the instance has a CPU limit, so with an uncapped
+            // instance the burn maxes the node while the HPA sits blind and no pod
+            // ever appears. Refuse loudly instead of running a broken demo.
+            if !pod_items.iter().any(pod_has_cpu_request) {
+                return Err(AppError::Validation(
+                    "The pods have no CPU request, so the HPA cannot measure utilization and will never scale up. Set a CPU limit for this instance (Settings → Resources) and redeploy, then run the burst again.".into(),
+                ));
+            }
+            let names: Vec<String> = pod_items.into_iter().filter_map(|p| p.metadata.name).collect();
+            // Quick blocking probe: without a shell in the image the burn execs
+            // would all fail silently and the experiment would "run" doing nothing.
+            if let Some(first) = names.first() {
+                K8sManager::exec_in_pod(&client, &namespace, first, vec!["sh".into(), "-c".into(), ":".into()])
+                    .await
+                    .map_err(|_| AppError::Validation(
+                        "The container image has no usable shell (`sh`), so the CPU burn cannot run in this app.".into(),
+                    ))?;
+            }
+            let burn = burn_script(dur, workers);
             // Fire-and-forget per pod: each exec blocks for `dur`, so don't hold the request.
             for pod in &names {
                 let c = client.clone();
@@ -276,13 +356,23 @@ pub async fn revert_experiment(pool: &PgPool, exp_id: Uuid, final_status: &str) 
 
     let Ok(Some(e)) = exp else { return };
 
-    // Restore replicas for scale_down (pod_kill/cpu_stress self-recover).
+    // Restore replicas for scale_down (pod_kill self-recovers).
     if e.kind == "scale_down" {
         if let Some(target) = e.original_replicas {
             if let Ok(client) = K8sManager::get_client().await {
                 let namespace = format!("hermes-ws-{}", e.workspace_id);
                 let _ = K8sManager::scale_deployment(&client, &namespace, &e.container_name, target).await;
             }
+        }
+    }
+
+    // Kill burn workers for the CPU experiments: touch the stop sentinel every
+    // worker polls. Runs on manual cancel AND on the auto-revert tick, so even a
+    // pod whose clock drifted past the deadline gets cleaned up.
+    if e.kind == "cpu_stress" || e.kind == "autoscale_burst" {
+        if let Ok(client) = K8sManager::get_client().await {
+            let namespace = format!("hermes-ws-{}", e.workspace_id);
+            stop_burn(&client, &namespace, &e.container_name).await;
         }
     }
 
