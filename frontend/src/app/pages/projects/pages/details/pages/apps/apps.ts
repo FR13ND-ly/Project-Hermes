@@ -1,6 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Details } from '../../details';
 import { ProjectService, AppDetail } from '../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../core/services/toast.service';
@@ -10,7 +10,7 @@ import { EmptyState } from '../../../../../../shared/components/empty-state/empt
 
 @Component({
   selector: 'app-apps',
-  imports: [DatePipe, EmptyState],
+  imports: [DatePipe, EmptyState, RouterLink],
   templateUrl: './apps.html',
   styleUrl: './apps.css',
 })
@@ -38,6 +38,20 @@ export class Apps implements OnInit {
   onViewDetails(app: AppDetail, tab: string = 'telemetry'): void {
     this.parent.selectedApp.set(app);
     this.router.navigate([`/projects/${this.parent.projectId()}/apps/${app.id}/${tab}`]);
+  }
+
+  /** First instance domain, shown as the app's public URL on the card. */
+  primaryDomain(app: AppDetail): string | null {
+    for (const inst of app.instances || []) {
+      if (inst.assignedDomain) return inst.assignedDomain;
+    }
+    return null;
+  }
+
+  /** How many further instances (branches) also have a domain attached. */
+  extraDomainCount(app: AppDetail): number {
+    const n = (app.instances || []).filter(i => !!i.assignedDomain).length;
+    return Math.max(0, n - 1);
   }
 
   async onDeleteApp(app: AppDetail): Promise<void> {

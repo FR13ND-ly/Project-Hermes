@@ -1,7 +1,7 @@
 <div class="space-y-6 animate-fade-in">
   
-  <div class="flex items-center justify-between gap-4">
-    <div class="space-y-0.5">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="space-y-0.5 min-w-0">
       <h2 class="text-lg font-semibold tracking-tight text-zinc-50">Applications</h2>
       <p class="text-[13px] text-zinc-500">Active services in this project and their configuration.</p>
     </div>
@@ -36,76 +36,97 @@
       <span class="text-[13px] text-zinc-550 font-medium">Loading application list...</span>
     </div>
   } @else {
-    <div class="grid gap-4 md:grid-cols-1">
+    <div class="grid gap-4 lg:grid-cols-2">
       @for (app of parent.apps(); track app.id) {
         <div
-          class="card p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 hover:border-indigo-500/40 transition-all"
+          class="card p-5 flex flex-col gap-4 hover:border-indigo-500/40 transition-all"
           [class.border-indigo-500/50]="parent.selectedApp()?.id === app.id"
         >
-          <div class="space-y-2 min-w-0 flex-1">
-            <div class="flex items-center gap-2.5 flex-wrap">
-              <h4 class="text-sm font-semibold text-zinc-50 truncate cursor-pointer hover:text-indigo-300 transition-colors" (click)="onViewDetails(app, 'overview')">
-                {{ app.name }}
-              </h4>
-              
-              <span 
-                class="px-2 py-0.5 rounded text-[11px] font-semibold border font-mono tracking-wider"
-                [class]="parent.getAppStatusClass(app)"
-              >
-                {{ parent.getAppStatus(app) }}
-              </span>
-
-              @if (parent.selectedApp()?.id === app.id) {
-                <span class="px-1.5 py-0.2 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded text-[11px] font-medium tracking-wide">
-                  Selected
+          <!-- Card header: name + status (left) · open (right) -->
+          <div class="flex items-start justify-between gap-3">
+            <div class="space-y-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <h4 class="text-sm font-semibold text-zinc-50 truncate cursor-pointer hover:text-indigo-300 transition-colors" (click)="onViewDetails(app, 'overview')">
+                  {{ app.name }}
+                </h4>
+                <span
+                  class="px-2 py-0.5 rounded text-[11px] font-semibold border font-mono tracking-wider shrink-0"
+                  [class]="parent.getAppStatusClass(app)"
+                >
+                  {{ parent.getAppStatus(app) }}
                 </span>
-              }
-            </div>
-            
-            <div class="flex flex-col gap-1 text-xs text-zinc-550 font-mono mt-2">
-              <div class="flex items-center gap-2">
-                <span class="text-zinc-600">Git Repo:</span>
-                <span class="text-zinc-300 truncate max-w-[280px] hover:text-zinc-50 transition-colors cursor-pointer select-all">{{ app.git_repo_url }}</span>
-              </div>
-              <div class="flex items-center gap-4 mt-0.5">
-                <div>
-                  <span class="text-zinc-600">Internal Port:</span>
-                  <span class="text-zinc-300 ml-1">{{ app.instances.length > 0 ? app.instances[0].internalPort : 8080 }}</span>
-                </div>
-                @if (app.instances.length > 0 && app.instances[0].externalPort) {
-                  <div>
-                    <span class="text-zinc-600">Link:</span>
-                    <a
-                      [href]="app.instances[0].assignedDomain ? 'http://' + app.instances[0].assignedDomain : 'http://localhost:' + app.instances[0].externalPort"
-                      target="_blank"
-                      class="text-indigo-400 font-semibold hover:underline ml-1 font-sans"
-                    >
-                      {{ app.instances[0].assignedDomain ? 'http://' + app.instances[0].assignedDomain : 'http://localhost:' + app.instances[0].externalPort }}
-                    </a>
-                  </div>
+                @if (parent.selectedApp()?.id === app.id) {
+                  <span class="px-1.5 py-0.2 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded text-[11px] font-medium tracking-wide shrink-0">
+                    Selected
+                  </span>
                 }
-                <div>
-                  <span class="text-zinc-600">Instances:</span>
-                  <span class="text-zinc-300 ml-1 font-bold">{{ app.instances.length || 0 }}</span>
-                </div>
-                <div>
-                  <span class="text-zinc-600">Created:</span>
-                  <span class="text-zinc-300 ml-1">{{ app.created_at | date:'shortDate' }}</span>
-                </div>
               </div>
+              <p class="text-[11px] text-zinc-600 font-mono truncate select-all" [title]="app.git_repo_url">{{ app.git_repo_url }}</p>
+            </div>
+            <button (click)="onViewDetails(app, 'overview')" class="btn btn-secondary btn-sm shrink-0">Open</button>
+          </div>
+
+          <!-- Public domain: the app's front door, so it gets its own row -->
+          @if (primaryDomain(app); as domain) {
+            <a
+              [href]="'https://' + domain"
+              target="_blank"
+              rel="noopener"
+              class="flex items-center gap-2 px-2.5 py-2 rounded bg-zinc-950 border border-zinc-900 hover:border-indigo-500/40 transition-colors group min-w-0"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5 text-indigo-400 shrink-0">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m8.716 5.747A9.004 9.004 0 0012 3m8.716 5.747a8.958 8.958 0 010 6.506M3.284 8.747A9.004 9.004 0 0112 3M3.284 8.747a8.958 8.958 0 000 6.506" />
+              </svg>
+              <span class="text-xs font-mono text-indigo-400 group-hover:underline truncate flex-1">https://{{ domain }}</span>
+              @if (extraDomainCount(app) > 0) {
+                <span class="text-[11px] text-zinc-600 font-mono shrink-0">+{{ extraDomainCount(app) }} more</span>
+              }
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-zinc-600 group-hover:text-indigo-400 shrink-0 transition-colors">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+              </svg>
+            </a>
+          } @else {
+            <div class="flex items-center justify-between gap-2 px-2.5 py-2 rounded bg-zinc-950 border border-zinc-900 border-dashed min-w-0">
+              <span class="flex items-center gap-2 text-xs text-zinc-600 font-mono truncate">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-3.5 h-3.5 shrink-0">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m8.716 5.747A9.004 9.004 0 0012 3m8.716 5.747a8.958 8.958 0 010 6.506M3.284 8.747A9.004 9.004 0 0112 3M3.284 8.747a8.958 8.958 0 000 6.506" />
+                </svg>
+                No public domain
+              </span>
+              <a [routerLink]="['/projects', parent.projectId(), 'networking', 'create']" class="text-[11px] text-indigo-400 hover:underline font-semibold shrink-0">Attach domain</a>
+            </div>
+          }
+
+          <!-- Specs -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-2.5 rounded bg-zinc-950 border border-zinc-900 text-xs font-mono">
+            <div class="space-y-0.5 min-w-0">
+              <span class="block text-[10px] uppercase tracking-wider text-zinc-600">Branch</span>
+              <span class="block text-zinc-200 font-bold truncate">{{ app.instances[0]?.branchName || '—' }}</span>
+            </div>
+            <div class="space-y-0.5">
+              <span class="block text-[10px] uppercase tracking-wider text-zinc-600">Port</span>
+              <span class="block text-zinc-200 font-bold">{{ app.instances[0]?.internalPort || 8080 }}</span>
+            </div>
+            <div class="space-y-0.5">
+              <span class="block text-[10px] uppercase tracking-wider text-zinc-600">Instances</span>
+              <span class="block text-zinc-200 font-bold">{{ app.instances.length || 0 }}</span>
+            </div>
+            <div class="space-y-0.5">
+              <span class="block text-[10px] uppercase tracking-wider text-zinc-600">Created</span>
+              <span class="block text-zinc-200 font-bold">{{ app.created_at | date:'dd.MM.yyyy' }}</span>
             </div>
           </div>
 
-          <!-- Actions -->
-          <div class="flex items-center gap-2 sm:self-center flex-wrap sm:flex-nowrap">
-            <button (click)="onViewDetails(app, 'telemetry')" class="btn btn-secondary btn-sm">Metrics</button>
-            <button (click)="onViewDetails(app, 'logs')" class="btn btn-secondary btn-sm">Logs</button>
-            <button (click)="onViewDetails(app, 'env')" class="btn btn-secondary btn-sm">Env</button>
-            <button (click)="onViewDetails(app, 'general')" class="btn btn-secondary btn-sm">Settings</button>
+          <!-- Quick links -->
+          <div class="flex items-center gap-1.5 flex-wrap pt-3 border-t border-zinc-900/70 mt-auto">
+            <button (click)="onViewDetails(app, 'telemetry')" class="btn btn-ghost btn-sm">Metrics</button>
+            <button (click)="onViewDetails(app, 'logs')" class="btn btn-ghost btn-sm">Logs</button>
+            <button (click)="onViewDetails(app, 'env')" class="btn btn-ghost btn-sm">Env</button>
+            <button (click)="onViewDetails(app, 'general')" class="btn btn-ghost btn-sm">Settings</button>
           </div>
         </div>
       } @empty {
-        <app-empty-state title="No applications yet" description="Deploy your first service from a Git repository to get started.">
+        <app-empty-state class="lg:col-span-2" title="No applications yet" description="Deploy your first service from a Git repository to get started.">
           <svg icon xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" class="w-6 h-6">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0l4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0l-5.571 3-5.571-3" />
           </svg>
