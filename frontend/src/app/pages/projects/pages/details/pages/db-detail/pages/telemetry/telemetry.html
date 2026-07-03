@@ -44,16 +44,9 @@
           </div>
           <div class="text-[11px] text-zinc-600 font-mono text-right">{{ cpuUsedPct() }}% of allocated quota</div>
         </div>
-        <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[110px]">
-          @if (dbCpuValues().length > 1) {
-            <svg viewBox="0 0 500 150" width="100%" height="110" preserveAspectRatio="none">
-              <path [attr.d]="getSvgFillPath(dbCpuValues())" fill="rgba(16,185,129,0.10)"></path>
-              <path [attr.d]="getSvgPath(dbCpuValues())" fill="none" stroke="#10b981" stroke-width="1.8" stroke-linecap="round"></path>
-            </svg>
-          } @else {
-            <div class="h-full flex items-center justify-center text-xs text-zinc-650 font-mono">No data available for this interval</div>
-          }
-        </div>
+        <app-telemetry-chart
+          [timestamps]="dbCpuTs()" [values]="dbCpuValues()" [range]="dbRange()"
+          color="#10b981" unit="m" [chartHeight]="110" />
       </div>
 
       <!-- Memory consumed vs allocated -->
@@ -68,16 +61,9 @@
           </div>
           <div class="text-[11px] text-zinc-600 font-mono text-right">{{ memUsedPct() }}% of allocated quota</div>
         </div>
-        <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[110px]">
-          @if (dbMemValues().length > 1) {
-            <svg viewBox="0 0 500 150" width="100%" height="110" preserveAspectRatio="none">
-              <path [attr.d]="getSvgFillPath(dbMemValues())" fill="rgba(161,161,170,0.10)"></path>
-              <path [attr.d]="getSvgPath(dbMemValues())" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linecap="round"></path>
-            </svg>
-          } @else {
-            <div class="h-full flex items-center justify-center text-xs text-zinc-650 font-mono">No data available for this interval</div>
-          }
-        </div>
+        <app-telemetry-chart
+          [timestamps]="dbMemTs()" [values]="dbMemValues()" [range]="dbRange()"
+          color="var(--color-zinc-400)" unit="MB" [chartHeight]="110" />
       </div>
 
       <!-- Disk size -->
@@ -86,16 +72,9 @@
           <span>Disk Size</span>
           <span class="text-zinc-50 font-mono font-bold">{{ lastVal(dbSizeValues()) | number:'1.0-1' }} MB</span>
         </div>
-        <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[110px]">
-          @if (dbSizeValues().length > 1) {
-            <svg viewBox="0 0 500 150" width="100%" height="110" preserveAspectRatio="none">
-              <path [attr.d]="getSvgFillPath(dbSizeValues())" fill="rgba(96,165,250,0.10)"></path>
-              <path [attr.d]="getSvgPath(dbSizeValues())" fill="none" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round"></path>
-            </svg>
-          } @else {
-            <div class="h-full flex items-center justify-center text-xs text-zinc-650 font-mono">No data available for this interval</div>
-          }
-        </div>
+        <app-telemetry-chart
+          [timestamps]="dbSizeTs()" [values]="dbSizeValues()" [range]="dbRange()"
+          color="#60a5fa" unit="MB" [chartHeight]="110" />
       </div>
 
       <!-- Connections -->
@@ -104,16 +83,9 @@
           <span>Active Connections</span>
           <span class="text-zinc-50 font-mono font-bold">{{ lastVal(dbConnValues()) | number:'1.0-0' }}</span>
         </div>
-        <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[110px]">
-          @if (dbConnValues().length > 1) {
-            <svg viewBox="0 0 500 150" width="100%" height="110" preserveAspectRatio="none">
-              <path [attr.d]="getSvgFillPath(dbConnValues())" fill="rgba(251,191,36,0.10)"></path>
-              <path [attr.d]="getSvgPath(dbConnValues())" fill="none" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round"></path>
-            </svg>
-          } @else {
-            <div class="h-full flex items-center justify-center text-xs text-zinc-650 font-mono">No data available for this interval</div>
-          }
-        </div>
+        <app-telemetry-chart
+          [timestamps]="dbConnTs()" [values]="dbConnValues()" [range]="dbRange()"
+          color="#fbbf24" unit="" [chartHeight]="110" />
       </div>
 
       <!-- Cache hit rate (Postgres + Redis expose hit/miss counters) -->
@@ -123,16 +95,9 @@
             <span>Cache Hit Rate (%)</span>
             <span class="text-zinc-50 font-mono font-bold">{{ lastVal(dbCacheValues()) | number:'1.0-2' }}%</span>
           </div>
-          <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[110px]">
-            @if (dbCacheValues().length > 1) {
-              <svg viewBox="0 0 500 150" width="100%" height="110" preserveAspectRatio="none">
-                <path [attr.d]="getSvgFillPath(dbCacheValues())" fill="rgba(52,211,153,0.10)"></path>
-                <path [attr.d]="getSvgPath(dbCacheValues())" fill="none" stroke="#34d399" stroke-width="1.8" stroke-linecap="round"></path>
-              </svg>
-            } @else {
-              <div class="h-full flex items-center justify-center text-xs text-zinc-650 font-mono">No data available for this interval</div>
-            }
-          </div>
+          <app-telemetry-chart
+            [timestamps]="dbCacheTs()" [values]="dbCacheValues()" [range]="dbRange()"
+            color="#34d399" unit="%" [chartHeight]="110" />
         </div>
       }
     </div>

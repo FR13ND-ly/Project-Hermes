@@ -2,10 +2,11 @@ import { Component, inject, OnDestroy, effect } from '@angular/core';
 import { DecimalPipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AppDetailComponent } from '../../app-detail';
+import { TelemetryChartComponent } from '../../../../../../../../shared/components/telemetry-chart/telemetry-chart';
 
 @Component({
   selector: 'app-app-telemetry',
-  imports: [DecimalPipe, FormsModule, NgClass],
+  imports: [DecimalPipe, FormsModule, NgClass, TelemetryChartComponent],
   templateUrl: './telemetry.html',
   styles: ``,
 })

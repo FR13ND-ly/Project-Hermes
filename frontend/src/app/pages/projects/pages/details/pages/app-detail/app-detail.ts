@@ -73,15 +73,22 @@ export class AppDetailComponent implements OnInit, OnDestroy {
   readonly domains = signal<Domain[]>([]);
   readonly loadingDomains = signal(false);
 
-  // Telemetry signals
+  // Telemetry signals. Timestamps ride along with the values so the charts can
+  // place each sample at its real time inside the window (and show gaps).
   readonly activeInstanceId = signal<string | null>(null);
   readonly selectedRange = signal('1h');
   readonly cpuValues = signal<number[]>([]);
+  readonly cpuTs = signal<number[]>([]);
   readonly memValues = signal<number[]>([]);
+  readonly memTs = signal<number[]>([]);
   readonly netRxValues = signal<number[]>([]);
+  readonly netRxTs = signal<number[]>([]);
   readonly netTxValues = signal<number[]>([]);
+  readonly netTxTs = signal<number[]>([]);
   readonly fsReadValues = signal<number[]>([]);
+  readonly fsReadTs = signal<number[]>([]);
   readonly fsWriteValues = signal<number[]>([]);
+  readonly fsWriteTs = signal<number[]>([]);
   readonly metricsLoading = signal(false);
   readonly metricsSimulated = signal(false);
 
@@ -565,11 +572,13 @@ export class AppDetailComponent implements OnInit, OnDestroy {
       next: (res) => {
         const millicoresValues = (res.values || []).map(val => val * 1000);
         this.cpuValues.set(millicoresValues);
+        this.cpuTs.set(res.timestamps || []);
         this.metricsSimulated.set(!!res.simulated);
         this.metricsLoading.set(false);
       },
       error: () => {
         this.cpuValues.set([]);
+        this.cpuTs.set([]);
         this.metricsLoading.set(false);
       }
     });
@@ -578,9 +587,11 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.projectService.getMetrics(appId, instanceId, 'memory', this.selectedRange()).subscribe({
       next: (res) => {
         this.memValues.set(res.values || []);
+        this.memTs.set(res.timestamps || []);
       },
       error: () => {
         this.memValues.set([]);
+        this.memTs.set([]);
       }
     });
 
@@ -588,9 +599,11 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.projectService.getMetrics(appId, instanceId, 'network_rx', this.selectedRange()).subscribe({
       next: (res) => {
         this.netRxValues.set(res.values || []);
+        this.netRxTs.set(res.timestamps || []);
       },
       error: () => {
         this.netRxValues.set([]);
+        this.netRxTs.set([]);
       }
     });
 
@@ -598,9 +611,11 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.projectService.getMetrics(appId, instanceId, 'network_tx', this.selectedRange()).subscribe({
       next: (res) => {
         this.netTxValues.set(res.values || []);
+        this.netTxTs.set(res.timestamps || []);
       },
       error: () => {
         this.netTxValues.set([]);
+        this.netTxTs.set([]);
       }
     });
 
@@ -608,9 +623,11 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.projectService.getMetrics(appId, instanceId, 'fs_read', this.selectedRange()).subscribe({
       next: (res) => {
         this.fsReadValues.set(res.values || []);
+        this.fsReadTs.set(res.timestamps || []);
       },
       error: () => {
         this.fsReadValues.set([]);
+        this.fsReadTs.set([]);
       }
     });
 
@@ -618,9 +635,11 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.projectService.getMetrics(appId, instanceId, 'fs_write', this.selectedRange()).subscribe({
       next: (res) => {
         this.fsWriteValues.set(res.values || []);
+        this.fsWriteTs.set(res.timestamps || []);
       },
       error: () => {
         this.fsWriteValues.set([]);
+        this.fsWriteTs.set([]);
       }
     });
   }
@@ -778,74 +797,10 @@ export class AppDetailComponent implements OnInit, OnDestroy {
     this.sseConnected.set(false);
   }
 
-  connectTelemetry(instanceId: string): void {
-    const appId = this.appId();
-    if (!appId) return;
-
-    this.disconnectTelemetry();
-    this.lastCpuSystem = null;
-    this.lastCpuContainer = null;
-
-    const streamUrl = this.projectService.getStatsStreamUrl(appId, instanceId);
-    this.statsEventSource = new EventSource(streamUrl);
-
-    this.statsEventSource.onmessage = (event) => {
-      if (event.data) {
-        try {
-          const data = JSON.parse(event.data);
-
-          // Backend reports honest availability — when metrics can't be read it
-          // sends { available: false } rather than fabricating values. Skip the
-          // sample and reset the CPU delta baseline so resumption doesn't spike.
-          if (data.available === false) {
-            this.lastCpuSystem = null;
-            this.lastCpuContainer = null;
-            return;
-          }
-
-          const memoryMb = data.memoryBytes / (1024 * 1024);
-
-          let cpuMillicores: number | null = null;
-          if (this.lastCpuSystem !== null && this.lastCpuContainer !== null) {
-            const deltaSys = data.cpuSystem - this.lastCpuSystem;
-            const deltaCont = data.cpuContainer - this.lastCpuContainer;
-            if (deltaSys > 0) {
-              cpuMillicores = (deltaCont / deltaSys) * 1000;
-            }
-          }
-          this.lastCpuSystem = data.cpuSystem;
-          this.lastCpuContainer = data.cpuContainer;
-
-          // Append and limit rolling window to last 50 points
-          this.memValues.update(vals => {
-            const next = [...vals, memoryMb];
-            if (next.length > 50) next.shift();
-            return next;
-          });
-
-          if (cpuMillicores !== null) {
-            const currentCpu = cpuMillicores;
-            this.cpuValues.update(vals => {
-              const next = [...vals, currentCpu];
-              if (next.length > 50) next.shift();
-              return next;
-            });
-          }
-
-          // Network and disk are not part of the live stats stream; they are only
-          // available from the historical Prometheus query, so we leave them as-is
-          // here rather than fabricating values.
-        } catch (e) {
-          console.error('[Telemetry] Error parsing stats SSE stream:', e);
-        }
-      }
-    };
-
-    this.statsEventSource.onerror = () => {
-      this.disconnectTelemetry();
-    };
-  }
-
+  // The old live stats SSE stream is gone: it appended value-only samples into the
+  // range-anchored chart arrays, desyncing them from their timestamps. Prometheus
+  // range queries (loadMetrics + auto-refresh) are the single source of truth;
+  // disconnectTelemetry stays so old code paths can close any stray stream.
   disconnectTelemetry(): void {
     if (this.statsEventSource) {
       this.statsEventSource.close();
@@ -1238,27 +1193,6 @@ export class AppDetailComponent implements OnInit, OnDestroy {
         this.loading.set(false);
       }
     });
-  }
-
-  // --- Charts SVG Helpers ---
-  getSvgPath(values: number[]): string {
-    if (values.length < 2) return '';
-    const width = 500;
-    const height = 150;
-    const max = Math.max(...values, 0.1) * 1.1;
-    const min = Math.min(...values, 0);
-
-    return values.map((val, idx) => {
-      const x = (idx / (values.length - 1)) * width;
-      const y = height - ((val - min) / (max - min)) * height;
-      return `${idx === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-    }).join(' ');
-  }
-
-  getSvgFillPath(values: number[]): string {
-    const linePath = this.getSvgPath(values);
-    if (!linePath) return '';
-    return `${linePath} L 500 150 L 0 150 Z`;
   }
 
   getSelectedInstance(): AppInstance | null {

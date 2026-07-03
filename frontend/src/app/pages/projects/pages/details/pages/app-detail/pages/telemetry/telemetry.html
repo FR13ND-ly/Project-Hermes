@@ -75,22 +75,9 @@
               </div>
               <div class="text-[11px] text-zinc-650 font-mono text-right">@if (parent.cpuLimit() === 0) { Unlimited } @else { {{ parent.cpuUsedPct() }}% of allocated quota }</div>
             </div>
-            <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[120px] relative">
-              @if (parent.cpuValues().length > 1) {
-                <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="cpu-grad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.1" />
-                      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                  <path [attr.d]="parent.getSvgFillPath(parent.cpuValues())" fill="url(#cpu-grad)"></path>
-                  <path [attr.d]="parent.getSvgPath(parent.cpuValues())" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"></path>
-                </svg>
-              } @else {
-                <div class="h-full flex items-center justify-center text-xs text-zinc-650 font-mono">No data for this interval</div>
-              }
-            </div>
+            <app-telemetry-chart
+              [timestamps]="parent.cpuTs()" [values]="parent.cpuValues()" [range]="parent.selectedRange()"
+              color="var(--color-zinc-50)" unit="m" />
           </div>
 
           <!-- RAM -->
@@ -105,22 +92,9 @@
               </div>
               <div class="text-[11px] text-zinc-655 font-mono text-right">@if (parent.memLimit() === 0) { Unlimited } @else { {{ parent.memUsedPct() }}% of allocated quota }</div>
             </div>
-            <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[120px] relative">
-              @if (parent.memValues().length > 1) {
-                <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="mem-grad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.1" />
-                      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                  <path [attr.d]="parent.getSvgFillPath(parent.memValues())" fill="url(#mem-grad)"></path>
-                  <path [attr.d]="parent.getSvgPath(parent.memValues())" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linecap="round"></path>
-                </svg>
-              } @else {
-                <div class="h-full flex items-center justify-center text-xs text-zinc-655 font-mono">No data for this interval</div>
-              }
-            </div>
+            <app-telemetry-chart
+              [timestamps]="parent.memTs()" [values]="parent.memValues()" [range]="parent.selectedRange()"
+              color="var(--color-zinc-400)" unit="MB" />
           </div>
 
           <!-- Inbound Network (network_rx) -->
@@ -131,22 +105,9 @@
                 <span class="text-zinc-50 font-mono font-bold">{{ parent.netRxValues()[parent.netRxValues().length - 1] | number:'1.0-1' }} KB/s</span>
               }
             </div>
-            <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[120px] relative">
-              @if (parent.netRxValues().length > 1) {
-                <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="netrx-grad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.1" />
-                      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                  <path [attr.d]="parent.getSvgFillPath(parent.netRxValues())" fill="url(#netrx-grad)"></path>
-                  <path [attr.d]="parent.getSvgPath(parent.netRxValues())" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round"></path>
-                </svg>
-              } @else {
-                <div class="h-full flex items-center justify-center text-xs text-zinc-655 font-mono">No data for this interval</div>
-              }
-            </div>
+            <app-telemetry-chart
+              [timestamps]="parent.netRxTs()" [values]="parent.netRxValues()" [range]="parent.selectedRange()"
+              color="#38bdf8" unit="KB/s" />
           </div>
 
           <!-- Outbound Network (network_tx) -->
@@ -157,22 +118,9 @@
                 <span class="text-zinc-50 font-mono font-bold">{{ parent.netTxValues()[parent.netTxValues().length - 1] | number:'1.0-1' }} KB/s</span>
               }
             </div>
-            <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[120px] relative">
-              @if (parent.netTxValues().length > 1) {
-                <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="nettx-grad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.1" />
-                      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                  <path [attr.d]="parent.getSvgFillPath(parent.netTxValues())" fill="url(#nettx-grad)"></path>
-                  <path [attr.d]="parent.getSvgPath(parent.netTxValues())" fill="none" stroke="#818cf8" stroke-width="1.8" stroke-linecap="round"></path>
-                </svg>
-              } @else {
-                <div class="h-full flex items-center justify-center text-xs text-zinc-655 font-mono">No data for this interval</div>
-              }
-            </div>
+            <app-telemetry-chart
+              [timestamps]="parent.netTxTs()" [values]="parent.netTxValues()" [range]="parent.selectedRange()"
+              color="#818cf8" unit="KB/s" />
           </div>
 
           <!-- Disk Read (fs_read) -->
@@ -183,22 +131,9 @@
                 <span class="text-zinc-50 font-mono font-bold">{{ parent.fsReadValues()[parent.fsReadValues().length - 1] | number:'1.0-1' }} KB/s</span>
               }
             </div>
-            <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[120px] relative">
-              @if (parent.fsReadValues().length > 1) {
-                <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="fsread-grad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.1" />
-                      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                  <path [attr.d]="parent.getSvgFillPath(parent.fsReadValues())" fill="url(#fsread-grad)"></path>
-                  <path [attr.d]="parent.getSvgPath(parent.fsReadValues())" fill="none" stroke="#f43f5e" stroke-width="1.8" stroke-linecap="round"></path>
-                </svg>
-              } @else {
-                <div class="h-full flex items-center justify-center text-xs text-zinc-655 font-mono">No data for this interval</div>
-              }
-            </div>
+            <app-telemetry-chart
+              [timestamps]="parent.fsReadTs()" [values]="parent.fsReadValues()" [range]="parent.selectedRange()"
+              color="#f43f5e" unit="KB/s" />
           </div>
 
           <!-- Disk Write (fs_write) -->
@@ -209,22 +144,9 @@
                 <span class="text-zinc-50 font-mono font-bold">{{ parent.fsWriteValues()[parent.fsWriteValues().length - 1] | number:'1.0-1' }} KB/s</span>
               }
             </div>
-            <div class="w-full bg-zinc-950 border border-zinc-950 rounded overflow-hidden h-[120px] relative">
-              @if (parent.fsWriteValues().length > 1) {
-                <svg viewBox="0 0 500 150" width="100%" height="120" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="fswrite-grad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.1" />
-                      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                  <path [attr.d]="parent.getSvgFillPath(parent.fsWriteValues())" fill="url(#fswrite-grad)"></path>
-                  <path [attr.d]="parent.getSvgPath(parent.fsWriteValues())" fill="none" stroke="#fb7185" stroke-width="1.8" stroke-linecap="round"></path>
-                </svg>
-              } @else {
-                <div class="h-full flex items-center justify-center text-xs text-zinc-655 font-mono">No data for this interval</div>
-              }
-            </div>
+            <app-telemetry-chart
+              [timestamps]="parent.fsWriteTs()" [values]="parent.fsWriteValues()" [range]="parent.selectedRange()"
+              color="#fb7185" unit="KB/s" />
           </div>
         </div>
       </div>
