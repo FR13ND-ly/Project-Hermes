@@ -30,7 +30,7 @@
       </div>
 
       <!-- Tab navigation menu -->
-      <div class="flex border-b border-zinc-900 pb-px gap-5 select-none">
+      <div class="flex border-b border-zinc-900 pb-px gap-5 select-none overflow-x-auto">
         @for (g of tabGroups; track g.id) {
           <a
             [routerLink]="activeGroup().id === g.id ? currentTabPath() : g.default"

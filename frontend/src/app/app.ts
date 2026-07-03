@@ -1,5 +1,5 @@
 import { Component, inject, computed, signal, effect, HostListener } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from './core/services/auth';
 import { WorkspaceService, Workspace, WorkspaceUsage } from './core/services/workspace.service';
@@ -37,6 +37,8 @@ export class App {
   readonly showThemeMenu = signal(false);
   readonly showCreateWorkspaceModal = signal(false);
   readonly newWorkspaceName = signal('');
+  // Mobile-only slide-over state for the sidebar (< lg). Closed on navigation.
+  readonly showMobileSidebar = signal(false);
 
   // Real resource usage for the current workspace (header gauges).
   readonly usage = signal<WorkspaceUsage | null>(null);
@@ -113,6 +115,14 @@ export class App {
       }
     });
 
+    // Any navigation closes the mobile sidebar drawer, so tapping a nav link
+    // both routes and dismisses the overlay.
+    this.router.events.subscribe((e) => {
+      if (e instanceof NavigationEnd && this.showMobileSidebar()) {
+        this.showMobileSidebar.set(false);
+      }
+    });
+
     // Refresh server gauges periodically while a super admin is signed in.
     this.serverResPoll = setInterval(() => {
       if (this.isAuthenticated() && this.isSuperAdmin()) {
@@ -136,6 +146,10 @@ export class App {
     }
     if (this.showCreateWorkspaceModal()) {
       this.showCreateWorkspaceModal.set(false);
+      return;
+    }
+    if (this.showMobileSidebar()) {
+      this.showMobileSidebar.set(false);
       return;
     }
     if (this.showWorkspaceDropdown()) {

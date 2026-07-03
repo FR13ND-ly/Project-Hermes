@@ -9,7 +9,7 @@
 
     @if (workspace()) {
       <!-- Sub-Tabs Navigation -->
-      <div class="flex border-b border-zinc-900 pb-px gap-5 select-none">
+      <div class="flex border-b border-zinc-900 pb-px gap-5 select-none overflow-x-auto">
         <button (click)="activeSubTab.set('general')" class="tab" [class.is-active]="activeSubTab() === 'general'">
           General Settings
         </button>

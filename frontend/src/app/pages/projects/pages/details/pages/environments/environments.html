@@ -264,6 +264,7 @@
 
             <!-- Variables table -->
             @if (inst.variables.length > 0) {
+              <div class="overflow-x-auto">
               <table class="w-full text-left border-collapse text-[13px]">
                 <tbody class="divide-y divide-zinc-900 font-mono text-zinc-350">
                   @for (env of inst.variables; track env.id) {
@@ -318,6 +319,7 @@
                   }
                 </tbody>
               </table>
+              </div>
             } @else {
               <div class="px-5 py-3 text-xs text-zinc-600 font-mono">No variables for this instance.</div>
             }

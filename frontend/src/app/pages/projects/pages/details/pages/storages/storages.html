@@ -50,7 +50,7 @@
           </button>
         </div>
       } @else {
-        <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow">
+        <div class="bg-zinc-900 border border-zinc-900 rounded overflow-x-auto shadow">
           <table class="w-full text-left border-collapse text-[13px]">
             <thead>
               <tr class="border-b border-zinc-900 bg-zinc-950/60 text-zinc-500 uppercase tracking-wider text-[11px] font-bold">
@@ -131,6 +131,7 @@
       } @else if (pvcs().length === 0) {
         <div class="px-5 py-6 text-center text-[13px] text-zinc-600">No persistent volumes. They appear here when an application declares <code>VOLUME</code> in its Dockerfile.</div>
       } @else {
+        <div class="overflow-x-auto">
         <table class="w-full text-left text-[13px]">
           <thead>
             <tr class="border-b border-zinc-900 text-zinc-600 uppercase tracking-wider text-[11px]">
@@ -159,6 +160,7 @@
             }
           </tbody>
         </table>
+        </div>
       }
     </div>
   } @else if (selectedPvc()) {
@@ -259,7 +261,7 @@
           }
         </div>
       } @else {
-        <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden">
+        <div class="bg-zinc-900 border border-zinc-900 rounded overflow-x-auto">
           <table class="w-full text-left text-[13px]">
             <tbody class="divide-y divide-zinc-900">
               @for (item of currentItems(); track item.filePath) {
@@ -314,7 +316,7 @@
       </div>
 
       <!-- Tab Menu -->
-      <div class="flex border-b border-zinc-900 pb-px gap-5 select-none">
+      <div class="flex border-b border-zinc-900 pb-px gap-5 select-none overflow-x-auto">
         <a 
           (click)="activeTab.set('files')"
           class="tab cursor-pointer"
@@ -689,7 +691,7 @@
 
           <!-- LIST VIEW -->
           @if (viewMode() === 'list' && currentItems().length > 0) {
-            <div class="bg-zinc-900 border border-zinc-900 rounded overflow-hidden shadow font-mono">
+            <div class="bg-zinc-900 border border-zinc-900 rounded overflow-x-auto shadow font-mono">
               <table class="w-full text-left border-collapse text-[13px]">
                 <thead>
                   <tr class="border-b border-zinc-900 bg-zinc-950/60 text-zinc-500 uppercase tracking-wider text-[11px] font-bold">
