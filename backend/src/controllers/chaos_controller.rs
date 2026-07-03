@@ -23,7 +23,8 @@ pub async fn start_chaos(
     })?;
 
     let inst = sqlx::query!(
-        r#"SELECT ai.app_id, ai.container_name, ai.replicas_min, ai.status::text AS "status!", a.workspace_id
+        r#"SELECT ai.app_id, ai.container_name, ai.replicas_min, ai.replicas_max,
+                  ai.autoscale_cpu_percent, ai.status::text AS "status!", a.workspace_id
            FROM app_instances ai JOIN apps a ON ai.app_id = a.id
            WHERE ai.id = $1 AND ai.app_id = $2 AND a.workspace_id = $3"#,
         instance_id, app_id, ws_id
@@ -44,7 +45,11 @@ pub async fn start_chaos(
         inst.app_id,
         instance_id,
         &inst.container_name,
-        inst.replicas_min,
+        crate::utils::chaos::ScalingContext {
+            replicas_min: inst.replicas_min,
+            replicas_max: inst.replicas_max,
+            autoscale_cpu_percent: inst.autoscale_cpu_percent,
+        },
         claims.sub,
         &req,
     )

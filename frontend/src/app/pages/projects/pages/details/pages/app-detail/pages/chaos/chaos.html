@@ -122,24 +122,30 @@
         <p class="text-xs text-zinc-555 mt-0.5 font-sans">Inject a controlled, auto-reverting failure to test resilience. Open the Networking &amp; Pods tab to watch the request flow degrade and recover.</p>
       </div>
       <!-- Experiment type -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <button (click)="kind = 'pod_kill'" type="button"
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <button (click)="selectKind('pod_kill')" type="button"
           class="text-left p-3 rounded border transition-all cursor-pointer"
           [class]="kind === 'pod_kill' ? 'border-rose-500/70 bg-rose-950/15 ring-1 ring-rose-500/20' : 'border-zinc-900 bg-zinc-950 hover:border-zinc-700'">
           <span class="text-[13px] font-bold text-zinc-200">💥 Pod kill</span>
           <p class="text-[11px] text-zinc-550 mt-1 font-sans">Delete pod(s); the Deployment reschedules. Tests self-healing.</p>
         </button>
-        <button (click)="kind = 'scale_down'" type="button"
+        <button (click)="selectKind('scale_down')" type="button"
           class="text-left p-3 rounded border transition-all cursor-pointer"
           [class]="kind === 'scale_down' ? 'border-indigo-500/70 bg-indigo-950/15 ring-1 ring-indigo-500/20' : 'border-zinc-900 bg-zinc-950 hover:border-zinc-700'">
           <span class="text-[13px] font-bold text-zinc-200">📉 Scale-down</span>
           <p class="text-[11px] text-zinc-550 mt-1 font-sans">Drop replicas for a window, then auto-restore. Tests redundancy.</p>
         </button>
-        <button (click)="kind = 'cpu_stress'" type="button"
+        <button (click)="selectKind('cpu_stress')" type="button"
           class="text-left p-3 rounded border transition-all cursor-pointer"
           [class]="kind === 'cpu_stress' ? 'border-orange-500/70 bg-orange-950/15 ring-1 ring-orange-500/20' : 'border-zinc-900 bg-zinc-950 hover:border-zinc-700'">
           <span class="text-[13px] font-bold text-zinc-200">🔥 CPU stress</span>
           <p class="text-[11px] text-zinc-550 mt-1 font-sans">Best-effort in-pod CPU burn (needs shell tools in the image).</p>
+        </button>
+        <button (click)="selectKind('autoscale_burst')" type="button"
+          class="text-left p-3 rounded border transition-all cursor-pointer"
+          [class]="kind === 'autoscale_burst' ? 'border-amber-500/70 bg-amber-950/15 ring-1 ring-amber-500/20' : 'border-zinc-900 bg-zinc-950 hover:border-zinc-700'">
+          <span class="text-[13px] font-bold text-zinc-200">⚡ Autoscale burst</span>
+          <p class="text-[11px] text-zinc-550 mt-1 font-sans">Burn CPU on all pods past the HPA target — watch extra pod(s) appear.</p>
         </button>
       </div>
       <!-- Per-kind parameters -->
@@ -201,6 +207,39 @@
                 </div>
               </div>
             </div>
+          }
+          @case ('autoscale_burst') {
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label class="flex flex-col gap-1 text-xs text-zinc-500 uppercase tracking-wider">
+                CPU workers / pod
+                <input type="number" min="1" max="8" [(ngModel)]="cpuWorkers"
+                  class="bg-zinc-950 border border-zinc-850 text-zinc-200 text-[13px] px-2.5 py-1.5 rounded focus:outline-none focus:border-amber-600 font-mono" />
+              </label>
+              <div class="flex flex-col gap-1 text-xs text-zinc-500 uppercase tracking-wider">
+                Duration
+                <div class="flex items-center gap-1.5">
+                  <input type="number" min="5" max="300" [(ngModel)]="durationSec"
+                    class="w-20 bg-zinc-950 border border-zinc-850 text-zinc-200 text-[13px] px-2.5 py-1.5 rounded focus:outline-none focus:border-amber-600 font-mono" />
+                  <div class="flex gap-1">
+                    @for (p of durationPresets; track p) {
+                      <button type="button" (click)="setDuration(p)"
+                        class="px-1.5 py-1 rounded text-[11px] font-bold border transition-all cursor-pointer"
+                        [class]="durationSec === p ? 'border-zinc-500 bg-zinc-800 text-zinc-50' : 'border-zinc-850 bg-zinc-950 text-zinc-500 hover:text-zinc-300'">
+                        {{ p >= 60 ? (p / 60) + 'm' : p + 's' }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+            @if (autoscaleEnabled()) {
+              <p class="text-[11px] text-zinc-600 font-sans">Keep this page open — new pod(s) show up in the Live Impact panel above once average CPU passes the HPA target (usually 30–90s in). They scale back down on their own after the burst.</p>
+            } @else {
+              <div class="flex items-center gap-2 text-xs p-2 rounded border border-amber-900/40 bg-amber-950/10">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
+                <span class="text-amber-300 font-sans">Autoscaling is off for this instance — set <span class="font-bold">max replicas</span> above min in Settings → Scaling first, or the HPA has no room to add a pod.</span>
+              </div>
+            }
           }
         }
       </div>

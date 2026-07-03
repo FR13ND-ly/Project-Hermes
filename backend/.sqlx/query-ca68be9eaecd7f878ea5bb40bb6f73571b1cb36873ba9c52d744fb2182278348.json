@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT ai.app_id, ai.container_name, ai.replicas_min, ai.status::text AS \"status!\", a.workspace_id\n           FROM app_instances ai JOIN apps a ON ai.app_id = a.id\n           WHERE ai.id = $1 AND ai.app_id = $2 AND a.workspace_id = $3",
+  "query": "SELECT ai.app_id, ai.container_name, ai.replicas_min, ai.replicas_max,\n                  ai.autoscale_cpu_percent, ai.status::text AS \"status!\", a.workspace_id\n           FROM app_instances ai JOIN apps a ON ai.app_id = a.id\n           WHERE ai.id = $1 AND ai.app_id = $2 AND a.workspace_id = $3",
   "describe": {
     "columns": [
       {
@@ -20,11 +20,21 @@
       },
       {
         "ordinal": 3,
+        "name": "replicas_max",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "autoscale_cpu_percent",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
         "name": "status!",
         "type_info": "Text"
       },
       {
-        "ordinal": 4,
+        "ordinal": 6,
         "name": "workspace_id",
         "type_info": "Uuid"
       }
@@ -40,9 +50,11 @@
       false,
       false,
       false,
+      false,
+      false,
       null,
       false
     ]
   },
-  "hash": "6058686eddb3378866e0a441265650183e524e88dd18fe0522c6438f168409ab"
+  "hash": "ca68be9eaecd7f878ea5bb40bb6f73571b1cb36873ba9c52d744fb2182278348"
 }

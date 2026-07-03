@@ -8,7 +8,7 @@ import { ChaosExperiment, StartChaosRequest } from '../../../../../../../../core
 import { ConfirmService } from '../../../../../../../../core/services/confirm.service';
 import { ToastService } from '../../../../../../../../core/services/toast.service';
 
-export type ChaosKind = 'pod_kill' | 'scale_down' | 'cpu_stress';
+export type ChaosKind = 'pod_kill' | 'scale_down' | 'cpu_stress' | 'autoscale_burst';
 
 @Component({
   selector: 'app-app-chaos',
@@ -98,6 +98,7 @@ export class AppChaosComponent implements OnInit, OnDestroy {
       case 'pod_kill': return 'Pod kill';
       case 'scale_down': return 'Scale-down';
       case 'cpu_stress': return 'CPU stress';
+      case 'autoscale_burst': return 'Autoscale burst';
       default: return k;
     }
   }
@@ -107,8 +108,30 @@ export class AppChaosComponent implements OnInit, OnDestroy {
       case 'pod_kill': return '💥';
       case 'scale_down': return '📉';
       case 'cpu_stress': return '🔥';
+      case 'autoscale_burst': return '⚡';
       default: return '⚗️';
     }
+  }
+
+  /** Select an experiment kind and load its sensible parameter defaults. */
+  selectKind(k: ChaosKind): void {
+    this.kind = k;
+    if (k === 'autoscale_burst') {
+      // The HPA needs metrics-server scrapes + its sync loop (~30–90s) before the
+      // extra pod appears, so give the burst a window long enough to watch it.
+      this.durationSec = 240;
+      this.cpuWorkers = 4;
+    } else if (k === 'cpu_stress') {
+      this.durationSec = 60;
+      this.cpuWorkers = 1;
+    }
+  }
+
+  /** True when the selected instance has an HPA range (max above min). */
+  autoscaleEnabled(): boolean {
+    const inst = this.parent.getSelectedInstance();
+    if (!inst) return false;
+    return (inst.replicasMax ?? 0) > (inst.replicasMin ?? 1);
   }
 
   /** Seconds remaining until a running experiment auto-reverts. */
@@ -145,6 +168,7 @@ export class AppChaosComponent implements OnInit, OnDestroy {
       }
       case 'scale_down': return `→ ${p.target_replicas ?? 0} replicas · ${p.duration_sec ?? 0}s`;
       case 'cpu_stress': return `${p.cpu_workers ?? 1} worker(s) · ${p.duration_sec ?? 0}s`;
+      case 'autoscale_burst': return `${p.cpu_workers ?? 4} worker(s) × ${p.stressed_pods ?? 1} pod(s) · ${p.duration_sec ?? 0}s · HPA @ ${p.hpa_cpu_target ?? '?'}%`;
       default: return '';
     }
   }
@@ -230,6 +254,7 @@ export class AppChaosComponent implements OnInit, OnDestroy {
       case 'pod_kill': return `Delete ${this.targetAllPods ? 'ALL pods' : 'one pod'} — the Deployment reschedules them.`;
       case 'scale_down': return `Scale down to ${this.targetReplicas} replica(s) for ${this.durationSec}s, then auto-restore.`;
       case 'cpu_stress': return `Burn ${this.cpuWorkers} CPU worker(s) for ${this.durationSec}s (best-effort).`;
+      case 'autoscale_burst': return `Burn ${this.cpuWorkers} CPU worker(s) on EVERY pod for ${this.durationSec}s — average CPU passes the HPA target and extra pod(s) appear in Live Impact.`;
       default: return '';
     }
   }

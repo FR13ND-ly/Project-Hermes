@@ -6,9 +6,10 @@ use chrono::{DateTime, Utc};
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StartChaosRequest {
-    /// "pod_kill" | "scale_down" | "cpu_stress".
+    /// "pod_kill" | "scale_down" | "cpu_stress" | "autoscale_burst".
     pub kind: String,
-    /// Auto-revert window in seconds (scale_down / cpu_stress). Capped server-side.
+    /// Auto-revert window in seconds (scale_down / cpu_stress / autoscale_burst).
+    /// Capped server-side.
     #[serde(default)]
     pub duration_sec: Option<i64>,
     /// pod_kill: kill all pods vs a single one (default: one).
@@ -17,7 +18,8 @@ pub struct StartChaosRequest {
     /// scale_down: replica count to drop to (default: 0).
     #[serde(default)]
     pub target_replicas: Option<i32>,
-    /// cpu_stress: number of busy-loop workers (default: 1).
+    /// cpu_stress / autoscale_burst: number of busy-loop workers per pod
+    /// (default: 1 for cpu_stress, 4 for autoscale_burst).
     #[serde(default)]
     pub cpu_workers: Option<i32>,
 }

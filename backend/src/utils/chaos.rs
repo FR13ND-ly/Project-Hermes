@@ -62,6 +62,14 @@ async fn resolve_chaos_incidents(pool: &PgPool, instance_id: Uuid) {
     .await;
 }
 
+/// The instance's replica/autoscale settings, needed to validate and describe
+/// scaling-related experiments.
+pub struct ScalingContext {
+    pub replicas_min: i32,
+    pub replicas_max: i32,
+    pub autoscale_cpu_percent: i32,
+}
+
 /// Apply a chaos fault and record the experiment. Returns the created experiment.
 #[allow(clippy::too_many_arguments)]
 pub async fn start_experiment(
@@ -70,10 +78,11 @@ pub async fn start_experiment(
     app_id: Uuid,
     instance_id: Uuid,
     container_name: &str,
-    replicas_min: i32,
+    scaling: ScalingContext,
     created_by: Uuid,
     req: &StartChaosRequest,
 ) -> Result<ChaosExperimentResponse, AppError> {
+    let replicas_min = scaling.replicas_min;
     let client = K8sManager::get_client().await?;
     let namespace = format!("hermes-ws-{}", workspace_id);
 
@@ -153,6 +162,71 @@ pub async fn start_experiment(
                 None,
                 msg,
                 serde_json::json!({ "cpu_workers": workers, "duration_sec": dur }),
+            )
+        }
+        // Burn CPU on EVERY pod so the HPA's *average* utilization crosses its target
+        // and it schedules extra pod(s) — a live demo that autoscaling actually works.
+        // New pods arrive idle, which pulls the average back down: exactly the
+        // scale-up-then-stabilize curve the user should see. Nothing to revert — the
+        // burn self-terminates and the HPA scales back after its stabilization window.
+        "autoscale_burst" => {
+            if scaling.replicas_max <= scaling.replicas_min {
+                return Err(AppError::Validation(
+                    "Autoscaling is disabled for this instance — set max replicas above min in Settings → Scaling so the HPA can add pods.".into(),
+                ));
+            }
+            // Longer default than other kinds: metrics-server scrape + HPA sync need
+            // ~30–90s before the new pod appears, so leave time to watch it happen.
+            let dur = req.duration_sec.unwrap_or(240).clamp(MIN_DURATION_SEC, MAX_DURATION_SEC);
+            let workers = req.cpu_workers.unwrap_or(4).clamp(1, 8);
+            let pods: kube::Api<k8s_openapi::api::core::v1::Pod> =
+                kube::Api::namespaced(client.clone(), &namespace);
+            let lp = kube::api::ListParams::default().labels(&format!("app={}", container_name));
+            let names: Vec<String> = pods
+                .list(&lp)
+                .await
+                .map(|l| {
+                    l.items
+                        .into_iter()
+                        .filter(|p| p.metadata.deletion_timestamp.is_none())
+                        .filter_map(|p| p.metadata.name)
+                        .collect()
+                })
+                .unwrap_or_default();
+            if names.is_empty() {
+                return Err(AppError::Validation("No running pods to stress for this instance.".into()));
+            }
+            let burn = format!(
+                "timeout {dur} sh -c 'n={workers}; i=0; while [ $i -lt $n ]; do (while true; do :; done) & i=$((i+1)); done; wait' 2>/dev/null || true",
+                dur = dur, workers = workers
+            );
+            // Fire-and-forget per pod: each exec blocks for `dur`, so don't hold the request.
+            for pod in &names {
+                let c = client.clone();
+                let ns = namespace.clone();
+                let pod = pod.clone();
+                let cmd = burn.clone();
+                tokio::spawn(async move {
+                    let _ = K8sManager::exec_in_pod(&c, &ns, &pod, vec!["sh".into(), "-c".into(), cmd]).await;
+                });
+            }
+            let msg = format!(
+                "Autoscale burst: {} CPU worker(s) on {} pod(s) for {}s — the HPA adds pods once average CPU passes {}% (max {} replicas)",
+                workers, names.len(), dur, scaling.autoscale_cpu_percent, scaling.replicas_max
+            );
+            open_incident(pool, workspace_id, instance_id, &req.kind, &msg).await;
+            (
+                "running".to_string(),
+                Some(started_at + chrono::Duration::seconds(dur)),
+                None,
+                msg,
+                serde_json::json!({
+                    "cpu_workers": workers,
+                    "duration_sec": dur,
+                    "stressed_pods": names.len(),
+                    "hpa_cpu_target": scaling.autoscale_cpu_percent,
+                    "replicas_max": scaling.replicas_max,
+                }),
             )
         }
         other => return Err(AppError::Validation(format!("Unknown chaos kind '{}'.", other))),
