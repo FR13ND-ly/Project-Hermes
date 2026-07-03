@@ -5,8 +5,6 @@ pub mod crypto;
 pub mod error;
 pub mod health;
 pub mod jwt;
-pub mod nginx_templates;
-pub mod nginx;
 pub mod storage_engine;
 pub mod string_gen;
 pub mod k8s;
