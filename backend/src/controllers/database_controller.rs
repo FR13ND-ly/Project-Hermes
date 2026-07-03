@@ -1103,6 +1103,68 @@ async fn backup_sql_via_job(
     Ok(logs.trim().to_string())
 }
 
+/// Run a user-supplied custom backup command in a one-off in-cluster Job instead of
+/// on the control plane.
+///
+/// The command runs under `/bin/sh -c` in the database's own image (which carries the
+/// matching client), in the control-plane namespace, with its stdout captured into the
+/// backup file on the mounted `hermes-backups` PVC. Connection details reach the command
+/// through the same `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_NAME` + `PGPASSWORD`/`MYSQL_PWD`/
+/// `DB_PASSWORD` env it used on the control plane — but delivered via a Secret (envFrom),
+/// so the password never lands on a command line. Because the Job pod only holds this one
+/// database's credentials (no ServiceAccount token, no encryption keys), an arbitrary
+/// command can no longer reach the rest of the cluster (security finding #1).
+///
+/// Trade-off: the command now sees the DB image's tools, not the backend image's. That
+/// covers the usual case (a `pg_dump`/`mysqldump` variant against the same engine); a
+/// command relying on tools absent from the DB image must install them itself.
+async fn backup_custom_via_job(
+    db_service: &DatabaseService,
+    host: &str,
+    password: &str,
+    db_id: Uuid,
+    backups_dir: &str,
+    filepath: &str,
+    custom_command: &str,
+) -> Result<String, AppError> {
+    let client = crate::utils::k8s::K8sManager::get_client().await?;
+    let system_ns = crate::utils::k8s::K8sManager::system_namespace();
+    let job_name = format!("backup-{}-{}", &db_id.to_string()[..8], chrono::Utc::now().format("%H%M%S"));
+
+    let envs = vec![
+        ("DB_HOST".to_string(), host.to_string()),
+        ("DB_PORT".to_string(), db_service.internal_port.to_string()),
+        ("DB_USER".to_string(), db_service.db_user.clone()),
+        ("DB_NAME".to_string(), db_service.db_name.clone()),
+        ("DB_PASSWORD".to_string(), password.to_string()),
+        ("PGPASSWORD".to_string(), password.to_string()),
+        ("MYSQL_PWD".to_string(), password.to_string()),
+    ];
+
+    // Capture the command's stdout into the backup file, matching the previous
+    // control-plane behaviour (`cmd.stdout(file)`).
+    let command = format!(
+        "mkdir -p '{dir}' && ( {custom} ) > '{file}'",
+        dir = backups_dir, custom = custom_command, file = filepath
+    );
+
+    let (logs, exit_code) = crate::utils::k8s::K8sManager::run_db_pvc_job(
+        &client, &system_ns, &job_name, &db_service.version, envs, &command, "hermes-backups",
+    )
+    .await?;
+
+    if exit_code != 0 {
+        let _ = std::fs::remove_file(filepath);
+        let detail = logs.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("").trim();
+        return Err(AppError::Infrastructure(format!(
+            "The custom backup failed (code {}). Detail: {}",
+            exit_code, detail
+        )));
+    }
+
+    Ok(logs.trim().to_string())
+}
+
 pub async fn perform_database_backup(pool: &sqlx::PgPool, db_id: Uuid, custom_command: Option<&str>) -> Result<BackupResponse, AppError> {
     let db_service = sqlx::query_as::<_, DatabaseService>("SELECT * FROM databases WHERE id = $1")
         .bind(db_id).fetch_optional(pool).await?
@@ -1156,43 +1218,23 @@ pub async fn perform_database_backup(pool: &sqlx::PgPool, db_id: Uuid, custom_co
         // installed alongside the backend (the "program not found" failure) and keeps
         // the dump tool version-matched to the server.
         backup_sql_via_job(&db_service, &host, &decrypted_password, db_id, &backups_dir, &filepath).await?
+    } else if let Some(custom) = custom_command.map(str::trim).filter(|s| !s.is_empty()) {
+        // Custom commands used to run via `/bin/sh -c` ON THE CONTROL PLANE, which
+        // carries the cluster ServiceAccount token, every encryption key and network
+        // reach to all workspace DBs — an arbitrary-command risk (security finding #1).
+        // Run it in a one-off Job in the DB's own image instead: isolated namespace,
+        // only this DB's credentials, stdout streamed straight to the backups PVC.
+        backup_custom_via_job(&db_service, &host, &decrypted_password, db_id, &backups_dir, &filepath, custom).await?
     } else {
+        // Only MongoDB (non-custom) still spawns its client on the control plane: the
+        // mongo *server* image lacks mongodump, so a Job can't reuse `db_service.version`
+        // the way SQL does. Moving this off needs a dedicated mongo-tools image present
+        // on the cluster (follow-up).
         let file = std::fs::File::create(&filepath).map_err(|e| AppError::Fatal(anyhow::anyhow!("Failed to create backup file: {}", e)))?;
-        let mut cmd;
-        if let Some(custom) = custom_command.map(str::trim).filter(|s| !s.is_empty()) {
-            cmd = std::process::Command::new("/bin/sh");
-            cmd.arg("-c").arg(custom);
-            cmd.env("PGPASSWORD", &decrypted_password);
-            cmd.env("MYSQL_PWD", &decrypted_password);
-            cmd.env("DB_HOST", &host);
-            cmd.env("DB_PORT", &port_s);
-            cmd.env("DB_USER", &db_service.db_user);
-            cmd.env("DB_NAME", &db_service.db_name);
-            cmd.env("DB_PASSWORD", &decrypted_password);
-        } else {
-            match db_service.r#type {
-                DbType::Postgres => {
-                    cmd = std::process::Command::new("pg_dump");
-                    cmd.env("PGPASSWORD", &decrypted_password);
-                    cmd.args(["--clean", "--if-exists", "-h", host.as_str(), "-p", port_s.as_str(),
-                              "-U", db_service.db_user.as_str(), "-d", db_service.db_name.as_str()]);
-                }
-                DbType::Mysql => {
-                    cmd = std::process::Command::new("mysqldump");
-                    cmd.env("MYSQL_PWD", &decrypted_password);
-                    cmd.args(["--add-drop-table", "-h", host.as_str(), "-P", port_s.as_str(),
-                              "-u", db_service.db_user.as_str(), db_service.db_name.as_str()]);
-                }
-                DbType::Mongodb => {
-                    cmd = std::process::Command::new("mongodump");
-                    cmd.args(["--host", host.as_str(), "--port", port_s.as_str(),
-                              "--username", db_service.db_user.as_str(), "--password", decrypted_password.as_str(),
-                              "--authenticationDatabase", "admin", "--archive"]);
-                }
-                DbType::Redis => unreachable!("redis (non-custom) handled above"),
-            }
-        }
-
+        let mut cmd = std::process::Command::new("mongodump");
+        cmd.args(["--host", host.as_str(), "--port", port_s.as_str(),
+                  "--username", db_service.db_user.as_str(), "--password", decrypted_password.as_str(),
+                  "--authenticationDatabase", "admin", "--archive"]);
         cmd.stdout(std::process::Stdio::from(file));
         cmd.stderr(std::process::Stdio::piped());
 
