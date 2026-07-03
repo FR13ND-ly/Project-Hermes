@@ -1,10 +1,11 @@
-import { Component, inject, signal, computed, OnInit, OnDestroy, effect } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy, effect, DestroyRef } from '@angular/core';
 
 import { ActivatedRoute, Router, RouterLink, RouterOutlet, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { Details } from '../../../../details';
 import { ProjectService, ServerlessInstance } from '../../../../../../../../core/services/project.service';
 import { ToastService } from '../../../../../../../../core/services/toast.service';
 import { WebSocketService } from '../../../../../../../../core/services/websocket.service';
+import { BreadcrumbService } from '../../../../../../../../core/services/breadcrumb.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -25,6 +26,10 @@ export class ServerlessDetailComponent implements OnInit, OnDestroy {
   readonly selectedInstance = signal<ServerlessInstance | null>(null);
   readonly loading = signal(false);
   readonly deploying = signal(false);
+
+  private readonly breadcrumb = inject(BreadcrumbService);
+  private readonly crumbEffect = effect(() => this.breadcrumb.set(this.selectedInstance()?.name ?? null));
+  private readonly crumbCleanup = inject(DestroyRef).onDestroy(() => this.breadcrumb.clear());
 
   // Two-tier tab nav: groups the 7 flat routes by purpose (URLs unchanged).
   readonly tabGroups: { id: string; label: string; default: string; tabs: { path: string; label: string }[] }[] = [

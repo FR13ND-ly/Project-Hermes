@@ -1,8 +1,9 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, effect, DestroyRef } from '@angular/core';
 
 import { ActivatedRoute, RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
 import { Storages } from '../../storages';
 import { DangerZone } from '../../../../../../../../shared/components/danger-zone/danger-zone';
+import { BreadcrumbService } from '../../../../../../../../core/services/breadcrumb.service';
 
 @Component({
   selector: 'app-storage-detail',
@@ -13,6 +14,10 @@ import { DangerZone } from '../../../../../../../../shared/components/danger-zon
 export class StorageDetailComponent implements OnInit, OnDestroy {
   readonly parent = inject(Storages);
   private readonly route = inject(ActivatedRoute);
+
+  private readonly breadcrumb = inject(BreadcrumbService);
+  private readonly crumbEffect = effect(() => this.breadcrumb.set(this.parent.selectedBucket()?.name ?? null));
+  private readonly crumbCleanup = inject(DestroyRef).onDestroy(() => this.breadcrumb.clear());
 
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {

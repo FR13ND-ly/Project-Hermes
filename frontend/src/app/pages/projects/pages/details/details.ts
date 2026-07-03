@@ -6,6 +6,12 @@ import { ProjectService, AppDetail, Project } from '../../../../core/services/pr
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth';
 import { WebSocketService } from '../../../../core/services/websocket.service';
+import { BreadcrumbService } from '../../../../core/services/breadcrumb.service';
+
+interface Crumb {
+  label: string;
+  link?: string;
+}
 
 @Component({
   selector: 'app-details',
@@ -20,6 +26,7 @@ export class Details implements OnInit, OnDestroy {
   readonly toast = inject(ToastService);
   readonly authService = inject(AuthService);
   private readonly wsService = inject(WebSocketService);
+  private readonly breadcrumbSvc = inject(BreadcrumbService);
 
   private refreshInterval: any = null;
   private sub = new Subscription();
@@ -172,6 +179,63 @@ export class Details implements OnInit, OnDestroy {
   get isInAppDetailContext(): boolean {
     const urlParts = this.router.url.split('?')[0].split('/');
     return urlParts.length >= 5 && urlParts[3] === 'apps' && !!urlParts[4] && urlParts[4] !== 'create';
+  }
+
+  /** Section slug (URL) → breadcrumb label. */
+  private static readonly SECTION_LABELS: Record<string, string> = {
+    apps: 'Applications',
+    databases: 'Databases',
+    storages: 'Storage',
+    serverless: 'Serverless',
+    cron: 'Cron Jobs',
+    networking: 'Networking',
+    environments: 'Environments',
+    settings: 'Settings',
+    'auth-management': 'Authentication',
+    incidents: 'Incidents',
+  };
+
+  /**
+   * Full breadcrumb trail derived from the current URL:
+   * Projects / {project} [/ {section} [/ {resource-name} | Create]].
+   * Resource names come from the loaded apps list (apps) or from the
+   * BreadcrumbService, which the resource-detail page fills once its data
+   * loads; until then an ellipsis placeholder shows. Sub-tabs (overview,
+   * telemetry, …) are intentionally not part of the trail — they're visible
+   * as tabs on the page itself.
+   */
+  get breadcrumbs(): Crumb[] {
+    const id = this.projectId();
+    const base = `/projects/${id}`;
+    const crumbs: Crumb[] = [
+      { label: 'Projects', link: '/projects' },
+      { label: this.project()?.name || '…', link: base },
+    ];
+
+    const parts = this.router.url.split('?')[0].split('#')[0].split('/').filter(Boolean);
+    // parts: ['projects', id, section?, resource?, ...tabs]
+    const section = parts[2];
+    if (!section) return crumbs;
+
+    const sectionLabel = Details.SECTION_LABELS[section];
+    if (!sectionLabel) return crumbs;
+    crumbs.push({ label: sectionLabel, link: `${base}/${section}` });
+
+    const resource = parts[3];
+    if (!resource) return crumbs;
+
+    if (resource === 'create') {
+      crumbs.push({ label: 'Create' });
+      return crumbs;
+    }
+
+    let name: string | null = null;
+    if (section === 'apps') {
+      name = this.apps().find(a => a.id === resource)?.name || null;
+    }
+    name = name || this.breadcrumbSvc.resourceName();
+    crumbs.push({ label: name || '…', link: `${base}/${section}/${resource}` });
+    return crumbs;
   }
 
   get activeTab(): string {

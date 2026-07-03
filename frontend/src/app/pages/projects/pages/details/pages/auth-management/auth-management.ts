@@ -1,4 +1,4 @@
-import { Component, inject, signal, effect, computed } from '@angular/core';
+import { Component, inject, signal, effect, computed, DestroyRef } from '@angular/core';
 import { RouterLink, RouterOutlet, RouterLinkActive, ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -8,6 +8,7 @@ import { ProjectService } from '../../../../../../core/services/project.service'
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmService } from '../../../../../../core/services/confirm.service';
 import { DangerZone } from '../../../../../../shared/components/danger-zone/danger-zone';
+import { BreadcrumbService } from '../../../../../../core/services/breadcrumb.service';
 
 @Component({
   selector: 'app-auth-management-detail',
@@ -36,6 +37,10 @@ export class AuthManagementDetail {
   readonly selectedService = signal<BaasService | null>(null);
   readonly serviceId = signal<string | null>(null);
   readonly loadingServices = signal(false);
+
+  private readonly breadcrumb = inject(BreadcrumbService);
+  private readonly crumbEffect = effect(() => this.breadcrumb.set(this.selectedService()?.name ?? null));
+  private readonly crumbCleanup = inject(DestroyRef).onDestroy(() => this.breadcrumb.clear());
 
   // Integration tab
   readonly integration = signal<AuthIntegration | null>(null);

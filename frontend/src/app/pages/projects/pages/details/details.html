@@ -3,12 +3,19 @@
   
   <!-- Breadcrumbs & Header -->
   <div class="space-y-3">
-    <!-- Breadcrumbs -->
-    <div class="flex items-center gap-2 text-[13px] text-zinc-500">
-      <a routerLink="/projects" class="hover:text-zinc-300 transition-colors">Projects</a>
-      <span class="text-zinc-700" aria-hidden="true">/</span>
-      <span class="text-zinc-200 font-medium">{{ project()?.name }}</span>
-    </div>
+    <!-- Breadcrumbs: full trail (project / section / resource), every ancestor clickable -->
+    <nav class="flex items-center gap-2 text-[13px] text-zinc-500 min-w-0 flex-wrap" aria-label="Breadcrumb">
+      @for (c of breadcrumbs; track $index; let last = $last) {
+        @if (!last && c.link) {
+          <a [routerLink]="c.link" class="hover:text-zinc-300 transition-colors truncate max-w-[180px]">{{ c.label }}</a>
+        } @else {
+          <span class="text-zinc-200 font-medium truncate max-w-[220px]" aria-current="page">{{ c.label }}</span>
+        }
+        @if (!last) {
+          <span class="text-zinc-700 shrink-0" aria-hidden="true">/</span>
+        }
+      }
+    </nav>
 
     <!-- Title row: name + app context (left) · status + actions (right) -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

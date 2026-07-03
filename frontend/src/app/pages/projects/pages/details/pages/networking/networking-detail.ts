@@ -1,6 +1,7 @@
-import { Component, inject, signal, OnInit, OnDestroy, effect } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, effect, DestroyRef } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
 import { Details } from '../../details';
+import { BreadcrumbService } from '../../../../../../core/services/breadcrumb.service';
 import { DatabaseService } from '../../../../../../core/services/database.service';
 import { DomainService, Domain, DomainRoutingType } from '../../../../../../core/services/domain.service';
 import { ProjectService, ServerlessInstance } from '../../../../../../core/services/project.service';
@@ -26,6 +27,10 @@ export class NetworkingDetail implements OnInit, OnDestroy {
   readonly selectedRoute = signal<UnifiedRoute | null>(null);
   readonly routeId = signal<string | null>(null);
   readonly loading = signal(false);
+
+  private readonly breadcrumb = inject(BreadcrumbService);
+  private readonly crumbEffect = effect(() => this.breadcrumb.set(this.selectedRoute()?.fqdn ?? null));
+  private readonly crumbCleanup = inject(DestroyRef).onDestroy(() => this.breadcrumb.clear());
 
   // Deep Routing panel settings states
   readonly editRoutingType = signal<DomainRoutingType>('reverse_proxy');
