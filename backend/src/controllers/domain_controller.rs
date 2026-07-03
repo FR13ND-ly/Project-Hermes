@@ -436,12 +436,24 @@ pub async fn add_domain(
         }
     }
 
-    // Keep the serverless function aware of its public domain.
-    if payload.target_type == "serverless" {
-        if let Some(fn_id) = payload.target_id {
-            let _ = sqlx::query!("UPDATE serverless_instances SET assigned_domain = $1, updated_at = now() WHERE id = $2", fqdn, fn_id)
-                .execute(&state.pool).await;
+    // Mirror the domain onto the target instance's `assigned_domain` so the rest of the
+    // platform sees it: the apps/serverless lists render this field, and the builder
+    // reads it to re-create the Ingress on the next redeploy. Without this the domain
+    // lived only in the `domains` table and never surfaced on an app.
+    match payload.target_type.as_str() {
+        "serverless" => {
+            if let Some(fn_id) = payload.target_id {
+                let _ = sqlx::query!("UPDATE serverless_instances SET assigned_domain = $1, updated_at = now() WHERE id = $2", fqdn, fn_id)
+                    .execute(&state.pool).await;
+            }
         }
+        "app" => {
+            if let Some(instance_id) = payload.target_id {
+                let _ = sqlx::query!("UPDATE app_instances SET assigned_domain = $1 WHERE id = $2", fqdn, instance_id)
+                    .execute(&state.pool).await;
+            }
+        }
+        _ => {}
     }
 
     Ok((
@@ -622,12 +634,21 @@ pub async fn remove_domain(
         cloudflare::delete_dns_record(&zone_id, &record_id, cf.api_token.as_deref()).await?;
     }
 
-    // Clear the serverless function's domain reference.
-    if domain.target_type == "serverless" {
-        if let Some(fn_id) = domain.target_id {
-            let _ = sqlx::query!("UPDATE serverless_instances SET assigned_domain = NULL, updated_at = now() WHERE id = $1", fn_id)
-                .execute(&state.pool).await;
+    // Clear the target instance's domain reference (mirrors add_domain).
+    match domain.target_type.as_str() {
+        "serverless" => {
+            if let Some(fn_id) = domain.target_id {
+                let _ = sqlx::query!("UPDATE serverless_instances SET assigned_domain = NULL, updated_at = now() WHERE id = $1", fn_id)
+                    .execute(&state.pool).await;
+            }
         }
+        "app" => {
+            if let Some(instance_id) = domain.target_id {
+                let _ = sqlx::query!("UPDATE app_instances SET assigned_domain = NULL WHERE id = $1", instance_id)
+                    .execute(&state.pool).await;
+            }
+        }
+        _ => {}
     }
 
     let dns_only = domain.target_type == "database";
