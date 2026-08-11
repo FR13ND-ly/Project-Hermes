@@ -1,6 +1,6 @@
 use axum::{extract::State, http::StatusCode, Json};
 use uuid::Uuid;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::app_state::AppState;
 use crate::dtos::compose_dto::{
@@ -160,6 +160,89 @@ pub async fn apply_compose_plan(
 
     let branch = payload.branch_name.clone().unwrap_or_else(|| "main".to_string());
 
+    // Applying a compose plan touches several tables and starts asynchronous
+    // provisioning. Serialize each workspace so two replicas (or two requests)
+    // cannot both pass preflight and create the same stack resources.
+    let _workspace_lock = crate::utils::locks::acquire_workspace_lock(&state.pool, ws_id).await?;
+
+    // Validate the complete plan before the first write. Databases used to be
+    // inserted before existing app aliases were checked, so re-applying a stack
+    // returned a conflict but left a newly-created duplicate database behind.
+    let mut seen_aliases: HashSet<String> = HashSet::new();
+    let mut seen_slugs: HashSet<String> = HashSet::new();
+    for app in payload.plan.apps.iter().filter(|a| a.include) {
+        let slug = app.name.trim().to_lowercase().replace([' ', '_'], "-");
+        if !seen_slugs.insert(slug.clone()) {
+            return Err(AppError::Validation(format!(
+                "The application name '{}' appears twice in this stack.", app.name
+            )));
+        }
+
+        let app_exists = sqlx::query_scalar::<_, bool>(
+            "SELECT EXISTS(SELECT 1 FROM apps WHERE workspace_id = $1 AND slug = $2)",
+        )
+        .bind(ws_id)
+        .bind(&slug)
+        .fetch_one(&state.pool)
+        .await?;
+        if app_exists {
+            return Err(AppError::Conflict(format!(
+                "The compose stack already contains application '{}'. Redeploy the existing application instead of applying the stack again.",
+                app.name
+            )));
+        }
+
+        let alias = match app.network_name.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            Some(custom) => crate::utils::string_gen::sanitize_k8s_name(custom),
+            None => crate::utils::string_gen::sanitize_k8s_name(&format!("hermes-app-{}-{}", slug, branch)),
+        };
+        if !seen_aliases.insert(alias.clone()) {
+            return Err(AppError::Validation(format!(
+                "The service name '{}' appears twice in this stack.", alias
+            )));
+        }
+        let alias_taken = sqlx::query_scalar::<_, bool>(
+            "SELECT EXISTS(SELECT 1 FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE a.workspace_id = $1 AND ai.network_alias = $2)",
+        )
+        .bind(ws_id)
+        .bind(&alias)
+        .fetch_one(&state.pool)
+        .await?;
+        if alias_taken {
+            return Err(AppError::Conflict(format!(
+                "The service name '{}' is already used in this workspace. Choose another.", alias
+            )));
+        }
+    }
+
+    let mut seen_databases: HashSet<(String, String)> = HashSet::new();
+    for db in payload.plan.databases.iter().filter(|d| d.include) {
+        let identity = (db.name.trim().to_lowercase(), db.db_type.trim().to_lowercase());
+        if !seen_databases.insert(identity.clone()) {
+            return Err(AppError::Validation(format!(
+                "The database '{}' ({}) appears twice in this stack.", db.name, db.db_type
+            )));
+        }
+
+        let db_exists = sqlx::query_scalar::<_, bool>(
+            "SELECT EXISTS(
+                SELECT 1 FROM databases
+                WHERE project_id = $1 AND LOWER(name) = $2 AND type::text = $3
+            )",
+        )
+        .bind(payload.project_id)
+        .bind(&identity.0)
+        .bind(&identity.1)
+        .fetch_one(&state.pool)
+        .await?;
+        if db_exists {
+            return Err(AppError::Conflict(format!(
+                "Database '{}' already exists in this project. The compose stack was not applied again.",
+                db.name
+            )));
+        }
+    }
+
     // 1. Databases — service name → published project_env id (for depends_on links).
     let mut db_env_by_service: HashMap<String, Uuid> = HashMap::new();
     for db in payload.plan.databases.iter().filter(|d| d.include) {
@@ -225,31 +308,6 @@ pub async fn apply_compose_plan(
         crate::controllers::database_controller::spawn_db_provisioning(
             state.pool.clone(), ws_id, db_id, db_type, container_name, full_image, db_user, raw_password, db_name, db.internal_port, 0, 0, false, None,
         );
-    }
-
-    // Validate service aliases are unique (within this stack + across the workspace)
-    // before creating anything — services share the namespace.
-    let mut seen_aliases: Vec<String> = Vec::new();
-    for app in payload.plan.apps.iter().filter(|a| a.include) {
-        let slug = app.name.trim().to_lowercase().replace([' ', '_'], "-");
-        let alias = match app.network_name.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-            Some(custom) => crate::utils::string_gen::sanitize_k8s_name(custom),
-            None => crate::utils::string_gen::sanitize_k8s_name(&format!("hermes-app-{}-{}", slug, branch)),
-        };
-        if seen_aliases.contains(&alias) {
-            return Err(AppError::Validation(format!("The service name '{}' appears twice in this stack.", alias)));
-        }
-        seen_aliases.push(alias.clone());
-        let taken = sqlx::query_scalar::<_, bool>(
-            "SELECT EXISTS(SELECT 1 FROM app_instances ai JOIN apps a ON ai.app_id = a.id WHERE a.workspace_id = $1 AND ai.network_alias = $2)",
-        )
-        .bind(ws_id)
-        .bind(&alias)
-        .fetch_one(&state.pool)
-        .await?;
-        if taken {
-            return Err(AppError::Conflict(format!("The service name '{}' is already used in this workspace. Choose another.", alias)));
-        }
     }
 
     // 2. Pass 1: Create apps in DB + conditionally generate BaaS auth secrets.
