@@ -44,7 +44,7 @@ pub async fn create_database(
     let container_name = format!("h-db-{}-{}", type_str, &db_id.to_string()[..8]);
     
     let (image_name, version) = match payload.r#type {
-        DbType::Postgres => ("postgres", payload.version.clone().unwrap_or_else(|| "alpine".to_string())),
+        DbType::Postgres => ("postgres", payload.version.clone().unwrap_or_else(|| "18-alpine".to_string())),
         DbType::Redis => ("redis", payload.version.clone().unwrap_or_else(|| "alpine".to_string())),
         DbType::Mongodb => ("mongo", payload.version.clone().unwrap_or_else(|| "6.0".to_string())),
         DbType::Mysql => ("mysql", payload.version.clone().unwrap_or_else(|| "8.0".to_string())),
