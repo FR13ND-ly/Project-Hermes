@@ -1006,15 +1006,38 @@ impl K8sManager {
         Self::create_secret(client, namespace, name, secret_envs).await?;
 
         // Determine mountPath dynamically based on the database image type
-        let mount_path = if is_postgres {
+        // PostgreSQL 17 si mai vechi folosesc /var/lib/postgresql/data.
+        // subPath pastreaza compatibilitatea cu PVC-urile restaurate.
+        let postgres_major = image_lower
+            .rsplit('/')
+            .next()
+            .and_then(|name| name.split_once(':'))
+            .and_then(|(_, tag)| tag.split(|c: char| !c.is_ascii_digit()).next())
+            .and_then(|digits| digits.parse::<u32>().ok());
+        
+        let legacy_postgres =
+            is_postgres && matches!(postgres_major, Some(1..=17));
+        
+        let mount_path = if legacy_postgres {
+            "/var/lib/postgresql/data"
+        } else if is_postgres {
             "/var/lib/postgresql"
         } else if image_lower.contains("mysql") {
             "/var/lib/mysql"
         } else if is_mongo {
             "/data/db"
         } else {
-            "/data" // redis and default
+            "/data"
         };
+        
+        let mut volume_mount = json!({
+            "name": "db-storage",
+            "mountPath": mount_path
+        });
+        
+        if legacy_postgres {
+            volume_mount["subPath"] = json!("data");
+        }
 
         let mut resources = json!({});
         if cpu_limit > 0 || memory_limit_mb > 0 {
@@ -1039,7 +1062,7 @@ impl K8sManager {
             "image": image,
             "ports": [{ "containerPort": port }],
             "envFrom": [{ "secretRef": { "name": format!("{}-env", name) } }],
-            "volumeMounts": [{ "name": "db-storage", "mountPath": mount_path }],
+            "volumeMounts": [volume_mount],
             "resources": resources,
             "readinessProbe": {
                 "tcpSocket": { "port": port },
